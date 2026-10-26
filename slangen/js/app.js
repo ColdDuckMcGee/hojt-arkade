@@ -103,6 +103,30 @@
   $('#btn-start').addEventListener('click', function () { audio.play('click'); startGame(); });
   $('#btn-settings').addEventListener('click', function () { audio.play('click'); openSettings('menu'); });
   $('#btn-records').addEventListener('click', function () { audio.play('click'); openRecords(slangen.get('boardSize')); });
+  // Tilbage til hallen: stop lyd, gem indstillinger, gå til forsiden
+  function stopAllSound() {
+    try { audio.setMusic(false); audio.setSfx(false); } catch (e) { /* ingen lyd */ }
+  }
+  function flushSettings() {
+    [arkade, slangen].forEach(function (s) {
+      try { localStorage.setItem(s.storageKey, JSON.stringify(s.all())); } catch (e) { /* hukommelse */ }
+    });
+  }
+  var leaving = false;
+  $('#btn-hallen').addEventListener('click', function () {
+    if (leaving) return;
+    leaving = true;
+    stopAllSound();
+    flushSettings();
+    window.location.href = '../index.html';
+  });
+  window.addEventListener('pagehide', stopAllSound);
+  window.addEventListener('pageshow', function (e) {
+    if (e.persisted) {   // kommer tilbage via browserens tilbage-knap
+      leaving = false;
+      audio.setSfx(arkade.get('sound')); audio.setMusic(arkade.get('music'));
+    }
+  });
   $('#btn-om').addEventListener('click', function () { audio.play('click'); show('om'); });
   $('#btn-om-back').addEventListener('click', function () { audio.play('click'); show('menu'); });
 
