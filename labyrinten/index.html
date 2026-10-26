@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="da" data-theme="neon">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0c0612">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Labyrinten – Hojt Arkade</title>
+<link rel="icon" href="../arkade/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../arkade/arkade.css">
+<link rel="stylesheet" href="css/labyrinten.css">
+</head>
+<body>
+<canvas id="baggrund" aria-hidden="true"></canvas>
+
+<!-- Fælles symboler: hjerte og spøgelse. Alt er SVG, ingen billeder eller emoji. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="lb-heart" viewBox="0 0 100 100">
+      <path d="M50 86 C20 64 8 48 8 32 C8 18 19 9 31 9 C40 9 46 14 50 21 C54 14 60 9 69 9 C81 9 92 18 92 32 C92 48 80 64 50 86 Z"/>
+    </symbol>
+    <symbol id="lb-ghost" viewBox="0 0 100 100">
+      <path d="M12 92 V46 A38 38 0 0 1 88 46 V92 Q75 80 63 92 Q50 80 37 92 Q25 80 12 92 Z"/>
+    </symbol>
+  </defs>
+</svg>
+
+<!-- ================= STARTMENU ================= -->
+<main id="menu" class="screen" aria-labelledby="titel">
+  <!-- Tilbage til hallen: i øverste venstre hjørne, langt fra "Start spil" og mere afdæmpet -->
+  <button class="btn hall-btn" id="btn-hall" data-href="../index.html">
+    <svg class="hall-ico" viewBox="0 0 100 100" aria-hidden="true">
+      <path d="M44 22 L14 50 L44 78 V60 H86 V40 H44 Z"/>
+    </svg>
+    <span class="big">Tilbage til hallen</span>
+  </button>
+  <header class="title-block">
+    <div class="title-row">
+      <img class="arkade-logo" src="../arkade/logo.svg" alt="Hojt Arkade">
+      <h1 id="titel" class="neon-title">LABYRINTEN</h1>
+    </div>
+    <p class="lead">Vælg en pil, så glider du hen til næste sving eller kryds. Spis alle prikkerne, og undgå spøgelserne. De flytter sig kun, når du gør, og en lille pil viser, hvor de er på vej hen. Der er ingen tid – tænk dig om.</p>
+  </header>
+  <div class="menu-choices">
+    <section class="menu-group" aria-labelledby="svaer-label">
+      <h2 id="svaer-label" class="group-label">Sværhedsgrad</h2>
+      <div class="row" role="group" aria-labelledby="svaer-label">
+        <button class="btn option" data-difficulty="rolig" aria-pressed="false"><span class="big">Rolig</span><span class="small">Langsomme spøgelser</span></button>
+        <button class="btn option" data-difficulty="normal" aria-pressed="false"><span class="big">Normal</span><span class="small">Som i arkaden</span></button>
+        <button class="btn option" data-difficulty="svaer" aria-pressed="false"><span class="big">Svær</span><span class="small">Kloge spøgelser</span></button>
+      </div>
+    </section>
+    <section class="menu-group" aria-labelledby="str-label">
+      <h2 id="str-label" class="group-label">Labyrintens størrelse</h2>
+      <div class="row" role="group" aria-labelledby="str-label">
+        <button class="btn option" data-size="lille" aria-pressed="false"><span class="big">Lille</span><span class="small">11 × 11</span></button>
+        <button class="btn option" data-size="mellem" aria-pressed="false"><span class="big">Mellem</span><span class="small">15 × 13</span></button>
+        <button class="btn option" data-size="stor" aria-pressed="false"><span class="big">Stor</span><span class="small">19 × 15</span></button>
+      </div>
+    </section>
+  </div>
+  <p class="diff-note" id="diff-note" aria-live="polite"></p>
+  <div class="row">
+    <button class="btn primary wide" id="btn-start"><span class="big">Start spil</span><span class="small">Tre liv</span></button>
+  </div>
+  <div class="row">
+    <button class="btn" id="btn-settings"><span class="icon" aria-hidden="true">⚙</span><span class="big">Indstillinger</span></button>
+    <button class="btn" id="btn-records"><span class="icon" aria-hidden="true">★</span><span class="big">Rekorder</span></button>
+    <button class="btn js-fullscreen"><span class="icon" aria-hidden="true">⛶</span><span class="big js-fs-label">Fuld skærm</span></button>
+    <button class="btn" id="btn-om"><span class="icon" aria-hidden="true">ⓘ</span><span class="big">Om</span></button>
+  </div>
+</main>
+
+<!-- ================= OM ================= -->
+<main id="om" class="screen" hidden aria-labelledby="om-title">
+  <img class="arkade-logo om-logo" src="../arkade/logo.svg" alt="Hojt Arkade">
+  <section class="panel om-panel">
+    <h2 id="om-title" class="neon-sub">Om Hojt Arkade</h2>
+    <p>Hojt Arkade er udviklet af Jon Leismann Engsager, Hojt Design. Jon er IT- og IKT-konsulent i det specialiserede område og laver blandt andet gratis spil til voksne, der bruger øjenstyring.</p>
+    <p>Labyrinten: 10 point for en prik og 50 point for en kraftpille. Efter en kraftpille er spøgelserne bange i et antal felter, og et spist spøgelse giver 200, 400, 800 og 1.600 point. Hviler blikket på en pil, viser brættet, hvor du ender, og hvor spøgelserne står bagefter.</p>
+    <p>Koden er åben og frit tilgængelig under MIT-licensen, så alle kan bruge den og bygge videre på den.</p>
+  </section>
+  <div class="row">
+    <a class="btn link-btn" id="link-hojt" href="https://hojt.dk" target="_blank" rel="noopener"><span class="big">Hojt Design</span><span class="small">hojt.dk</span></a>
+    <a class="btn link-btn" id="link-github" href="https://github.com/ColdDuckMcGee/hojt-arkade" target="_blank" rel="noopener"><span class="big">Koden på GitHub</span><span class="small">github.com/ColdDuckMcGee/hojt-arkade</span></a>
+  </div>
+  <div class="row">
+    <button class="btn primary wide" id="btn-om-back"><span class="icon" aria-hidden="true">←</span><span class="big">Tilbage</span></button>
+    <a class="btn" id="link-alle-spil" href="../index.html"><span class="icon" aria-hidden="true">▦</span><span class="big">Alle spil</span></a>
+  </div>
+</main>
+
+<!-- ================= SPIL ================= -->
+<main id="game" class="screen" hidden aria-label="Spillet">
+  <div class="game-grid" id="game-grid">
+    <button class="btn pause-btn" id="btn-pause" aria-label="Pause">
+      <svg viewBox="0 0 100 100" aria-hidden="true"><rect x="24" y="20" width="18" height="60" rx="4"/><rect x="58" y="20" width="18" height="60" rx="4"/></svg>
+      <span class="small">Pause</span>
+    </button>
+    <button class="btn arrow arrow-up" data-dir="up" data-dwell-repeat aria-label="Op">
+      <svg viewBox="0 0 100 100" aria-hidden="true"><path d="M50 12 L84 50 H63 V88 H37 V50 H16 Z"/></svg>
+    </button>
+    <div class="hud hud-score" aria-live="polite">
+      <div class="hud-label">Point</div>
+      <div class="hud-value" id="hud-score">0</div>
+      <div class="hud-sub" id="hud-best">Rekord 0</div>
+    </div>
+
+    <button class="btn arrow arrow-left" data-dir="left" data-dwell-repeat aria-label="Venstre">
+      <svg viewBox="0 0 100 100" aria-hidden="true"><path d="M12 50 L50 16 V37 H88 V63 H50 V84 Z"/></svg>
+    </button>
+    <div class="board-wrap" id="board-wrap">
+      <canvas id="board" aria-label="Labyrinten"></canvas>
+      <p class="sr-only" id="board-status" aria-live="polite"></p>
+    </div>
+    <button class="btn arrow arrow-right" data-dir="right" data-dwell-repeat aria-label="Højre">
+      <svg viewBox="0 0 100 100" aria-hidden="true"><path d="M88 50 L50 16 V37 H12 V63 H50 V84 Z"/></svg>
+    </button>
+
+    <div class="hud hud-level">
+      <div class="hud-label">Bane</div>
+      <div class="hud-value" id="hud-level">1</div>
+      <div class="hearts" id="hud-lives" role="img" aria-label="3 liv"></div>
+    </div>
+    <button class="btn arrow arrow-down" data-dir="down" data-dwell-repeat aria-label="Ned">
+      <svg viewBox="0 0 100 100" aria-hidden="true"><path d="M50 88 L84 50 H63 V12 H37 V50 H16 Z"/></svg>
+    </button>
+    <div class="hud hud-fright" id="hud-fright" aria-live="polite">
+      <div class="hud-label"><svg class="mini-ghost" aria-hidden="true"><use href="#lb-ghost"/></svg>Bange</div>
+      <div class="hud-value" id="hud-fright-value">–</div>
+      <div class="hud-sub" id="hud-fright-text">ingen lige nu</div>
+    </div>
+  </div>
+
+  <div class="overlay" id="pause-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="pause-title">
+    <div class="panel">
+      <h2 id="pause-title" class="neon-sub">Pause</h2>
+      <p class="muted">Spillet venter på dig. Intet sker, før du vælger.</p>
+      <div class="row">
+        <button class="btn primary wide" id="btn-resume"><span class="big">Fortsæt</span></button>
+      </div>
+      <div class="row">
+        <button class="btn" id="btn-pause-settings"><span class="icon" aria-hidden="true">⚙</span><span class="big">Indstillinger</span></button>
+        <button class="btn js-fullscreen"><span class="icon" aria-hidden="true">⛶</span><span class="big js-fs-label">Fuld skærm</span></button>
+        <button class="btn" id="btn-quit"><span class="icon" aria-hidden="true">⌂</span><span class="big">Til menuen</span></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay soft" id="caught-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="caught-title">
+    <div class="panel">
+      <h2 id="caught-title" class="neon-sub">Fanget!</h2>
+      <p class="muted" id="caught-text">Du har 2 liv tilbage. Alle stiller sig på plads igen, og prikkerne bliver liggende.</p>
+      <div class="row">
+        <button class="btn primary wide" id="btn-continue"><span class="big">Fortsæt</span></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay soft" id="clear-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="clear-title">
+    <div class="panel">
+      <h2 id="clear-title" class="neon-sub">Banen er ryddet!</h2>
+      <p class="clear-score" id="clear-score">0 point</p>
+      <p class="muted" id="clear-next">Næste labyrint har 4 spøgelser.</p>
+      <div class="row">
+        <button class="btn primary wide" id="btn-next"><span class="big">Næste bane</span><span class="small" id="btn-next-sub">Bane 2</span></button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ================= GAME OVER ================= -->
+<main id="gameover" class="screen" hidden aria-labelledby="go-title">
+  <div class="go-layout">
+    <section class="go-result">
+      <h2 id="go-title" class="neon-sub">Spillet er slut</h2>
+      <p class="go-reason" id="go-reason">Spøgelserne fangede dig på bane 1.</p>
+      <div class="go-score"><span id="go-score">0</span><span class="go-unit">point</span></div>
+      <p class="go-levels" id="go-levels">0 baner ryddet</p>
+      <p class="go-rank" id="go-rank"></p>
+      <div class="row">
+        <button class="btn primary wide" id="btn-again" data-autofocus><span class="big">Nyt spil</span><span class="small" id="go-again-sub">Normal · mellem</span></button>
+      </div>
+      <div class="row">
+        <button class="btn" id="btn-go-menu"><span class="icon" aria-hidden="true">⌂</span><span class="big">Til menuen</span></button>
+        <a class="btn" href="../index.html"><span class="icon" aria-hidden="true">▦</span><span class="big">Alle spil</span></a>
+      </div>
+    </section>
+    <section class="go-records panel">
+      <h3 class="group-label" id="go-records-title">Rekorder</h3>
+      <ol class="records" id="go-records"></ol>
+    </section>
+  </div>
+</main>
+
+<!-- ================= INDSTILLINGER ================= -->
+<main id="settings" class="screen" hidden aria-labelledby="set-title">
+  <h2 id="set-title" class="sr-only">Indstillinger</h2>
+  <div class="row tabs" role="tablist">
+    <button class="btn" id="btn-settings-back"><span class="icon" aria-hidden="true">←</span><span class="big">Tilbage</span></button>
+    <button class="btn option tab" data-tab="styring" role="tab"><span class="big">Styring</span></button>
+    <button class="btn option tab" data-tab="udseende" role="tab"><span class="big">Udseende</span></button>
+    <button class="btn option tab" data-tab="lyd" role="tab"><span class="big">Lyd</span></button>
+  </div>
+
+  <section class="tab-panel" data-panel="styring">
+    <div class="setting">
+      <div class="setting-label">Dwell<small>Kig på en knap for at vælge den</small></div>
+      <div class="row" role="group">
+        <button class="btn option" data-set="dwell" data-value="false"><span class="big">Fra</span></button>
+        <button class="btn option" data-set="dwell" data-value="true"><span class="big">Til</span></button>
+      </div>
+    </div>
+    <div class="setting">
+      <div class="setting-label">Dwell-tid<small>Hvor længe du skal kigge</small></div>
+      <div class="row">
+        <button class="btn" id="dwell-minus" aria-label="Kortere dwell-tid"><span class="big">−</span><span class="small">Kortere</span></button>
+        <div class="value-box" id="dwell-value" aria-live="polite">1,2 sek.</div>
+        <button class="btn" id="dwell-plus" aria-label="Længere dwell-tid"><span class="big">+</span><span class="small">Længere</span></button>
+      </div>
+    </div>
+    <p class="note">Brug kun dwell her, hvis dit øjenstyringssystem ikke selv klikker. Har du dwell-klik i fx Tobii, så lad indstillingen være slået fra. Tastaturet virker altid: piletasterne flytter, og Esc eller P giver pause.</p>
+  </section>
+
+  <section class="tab-panel" data-panel="udseende" hidden>
+    <div class="setting">
+      <div class="setting-label">Tema</div>
+      <div class="row" role="group">
+        <button class="btn option theme-btn" data-set="theme" data-value="neon"><span class="swatch" style="--a:#ff2fd2;--b:#22eaff;--c:#1a0b2a"></span><span class="small">Pink og cyan</span></button>
+        <button class="btn option theme-btn" data-set="theme" data-value="solnedgang"><span class="swatch" style="--a:#ff8a1f;--b:#22eaff;--c:#2a0b3d"></span><span class="small">Orange og lilla</span></button>
+        <button class="btn option theme-btn" data-set="theme" data-value="cyberpunk"><span class="swatch" style="--a:#39ff6a;--b:#2a8dff;--c:#000"></span><span class="small">Grøn og blå</span></button>
+        <button class="btn option theme-btn" data-set="theme" data-value="kontrast"><span class="swatch" style="--a:#ffff00;--b:#00ffff;--c:#000"></span><span class="small">Høj kontrast</span></button>
+      </div>
+    </div>
+    <div class="setting">
+      <div class="setting-label">Baggrund</div>
+      <div class="row" role="group">
+        <button class="btn option" data-set="background" data-value="mork"><span class="big">Mørk</span></button>
+        <button class="btn option" data-set="background" data-value="solnedgang"><span class="big">Solnedgang</span></button>
+        <button class="btn option" data-set="background" data-value="neonby"><span class="big">Neonby</span></button>
+      </div>
+    </div>
+    <div class="setting">
+      <div class="setting-label">Animation<small id="motion-note">Bevægelse i baggrunden</small></div>
+      <div class="row" role="group">
+        <button class="btn option" data-set="animation" data-value="false"><span class="big">Fra</span></button>
+        <button class="btn option" data-set="animation" data-value="true"><span class="big">Til</span></button>
+      </div>
+    </div>
+  </section>
+
+  <section class="tab-panel" data-panel="lyd" hidden>
+    <div class="setting">
+      <div class="setting-label">Lydeffekter</div>
+      <div class="row" role="group">
+        <button class="btn option" data-set="sound" data-value="false"><span class="big">Fra</span></button>
+        <button class="btn option" data-set="sound" data-value="true"><span class="big">Til</span></button>
+      </div>
+    </div>
+    <div class="setting">
+      <div class="setting-label">Musik</div>
+      <div class="row" role="group">
+        <button class="btn option" data-set="music" data-value="false"><span class="big">Fra</span></button>
+        <button class="btn option" data-set="music" data-value="true"><span class="big">Til</span></button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ================= REKORDER ================= -->
+<main id="records" class="screen" hidden aria-labelledby="rec-title">
+  <div class="row tabs">
+    <button class="btn" id="btn-records-back"><span class="icon" aria-hidden="true">←</span><span class="big">Tilbage</span></button>
+    <button class="btn option" data-rec-difficulty="rolig"><span class="big">Rolig</span></button>
+    <button class="btn option" data-rec-difficulty="normal"><span class="big">Normal</span></button>
+    <button class="btn option" data-rec-difficulty="svaer"><span class="big">Svær</span></button>
+  </div>
+  <div class="row tabs">
+    <button class="btn option" data-rec-size="lille"><span class="big">Lille</span><span class="small">11 × 11</span></button>
+    <button class="btn option" data-rec-size="mellem"><span class="big">Mellem</span><span class="small">15 × 13</span></button>
+    <button class="btn option" data-rec-size="stor"><span class="big">Stor</span><span class="small">19 × 15</span></button>
+  </div>
+  <section class="panel records-panel">
+    <h2 class="group-label" id="rec-title">Rekorder</h2>
+    <ol class="records" id="rec-list"></ol>
+  </section>
+</main>
+
+<script src="../arkade/settings.js"></script>
+<script src="../arkade/highscores.js"></script>
+<script src="../arkade/dwell.js"></script>
+<script src="../arkade/audio.js"></script>
+<script src="../arkade/background.js"></script>
+<script src="js/mazes.js"></script>
+<script src="js/game.js"></script>
+<script src="js/render.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
