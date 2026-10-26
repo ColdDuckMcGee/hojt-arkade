@@ -46,7 +46,7 @@ test('frysezonen: spillet fryser også, når kuglen er på vej ud gennem midten'
 test('frysezonen: kun én frysning pr. tur ned – næste kommer, når kuglen har været oppe igen', function () {
   var run = fallingLeft();
   runUntil(run);
-  run.choose('left');
+  run.choose('left', 'early');
   var ev = runUntil(run, 120 * 3);
   // Efter slaget kommer kuglen op og ned igen, og så fryser spillet igen
   assert.ok(types(ev).indexOf('flipper') >= 0);
@@ -54,10 +54,10 @@ test('frysezonen: kun én frysning pr. tur ned – næste kommer, når kuglen ha
   assert.strictEqual(run.state.stats.freezes, 2);
 });
 
-test('valgt flipper slår kuglen op (automatisk timing)', function () {
+test('valgt flipper slår kuglen op', function () {
   var run = fallingLeft();
   runUntil(run);
-  assert.ok(run.choose('left'));
+  assert.ok(run.choose('left', 'late'));
   var ev = runUntil(run, 600, function (r, e) { return types(e).indexOf('flipper') >= 0; });
   var hit = ev.filter(function (e) { return e.type === 'flipper'; })[0];
   assert.ok(hit, 'flipperen slog');
@@ -72,7 +72,7 @@ test('valgt flipper slår kuglen op (automatisk timing)', function () {
 test('Begge: den flipper, der når kuglen, slår', function () {
   var run = fallingLeft();
   runUntil(run);
-  run.choose('both');
+  run.choose('both', 'early');
   var ev = runUntil(run, 600, function (r, e) { return types(e).indexOf('flipper') >= 0; });
   assert.ok(ev.some(function (e) { return e.type === 'flipper' && e.side === 'left'; }));
 });
@@ -80,8 +80,10 @@ test('Begge: den flipper, der når kuglen, slår', function () {
 test('Højre flipper når ikke en kugle i venstre side', function () {
   var run = fallingLeft();
   runUntil(run);
-  var p = run.preview('right');
-  assert.strictEqual(p.fired, null);
+  ['early', 'late'].forEach(function (t) { assert.strictEqual(run.preview('right', t).fired, null, t); });
+  assert.strictEqual(run.canReach('right'), false);
+  assert.strictEqual(run.canReach('left'), true);
+  assert.strictEqual(run.canReach('both'), true);
 });
 
 test('"Lad være" taber kuglen ved afløbet', function () {
@@ -96,22 +98,91 @@ test('"Lad være" taber kuglen ved afløbet', function () {
   assert.strictEqual(run.state.ballsLeft, G.BALLS - 1);
 });
 
-test('sigtelinjerne er deterministiske: forhåndsvisningen er præcis den bane, kuglen tager', function () {
+// Følger et valg på en kopi og sammenligner hvert skridt med forhåndsvisningen
+function assertPreviewMatches(run, choice, label) {
+  var p = run.preview(choice);
+  assert.ok(p, label + ' ' + choice + ': forhåndsvisning');
+  var copy = G.createRun({ state: run.state });
+  assert.ok(copy.choose(choice), label + ' ' + choice + ': valg');
+  for (var i = 1; i < p.path.length; i++) {
+    copy.step();
+    assert.strictEqual(copy.state.ball.x, p.path[i].x, label + ' ' + choice + ' x ved skridt ' + i);
+    assert.strictEqual(copy.state.ball.y, p.path[i].y, label + ' ' + choice + ' y ved skridt ' + i);
+  }
+  assert.strictEqual(copy.state.phase === 'rolling' ? 'videre' : copy.state.phase, p.result, label + ' ' + choice);
+  return p;
+}
+
+test('sigtelinjerne er deterministiske: forhåndsvisningen er præcis den bane, kuglen tager – for alle syv valg', function () {
   var run = fallingLeft();
   runUntil(run);
-  G.OPTIONS.forEach(function (o) {
-    var p = run.preview(o);
-    var copy = G.createRun({ state: run.state });
-    copy.choose(o);
-    for (var i = 1; i < p.path.length; i++) {
-      copy.step();
-      assert.strictEqual(copy.state.ball.x, p.path[i].x, o + ' x ved skridt ' + i);
-      assert.strictEqual(copy.state.ball.y, p.path[i].y, o + ' y ved skridt ' + i);
-    }
-    assert.strictEqual(copy.state.phase === 'rolling' ? 'videre' : copy.state.phase, p.result, o);
-  });
+  G.CHOICES.forEach(function (c) { assertPreviewMatches(run, c, 'venstre'); });
   // Forhåndsvisningen ændrer ikke selve spillet
   assert.strictEqual(run.state.phase, 'decision');
+});
+
+test('forhåndsvisningen passer også ved mange frysninger i hele spil (alle valg)', function () {
+  var n = 0, checked = 0;
+  for (var game = 0; game < 8 && checked < 60; game++) {
+    var run = G.createRun({}), s = run.state, steps = 0;
+    while (s.phase !== 'over' && steps < 120 * 60 * 15) {
+      if (s.phase === 'launch') { run.setPower(1 + (n++ % 5)); run.shoot(); }
+      else if (s.phase === 'decision') {
+        if (checked < 60) { G.CHOICES.forEach(function (c) { assertPreviewMatches(run, c, 'frysning ' + checked); }); checked++; }
+        run.choose(G.CHOICES[n++ % G.CHOICES.length]);
+      } else if (s.phase === 'lost') run.nextBall();
+      else { run.step(); steps++; run.drainEvents(); }
+    }
+  }
+  assert.ok(checked >= 40, 'tjekkede frysninger: ' + checked);
+});
+
+test('Tidligt og Sent: slagpunktet er ude ved spidsen hhv. inde ved leddet', function () {
+  for (var s = 0; s <= 1.0001; s += 0.1) {
+    var e = G.hitPoint(s, 'early'), l = G.hitPoint(s, 'late');
+    assert.ok(e >= 0.7 && e <= 1, 'tidligt ' + e);
+    assert.ok(l >= 0.1 && l <= 0.35, 'sent ' + l);
+  }
+});
+
+test('Tidligt og Sent giver tydeligt forskellige baner (skråt over bordet hhv. næsten lige op)', function () {
+  var cases = [[200, 700, 0, 250, 'left'], [190, 720, 40, 200, 'left'], [360, 700, 0, 250, 'right'], [380, 700, -30, 260, 'right']];
+  cases.forEach(function (c) {
+    var run = G.createRun({}); run._place(c[0], c[1], c[2], c[3]);
+    runUntil(run);
+    assert.strictEqual(run.state.phase, 'decision', 'fryser ' + c);
+    var e = run.preview(c[4], 'early'), l = run.preview(c[4], 'late');
+    assert.strictEqual(e.fired, c[4]); assert.strictEqual(l.fired, c[4]);
+    // Retningen lige efter slaget
+    function dir(p) {
+      var i = p.path.findIndex(function (q, k) { return k > 0 && p.path[k].y < p.path[k - 1].y - 5; });
+      var a = p.path[i - 1], b = p.path[i + 4];
+      return Math.atan2(-(b.y - a.y), (b.x - a.x) * G.FLIPPERS[c[4]].dir) * 180 / Math.PI; // grader over vandret, mod midten
+    }
+    var de = dir(e), dl = dir(l);
+    assert.ok(de < 60, 'tidligt er skråt: ' + de.toFixed(1) + '°');
+    assert.ok(dl > 75, 'sent er næsten lige op: ' + dl.toFixed(1) + '°');
+    assert.ok(dl - de > 25, 'mindst 25° forskel: ' + (dl - de).toFixed(1));
+    // Og banerne skilles tydeligt ad
+    var k = Math.min(60, e.path.length - 1, l.path.length - 1);
+    var dx = e.path[k].x - l.path[k].x, dy = e.path[k].y - l.path[k].y;
+    assert.ok(Math.sqrt(dx * dx + dy * dy) > 100, 'banerne er langt fra hinanden efter et halvt sekund');
+    assert.ok(e.hit.h > 0.69 && l.hit.h < 0.36);
+  });
+});
+
+test('et flippervalg uden Tidligt/Sent afvises – Lad være kræver intet tidspunkt', function () {
+  var run = fallingLeft();
+  runUntil(run);
+  assert.strictEqual(run.choose('left'), false);
+  assert.strictEqual(run.choose('left', 'nu'), false);
+  assert.strictEqual(run.choose('venstre-early'), false);
+  assert.strictEqual(run.state.phase, 'decision');
+  assert.ok(run.choose('left-late'));
+  assert.strictEqual(run.state.timing, 'late');
+  var r2 = fallingLeft(); runUntil(r2);
+  assert.ok(r2.choose('none'));
+  assert.strictEqual(r2.state.timing, null);
 });
 
 test('farten (Rolig/Normal/Hurtig) ændrer ikke fysikken', function () {
@@ -260,12 +331,12 @@ test('ingen tunneling: kuglen bliver på bordet selv ved topfart', function () {
 test('hele spil: en kugle tabes aldrig uden et valg på vejen ned', function () {
   // Spiller med faste valg (skiftevis) og tjekker, at der var en frysning efter
   // sidste gang kuglen var oppe over zonen, før hver tabt kugle.
-  var opts = ['left', 'right', 'both', 'none'], n = 0;
-  for (var game = 0; game < 4; game++) {
+  var opts = G.CHOICES, n = 0;
+  for (var game = 0; game < 6; game++) {
     var run = G.createRun({}), s = run.state, steps = 0, lastAbove = 0, lastFreeze = -1, drains = 0;
     while (s.phase !== 'over' && steps < 120 * 60 * 15) {
       if (s.phase === 'launch') { run.setPower(1 + (n++ % 5)); run.shoot(); }
-      else if (s.phase === 'decision') { lastFreeze = steps; run.choose(opts[(n++ + game) % 4]); }
+      else if (s.phase === 'decision') { lastFreeze = steps; run.choose(opts[(n++ + game) % opts.length]); }
       else if (s.phase === 'lost') run.nextBall();
       else {
         run.step(); steps++;

@@ -44,6 +44,7 @@
     onActivate: function (el) {
       if (!el.classList.contains('turn-btn')) return;
       if (el === gazeLock) suppress = el; else gazeLock = el;
+      dwellClick = true; setTimeout(function () { dwellClick = false; }, 0);
     }
   });
   document.addEventListener('pointermove', function (e) {
@@ -180,13 +181,17 @@
 
   // ---------- Spillet ----------
   var run = null, paused = false, finished = false;
-  var shownPhase = '', previews = null, launchPreview = null, focusOpt = null;
+  var shownPhase = '', previews = null, previewsFor = '', launchPreview = null;
+  // Valget sker i to trin: 1) flipper (eller Lad være), 2) Tidligt eller Sent (eller Tilbage).
+  // pick er den valgte flipper i trin 2. hoverKey/focusKey er den knap, blik, mus eller
+  // tastatur er på – kun dens sigtelinje og udfald vises på bordet.
+  var pick = null, reach = {}, hoverKey = null, focusKey = null, stepLock = null;
   var freezeK = 0, flash = {}, trail = [], acc = 0, lastT = 0, note = '', noteT = 0;
 
   function startGame() {
     run = G.createRun({ speedId: fset.get('speed') });
     paused = false; finished = false;
-    shownPhase = ''; previews = null; launchPreview = null; focusOpt = null;
+    shownPhase = ''; previews = null; launchPreview = null; pick = null; hoverKey = null; focusKey = null;
     freezeK = 0; flash = {}; trail = []; acc = 0; note = '';
     $('#pause-overlay').hidden = true;
     show('game');
@@ -205,30 +210,32 @@
   function syncPhase(force) {
     if (!run) return;
     var s = run.state, ph = s.phase;
-    if (ph === shownPhase && !force) return;
-    var changed = ph !== shownPhase;
-    shownPhase = ph;
-    $$('#game [data-ctl]').forEach(function (p) { p.hidden = p.dataset.ctl !== ph; });
+    // Sigtelinjerne hører til netop dette frosne øjeblik (kuglens plads og fart)
+    var frozenKey = ph === 'decision' ? [s.ball.x, s.ball.y, s.ball.vx, s.ball.vy].join(',') : '';
+    var newMoment = ph !== 'decision' || frozenKey !== previewsFor;
+    if (ph === shownPhase && !force && !(ph === 'decision' && newMoment)) return;
+    var changed = ph !== shownPhase || (ph === 'decision' && newMoment);
+    shownPhase = ph; previewsFor = frozenKey;
+    if (ph !== 'decision' || newMoment) pick = null;
+    var panel = ph === 'decision' && pick ? 'timing' : ph;
+    $$('#game [data-ctl]').forEach(function (p) { p.hidden = p.dataset.ctl !== panel; });
     var title = TITLES[ph] || '';
     if (ph === 'decision' && s.reason === 'stille') title = 'Kuglen ligger stille – vælg';
+    if (panel === 'timing') title = PICK_NAMES[pick] + ': tidligt eller sent?';
     $('#ctl-title').textContent = title;
-    previews = null; launchPreview = null;
+    if (newMoment) previews = null;
+    launchPreview = null;
     if (ph === 'launch') {
       syncPower();
       if (changed) dwell.reset();
     } else if (ph === 'decision') {
-      previews = {};
-      G.OPTIONS.forEach(function (o) { previews[o] = run.preview(o); });
-      G.OPTIONS.forEach(function (o) {
-        var p = previews[o], el = $('#game [data-choice="' + o + '"] [data-outcome]');
-        var t, bad = false;
-        if (p.drained) { t = 'Kuglen går tabt'; bad = true; }
-        else if (p.fired) t = 'Slår kuglen op' + (p.points > 0 ? ' · +' + fmt(p.points) : '');
-        else if (o === 'none') t = 'Kuglen ruller videre' + (p.points > 0 ? ' · +' + fmt(p.points) : '');
-        else t = 'Når ikke kuglen';
-        el.textContent = t;
-        el.classList.toggle('bad', bad);
-      });
+      if (!previews) {
+        // Alle syv valg regnes med samme fysik som spillet (det, man ser, er det, der sker)
+        previews = {};
+        G.CHOICES.forEach(function (c) { previews[c] = run.preview(c); });
+        G.FLIPPER_OPTIONS.forEach(function (o) { reach[o] = !!previews[o + '-early'].fired; });
+      }
+      syncDecision();
       if (changed) { dwell.reset(); sfx('freeze'); }
     } else if (ph === 'lost') {
       var last = s.ballsLeft <= 0;
@@ -237,7 +244,7 @@
       $('#btn-next-sub').textContent = last ? pointsText(s.score) : 'Kugle ' + (s.ballNo + 1);
       if (changed) dwell.reset();
     }
-    if (ph !== 'decision') focusOpt = null;
+    if (ph !== 'decision') { hoverKey = null; focusKey = null; }
     if (ph === 'launch' && fset.get('aim')) launchPreview = run.previewLaunch(s.power);
     refreshHud();
     draw();
@@ -254,9 +261,78 @@
     if (!live() || run.state.phase !== 'launch') return;
     if (run.shoot()) { trail = []; handleEvents(); syncPhase(); }
   }
-  function choose(o) {
+  var PICK_NAMES = { left: 'Venstre flipper', right: 'Højre flipper', both: 'Begge flippere' };
+  function outcomeText(p, timing) {
+    if (p.drained) return { t: 'Kuglen går tabt', bad: true };
+    var pts = p.points > 0 ? ' · +' + fmt(p.points) : '';
+    if (p.fired) return { t: (timing === 'late' ? 'Lige op' : 'Skråt op') + pts, bad: false };
+    if (p.option === 'none') return { t: 'Kuglen ruller videre' + pts, bad: false };
+    return { t: 'Når ikke kuglen', bad: true };
+  }
+  function setOutcome(btn, o) {
+    var el = btn.querySelector('[data-outcome]');
+    el.textContent = o.t;
+    el.classList.toggle('bad', o.bad);
+  }
+  // Knapperne i det frosne øjeblik: tekst, udfald, og om flipperen kan nå kuglen
+  function syncDecision() {
+    if (!previews) return;
+    G.FLIPPER_OPTIONS.forEach(function (o) {
+      var b = $('#game [data-choice="' + o + '"]'), ok = reach[o];
+      b.classList.toggle('cant', !ok);
+      if (ok) b.removeAttribute('aria-disabled'); else b.setAttribute('aria-disabled', 'true');
+      setOutcome(b, ok ? { t: 'Kan nå kuglen', bad: false } : { t: 'Når ikke kuglen', bad: true });
+    });
+    setOutcome($('#game [data-choice="none"]'), outcomeText(previews.none));
+    var grid = $('#game [data-ctl="timing"]');
+    if (pick) {
+      grid.dataset.pick = pick;
+      G.TIMINGS.forEach(function (t) { setOutcome($('#game [data-timing="' + t + '"]'), outcomeText(previews[pick + '-' + t], t)); });
+    }
+  }
+  // Skift mellem trin 1 og 2. Knapperne i det nye trin kan først vælges med dwell,
+  // når blikket har forladt den knap, man lige valgte (ét dwell = ét valg).
+  function setPick(p, fromEl, viaKeyboard) {
+    pick = p; hoverKey = null; focusKey = null;
+    var panel = $('#game [data-ctl="' + (p ? 'timing' : 'decision') + '"]');
+    stepLock = fromEl ? fromEl.getBoundingClientRect() : null;
+    $$('#game [data-ctl="decision"] .turn-btn, #game [data-ctl="timing"] .turn-btn').forEach(function (b) {
+      if (stepLock) b.setAttribute('data-no-dwell', ''); else b.removeAttribute('data-no-dwell');
+    });
+    dwell.reset();
+    syncPhase(true);
+    if (viaKeyboard) {
+      var first = p ? panel.querySelector('[data-timing="early"]') : panel.querySelector('[data-choice="' + (reach.left ? 'left' : reach.right ? 'right' : 'none') + '"]');
+      if (first) first.focus({ preventScroll: true });
+    }
+  }
+  document.addEventListener('pointermove', function (e) {
+    if (!stepLock) return;
+    var r = stepLock;
+    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) {
+      stepLock = null;
+      $$('#game [data-no-dwell]').forEach(function (b) { b.removeAttribute('data-no-dwell'); });
+    }
+  }, { passive: true });
+  function selectFlipper(o, el, viaKeyboard) {
+    if (!live() || run.state.phase !== 'decision' || pick) return;
+    if (!reach[o]) return; // knappen viser, at flipperen ikke kan nå kuglen
+    sfx('click');
+    setPick(o, el, viaKeyboard);
+  }
+  function backToFlippers(el, viaKeyboard) {
+    if (!live() || run.state.phase !== 'decision' || !pick) return;
+    sfx('click');
+    setPick(null, el, viaKeyboard);
+  }
+  function choose(o, timing) {
     if (!live() || run.state.phase !== 'decision') return;
-    if (run.choose(o)) { sfx('click'); handleEvents(); syncPhase(); }
+    if (run.choose(o, timing)) {
+      sfx('click');
+      pick = null; stepLock = null;
+      $$('#game [data-no-dwell]').forEach(function (b) { b.removeAttribute('data-no-dwell'); });
+      handleEvents(); syncPhase();
+    }
   }
   function nextBall() {
     if (!live() || run.state.phase !== 'lost') return;
@@ -272,14 +348,41 @@
     b.addEventListener('click', function () { if (!swallowed(b)) setPower(+b.dataset.power); });
   });
   $('#btn-shoot').addEventListener('click', function () { if (!swallowed(this)) shoot(); });
+  function viaKeys(e) { return e && e.detail === 0 && !dwellClick; }
+  var dwellClick = false;
   $$('#game [data-choice]').forEach(function (b) {
-    b.addEventListener('click', function () { if (!swallowed(b)) choose(b.dataset.choice); });
-    // Blik, mus eller fokus på en knap fremhæver dens sigtelinje
-    var on = function () { focusOpt = b.dataset.choice; draw(); };
-    var off = function () { if (focusOpt === b.dataset.choice) { focusOpt = null; draw(); } };
-    b.addEventListener('pointerenter', on); b.addEventListener('pointerleave', off);
-    b.addEventListener('focus', on); b.addEventListener('blur', off);
+    b.addEventListener('click', function (e) {
+      if (swallowed(b)) return;
+      var o = b.dataset.choice;
+      if (o === 'none') choose('none'); else selectFlipper(o, b, viaKeys(e));
+    });
   });
+  $$('#game [data-timing]').forEach(function (b) {
+    b.addEventListener('click', function () { if (!swallowed(b) && pick) choose(pick, b.dataset.timing); });
+  });
+  $('#btn-timing-back').addEventListener('click', function (e) { if (!swallowed(this)) backToFlippers(this, viaKeys(e)); });
+  // Blik, mus eller fokus på en knap viser præcis dens sigtelinje og udfald
+  $$('#game [data-choice], #game [data-timing], #btn-timing-back').forEach(function (b) {
+    var key = b.dataset.choice || b.dataset.timing || 'back';
+    b.addEventListener('pointerenter', function () { hoverKey = key; draw(); });
+    b.addEventListener('pointerleave', function () { if (hoverKey === key) { hoverKey = null; draw(); } });
+    b.addEventListener('focus', function () { focusKey = key; draw(); });
+    b.addEventListener('blur', function () { if (focusKey === key) { focusKey = null; draw(); } });
+  });
+  // Hvad vises på bordet lige nu? { preview, color, mark }
+  function shownChoice() {
+    if (!run || run.state.phase !== 'decision' || !previews) return null;
+    var key = hoverKey || focusKey;
+    if (!key || key === 'back') return null;
+    if (!pick) {
+      if (key === 'none') return { preview: previews.none, color: 'none' };
+      if (G.FLIPPER_OPTIONS.indexOf(key) >= 0 && reach[key]) return { mark: { left: key !== 'right', right: key !== 'left' } };
+      return null;
+    }
+    if (G.TIMINGS.indexOf(key) < 0) return null;
+    var p = previews[pick + '-' + key];
+    return { preview: p, color: p.fired || pick, mark: { left: pick !== 'right', right: pick !== 'left' } };
+  }
   $('#btn-next').addEventListener('click', function () { if (!swallowed(this)) nextBall(); });
 
   // ---------- Hændelser fra spillet: point, lys og lyd ----------
@@ -357,12 +460,14 @@
     if (!run || current !== 'game') return;
     var aim = fset.get('aim');
     var calm = !animationOn();
+    var shown = shownChoice();
     var fl = flash;
     if (calm) { fl = {}; for (var k in flash) fl[k] = Math.min(0.5, flash[k]); }
     renderer.draw(run, {
       freezeK: calm ? (run.state.phase === 'decision' ? Math.max(freezeK, 0.6) : freezeK) : freezeK,
-      previews: aim ? previews : null,
-      focus: focusOpt,
+      preview: aim && shown && shown.preview ? shown.preview : null,
+      previewKey: shown && shown.color,
+      mark: shown && shown.mark,
       launchPreview: aim ? launchPreview : null,
       trail: trail, calm: calm, flash: fl
     });
@@ -511,12 +616,29 @@
     var k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
     var ph = run.state.phase, handled = true;
     if (e.repeat) { if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' ', 'Enter'].indexOf(k) >= 0) e.preventDefault(); return; }
-    if (ph === 'decision') {
-      if (k === 'ArrowLeft' || k === 'a') choose('left');
-      else if (k === 'ArrowRight' || k === 'l') choose('right');
-      else if (k === 'ArrowUp' || k === 'b') choose('both');
-      else if (k === 'ArrowDown' || k === ' ' || k === 'Enter' || k === 'n') choose('none');
+    if (ph === 'decision' && pick) {
+      // Trin 2: piletasterne flytter fokus (og viser sigtelinjen), Enter/mellemrum vælger
+      var fx = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.timing : null;
+      if (k === 'ArrowLeft') { $('#game [data-timing="early"]').focus({ preventScroll: true }); return e.preventDefault(); }
+      if (k === 'ArrowRight') { $('#game [data-timing="late"]').focus({ preventScroll: true }); return e.preventDefault(); }
+      if (k === 't') choose(pick, 'early');
+      else if (k === 's') choose(pick, 'late');
+      else if (k === ' ' || k === 'Enter') { if (fx) choose(pick, fx); else if (document.activeElement && document.activeElement.id === 'btn-timing-back') backToFlippers(null, true); else handled = false; }
+      else if (k === 'ArrowDown' || k === 'Backspace' || k === 'z') backToFlippers(null, true);
       else handled = false;
+      if (handled) { e.preventDefault(); return; }
+    } else if (ph === 'decision') {
+      if (k === 'ArrowLeft' || k === 'a') selectFlipper('left', null, true);
+      else if (k === 'ArrowRight' || k === 'l') selectFlipper('right', null, true);
+      else if (k === 'ArrowUp' || k === 'b') selectFlipper('both', null, true);
+      else if (k === ' ' || k === 'Enter') {
+        // Står fokus på en knap, vælges den – ellers er Enter og mellemrum Lad være
+        var fc = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.choice : null;
+        if (fc && fc !== 'none') selectFlipper(fc, null, true); else choose('none');
+      }
+      else if (k === 'ArrowDown' || k === 'n') choose('none');
+      else handled = false;
+      if (handled && pick) { e.preventDefault(); return; } // fokus står nu på Tidligt
     } else if (ph === 'launch') {
       if (k >= '1' && k <= '5') setPower(+k);
       else if (k === 'ArrowLeft' || k === 'ArrowDown') setPower(run.state.power - 1);
@@ -562,7 +684,7 @@
     LAYOUTS.forEach(function (l) { if (!(res[l] >= 160)) res[l] = 0; });
     return res;
   }
-  function pick(res, W, H) {
+  function pickLayout(res, W, H) {
     var best = null;
     LAYOUTS.forEach(function (l) { if (best === null || res[l] > res[best] * 1.04) best = l; });
     if (res.wide && res.wide >= res[best] * 0.92) best = 'wide';
@@ -596,7 +718,7 @@
     renderer.resize(bw, bh);
   }
   function bestFor(b, v, small) {
-    var res = candidates(b, v.W, v.H, small), lay = pick(res, v.W, v.H);
+    var res = candidates(b, v.W, v.H, small), lay = pickLayout(res, v.W, v.H);
     return { res: res, lay: lay, bh: res[lay] };
   }
   function layoutGame() {
@@ -807,6 +929,8 @@
   window.Flipper = {
     get run() { return run; }, get phase() { return run ? run.state.phase : null; },
     get previews() { return previews; }, get paused() { return paused; },
+    get pick() { return pick; }, get reach() { return reach; }, get shown() { return shownChoice(); },
+    selectFlipper: function (o) { selectFlipper(o, null, false); }, back: function () { backToFlippers(null, false); },
     settings: arkade, gameSettings: fset, records: records, dwell: dwell, audio: audio,
     start: startGame, show: show, choose: choose, shoot: shoot, setPower: setPower, nextBall: nextBall,
     gameOver: gameOver, layout: layoutGame, draw: draw,

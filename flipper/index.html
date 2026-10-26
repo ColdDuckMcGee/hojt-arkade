@@ -21,6 +21,9 @@
     <symbol id="fl-right" viewBox="0 0 100 100"><path class="ico-flip" d="M82 40 L20 70"/><circle class="ico-dot" cx="82" cy="40" r="9"/><path class="ico-arrow" d="M56 30 L40 14 M40 14 L38 34"/></symbol>
     <symbol id="fl-both" viewBox="0 0 100 100"><path class="ico-flip" d="M10 46 L40 64"/><path class="ico-flip" d="M90 46 L60 64"/><circle class="ico-dot" cx="10" cy="46" r="7"/><circle class="ico-dot" cx="90" cy="46" r="7"/><path class="ico-arrow" d="M50 40 V12 M40 22 L50 12 L60 22"/></symbol>
     <symbol id="fl-none" viewBox="0 0 100 100"><path class="ico-flip" d="M12 40 L38 56"/><path class="ico-flip" d="M88 40 L62 56"/><path class="ico-arrow" d="M50 30 V84 M40 74 L50 84 L60 74"/></symbol>
+    <symbol id="fl-early" viewBox="0 0 100 100"><path class="ico-flip" d="M12 52 L74 80"/><circle class="ico-dot" cx="12" cy="52" r="8"/><circle class="ico-ball" cx="72" cy="62" r="9"/><path class="ico-arrow" d="M76 50 L94 22 M80 24 L94 22 L95 36"/></symbol>
+    <symbol id="fl-late" viewBox="0 0 100 100"><path class="ico-flip" d="M12 52 L74 80"/><circle class="ico-dot" cx="12" cy="52" r="8"/><circle class="ico-ball" cx="30" cy="42" r="9"/><path class="ico-arrow" d="M31 30 L33 6 M23 15 L33 6 L42 16"/></symbol>
+    <symbol id="fl-back" viewBox="0 0 100 100"><path class="ico-arrow" d="M80 50 H22 M40 32 L22 50 L40 68"/></symbol>
     <symbol id="fl-shoot" viewBox="0 0 100 100"><path class="ico-arrow" d="M50 88 V14 M34 30 L50 14 L66 30"/><circle class="ico-dot" cx="50" cy="70" r="10"/></symbol>
   </defs>
 </svg>
@@ -36,7 +39,7 @@
       <img class="arkade-logo" src="../arkade/logo.svg" alt="Hojt Arkade">
       <h1 id="titel" class="neon-title">FLIPPER</h1>
     </div>
-    <p class="lead opt">Kuglen ruller frit på bordet. Når den nærmer sig flipperne, fryser spillet, og du vælger i ro og mag: venstre, højre, begge eller lad være. Svage sigtelinjer viser, hvor kuglen vil gå for hvert valg, og flipperen slår selv på det rigtige tidspunkt. Der er ingen tid og ingen hurtige reaktioner.</p>
+    <p class="lead opt">Kuglen ruller frit på bordet. Når den nærmer sig flipperne, fryser spillet, og du vælger i ro og mag: først flipper (venstre, højre, begge eller lad være), så tidligt eller sent. En svag sigtelinje viser, hvor kuglen vil gå. Der er ingen tid og ingen hurtige reaktioner.</p>
   </header>
   <section class="menu-group" aria-labelledby="speed-label">
     <h2 id="speed-label" class="group-label">Hvor hurtigt kuglen ruller</h2>
@@ -63,7 +66,7 @@
   <section class="panel om-panel">
     <h2 id="om-title" class="neon-sub">Om Hojt Arkade</h2>
     <p data-trin>Hojt Arkade er udviklet af Jon Leismann Engsager, Hojt Design. Jon er IT- og IKT-konsulent i det specialiserede område og laver blandt andet gratis spil til voksne, der bruger øjenstyring.</p>
-    <p data-trin>Flipper: bumperne giver 100 point, slyngerne 10, et lysmål 250 og en sløjfe 500. Tænder du alle fem lys, får du 2000 point, og bonussen stiger, op til ×5. Alle point ganges med bonussen, og den starter forfra med hver ny kugle. Du får en ekstra kugle ved 40 000 og 100 000 point.</p>
+    <p data-trin>Flipper: vælg flipper og så Tidligt (skråt op) eller Sent (lige op). Bumperne giver 100 point, slyngerne 10, et lysmål 250 og en sløjfe 500. Tænder du alle fem lys, får du 2000 point, og bonussen stiger, op til ×5. Alle point ganges med bonussen, og den starter forfra med hver ny kugle. Du får en ekstra kugle ved 40 000 og 100 000 point.</p>
     <p data-trin>Koden er åben og frit tilgængelig under MIT-licensen, så alle kan bruge den og bygge videre på den.</p>
   </section>
   <div class="row" data-trin>
@@ -114,6 +117,11 @@
         <button class="btn choice-btn turn-btn" data-choice="right"><svg aria-hidden="true"><use href="#fl-right"/></svg><span class="big">Højre</span><span class="small" data-outcome></span></button>
         <button class="btn choice-btn turn-btn" data-choice="both"><svg aria-hidden="true"><use href="#fl-both"/></svg><span class="big">Begge</span><span class="small" data-outcome></span></button>
         <button class="btn choice-btn turn-btn" data-choice="none"><svg aria-hidden="true"><use href="#fl-none"/></svg><span class="big">Lad være</span><span class="small" data-outcome></span></button>
+      </div>
+      <div class="ctl-panel choice-grid timing-grid" data-ctl="timing" role="group" aria-label="Vælg tidligt eller sent" hidden>
+        <button class="btn choice-btn turn-btn" data-timing="early"><svg aria-hidden="true"><use href="#fl-early"/></svg><span class="big">Tidligt</span><span class="small" data-outcome></span></button>
+        <button class="btn choice-btn turn-btn" data-timing="late"><svg aria-hidden="true"><use href="#fl-late"/></svg><span class="big">Sent</span><span class="small" data-outcome></span></button>
+        <button class="btn choice-btn turn-btn back-btn" id="btn-timing-back"><svg aria-hidden="true"><use href="#fl-back"/></svg><span class="big">Tilbage</span><span class="small">Vælg en anden flipper</span></button>
       </div>
       <div class="ctl-panel ctl-rolling" data-ctl="rolling" hidden>
         <p class="ctl-text" id="rolling-text">Kuglen ruller. Spillet fryser og venter på dig, når kuglen nærmer sig flipperne.</p>
@@ -203,7 +211,7 @@
         <button class="btn option" data-fset="aim" data-value="true"><span class="big">Vis</span></button>
       </div>
     </div>
-    <p class="note">Brug kun dwell her, hvis dit øjenstyringssystem ikke selv klikker. Har du dwell-klik i fx Tobii, så lad indstillingen være slået fra. Et dwell er altid ét valg. Tastaturet virker også: venstre pil eller A vælger venstre flipper, højre pil eller L højre, pil op eller B begge, og mellemrum eller Enter lader kuglen gå. Før afskydning vælger 1–5 kraften, og mellemrum eller Enter skyder. Esc eller P giver pause.</p>
+    <p class="note">Brug kun dwell her, hvis dit øjenstyringssystem ikke selv klikker. Har du dwell-klik i fx Tobii, så lad indstillingen være slået fra. Et dwell er altid ét valg. Tastaturet virker også: venstre pil eller A vælger venstre flipper, højre pil eller L højre, pil op eller B begge, og pil ned, N, mellemrum eller Enter lader kuglen gå. Ved Tidligt og Sent flytter venstre og højre pil fokus, Enter vælger, T og S vælger direkte, og pil ned, Z eller Backspace går tilbage. Før afskydning vælger 1–5 kraften, og mellemrum eller Enter skyder. Esc eller P giver pause.</p>
   </section>
 
   <section class="tab-panel" data-panel="udseende" hidden>

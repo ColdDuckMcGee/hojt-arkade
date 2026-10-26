@@ -11,12 +11,15 @@
  * Øjenstyring – ingen timing og intet tidspres:
  *  - Når kuglen kommer ned i frysezonen over flipperne (på vej ned) og er på vej
  *    hen til en flipper eller ud gennem midten, fryser spillet (fase 'decision').
- *    Man vælger 'left', 'right', 'both' eller 'none'. Ruller kuglen bare op igen
- *    fra en skrå væg eller en slynge, er der intet at vælge, og der fryses ikke.
- *  - En valgt flipper "lades" og slår selv, i det øjeblik kuglen kommer inden for
- *    flipperens rækkevidde. Kuglen sendes op i en retning, der afhænger af, hvor
- *    på flipperen den rammes (tæt på aksen: skråt over bordet, ude ved spidsen:
- *    mere lige op).
+ *    Man vælger flipper ('left', 'right' eller 'both') og tidspunkt ('early' =
+ *    Tidligt eller 'late' = Sent) – eller 'none' (Lad være). Ruller kuglen bare op
+ *    igen fra en skrå væg eller en slynge, er der intet at vælge, og der fryses ikke.
+ *  - Tidspunktet bestemmer, hvor på flipperen kuglen rammes, og dermed retningen:
+ *      Tidligt: kuglen rammes ude ved spidsen og sendes skråt over bordet.
+ *      Sent:    kuglen rammes inde ved leddet og sendes næsten lige op.
+ *    Slagpunktet regnes deterministisk ud fra kuglens afstand til aksen, når den
+ *    kommer inden for flipperens rækkevidde (se hitPoint). Selve slaget sker i det
+ *    øjeblik, så spilleren aldrig skal ramme et tidspunkt.
  *  - Spillet fryser også, hvis kuglen ligger stille eller ruller meget langsomt
  *    nede ved flipperne, så man aldrig taber en kugle uden at have haft et valg.
  *  - Ligger kuglen stille et andet sted på bordet, får den et lille puf.
@@ -44,6 +47,7 @@
   var REST = { x: 560, y: 975 };
   var EXTRA_AT = [40000, 100000];
   var BALLS = 3;
+  var TIMINGS = ['early', 'late'];
 
   var SPEEDS = {
     rolig:  { id: 'rolig',  name: 'Rolig',  factor: 0.4 },
@@ -137,6 +141,21 @@
   }
 
   // ---------- Hjælpere ----------
+  // Slagpunktet på flipperen (0 = ved leddet, 1 = ude ved spidsen) ud fra kuglens
+  // afstand til aksen (s, 0–1), når den kommer inden for rækkevidde, og tidspunktet.
+  // Tidligt ligger altid i 0,70–1,00 og Sent i 0,10–0,35, så udfaldene er tydeligt forskellige.
+  function hitPoint(s, timing) {
+    s = clamp(s, 0, 1);
+    return timing === 'late' ? 0.10 + 0.25 * s : 0.70 + 0.30 * s;
+  }
+  function parseChoice(option, timing) {
+    if (typeof option !== 'string') return null;
+    var m = option.split('-');
+    if (m.length === 2) { option = m[0]; timing = m[1]; }
+    if (option === 'none') return { option: 'none', timing: null, key: 'none' };
+    if (['left', 'right', 'both'].indexOf(option) < 0 || TIMINGS.indexOf(timing) < 0) return null;
+    return { option: option, timing: timing, key: option + '-' + timing };
+  }
   function lerp(a, b, t) { return a + (b - a) * t; }
   function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
 
@@ -148,7 +167,7 @@
       ball: { x: REST.x, y: REST.y, vx: 0, vy: 0 },
       score: 0, ballsLeft: BALLS, ballNo: 1, mult: 1,
       lights: [false, false, false, false, false],
-      armed: null, decided: false, choice: null, skipped: false,
+      armed: null, decided: false, choice: null, timing: null, skipped: false,
       stallT: 0, flip: { left: -1, right: -1 },
       time: 0, power: 3, extraIdx: 0,
       stats: { bumpers: 0, slings: 0, targets: 0, allLights: 0, loops: 0, flips: 0, freezes: 0, extra: 0, bestMult: 1 },
@@ -161,8 +180,8 @@
       ball: { x: s.ball.x, y: s.ball.y, vx: s.ball.vx, vy: s.ball.vy },
       score: s.score, ballsLeft: s.ballsLeft, ballNo: s.ballNo, mult: s.mult,
       lights: s.lights.slice(),
-      armed: s.armed ? { left: s.armed.left, right: s.armed.right } : null,
-      decided: s.decided, choice: s.choice, skipped: s.skipped,
+      armed: s.armed ? { left: s.armed.left, right: s.armed.right, timing: s.armed.timing } : null,
+      decided: s.decided, choice: s.choice, timing: s.timing, skipped: s.skipped,
       stallT: s.stallT, flip: { left: s.flip.left, right: s.flip.right },
       time: s.time, power: s.power, extraIdx: s.extraIdx,
       stats: Object.assign({}, s.stats),
@@ -263,20 +282,21 @@
       if (ang < FLIP_UP - 12 || ang > FLIP_REST + 8) return -1;
       return clamp(dist / FLIP_LEN, 0, 1);
     }
-    function fire(side, t) {
-      var f = FLIPPERS[side], b = state.ball;
-      // Retning: tæt på aksen skråt over bordet, ude ved spidsen næsten lige op
-      // og lidt påvirket af, hvordan kuglen kommer ind (fart langs flipperen og ned).
+    function fire(side, s, timing) {
+      var f = FLIPPERS[side], b = state.ball, h = hitPoint(s, timing);
+      // Retning: ved spidsen (h nær 1) skråt over bordet, ved leddet (h nær 0)
+      // næsten lige op – lidt påvirket af, hvordan kuglen kommer ind.
       var along = (b.vx * f.dir) / 40, inSpeed = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
-      var heading = lerp(-46, -100, t) - clamp(along, -12, 12);
+      var heading = lerp(-92, -42, h) - clamp(along, -10, 10);
       if (f.dir < 0) heading = -180 - heading;
-      var speed = lerp(1700, 1540, t) + clamp(inSpeed * 0.12, 0, 160), a = heading * Math.PI / 180;
+      var speed = lerp(1600, 1720, h) + clamp(inSpeed * 0.12, 0, 160), a = heading * Math.PI / 180;
+      var hx = b.x, hy = b.y;
       b.vx = speed * Math.cos(a); b.vy = speed * Math.sin(a);
       state.flip[side] = 0;
       state.armed = null;
       state.stallT = 0;
       state.stats.flips++;
-      emit('flipper', { side: side, t: t });
+      emit('flipper', { side: side, s: s, h: h, timing: timing, x: hx, y: hy });
     }
 
     // ---------- Ét delskridt ----------
@@ -312,8 +332,8 @@
       if (state.armed) {
         var tl = state.armed.left ? inReach('left') : -1;
         var tr = state.armed.right ? inReach('right') : -1;
-        if (tl >= 0 && (tr < 0 || b.x <= 280)) fire('left', tl);
-        else if (tr >= 0) fire('right', tr);
+        if (tl >= 0 && (tr < 0 || b.x <= 280)) fire('left', tl, state.armed.timing);
+        else if (tr >= 0) fire('right', tr, state.armed.timing);
       }
       state.time += dt;
     }
@@ -416,16 +436,20 @@
       emit('launch', { power: state.power });
       return true;
     }
-    function choose(option) {
+    // choose('left', 'early') eller choose('left-early'); 'none' kræver intet tidspunkt.
+    function choose(option, timing) {
       if (state.phase !== 'decision') return false;
-      if (['left', 'right', 'both', 'none'].indexOf(option) < 0) return false;
+      var c = parseChoice(option, timing);
+      if (!c) return false;
+      option = c.option; timing = c.timing;
       var wasStill = state.reason === 'stille';
       state.phase = 'rolling';
       state.decided = true;
       state.choice = option;
-      state.armed = option === 'none' ? null : { left: option !== 'right', right: option !== 'left' };
+      state.timing = timing;
+      state.armed = option === 'none' ? null : { left: option !== 'right', right: option !== 'left', timing: timing };
       state.stallT = 0;
-      emit('choose', { option: option });
+      emit('choose', { option: option, timing: timing });
       if (option === 'none' && wasStill) nudge(true);
       return true;
     }
@@ -444,25 +468,34 @@
       var before = copy.state.score;
       apply(copy);
       var path = [{ x: copy.state.ball.x, y: copy.state.ball.y }];
-      var steps = Math.round((maxT || PREVIEW_T) / STEP), fired = null, i;
+      var steps = Math.round((maxT || PREVIEW_T) / STEP), fired = null, hit = null, i;
       for (i = 0; i < steps && copy.state.phase === 'rolling'; i++) {
         copy.step();
         path.push({ x: copy.state.ball.x, y: copy.state.ball.y });
-        if (!fired) copy.state.events.forEach(function (e) { if (e.type === 'flipper') fired = e.side; });
+        if (!fired) copy.state.events.forEach(function (e) { if (e.type === 'flipper' && !fired) { fired = e.side; hit = e; } });
       }
       return {
-        path: path, steps: i, fired: fired,
+        path: path, steps: i, fired: fired, hit: hit,
         result: copy.state.phase === 'rolling' ? 'videre' : copy.state.phase, // 'decision', 'lost', 'launch'
         drained: copy.state.phase === 'lost',
         points: copy.state.score - before,
         end: copy.state
       };
     }
-    function preview(option, maxT) {
+    function preview(option, timing, maxT) {
       if (state.phase !== 'decision') return null;
-      var r = simulate(function (c) { c.choose(option); }, maxT);
-      r.option = option;
+      var c = parseChoice(option, timing);
+      if (!c) return null;
+      var r = simulate(function (cp) { cp.choose(c.option, c.timing); }, maxT);
+      r.option = c.option; r.timing = c.timing; r.key = c.key;
       return r;
+    }
+    // Kan flipperen (eller en af dem ved 'both') nå kuglen? Samme for Tidligt og Sent,
+    // fordi slaget sker, når kuglen kommer inden for rækkevidde.
+    function canReach(option) {
+      if (option === 'none') return true;
+      var p = preview(option, 'early');
+      return !!(p && p.fired);
     }
     function previewLaunch(power, maxT) {
       if (state.phase !== 'launch') return null;
@@ -474,7 +507,7 @@
     return {
       get state() { return state; },
       step: step, shoot: shoot, setPower: setPower, choose: choose, nextBall: nextBall,
-      preview: preview, previewLaunch: previewLaunch, drainEvents: drainEvents,
+      preview: preview, previewLaunch: previewLaunch, canReach: canReach, drainEvents: drainEvents,
       inZone: inZone, inReach: inReach, flipperSegment: function (side) { return flipperSegment(state, side); },
       flipperAngle: function (side) { return flipperAngle(state, side); },
       // Kun til test
@@ -487,7 +520,9 @@
     POWERS: POWERS, REST: REST, SPEEDS: SPEEDS, SPEED_IDS: SPEED_IDS, POINTS: POINTS, EXTRA_AT: EXTRA_AT, BALLS: BALLS,
     WALLS: WALLS, SLINGS: SLINGS, TARGETS: TARGETS, BUMPERS: BUMPERS, LOOPS: LOOPS, FLIPPERS: FLIPPERS,
     FLIP_LEN: FLIP_LEN, FLIP_R: FLIP_R, FLIP_REST: FLIP_REST, FLIP_UP: FLIP_UP, PREVIEW_T: PREVIEW_T,
-    OPTIONS: ['left', 'right', 'both', 'none'],
+    OPTIONS: ['left', 'right', 'both', 'none'], FLIPPER_OPTIONS: ['left', 'right', 'both'], TIMINGS: TIMINGS,
+    CHOICES: ['left-early', 'left-late', 'right-early', 'right-late', 'both-early', 'both-late', 'none'],
+    hitPoint: hitPoint, parseChoice: parseChoice,
     createRun: createRun
   };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -301,3 +301,16 @@ ol.records .score { white-space: nowrap; }
 /* Mobil på højkant: point med punktum fylder mere – lidt mindre tekst i listen */
 .fl-lille:not(.fl-tvaers) ol.records li { font-size: 0.95rem; column-gap: 10px; }
 .fl-lille:not(.fl-tvaers) .records-panel, .fl-lille:not(.fl-tvaers) .go-records { min-width: 0; width: 100%; }
+
+/* v1.1: trin 2 – Tidligt eller Sent (og Tilbage) */
+.timing-grid .back-btn { grid-column: 1 / -1; --c: var(--fl-none); }
+.timing-grid[data-pick="left"] .choice-btn:not(.back-btn) { --c: var(--fl-left); }
+.timing-grid[data-pick="right"] .choice-btn:not(.back-btn) { --c: var(--fl-right); }
+.timing-grid[data-pick="both"] .choice-btn:not(.back-btn) { --c: var(--fl-both); }
+/* Højre flipper: ikonerne spejles, så kuglen ligger på den rigtige side */
+.timing-grid[data-pick="right"] .choice-btn:not(.back-btn) svg { transform: scaleX(-1); }
+.ico-ball { fill: var(--ui-text); }
+/* En flipper, der ikke kan nå kuglen: stiplet, dæmpet og ikke et dwell-mål */
+.choice-btn.cant { border-style: dashed; opacity: 0.55; cursor: not-allowed; }
+.choice-btn.cant:hover, .choice-btn.cant.arkade-dwelling { background: rgba(0, 0, 0, 0.45); box-shadow: none; }
+.choice-btn.cant .ico-flip, .choice-btn.cant .ico-dot { stroke: var(--muted); fill: var(--muted); }

@@ -122,7 +122,7 @@
     }
     function drawFlippers(run, o) {
       ['left', 'right'].forEach(function (side) {
-        var s = run.flipperSegment(side), armed = run.state.armed && run.state.armed[side];
+        var s = run.flipperSegment(side), armed = (run.state.armed && run.state.armed[side]) || (o.mark && o.mark[side]);
         var c = side === 'left' ? col.left : col.right;
         ctx.lineCap = 'round';
         ctx.strokeStyle = col.flipper; ctx.lineWidth = G.FLIP_R * 2;
@@ -174,22 +174,20 @@
       }
       ctx.restore();
     }
-    var ORDER = ['none', 'both', 'right', 'left'];
+    // Kun ét valg vises ad gangen: det, der er fokus på (blik, mus eller tastatur).
     function drawPreviews(o) {
-      var pv = o.previews; if (!pv) return;
-      var k = o.freezeK == null ? 1 : o.freezeK;
-      ORDER.forEach(function (opt) {
-        var p = pv[opt]; if (!p || opt === o.focus) return;
-        var a = (o.focus ? 0.35 : 0.6) * k;
-        drawPath(p.path, col[opt], 5, a, opt === 'none');
-        drawEnd(p, col[opt], a);
-      });
-      if (o.focus && pv[o.focus]) {
-        var p = pv[o.focus];
-        glow(col[o.focus], 10);
-        drawPath(p.path, col[o.focus], 8, 0.95 * k, o.focus === 'none');
-        noGlow();
-        drawEnd(p, col[o.focus], k);
+      var p = o.preview; if (!p) return;
+      var k = o.freezeK == null ? 1 : o.freezeK, c = col[o.previewKey] || col.both, dashed = p.option === 'none';
+      glow(c, 10);
+      drawPath(p.path, c, 8, 0.95 * k, dashed);
+      noGlow();
+      drawEnd(p, c, k);
+      // Slagpunktet: en ring der, hvor flipperen rammer kuglen
+      if (p.hit) {
+        ctx.save(); ctx.globalAlpha = k;
+        ctx.beginPath(); ctx.arc(p.hit.x, p.hit.y, G.R + 7, 0, Math.PI * 2);
+        ctx.strokeStyle = c; ctx.lineWidth = 3; ctx.setLineDash([6, 5]); ctx.stroke();
+        ctx.restore();
       }
     }
     function drawBall(b, o) {
