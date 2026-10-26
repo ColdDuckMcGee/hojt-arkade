@@ -22,7 +22,7 @@
   --rgap: max(10px, 1.4vmin);
   --cgap: max(16px, 2vmin);
   --pil: max(3.2cm, 12vmin);
-  --prik-h: 22px;
+  --prik-h: max(36px, 4.2vh);
   --bund: calc(var(--btn) + var(--prik-h) + var(--rgap));
   --mh: calc(100vh - 2 * var(--pad) - var(--bund) - var(--rgap));
   --mw: min(calc(var(--mh) * 400 / 760), calc(100vw - 2 * var(--pad) - 2 * var(--pil) - 4 * var(--cgap) - 2 * 185px));
@@ -72,7 +72,7 @@
 .pil-venstre { grid-column: 2; justify-self: end; }
 .pil-hojre { grid-column: 4; justify-self: start; }
 
-/* ---------- Bunden: info, prikker, Spil ---------- */
+/* ---------- Bunden: info, tæller, Spil ---------- */
 .spil-info {
   grid-column: 1 / 3; grid-row: 2; align-self: end; justify-self: stretch;
   padding: 14px 18px; max-width: 460px;
@@ -87,10 +87,16 @@
 
 .spil-styring { grid-column: 2 / 5; grid-row: 2; align-self: end;
   display: flex; flex-direction: column; align-items: center; gap: var(--rgap); }
-.prikker { height: var(--prik-h); display: flex; align-items: center; gap: 10px; }
-.prik { width: 10px; height: 10px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, .45); background: transparent; }
-.prik.er-aktiv { background: rgba(255, 255, 255, .45); }
-.prik.valgt { width: 20px; height: 20px; border-color: var(--ui); background: var(--ui); box-shadow: 0 0 calc(10px * var(--glow)) var(--ui); }
+/* Tæller "14 / 23" + tynd statuslinje. Samme bredde som Spil-knappen, så den aldrig rammer infoboksen. */
+.taeller { height: var(--prik-h); width: calc(var(--btn) * 2.8); max-width: 100%;
+  display: flex; align-items: center; gap: 16px; pointer-events: none; }
+.taeller-tal { flex: none; font-size: clamp(1.55rem, 3vh, 2.1rem); font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums;
+  color: var(--ui-text); text-shadow: 0 1px 4px #000, 0 0 calc(8px * var(--glow)) var(--ui); white-space: nowrap; }
+.taeller-ialt { color: var(--muted); font-weight: 700; text-shadow: 0 1px 4px #000; }
+.taeller-linje { flex: 1; height: 8px; border-radius: 4px; overflow: hidden;
+  background: rgba(255, 255, 255, .16); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .22); }
+.taeller-fyld { display: block; height: 100%; border-radius: 4px; background: var(--ui);
+  box-shadow: 0 0 calc(8px * var(--glow)) var(--ui); transition: width .3s ease-out; }
 
 .btn.spil-knap { min-width: calc(var(--btn) * 2.8); height: var(--btn); flex-direction: row; gap: 18px;
   background: var(--ui); color: #1a0016; border-color: #ffd0f6;
@@ -137,5 +143,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .maskine.skift { animation: none; }
+  .taeller-fyld { transition: none; }
 }
 .tab-panel .note { margin: 0 auto; }

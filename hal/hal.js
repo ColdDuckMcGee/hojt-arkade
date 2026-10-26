@@ -210,14 +210,16 @@
 
   // ---------- Visning ----------
   var maskineEl = $('#maskine');
-  var prikkerEl = $('#prikker');
   var spilBtn = $('#btn-spil');
 
-  SPIL.forEach(function (g) {
-    var d = document.createElement('span');
-    d.className = 'prik' + (g.aktiv ? ' er-aktiv' : '');
-    prikkerEl.appendChild(d);
-  });
+  // Tæller under maskinen, fx "14 / 23", med en tynd linje for, hvor langt man er.
+  // Kun visning (aria-hidden i index.html); skærmlæsere får det via #hal-status.
+  // Virker med vilkårligt mange spil, i modsætning til de tidligere prikker.
+  var taellerEl = $('#prikker');
+  taellerEl.className = 'taeller';
+  taellerEl.innerHTML =
+    '<span class="taeller-tal"><span class="taeller-nu"></span><span class="taeller-ialt"></span></span>' +
+    '<span class="taeller-linje"><span class="taeller-fyld"></span></span>';
 
   function render(animer) {
     var g = SPIL[index];
@@ -241,7 +243,9 @@
     status.textContent = 'Spil ' + (index + 1) + ' af ' + n + ' · ' + (g.aktiv ? 'Klar til at spille' : 'Kommer snart');
     status.classList.toggle('snart', !g.aktiv);
 
-    $$('.prik', prikkerEl).forEach(function (p, i) { p.classList.toggle('valgt', i === index); });
+    $('.taeller-nu', taellerEl).textContent = String(index + 1);
+    $('.taeller-ialt', taellerEl).textContent = ' / ' + n;
+    $('.taeller-fyld', taellerEl).style.width = (n > 1 ? ((index + 1) / n) * 100 : 100) + '%';
 
     if (g.aktiv) {
       spilBtn.setAttribute('href', g.url);
