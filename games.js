@@ -22,7 +22,7 @@ window.HOJT_SPIL = [
   { navn: 'Rørlægger',      sti: 'rorlaegger/',     farve: 'cyan',   status: 'snart', tekst: 'Drej rørene, så vandet kan løbe hele vejen igennem.' },
   { navn: 'Kasser',         sti: 'kasser/',         farve: 'orange', status: 'snart', tekst: 'Skub kasserne hen på de markerede felter.' },
   { navn: 'Pixelgåder',     sti: 'pixelgaader/',    farve: 'pink',   status: 'snart', tekst: 'Brug tallene til at finde ud af, hvilke felter der skal farves.' },
-  { navn: 'Lys ud',         sti: 'lys-ud/',         farve: 'gul',    status: 'snart', tekst: 'Tryk på lamperne, og sluk dem alle sammen.' },
+  { navn: 'Lys ud',         sti: 'lys-ud/',         farve: 'gul',    status: 'aktiv', tekst: 'Tryk på lamperne, og sluk dem alle sammen.', skaerm: 'hal/skaerme/lys-ud.svg' },
   { navn: 'Fire på stribe', sti: 'fire-paa-stribe/', farve: 'blå',   status: 'snart', tekst: 'Slip brikkerne ned, og få fire i træk før computeren.' },
   { navn: 'Bomberne',      sti: 'bomberne/',      farve: 'rød',   status: 'aktiv', tekst: 'Læg bomber i labyrinten, og spræng fjenderne. Alt flytter sig kun, når du gør.', skaerm: 'hal/skaerme/bomberne.svg' },
   { navn: 'Kaperen',       sti: 'kaperen/',       farve: 'cyan',  status: 'snart', tekst: 'Sejl mellem havnene, handl med varer, og vælg, om du vil skyde, borde eller flygte.' },
