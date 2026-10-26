@@ -21,6 +21,18 @@
   --n5: #ff8800; --n6: #c080ff; --n7: #ff4060; --n8: #ffffff;
 }
 
+/* ---------- Responsivt grundlag ----------
+   Ingen skærm må kunne rulle. Hver skærm fylder præcis det synlige vindue
+   (100dvh), og app.js skalerer indholdet ned (CSS zoom), hvis det ikke kan
+   være der i fuld størrelse. Spilleskærmen beregnes særskilt i app.js. */
+html, body { height: 100%; height: 100dvh; }
+.screen {
+  bottom: auto; height: calc(100% / var(--z, 1)); height: calc(100dvh / var(--z, 1)); /* --z følger zoom */
+  overflow: hidden; justify-content: safe center;
+}
+/* Indholdet må aldrig klemmes sammen (tekst oven i knapper); hellere skaleres hele skærmen. */
+.screen > *, .menu-choices, .overlay .panel > * { flex-shrink: 0; }
+
 /* ---------- Startmenu ---------- */
 #menu { gap: calc(var(--gap) * 0.7); }
 .title-block { text-align: center; max-width: 1100px; }
@@ -39,6 +51,22 @@
   .lead { display: none; }
   .title-row .arkade-logo { height: clamp(80px, 14vh, 150px); }
 }
+@media (max-height: 560px) {
+  .title-row .arkade-logo { height: clamp(56px, 16vh, 90px); }
+  .neon-title { font-size: clamp(2rem, 11vh, 3.4rem); }
+}
+@media (orientation: portrait) {
+  .title-row .arkade-logo { height: clamp(70px, 10vh, 150px); }
+}
+/* Smal højkant (mobil): tættere menu og kun teksttitel, så knapperne kan blive større */
+@media (orientation: portrait) and (max-width: 700px) {
+  #menu { gap: 14px; }
+  .title-row .arkade-logo { display: none; }
+  #menu .neon-title { font-size: 2.3rem; letter-spacing: 0.06em; }
+  .menu-choices { gap: 14px 30px; }
+  .group-label { margin-bottom: 6px; }
+}
+.btn.option[aria-disabled="true"] { opacity: 0.35; }
 
 /* Tilbage til hallen: fast i hjørnet, roligere stil end de andre knapper */
 .hall-btn {
@@ -49,6 +77,11 @@
 }
 .hall-btn .big { font-size: 1.05rem; font-weight: 600; line-height: 1.2; text-align: center; }
 .hall-ico { width: 42%; height: auto; fill: none; stroke: var(--muted); stroke-width: 7; stroke-linejoin: round; }
+/* På højkant er der ikke plads ved siden af titlen: knappen ligger øverst i
+   flowet, til venstre, med titel og valg mellem sig og "Start spil". */
+@media (orientation: portrait) {
+  .hall-btn { position: static; align-self: flex-start; flex: none; }
+}
 .hall-btn:hover, .hall-btn.arkade-dwelling { color: var(--ui-text); border-color: var(--muted); background: rgba(255, 255, 255, 0.08); box-shadow: none; }
 
 /* ---------- Spilleskærm ---------- */
@@ -57,7 +90,8 @@
   display: flex; align-items: center; justify-content: center;
   gap: var(--game-gap, 24px);
 }
-.game-layout.portrait { flex-direction: column; }
+/* below: panelet under brættet (højkant). compact: kompakt panel (højkant og lave skærme). */
+.game-layout.below { flex-direction: column; }
 
 .board-wrap { position: relative; }
 #board {
@@ -175,22 +209,37 @@
 /* ---------- Sidepanel ---------- */
 .side {
   position: relative; z-index: 2; /* felterne flyver bag om panelet */
-  width: var(--side-w, 340px); max-width: 600px;
+  flex: none; width: max(300px, calc(var(--btn) * 2.4));
   display: flex; flex-direction: column; align-items: stretch; gap: calc(var(--gap) * 0.6);
 }
-.game-layout.portrait .side { width: auto; flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: center; }
 .side-logo { height: clamp(60px, 10vh, 110px); align-self: center; }
-.game-layout.portrait .side-logo { display: none; }
 .hud-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .hud {
-  padding: 8px 12px; text-align: center;
+  padding: 8px 12px; text-align: center; min-width: 0;
   background: var(--panel); border-radius: 14px; border: 1px solid var(--ui-soft);
 }
-.hud-label { font-size: clamp(0.95rem, calc(var(--side-w, 340px) * 0.03), 1.2rem); color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
-.hud-value { font-size: clamp(2rem, calc(var(--side-w, 340px) * 0.085), 3rem); font-weight: 800; font-variant-numeric: tabular-nums; color: var(--ui-text); }
+.hud-label { font-size: clamp(0.95rem, calc(var(--btn) * 0.09), 1.2rem); color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
+.hud-value { font-size: clamp(2rem, calc(var(--btn) * 0.22), 3rem); font-weight: 800; font-variant-numeric: tabular-nums; color: var(--ui-text); }
 .hud-sub { font-size: 0.9rem; color: var(--muted); }
 .hearts { display: flex; gap: 6px; justify-content: center; align-items: center; min-height: 2.6rem; padding-top: 4px; }
-.heart { width: clamp(34px, calc(var(--side-w, 340px) * 0.09), 50px); height: clamp(32px, calc(var(--side-w, 340px) * 0.085), 47px); fill: transparent; stroke: color-mix(in srgb, var(--ms-flag) 55%, transparent); stroke-width: 6; }
+.heart { flex: none; width: clamp(34px, calc(var(--btn) * 0.27), 46px); height: clamp(32px, calc(var(--btn) * 0.255), 43px); fill: transparent; stroke: color-mix(in srgb, var(--ms-flag) 55%, transparent); stroke-width: 6; }
+
+/* Kompakt panel: tal på én række, Åbn/Flag og Pause ved siden af hinanden */
+.game-layout.compact .side {
+  width: auto; display: grid; align-items: center;
+  grid-template-columns: calc(var(--btn) * 2) var(--btn);
+  grid-template-areas: "hud hud" "mode pause";
+}
+.game-layout.compact .side-logo { display: none; }
+.game-layout.compact .hud-grid { grid-area: hud; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.game-layout.compact .hud { padding: 4px 3px; border-radius: 10px; }
+.game-layout.compact .hud-label { font-size: 0.8rem; letter-spacing: 0.04em; }
+.game-layout.compact .hud-value { font-size: 1.7rem; line-height: 1.15; }
+.game-layout.compact .hud-sub { display: none; }
+.game-layout.compact .hearts { gap: 2px; min-height: 1.95rem; padding-top: 0; }
+.game-layout.compact .heart { width: 22px; height: 21px; }
+.game-layout.compact .mode-btn { grid-area: mode; min-width: 0; }
+.game-layout.compact .pause-btn { grid-area: pause; }
 .heart.full { fill: var(--ms-flag); stroke: color-mix(in srgb, var(--ms-flag) 50%, #fff); filter: drop-shadow(0 0 calc(7px * var(--glow)) var(--ms-flag)); }
 
 /* Tilstandsknappen: to halvdele, den valgte lyser tydeligt */
@@ -201,7 +250,7 @@
   border-radius: 12px; border: 2px dashed rgba(255, 255, 255, 0.25); opacity: 0.55; padding: 6px 4px;
 }
 .mode-part svg { width: 52%; max-width: 96px; aspect-ratio: 1; height: auto; }
-.mode-name { font-size: clamp(1.4rem, calc(var(--side-w, 340px) * 0.055), 2rem); font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; }
+.mode-name { font-size: clamp(1.4rem, calc(var(--btn) * 0.14), 2rem); font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; }
 .mode-check { font-size: 0.95rem; font-weight: 700; visibility: hidden; }
 .mode-btn[data-mode="open"] .part-open, .mode-btn[data-mode="flag"] .part-flag { opacity: 1; border-style: solid; }
 .mode-btn[data-mode="open"] .part-open { background: var(--ms-open); border-color: var(--ms-open); color: #03141a; box-shadow: 0 0 calc(18px * var(--glow)) var(--ms-open); }
@@ -212,11 +261,10 @@
 .mode-btn[data-mode="flag"] .part-flag { --ico-cloth: #22001c; --ico-pole: #22001c; }
 .pause-btn { align-self: center; width: var(--btn); height: var(--btn); padding: 6px; }
 .pause-btn svg { width: 46%; height: 46%; fill: var(--ui); }
-.game-layout.portrait .mode-btn { min-width: calc(var(--btn) * 2.2); }
 
 /* Overlays (pause og ryddet plade) */
 .overlay {
-  position: absolute; inset: 0; z-index: 5;
+  position: absolute; inset: 0; z-index: 5; padding: 12px; overflow: hidden;
   display: flex; align-items: center; justify-content: center;
   background: rgba(0, 0, 0, 0.62);
 }
@@ -240,7 +288,7 @@
 .tabs { margin-bottom: 4px; }
 .tab-panel { display: flex; flex-direction: column; gap: calc(var(--gap) * 0.8); align-items: stretch; width: min(1100px, 100%); }
 .setting { display: grid; grid-template-columns: 13em 1fr; align-items: center; gap: var(--gap); }
-@media (max-width: 900px) { .setting { grid-template-columns: 1fr; justify-items: center; text-align: center; } .setting .row { justify-content: center !important; } }
+@media (max-width: 900px) and (orientation: portrait) { .setting { grid-template-columns: 1fr; justify-items: center; text-align: center; } .setting .row { justify-content: center !important; } }
 .setting-label { font-size: 1.35rem; font-weight: 700; display: flex; flex-direction: column; text-shadow: 0 1px 4px #000; }
 .setting-label small { font-size: 0.95rem; font-weight: 400; color: var(--muted); margin-top: 4px; }
 .setting .row { justify-content: flex-start; }
@@ -265,6 +313,26 @@
 .om-panel p { margin: 10px 0 0; font-size: 1.25rem; line-height: 1.55; }
 .link-btn { text-decoration: none; min-width: calc(var(--btn) * 2.4); }
 .link-btn .small { font-size: 0.95rem; }
+
+/* ---------- Lave skærme på langs (fx mobil vendt) ----------
+   Mindre luft og to spalter, så knapperne kan blive større. */
+@media (max-height: 560px) and (orientation: landscape) {
+  #menu, #om, #gameover, #records, #settings { --gap: 22px; }
+  #menu { gap: 12px; }
+  .group-label { margin-bottom: 4px; font-size: 1rem; }
+  .size-note { font-size: 0.95rem; }
+  .records li { padding: 2px 10px; font-size: 1rem; }
+  .om-logo { display: none; }
+  .om-panel { max-width: 60em; }
+  .om-panel p { font-size: 1.1rem; line-height: 1.4; margin-top: 6px; }
+  #settings { padding-top: 16px; }
+  #records {
+    display: grid; justify-content: center; align-content: center;
+    grid-template-columns: auto auto; column-gap: 40px; row-gap: 22px;
+  }
+  #records > .tabs { grid-column: 1; }
+  #records > .records-panel { grid-column: 2; grid-row: 1 / span 2; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   #board, .cell { transition: none; }

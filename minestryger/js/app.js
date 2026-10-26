@@ -82,6 +82,7 @@
     dwell.reset();
     if (id === 'game') layoutGame();
     if (id === 'menu') syncMenu();
+    fitCurrent();
     var first = $('#' + id + ' [data-autofocus]');
     if (first) first.focus({ preventScroll: true });
   }
@@ -93,25 +94,49 @@
   function platesText(n) { return n === 1 ? '1 plade ryddet' : n + ' plader ryddet'; }
 
   // ---------- Startmenu ----------
+  // Brætstørrelser: Et bræt kan kun vælges, hvis felterne på den aktuelle
+  // skærm bliver mindst MIN_CELL_CM. Det mindste bræt kan altid vælges.
+  // Den gemte præference ændres ikke, så det store bræt kommer igen på en
+  // større skærm (eller når skærmen vendes).
+  var SIZE_ORDER = ['6x6', '8x8', '10x8'];
+  function sizeAllowed(id) { return id === SIZE_ORDER[0] || plan(id).vis >= MIN_CELL_PX; }
+  function effectiveSize() {
+    var want = mine.get('boardSize');
+    if (sizeAllowed(want)) return want;
+    for (var i = SIZE_ORDER.indexOf(want) - 1; i > 0; i--) if (sizeAllowed(SIZE_ORDER[i])) return SIZE_ORDER[i];
+    return SIZE_ORDER[0];
+  }
+  function cmText(px) { return (px / CM).toFixed(1).replace('.', ',') + ' cm'; }
   function syncMenu() {
-    var size = mine.get('boardSize'), lives = mine.get('lives');
-    $$('#menu [data-size]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.size === size)); });
+    var size = effectiveSize(), lives = mine.get('lives');
+    var blocked = [];
+    $$('#menu [data-size]').forEach(function (b) {
+      var ok = sizeAllowed(b.dataset.size);
+      if (ok) b.removeAttribute('aria-disabled'); else { b.setAttribute('aria-disabled', 'true'); blocked.push(b.querySelector('.big').textContent); }
+      b.setAttribute('aria-pressed', String(b.dataset.size === size));
+    });
     $$('#menu [data-lives]').forEach(function (b) { b.setAttribute('aria-pressed', String(Number(b.dataset.lives) === lives)); });
-    var cell = cellSizeFor(size);
-    var cm = cell * (1 - GAP_RATIO) / (96 / 2.54);
-    $('#size-note').textContent = cm < 2.9
-      ? 'På denne skærm bliver felterne ca. ' + cm.toFixed(1).replace('.', ',') + ' cm. Vælg et mindre bræt eller fuld skærm for større felter.'
-      : '';
+    var vis = plan(size).vis, note = '';
+    if (blocked.length) {
+      note = blocked.join(' og ') + ' kræver en større skærm: felterne ville blive under ' + cmText(MIN_CELL_PX) + '. ';
+      if (window.innerWidth < window.innerHeight) note += 'Prøv at vende skærmen. ';
+    }
+    if (vis < 2.9 * CM) note += 'Her bliver felterne ca. ' + cmText(vis) + (blocked.length ? '.' : '. Vælg et mindre bræt eller fuld skærm for større felter.');
+    $('#size-note').textContent = note.trim();
+    if (current === 'menu') fitCurrent();
   }
   $$('#menu [data-size]').forEach(function (b) {
-    b.addEventListener('click', function () { mine.set('boardSize', b.dataset.size); syncMenu(); sfx('click'); });
+    b.addEventListener('click', function () {
+      if (b.getAttribute('aria-disabled') === 'true') return;
+      mine.set('boardSize', b.dataset.size); syncMenu(); sfx('click');
+    });
   });
   $$('#menu [data-lives]').forEach(function (b) {
     b.addEventListener('click', function () { mine.set('lives', Number(b.dataset.lives)); syncMenu(); sfx('click'); });
   });
   $('#btn-start').addEventListener('click', function () { sfx('click'); startGame(); });
   $('#btn-settings').addEventListener('click', function () { sfx('click'); openSettings('menu'); });
-  $('#btn-records').addEventListener('click', function () { sfx('click'); openRecords(mine.get('lives'), mine.get('boardSize')); });
+  $('#btn-records').addEventListener('click', function () { sfx('click'); openRecords(mine.get('lives'), effectiveSize()); });
   // Tilbage til hallen: stop musikken og skriv indstillingerne, før siden skifter.
   function goToHall() {
     sfx('click');
@@ -143,7 +168,7 @@
     if (!fsSupported) { b.hidden = true; return; }
     b.addEventListener('click', function () { sfx('click'); toggleFullscreen(); });
   });
-  function onFs() { syncFullscreen(); layoutGame(); if (current === 'menu') syncMenu(); }
+  function onFs() { syncFullscreen(); onResize(); }
   document.addEventListener('fullscreenchange', onFs);
   document.addEventListener('webkitfullscreenchange', onFs);
 
@@ -153,7 +178,7 @@
   var board = MinestrygerBoard.create($('#board'), { onCell: onCell });
 
   function startGame() {
-    run = { size: mine.get('boardSize'), maxLives: mine.get('lives'), lives: mine.get('lives'), score: 0, plateNo: 1, cleared: 0, over: false };
+    run = { size: effectiveSize(), maxLives: mine.get('lives'), lives: mine.get('lives'), score: 0, plateNo: 1, cleared: 0, over: false };
     paused = false;
     newPlate();
     show('game');
@@ -253,6 +278,7 @@
     $('#clear-next').textContent = 'Næste plade har ' + nextMines + ' miner.';
     $('#btn-next-sub').textContent = 'Plade ' + (run.plateNo + 1);
     $('#clear-overlay').hidden = false;
+    fitOverlays();
     dwell.reset();
     $('#btn-next').focus({ preventScroll: true });
   }
@@ -268,6 +294,7 @@
     if (!run || run.over || board.busy || !$('#clear-overlay').hidden) return;
     paused = p;
     $('#pause-overlay').hidden = !p;
+    fitOverlays();
     dwell.reset();
     sfx('pause');
     if (p) $('#btn-resume').focus({ preventScroll: true }); else board.focusCursor();
@@ -335,6 +362,7 @@
     $$('#records [data-rec-lives]').forEach(function (b) { b.setAttribute('aria-pressed', String(Number(b.dataset.recLives) === recLives)); });
     $('#rec-title').textContent = 'Rekorder – ' + sizeLabel(recSize) + ', ' + livesLabel(recLives);
     renderRecordList($('#rec-list'), category(recLives, recSize), null);
+    if (current === 'records') fitCurrent();
   }
   $$('#records [data-rec-size]').forEach(function (b) {
     b.addEventListener('click', function () { sfx('click'); recSize = b.dataset.recSize; syncRecords(); });
@@ -360,6 +388,7 @@
     $('#dwell-value').textContent = fmtSeconds(t);
     $('#dwell-minus').disabled = t <= 0.5 + 1e-9;
     $('#dwell-plus').disabled = t >= 3 - 1e-9;
+    if (current === 'settings') fitCurrent();
   }
   $$('#settings [data-tab]').forEach(function (b) {
     b.addEventListener('click', function () { sfx('click'); settingsTab = b.dataset.tab; syncSettingsUi(); });
@@ -382,7 +411,7 @@
   $('#dwell-plus').addEventListener('click', function () { stepDwell(0.25); });
   $('#btn-settings-back').addEventListener('click', function () {
     sfx('click');
-    if (settingsReturn === 'game' && run) { show('game'); refresh(); $('#pause-overlay').hidden = false; $('#btn-resume').focus({ preventScroll: true }); }
+    if (settingsReturn === 'game' && run) { show('game'); refresh(); $('#pause-overlay').hidden = false; fitOverlays(); $('#btn-resume').focus({ preventScroll: true }); }
     else show('menu');
   });
 
@@ -407,39 +436,145 @@
   });
 
   // ---------- Layout af spilleskærmen ----------
-  // Felterne skal være kvadratiske og fylde mest muligt af skærmen.
+  // Felterne er kvadratiske og fylder mest muligt. Panelet kan ligge
+  //  - ved siden af brættet som en søjle ('col'),
+  //  - ved siden af brættet i kompakt form ('compact', lave skærme) eller
+  //  - under brættet i kompakt form ('compact' + below, højkant).
+  // For hver mulighed prøves panelet i fuld størrelse og nedskaleret (zoom).
+  // Vi vælger den, hvor det mindste af felt og knap bliver størst (begge
+  // regnes højst til 3 cm). Ved lighed vinder de største knapper, så de
+  // store skærme ser ud som før, og til sidst de største felter.
   var GAP_RATIO = 0.07;
-  function metrics() {
-    var W = window.innerWidth, H = window.innerHeight;
-    var btn = parseFloat(getComputedStyle($('#btn-pause')).minWidth) || 120;
-    var pad = Math.max(10, Math.min(W, H) * 0.016);
-    var gap = Math.max(19, Math.min(W, H) * 0.025);
-    var portrait = W < H * 0.95;
-    var sideW = Math.max(btn * 2.1, 300), sideH = btn * 2.6;
-    return { W: W, H: H, pad: pad, gap: gap, portrait: portrait, sideW: sideW, sideH: sideH };
+  var CM = 96 / 2.54;
+  var TARGET_PX = 3 * CM;          // 3 cm
+  var MIN_CELL_PX = 1.2 * CM;      // nedre grænse for at kunne vælge et bræt
+  var sideCache = null;
+  function viewport() { return { W: window.innerWidth, H: window.innerHeight }; }
+  function pads(v) {
+    var m = Math.min(v.W, v.H);
+    return { pad: Math.max(10, m * 0.016), gap: Math.max(12, m * 0.025) };
   }
-  function cellSizeFor(sizeId) {
-    var s = G.SIZES[sizeId], m = metrics();
-    var availW = m.W - 2 * m.pad - (m.portrait ? 0 : m.sideW + m.gap);
-    var availH = m.H - 2 * m.pad - (m.portrait ? m.sideH + m.gap : 0);
-    // brætkant og indre luft er ca. 0,3 felt i alt
-    return Math.floor(Math.min(availW / (s.cols + 0.3), availH / (s.rows + 0.3)));
+  // Panelets naturlige størrelse i de to former (måles; skærmen kan være skjult).
+  function measureSide() {
+    var v = viewport(), key = v.W + 'x' + v.H;
+    if (sideCache && sideCache.key === key) return sideCache;
+    var game = $('#game'), lay = $('#game-layout'), side = $('.side');
+    var wasHidden = game.hidden;
+    if (wasHidden) { game.style.visibility = 'hidden'; game.hidden = false; }
+    var cls = lay.className, zoom = side.style.zoom;
+    side.style.zoom = '';
+    lay.className = 'game-layout';
+    var a = side.getBoundingClientRect();
+    lay.className = 'game-layout compact';
+    var c = side.getBoundingClientRect();
+    var btn = $('#btn-pause').getBoundingClientRect().width;
+    lay.className = cls; side.style.zoom = zoom;
+    if (wasHidden) { game.hidden = true; game.style.visibility = ''; }
+    sideCache = { key: key, col: { w: a.width, h: a.height }, compact: { w: c.width, h: c.height }, btn: btn };
+    return sideCache;
   }
+  function better(a, b) {
+    for (var i = 0; i < a.length; i++) { if (a[i] > b[i] + 0.25) return true; if (a[i] < b[i] - 0.25) return false; }
+    return false;
+  }
+  function plan(sizeId) {
+    var s = G.SIZES[sizeId], v = viewport(), p = pads(v), m = measureSide(), best = null;
+    [['col', false], ['compact', false], ['compact', true]].forEach(function (opt) {
+      var sd = m[opt[0]];
+      for (var z = 1; z >= 0.3 - 1e-9; z -= 0.02) {
+        var sw = sd.w * z, sh = sd.h * z, aw, ah;
+        if (!opt[1]) { if (sh > v.H - 2 * p.pad) continue; aw = v.W - 2 * p.pad - sw - p.gap; ah = v.H - 2 * p.pad; }
+        else { if (sw > v.W - 2 * p.pad) continue; aw = v.W - 2 * p.pad; ah = v.H - 2 * p.pad - sh - p.gap; }
+        var cell = Math.floor(Math.min(aw / (s.cols + 0.3), ah / (s.rows + 0.3)));
+        if (cell < 8) continue;
+        var cg = Math.max(4, Math.round(cell * GAP_RATIO)), vis = cell - cg, btn = m.btn * z;
+        var score = [Math.min(vis, btn, TARGET_PX), Math.min(vis, TARGET_PX) + Math.min(btn, TARGET_PX), z, vis];
+        if (!best || better(score, best.score)) best = { score: score, cell: cell, cellGap: cg, vis: vis, btn: btn, z: z, side: opt[0], below: opt[1], gap: p.gap };
+      }
+    });
+    if (!best) { // nødløsning for meget små vinduer
+      var cell0 = Math.max(8, Math.floor(Math.min(v.W, v.H) / 2 / (Math.max(s.cols, s.rows) + 0.3)));
+      best = { cell: cell0, cellGap: 4, vis: cell0 - 4, btn: m.btn * 0.3, z: 0.3, side: 'compact', below: v.W < v.H, gap: p.gap };
+    }
+    return best;
+  }
+  function cellSizeFor(sizeId) { return plan(sizeId).cell; }
+  function overflows(el) { return el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1; }
   function layoutGame() {
     if (current !== 'game' || !run) return;
-    var m = metrics(), cell = cellSizeFor(run.size);
-    var lay = $('#game-layout');
-    lay.classList.toggle('portrait', m.portrait);
-    lay.style.setProperty('--cell', cell + 'px');
-    lay.style.setProperty('--cell-gap', Math.max(4, Math.round(cell * GAP_RATIO)) + 'px');
-    lay.style.setProperty('--game-gap', m.gap + 'px');
-    // Sidepanelet får den plads, brættet ikke bruger (dog højst 560 px).
-    var s = G.SIZES[run.size];
-    var boardW = s.cols * cell + 0.3 * cell;
-    var sideW = m.portrait ? m.sideW : Math.max(m.sideW, Math.min(560, m.W - 2 * m.pad - 2 * m.gap - boardW));
-    lay.style.setProperty('--side-w', Math.floor(sideW) + 'px');
+    var p = plan(run.size), lay = $('#game-layout'), side = $('.side');
+    lay.classList.toggle('compact', p.side === 'compact');
+    lay.classList.toggle('below', p.below);
+    lay.style.setProperty('--game-gap', p.gap + 'px');
+    side.style.zoom = p.z < 0.999 ? String(p.z) : '';
+    var cell = p.cell, game = $('#game');
+    // Sikkerhedsnet: passer det alligevel ikke (fx afrunding), gøres felterne lidt mindre.
+    for (var i = 0; i < 60; i++) {
+      lay.style.setProperty('--cell', cell + 'px');
+      lay.style.setProperty('--cell-gap', Math.max(4, Math.round(cell * GAP_RATIO)) + 'px');
+      if (!overflows(game) || cell <= 8) break;
+      cell--;
+    }
+    lay.dataset.plan = p.side + (p.below ? '-under' : '-ved-siden') + ' zoom ' + p.z.toFixed(2);
+    fitOverlays();
   }
-  window.addEventListener('resize', function () { layoutGame(); if (current === 'menu') syncMenu(); });
+
+  // ---------- Tilpasning til vinduet (aldrig rulning) ----------
+  // Skalerer en skærm med CSS zoom, til alt kan være der. 1 = fuld størrelse.
+  // --z følger med, så skærmens højde (100dvh) stadig fylder hele vinduet.
+  function setZoom(el, z) {
+    el.style.zoom = z === 1 ? '' : String(z);
+    if (z === 1) el.style.removeProperty('--z'); else el.style.setProperty('--z', String(z));
+  }
+  function fitZoom(el, ok) {
+    setZoom(el, 1);
+    if (ok()) return 1;
+    // Trinvis nedad (ikke binær søgning): når rækker ombrydes, er
+    // sammenhængen ikke jævn, og den største zoom, der passer, skal findes.
+    for (var z = 0.98; z > 0.2; z -= 0.02) {
+      setZoom(el, z);
+      if (ok()) return z;
+    }
+    setZoom(el, 0.2);
+    return 0.2;
+  }
+  function rectsApart(a, b, margin) {
+    return a.right + margin <= b.left || b.right + margin <= a.left || a.bottom + margin <= b.top || b.bottom + margin <= a.top;
+  }
+  // Tilbage til hallen må ikke overlappe eller ligge tæt op ad andet på startskærmen.
+  function menuClear() {
+    var h = $('#btn-hall').getBoundingClientRect();
+    return $$('#menu .title-row > *, #menu .lead, #menu .group-label, #menu .menu-group .btn, #size-note, #menu .row > .btn').every(function (e) {
+      var r = e.getBoundingClientRect();
+      return r.width === 0 || rectsApart(h, r, 8);
+    });
+  }
+  function fitCurrent() {
+    if (current === 'game') { layoutGame(); return; }
+    var el = $('#' + current);
+    fitZoom(el, function () { return !overflows(el) && (current !== 'menu' || menuClear()); });
+  }
+  function fitOverlays() {
+    $$('#game .overlay').forEach(function (o) {
+      if (o.hidden) return;
+      var panel = $('.panel', o);
+      fitZoom(panel, function () {
+        var r = panel.getBoundingClientRect(), b = o.getBoundingClientRect();
+        return !overflows(panel) && r.height <= b.height - 24 && r.width <= b.width - 24;
+      });
+    });
+  }
+  var resizeRaf = 0;
+  function onResize() {
+    cancelAnimationFrame(resizeRaf);
+    resizeRaf = requestAnimationFrame(function () {
+      sideCache = null;
+      if (current === 'menu') syncMenu(); else fitCurrent();
+    });
+  }
+  window.addEventListener('resize', onResize);
+  window.addEventListener('orientationchange', onResize);
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', onResize);
 
   // ---------- Start ----------
   applyTheme();
@@ -453,6 +588,7 @@
   window.Minestryger = {
     get run() { return run; }, get plate() { return plate; }, get mode() { return mode; },
     settings: arkade, gameSettings: mine, records: records, dwell: dwell, audio: audio,
-    start: startGame, show: show, setMode: setMode, cell: onCell, board: board, cellSizeFor: cellSizeFor
+    start: startGame, show: show, setMode: setMode, cell: onCell, board: board, cellSizeFor: cellSizeFor,
+    plan: plan, sizeAllowed: sizeAllowed, effectiveSize: effectiveSize, fit: fitCurrent
   };
 })();
