@@ -215,8 +215,7 @@
   // Tæller under maskinen, fx "14 / 23", med en tynd linje for, hvor langt man er.
   // Kun visning (aria-hidden i index.html); skærmlæsere får det via #hal-status.
   // Virker med vilkårligt mange spil, i modsætning til de tidligere prikker.
-  var taellerEl = $('#prikker');
-  taellerEl.className = 'taeller';
+  var taellerEl = $('#taeller');
   taellerEl.innerHTML =
     '<span class="taeller-tal"><span class="taeller-nu"></span><span class="taeller-ialt"></span></span>' +
     '<span class="taeller-linje"><span class="taeller-fyld"></span></span>';
@@ -269,6 +268,7 @@
 
     $('#hal-status').textContent = g.navn + '. Spil ' + (index + 1) + ' af ' + n + '. ' +
       (g.aktiv ? 'Klar til at spille.' : 'Kommer snart.');
+    if (typeof fit === 'function' && current === 'hal') fit();
   }
 
   function ga(delta) {
@@ -292,11 +292,33 @@
     audio.play('click');
   });
 
+  // ---------- Passer til vinduet ----------
+  // CSS'en (hal.css) skalerer alt efter vinduet med dvh/vmin og skifter layout på
+  // højkant. Hvis den synlige skærm alligevel er for stor (fx meget lille vindue
+  // eller stor systemskrift), skrues --fit ned i små trin – ned til 0,8 – så der
+  // aldrig skal rulles. Knapper og tekst bliver da lidt mindre, men stadig læselige.
+  var FIT_MIN = 0.8;
+  function fit() {
+    var el = $('#' + current);
+    if (!el) return;
+    var f = 1;
+    root.style.setProperty('--fit', '1');
+    function over() { return el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1; }
+    while (over() && f > FIT_MIN + 0.001) {
+      f = Math.max(FIT_MIN, Math.round((f - 0.04) * 100) / 100);
+      root.style.setProperty('--fit', String(f));
+    }
+    root.dataset.fit = String(f);
+  }
+  var fitTimer = null;
+  window.addEventListener('resize', function () { clearTimeout(fitTimer); fitTimer = setTimeout(fit, 60); });
+
   // ---------- Skærme ----------
   var current = 'hal', returnFocus = null;
   function show(id, focusEl) {
     $$('.screen').forEach(function (el) { el.hidden = el.id !== id; });
     current = id;
+    fit();
     dwell.reset();
     if (focusEl) focusEl.focus({ preventScroll: true });
   }
@@ -328,7 +350,7 @@
     $('#dwell-plus').disabled = t >= 3 - 1e-9;
   }
   $$('#indstillinger [data-tab]').forEach(function (b) {
-    b.addEventListener('click', function () { audio.play('click'); settingsTab = b.dataset.tab; syncSettings(); });
+    b.addEventListener('click', function () { audio.play('click'); settingsTab = b.dataset.tab; syncSettings(); fit(); });
   });
   $$('#indstillinger [data-set]').forEach(function (b) {
     b.addEventListener('click', function () {
@@ -387,10 +409,11 @@
   // ---------- Start ----------
   syncSettings();
   render(false);
+  fit();
 
   // Til test og fejlfinding (påvirker ikke almindelig brug)
   window.HojtHal = {
-    spil: SPIL, settings: arkade, dwell: dwell, bg: bg, audio: audio, show: show, ga: ga,
+    spil: SPIL, settings: arkade, dwell: dwell, bg: bg, audio: audio, show: show, ga: ga, fit: fit,
     get index() { return index; }
   };
 })();

@@ -69,11 +69,6 @@
   <h1 id="hal-titel" class="sr-only">Hojt Arkade – vælg et spil</h1>
   <img class="arkade-logo hal-logo" src="arkade/logo.svg" alt="Hojt Arkade">
 
-  <nav class="hal-menu" aria-label="Menu">
-    <button class="btn" id="btn-om"><span class="icon" aria-hidden="true">ⓘ</span><span class="big">Om</span></button>
-    <button class="btn" id="btn-indstillinger"><span class="icon" aria-hidden="true">⚙</span><span class="big">Indstillinger</span></button>
-  </nav>
-
   <button class="btn neon-pil pil-venstre" id="btn-forrige" aria-label="Forrige spil">
     <svg viewBox="0 0 100 160" aria-hidden="true"><path d="M70 20 20 80l50 60"/></svg>
     <span class="small">Forrige</span>
@@ -88,20 +83,20 @@
     <span class="small">Næste</span>
   </button>
 
+  <div class="taeller" id="taeller" aria-hidden="true"></div>
+  <a class="btn primary spil-knap" id="btn-spil"><span class="icon" aria-hidden="true">▶</span><span class="big" id="spil-label">Spil</span></a>
+
   <section class="spil-info panel" aria-labelledby="info-navn">
     <p class="info-status" id="info-status"></p>
     <h2 class="info-navn" id="info-navn"></h2>
     <p class="info-tekst" id="info-tekst"></p>
   </section>
 
-  <div class="spil-styring">
-    <div class="prikker" id="prikker" aria-hidden="true"></div>
-    <a class="btn primary spil-knap" id="btn-spil"><span class="icon" aria-hidden="true">▶</span><span class="big" id="spil-label">Spil</span></a>
-  </div>
-
-  <div class="hal-ekstra">
+  <nav class="hal-menu" aria-label="Menu">
+    <button class="btn" id="btn-om"><span class="icon" aria-hidden="true">ⓘ</span><span class="big">Om</span></button>
+    <button class="btn" id="btn-indstillinger"><span class="icon" aria-hidden="true">⚙</span><span class="big">Indstil&shy;linger</span></button>
     <button class="btn js-fullscreen" id="btn-fs"><span class="icon" aria-hidden="true">⛶</span><span class="big js-fs-label">Fuld skærm</span></button>
-  </div>
+  </nav>
 
   <p class="sr-only" id="hal-status" aria-live="polite" aria-atomic="true"></p>
 </main>
@@ -114,9 +109,9 @@
     <p>Hojt Arkade er udviklet af Jon Leismann Engsager, Hojt Design. Jon er IT- og IKT-konsulent i det specialiserede område og laver blandt andet gratis spil til voksne, der bruger øjenstyring.</p>
     <p>Koden er åben og frit tilgængelig under MIT-licensen, så alle kan bruge den og bygge videre på den.</p>
   </section>
-  <div class="row">
+  <div class="row om-knapper">
     <a class="btn link-btn" href="https://hojt.dk" target="_blank" rel="noopener"><span class="big">Hojt Design</span><span class="small">hojt.dk</span></a>
-    <a class="btn link-btn" href="https://github.com/ColdDuckMcGee/hojt-arkade" target="_blank" rel="noopener"><span class="big">Koden på GitHub</span><span class="small">github.com/ColdDuckMcGee/hojt-arkade</span></a>
+    <a class="btn link-btn" href="https://github.com/ColdDuckMcGee/hojt-arkade" target="_blank" rel="noopener"><span class="big">Koden på GitHub</span><span class="small">github.com/<wbr>ColdDuckMcGee/<wbr>hojt-arkade</span></a>
     <button class="btn primary wide js-tilbage"><span class="icon" aria-hidden="true">←</span><span class="big">Tilbage</span></button>
   </div>
 </main>
@@ -164,7 +159,7 @@
       <div class="setting-label" id="lbl-baggrund">Baggrund</div>
       <div class="row" role="group" aria-labelledby="lbl-baggrund">
         <button class="btn option" data-set="background" data-value="mork"><span class="big">Mørk</span></button>
-        <button class="btn option" data-set="background" data-value="solnedgang"><span class="big">Solnedgang</span></button>
+        <button class="btn option" data-set="background" data-value="solnedgang"><span class="big">Solned&shy;gang</span></button>
         <button class="btn option" data-set="background" data-value="neonby"><span class="big">Neonby</span></button>
       </div>
     </div>
