@@ -26,7 +26,7 @@ window.HOJT_SPIL = [
   { navn: 'Fire på stribe', sti: 'fire-paa-stribe/', farve: 'blå',   status: 'snart', tekst: 'Slip brikkerne ned, og få fire i træk før computeren.' },
   { navn: 'Bomberne',      sti: 'bomberne/',      farve: 'rød',   status: 'snart', tekst: 'Læg bomber i labyrinten, og spræng fjenderne. Alt flytter sig kun, når du gør.' },
   { navn: 'Kaperen',       sti: 'kaperen/',       farve: 'cyan',  status: 'snart', tekst: 'Sejl mellem havnene, handl med varer, og vælg, om du vil skyde, borde eller flygte.' },
-  { navn: 'Kanonen',       sti: 'kanonen/',       farve: 'orange', status: 'snart', tekst: 'Indstil vinkel og krudt, og ram modstanderen på skift i et landskab, der kan sprænges.' },
+  { navn: 'Kanonen',       sti: 'kanonen/',       farve: 'orange', status: 'aktiv', tekst: 'Indstil vinkel og krudt, og ram modstanderen på skift i et landskab, der kan sprænges.', skaerm: 'hal/skaerme/kanonen.svg' },
   { navn: 'Labyrinten',    sti: 'labyrinten/',    farve: 'gul',   status: 'snart', tekst: 'Spis alle prikkerne. Spøgelserne flytter sig kun, når du gør.' },
   { navn: 'Kælderen',      sti: 'kaelderen/',     farve: 'lilla', status: 'snart', tekst: 'Gå ned gennem kældre, der laves automatisk, ét træk ad gangen, og se, hvor dybt du kommer.' },
   { navn: 'Tårnene',       sti: 'taarnene/',      farve: 'grøn',  status: 'snart', tekst: 'Byg tårne i ro og mag, og stop bølgerne af fjender.' },

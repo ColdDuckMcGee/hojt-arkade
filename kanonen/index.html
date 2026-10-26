@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="da" data-theme="neon">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0c0612">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Kanonen – Hojt Arkade</title>
+<link rel="icon" href="../arkade/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../arkade/arkade.css">
+<link rel="stylesheet" href="css/kanonen.css">
+</head>
+<body>
+<canvas id="baggrund" aria-hidden="true"></canvas>
+
+<!-- Fælles symboler: granat, bombe og vindpil. Alt er SVG, ingen billeder eller emoji. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="kn-granat" viewBox="0 0 100 100">
+      <circle cx="50" cy="56" r="22" fill="currentColor"/>
+      <path d="M50 34 V18 M42 18 H58" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="kn-bombe" viewBox="0 0 100 100">
+      <circle cx="50" cy="58" r="32" fill="currentColor"/>
+      <path d="M50 26 V12 M40 12 H60" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="kn-pil" viewBox="0 0 100 60">
+      <path d="M6 22 H62 V6 L96 30 L62 54 V38 H6 Z"/>
+    </symbol>
+  </defs>
+</svg>
+
+<!-- ================= STARTMENU ================= -->
+<main id="menu" class="screen" aria-labelledby="titel">
+  <!-- Tilbage til hallen: i øverste venstre hjørne, langt fra "Start spil" og mere afdæmpet -->
+  <button class="btn hall-btn" id="btn-hall" data-href="../index.html">
+    <svg class="hall-ico" viewBox="0 0 100 100" aria-hidden="true">
+      <path d="M44 22 L14 50 L44 78 V60 H86 V40 H44 Z"/>
+    </svg>
+    <span class="big">Tilbage til hallen</span>
+  </button>
+  <header class="title-block">
+    <div class="title-row">
+      <img class="arkade-logo" src="../arkade/logo.svg" alt="Hojt Arkade">
+      <h1 id="titel" class="neon-title">KANONEN</h1>
+    </div>
+    <p class="lead">Indstil vinkel og krudt, og skyd på skift med computeren. Hold øje med vinden, som skifter hver tur. Nedslagene sprænger kratere i landskabet. Vinder du, venter en ny og lidt dygtigere modstander. Der er ingen tid – tænk dig om.</p>
+  </header>
+  <p class="menu-best" id="menu-best" aria-live="polite"></p>
+  <div class="row">
+    <button class="btn primary wide" id="btn-start"><span class="big">Start spil</span></button>
+  </div>
+  <div class="row">
+    <button class="btn" id="btn-settings"><span class="icon" aria-hidden="true">⚙</span><span class="big">Indstillinger</span></button>
+    <button class="btn" id="btn-records"><span class="icon" aria-hidden="true">★</span><span class="big">Rekorder</span></button>
+    <button class="btn js-fullscreen"><span class="icon" aria-hidden="true">⛶</span><span class="big js-fs-label">Fuld skærm</span></button>
+    <button class="btn" id="btn-om"><span class="icon" aria-hidden="true">ⓘ</span><span class="big">Om</span></button>
+  </div>
+</main>
+
+<!-- ================= OM ================= -->
+<main id="om" class="screen" hidden aria-labelledby="om-title">
+  <img class="arkade-logo om-logo" src="../arkade/logo.svg" alt="Hojt Arkade">
+  <section class="panel om-panel">
+    <h2 id="om-title" class="neon-sub">Om Hojt Arkade</h2>
+    <p>Hojt Arkade er udviklet af Jon Leismann Engsager, Hojt Design. Jon er IT- og IKT-konsulent i det specialiserede område og laver blandt andet gratis spil til voksne, der bruger øjenstyring.</p>
+    <p>Kanonen: 10 point for hvert skadepoint på modstanderen, 500 point gange modstanderens nummer for hver sejr og 100 point i bonus for hvert skud under otte i en vundet kamp. Du har 3 store bomber pr. kamp.</p>
+    <p>Koden er åben og frit tilgængelig under MIT-licensen, så alle kan bruge den og bygge videre på den.</p>
+  </section>
+  <div class="row">
+    <a class="btn link-btn" id="link-hojt" href="https://hojt.dk" target="_blank" rel="noopener"><span class="big">Hojt Design</span><span class="small">hojt.dk</span></a>
+    <a class="btn link-btn" id="link-github" href="https://github.com/ColdDuckMcGee/hojt-arkade" target="_blank" rel="noopener"><span class="big">Koden på GitHub</span><span class="small">github.com/ColdDuckMcGee/hojt-arkade</span></a>
+  </div>
+  <div class="row">
+    <button class="btn primary wide" id="btn-om-back"><span class="icon" aria-hidden="true">←</span><span class="big">Tilbage</span></button>
+    <a class="btn" id="link-alle-spil" href="../index.html"><span class="icon" aria-hidden="true">▦</span><span class="big">Alle spil</span></a>
+  </div>
+</main>
+
+<!-- ================= SPIL ================= -->
+<main id="game" class="screen" hidden aria-label="Spillet">
+  <div class="game-layout" id="game-layout">
+    <div class="field-wrap" id="field-wrap">
+      <canvas id="field" aria-label="Slagmarken"></canvas>
+    </div>
+    <aside class="side" aria-label="Status og styring">
+      <div class="side-top">
+        <img class="arkade-logo side-logo" src="../arkade/logo.svg" alt="Hojt Arkade">
+        <button class="btn pause-btn" id="btn-pause" aria-label="Pause">
+          <svg viewBox="0 0 100 100" aria-hidden="true"><rect x="24" y="20" width="18" height="60" rx="4"/><rect x="58" y="20" width="18" height="60" rx="4"/></svg>
+          <span class="small">Pause</span>
+        </button>
+      </div>
+      <div class="hud-grid" aria-live="polite">
+        <div class="hud hud-player"><div class="hud-label">Dit liv</div><div class="hud-value" id="hud-hp">100</div><div class="hp-bar"><span id="hud-hp-bar"></span></div></div>
+        <div class="hud hud-cpu"><div class="hud-label" id="hud-cpu-label">Modstander 1</div><div class="hud-value" id="hud-cpu-hp">100</div><div class="hp-bar"><span id="hud-cpu-bar"></span></div></div>
+        <div class="hud"><div class="hud-label">Point</div><div class="hud-value" id="hud-score">0</div></div>
+        <div class="hud hud-wind"><div class="hud-label">Vind</div><div class="wind-value"><svg class="wind-arrow" id="hud-wind-arrow" viewBox="0 0 100 60" aria-hidden="true"><use href="#kn-pil"/></svg><span class="hud-value" id="hud-wind">0</span></div><div class="hud-sub" id="hud-wind-sub">vindstille</div></div>
+      </div>
+      <p class="turn-line" id="turn-line" aria-live="polite">Din tur</p>
+
+      <section class="ctrl" aria-labelledby="angle-label">
+        <div class="ctrl-head"><span class="ctrl-label" id="angle-label">Vinkel</span><span class="ctrl-value" id="angle-value">45°</span></div>
+        <div class="step-row">
+          <button class="btn step" data-adj="angle" data-step="-5" data-dwell-repeat aria-label="Vinkel 5 grader lavere"><span class="big">−5</span></button>
+          <button class="btn step" data-adj="angle" data-step="-1" data-dwell-repeat aria-label="Vinkel 1 grad lavere"><span class="big">−1</span></button>
+          <button class="btn step" data-adj="angle" data-step="1" data-dwell-repeat aria-label="Vinkel 1 grad højere"><span class="big">+1</span></button>
+          <button class="btn step" data-adj="angle" data-step="5" data-dwell-repeat aria-label="Vinkel 5 grader højere"><span class="big">+5</span></button>
+        </div>
+      </section>
+      <section class="ctrl" aria-labelledby="power-label">
+        <div class="ctrl-head"><span class="ctrl-label" id="power-label">Krudt</span><span class="ctrl-value" id="power-value">60 %</span></div>
+        <div class="step-row">
+          <button class="btn step" data-adj="power" data-step="-5" data-dwell-repeat aria-label="5 procent mindre krudt"><span class="big">−5</span></button>
+          <button class="btn step" data-adj="power" data-step="-1" data-dwell-repeat aria-label="1 procent mindre krudt"><span class="big">−1</span></button>
+          <button class="btn step" data-adj="power" data-step="1" data-dwell-repeat aria-label="1 procent mere krudt"><span class="big">+1</span></button>
+          <button class="btn step" data-adj="power" data-step="5" data-dwell-repeat aria-label="5 procent mere krudt"><span class="big">+5</span></button>
+        </div>
+      </section>
+      <div class="fire-row">
+        <button class="btn ammo-btn" id="btn-ammo" data-ammo="granat">
+          <svg class="ammo-ico" aria-hidden="true"><use href="#kn-granat" id="ammo-use"/></svg>
+          <span class="big" id="ammo-name">Granat</span>
+          <span class="small" id="ammo-sub">Skift til bombe (3)</span>
+        </button>
+        <button class="btn primary fire-btn" id="btn-fire"><span class="big">Skyd</span></button>
+      </div>
+    </aside>
+  </div>
+
+  <div class="overlay" id="pause-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="pause-title">
+    <div class="panel">
+      <h2 id="pause-title" class="neon-sub">Pause</h2>
+      <p class="muted">Spillet venter på dig. Intet sker, før du vælger.</p>
+      <div class="row">
+        <button class="btn primary wide" id="btn-resume"><span class="big">Fortsæt</span></button>
+      </div>
+      <div class="row">
+        <button class="btn" id="btn-pause-settings"><span class="icon" aria-hidden="true">⚙</span><span class="big">Indstillinger</span></button>
+        <button class="btn js-fullscreen"><span class="icon" aria-hidden="true">⛶</span><span class="big js-fs-label">Fuld skærm</span></button>
+        <button class="btn" id="btn-quit"><span class="icon" aria-hidden="true">⌂</span><span class="big">Til menuen</span></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="win-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="win-title">
+    <div class="panel">
+      <h2 id="win-title" class="neon-sub">Modstander 1 er besejret!</h2>
+      <p class="win-bonus" id="win-bonus">+500 point</p>
+      <p class="muted" id="win-detail">Sejr 500 · få skud 300</p>
+      <p class="muted" id="win-heal">Du får 35 liv tilbage.</p>
+      <div class="row">
+        <button class="btn primary wide" id="btn-next"><span class="big">Næste modstander</span><span class="small" id="btn-next-sub">Modstander 2 · nyt landskab</span></button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ================= GAME OVER ================= -->
+<main id="gameover" class="screen" hidden aria-labelledby="go-title">
+  <div class="go-layout">
+    <section class="go-result">
+      <h2 id="go-title" class="neon-sub">Spillet er slut</h2>
+      <p class="go-reason" id="go-reason">Din kanon er ødelagt.</p>
+      <div class="go-score"><span id="go-score">0</span><span class="go-unit">point</span></div>
+      <p class="go-wins" id="go-wins">0 sejre</p>
+      <p class="go-rank" id="go-rank"></p>
+      <div class="row">
+        <button class="btn primary wide" id="btn-again" data-autofocus><span class="big">Nyt spil</span></button>
+      </div>
+      <div class="row">
+        <button class="btn" id="btn-go-menu"><span class="icon" aria-hidden="true">⌂</span><span class="big">Til menuen</span></button>
+        <a class="btn" href="../index.html"><span class="icon" aria-hidden="true">▦</span><span class="big">Alle spil</span></a>
+      </div>
+    </section>
+    <section class="go-records panel">
+      <h3 class="group-label">Rekorder</h3>
+      <ol class="records" id="go-records"></ol>
+    </section>
+  </div>
+</main>
+
+<!-- ================= INDSTILLINGER ================= -->
+<main id="settings" class="screen" hidden aria-labelledby="set-title">
+  <h2 id="set-title" class="sr-only">Indstillinger</h2>
+  <div class="row tabs" role="tablist">
+    <button class="btn" id="btn-settings-back"><span class="icon" aria-hidden="true">←</span><span class="big">Tilbage</span></button>
+    <button class="btn option tab" data-tab="styring" role="tab"><span class="big">Styring</span></button>
+    <button class="btn option tab" data-tab="udseende" role="tab"><span class="big">Udseende</span></button>
+    <button class="btn option tab" data-tab="lyd" role="tab"><span class="big">Lyd</span></button>
+  </div>
+
+  <section class="tab-panel" data-panel="styring">
+    <div class="setting">
+      <div class="setting-label">Dwell<small>Kig på en knap for at vælge den</small></div>
+      <div class="row" role="group">
+        <button class="btn option" data-set="dwell" data-value="false"><span class="big">Fra</span></button>
+        <button class="btn option" data-set="dwell" data-value="true"><span class="big">Til</span></button>
+      </div>
+    </div>
+    <div class="setting">
+      <div class="setting-label">Dwell-tid<small>Hvor længe du skal kigge</small></div>
+      <div class="row">
+        <button class="btn" id="dwell-minus" aria-label="Kortere dwell-tid"><span class="big">−</span><span class="small">Kortere</span></button>
+        <div class="value-box" id="dwell-value" aria-live="polite">1,2 sek.</div>
+        <button class="btn" id="dwell-plus" aria-label="Længere dwell-tid"><span class="big">+</span><span class="small">Længere</span></button>
+      </div>
+    </div>
+    <p class="note">Brug kun dwell her, hvis dit øjenstyringssystem ikke selv klikker. Har du dwell-klik i fx Tobii, så lad indstillingen være slået fra. Bliver blikket på en plus- eller minusknap, gentages den. Tastaturet virker altid: pil op og ned ændrer vinklen, pil højre og venstre ændrer krudtet (hold Skift for trin på 5), S eller Enter skyder, B skifter mellem granat og bombe, og Esc eller P giver pause.</p>
+  </section>
+
+  <section class="tab-panel" data-panel="udseende" hidden>
+    <div class="setting">
+      <div class="setting-label">Tema</div>
+      <div class="row" role="group">
+        <button class="btn option theme-btn" data-set="theme" data-value="neon"><span class="swatch" style="--a:#ff2fd2;--b:#22eaff;--c:#1a0b2a"></span><span class="small">Pink og cyan</span></button>
+        <button class="btn option theme-btn" data-set="theme" data-value="solnedgang"><span class="swatch" style="--a:#ff8a1f;--b:#22eaff;--c:#2a0b3d"></span><span class="small">Orange og lilla</span></button>
+        <button class="btn option theme-btn" data-set="theme" data-value="cyberpunk"><span class="swatch" style="--a:#39ff6a;--b:#2a8dff;--c:#000"></span><span class="small">Grøn og blå</span></button>
+        <button class="btn option theme-btn" data-set="theme" data-value="kontrast"><span class="swatch" style="--a:#ffff00;--b:#00ffff;--c:#000"></span><span class="small">Høj kontrast</span></button>
+      </div>
+    </div>
+    <div class="setting">
+      <div class="setting-label">Baggrund</div>
+      <div class="row" role="group">
+        <button class="btn option" data-set="background" data-value="mork"><span class="big">Mørk</span></button>
+        <button class="btn option" data-set="background" data-value="solnedgang"><span class="big">Solnedgang</span></button>
+        <button class="btn option" data-set="background" data-value="neonby"><span class="big">Neonby</span></button>
+      </div>
+    </div>
+    <div class="setting">
+      <div class="setting-label">Animation<small id="motion-note">Bevægelse i baggrunden</small></div>
+      <div class="row" role="group">
+        <button class="btn option" data-set="animation" data-value="false"><span class="big">Fra</span></button>
+        <button class="btn option" data-set="animation" data-value="true"><span class="big">Til</span></button>
+      </div>
+    </div>
+  </section>
+
+  <section class="tab-panel" data-panel="lyd" hidden>
+    <div class="setting">
+      <div class="setting-label">Lydeffekter</div>
+      <div class="row" role="group">
+        <button class="btn option" data-set="sound" data-value="false"><span class="big">Fra</span></button>
+        <button class="btn option" data-set="sound" data-value="true"><span class="big">Til</span></button>
+      </div>
+    </div>
+    <div class="setting">
+      <div class="setting-label">Musik</div>
+      <div class="row" role="group">
+        <button class="btn option" data-set="music" data-value="false"><span class="big">Fra</span></button>
+        <button class="btn option" data-set="music" data-value="true"><span class="big">Til</span></button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ================= REKORDER ================= -->
+<main id="records" class="screen" hidden aria-labelledby="rec-title">
+  <div class="row tabs">
+    <button class="btn" id="btn-records-back" data-autofocus><span class="icon" aria-hidden="true">←</span><span class="big">Tilbage</span></button>
+  </div>
+  <section class="panel records-panel">
+    <h2 class="group-label" id="rec-title">Rekorder – point og sejre</h2>
+    <ol class="records" id="rec-list"></ol>
+  </section>
+</main>
+
+<script src="../arkade/settings.js"></script>
+<script src="../arkade/highscores.js"></script>
+<script src="../arkade/dwell.js"></script>
+<script src="../arkade/audio.js"></script>
+<script src="../arkade/background.js"></script>
+<script src="js/game.js"></script>
+<script src="js/render.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
