@@ -23,5 +23,16 @@ window.HOJT_SPIL = [
   { navn: 'Kasser',         sti: 'kasser/',         farve: 'orange', status: 'snart', tekst: 'Skub kasserne hen på de markerede felter.' },
   { navn: 'Pixelgåder',     sti: 'pixelgaader/',    farve: 'pink',   status: 'snart', tekst: 'Brug tallene til at finde ud af, hvilke felter der skal farves.' },
   { navn: 'Lys ud',         sti: 'lys-ud/',         farve: 'gul',    status: 'snart', tekst: 'Tryk på lamperne, og sluk dem alle sammen.' },
-  { navn: 'Fire på stribe', sti: 'fire-paa-stribe/', farve: 'blå',   status: 'snart', tekst: 'Slip brikkerne ned, og få fire i træk før computeren.' }
+  { navn: 'Fire på stribe', sti: 'fire-paa-stribe/', farve: 'blå',   status: 'snart', tekst: 'Slip brikkerne ned, og få fire i træk før computeren.' },
+  { navn: 'Bomberne',      sti: 'bomberne/',      farve: 'rød',   status: 'snart', tekst: 'Læg bomber i labyrinten, og spræng fjenderne. Alt flytter sig kun, når du gør.' },
+  { navn: 'Kaperen',       sti: 'kaperen/',       farve: 'cyan',  status: 'snart', tekst: 'Sejl mellem havnene, handl med varer, og vælg, om du vil skyde, borde eller flygte.' },
+  { navn: 'Kanonen',       sti: 'kanonen/',       farve: 'orange', status: 'snart', tekst: 'Indstil vinkel og krudt, og ram modstanderen på skift i et landskab, der kan sprænges.' },
+  { navn: 'Labyrinten',    sti: 'labyrinten/',    farve: 'gul',   status: 'snart', tekst: 'Spis alle prikkerne. Spøgelserne flytter sig kun, når du gør.' },
+  { navn: 'Kælderen',      sti: 'kaelderen/',     farve: 'lilla', status: 'snart', tekst: 'Gå ned gennem kældre, der laves automatisk, ét træk ad gangen, og se, hvor dybt du kommer.' },
+  { navn: 'Tårnene',       sti: 'taarnene/',      farve: 'grøn',  status: 'snart', tekst: 'Byg tårne i ro og mag, og stop bølgerne af fjender.' },
+  { navn: 'Golf',          sti: 'golf/',          farve: 'pink',  status: 'snart', tekst: 'Sigt, vælg kraft, og få bolden i hul på retro minigolfbaner.' },
+  { navn: 'Billard',       sti: 'billard/',       farve: 'blå',   status: 'snart', tekst: 'Sigt, og stød kuglerne i hul mod computeren.' },
+  { navn: 'Søslag',        sti: 'soeslag/',       farve: 'cyan',  status: 'snart', tekst: 'Find og sænk computerens skibe, før den finder dine.' },
+  { navn: 'Frøen',         sti: 'froeen/',        farve: 'grøn',  status: 'snart', tekst: 'Hop over vejen og floden. Bilerne og stammerne rykker kun, når du hopper.' },
+  { navn: 'Rumhandleren',  sti: 'rumhandleren/',  farve: 'lilla', status: 'snart', tekst: 'Køb billigt og sælg dyrt mellem planeterne, og pas på rumpiraterne.' }
 ];
