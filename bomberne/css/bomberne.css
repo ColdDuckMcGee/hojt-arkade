@@ -1,0 +1,280 @@
+/* Bomberne – spillets egen opsætning. Bygger på ../arkade/arkade.css. */
+
+/* ---------- Farver (læses af js/render.js) ---------- */
+:root, [data-theme] {
+  --bb-floor: rgba(8, 3, 18, 0.9);
+  --bb-grid: rgba(120, 140, 255, 0.10);
+  --bb-frame: #3d5cff;
+  --bb-pillar-fill: #120a26;
+  --bb-pillar-edge: #4f6bff;
+  --bb-crate: #ffb03a;                 /* glødende glas, varm farve */
+  --bb-crate-glass1: rgba(255, 176, 58, 0.42);
+  --bb-crate-glass2: rgba(120, 40, 10, 0.55);
+  --bb-crate-shine: #ffe2a8;
+  --bb-player: #22eaff;                /* spilleren er altid cyan */
+  --bb-player-fill: #062a33;
+  --bb-bomb: #ff3fd8;
+  --bb-bomb-fill: #1c0418;
+  --bb-bomb-core: #5a0f4c;
+  --bb-bomb-text: #ffe8fb;
+  --bb-fuse: #ffb03a;
+  --bb-fuse-tip: #ffd23a;
+  --bb-flame: #ff8a1f;
+  --bb-flame-core: #ffd23a;           /* aldrig hvid */
+  --bb-flame-edge: rgba(255, 47, 120, 0);
+  --bb-danger: #ff2d55;
+  --bb-e-wander: #39ff6a;             /* vandrer: grøn kugle */
+  --bb-e-chaser: #ff4a3d;             /* jæger: rød trekant */
+  --bb-e-slow: #b07bff;               /* langsom: lilla sekskant */
+  --bb-enemy-fill: #0a0414;
+  --bb-arrow-alpha: 0.42;
+  --bb-door: #ffd23a;
+  --bb-door-fill: rgba(255, 210, 58, 0.16);
+  --bb-door-closed: #7a6a9a;
+  --bb-pickup: #22eaff;
+  --bb-pickup-fill: rgba(4, 30, 40, 0.85);
+}
+[data-theme="solnedgang"] {
+  --bb-frame: #c77dff; --bb-pillar-edge: #9a5cff; --bb-pillar-fill: #1d0a2a;
+  --bb-grid: rgba(199, 125, 255, 0.10);
+  --bb-crate: #ff9a3c; --bb-crate-glass1: rgba(255, 140, 60, 0.42);
+  --bb-bomb: #ff4fd8;
+}
+[data-theme="cyberpunk"] {
+  --bb-frame: #2a9dff; --bb-pillar-edge: #2a9dff; --bb-pillar-fill: #021018;
+  --bb-floor: rgba(0, 6, 8, 0.92); --bb-grid: rgba(57, 255, 106, 0.08);
+  --bb-e-wander: #b6ff3a;
+}
+[data-theme="kontrast"] {
+  --bb-floor: #000000; --bb-grid: rgba(255, 255, 255, 0.18); --bb-frame: #ffffff;
+  --bb-pillar-fill: #2a2a2a; --bb-pillar-edge: #ffffff;
+  --bb-crate: #ff8800; --bb-crate-glass1: rgba(255, 136, 0, 0.55); --bb-crate-glass2: rgba(80, 30, 0, 0.9); --bb-crate-shine: #ffcc66;
+  --bb-player: #00ffff; --bb-player-fill: #000000;
+  --bb-bomb: #ff00ff; --bb-bomb-fill: #000000; --bb-bomb-core: #400040; --bb-bomb-text: #ffffff;
+  --bb-fuse: #ff8800; --bb-fuse-tip: #ffff00;
+  --bb-flame: #ff8800; --bb-flame-core: #ffff00; --bb-flame-edge: rgba(255, 136, 0, 0.6);
+  --bb-danger: #ff0000;
+  --bb-e-wander: #00ff00; --bb-e-chaser: #ff3030; --bb-e-slow: #c080ff;
+  --bb-enemy-fill: #000000; --bb-arrow-alpha: 0.75;
+  --bb-door: #ffff00; --bb-door-fill: rgba(255, 255, 0, 0.2); --bb-door-closed: #aaaaaa;
+  --bb-pickup: #00ffff; --bb-pickup-fill: #000000;
+}
+
+/* ---------- Startmenu ---------- */
+#menu { gap: calc(var(--gap) * 0.7); }
+.title-block { text-align: center; max-width: 1100px; }
+.title-row { display: flex; align-items: center; justify-content: center; gap: max(16px, 3vmin); flex-wrap: wrap; }
+.title-row .arkade-logo { height: clamp(100px, 18vh, 200px); }
+.neon-title { font-size: clamp(2.6rem, 8.5vmin, 5.5rem); letter-spacing: 0.1em; }
+.lead { text-shadow: 0 1px 6px #000, 0 0 2px #000; margin: 10px auto 0; max-width: 46em; color: var(--muted); font-size: 1.1rem; line-height: 1.5; }
+.menu-group { display: flex; flex-direction: column; align-items: center; }
+.size-note { margin: 0; min-height: 0; color: var(--accent); text-align: center; max-width: 40em; text-shadow: 0 1px 4px #000; }
+.size-note:empty { display: none; }
+@media (max-height: 900px) {
+  .lead { display: none; }
+  .title-row .arkade-logo { height: clamp(80px, 14vh, 150px); }
+}
+
+/* Tilbage til hallen: fast i hjørnet, roligere stil end de andre knapper */
+.hall-btn {
+  position: absolute; top: max(16px, 2.5vmin); left: max(16px, 2.5vmin);
+  width: max(var(--btn), 7.5em); min-height: var(--btn); padding: 8px 10px;
+  border-width: 2px; border-color: color-mix(in srgb, var(--muted) 70%, transparent);
+  background: rgba(0, 0, 0, 0.45); box-shadow: none; color: var(--muted);
+}
+.hall-btn .big { font-size: 1.05rem; font-weight: 600; line-height: 1.2; text-align: center; }
+.hall-ico { width: 42%; height: auto; fill: none; stroke: var(--muted); stroke-width: 7; stroke-linejoin: round; }
+.hall-btn:hover, .hall-btn.arkade-dwelling { color: var(--ui-text); border-color: var(--muted); background: rgba(255, 255, 255, 0.08); box-shadow: none; }
+
+/* ---------- Hele vinduet, ingen rulning ---------- */
+html, body { height: 100%; height: 100dvh; }
+.screen { justify-content: safe center; align-items: safe center; }
+.screen > *, .overlay > .panel, .tab-panel > *, .go-result > * { flex-shrink: 0; }  /* intet presses sammen – hellere mindre knapper */
+/* Lave skærme: rekordlisten i to spalter */
+@media (max-height: 640px) and (min-width: 700px) {
+  .records { columns: 2; column-gap: 20px; }
+  .records li { break-inside: avoid; }
+}
+/* Tilbage til hallen flyttes ind i rækken, hvis den ellers ville ramme titlen */
+#menu.hall-inflow .hall-btn { position: static; align-self: flex-start; order: -1; flex: none; width: auto; min-height: calc(var(--btn) * 0.7); flex-direction: row; gap: 12px; padding: 8px 18px; }
+#menu.hall-inflow .hall-ico { width: 32px; }
+
+/* ---------- Spilleskærm ----------
+ * js/app.js vælger det layout, der giver de største felter, og sætter
+ * --btn, --board-w, --board-h m.fl. på #game:
+ *  lay-wide:  pile rundt om brættet, paneler i begge sider (stor skærm på langs)
+ *  lay-tall:  pile rundt om brættet, paneler under (skærm på højkant)
+ *  lay-below: brættet øverst, pilekors og knapper under (mobil på højkant)
+ *  lay-side:  brættet til venstre, pilekors og knapper til højre (lav skærm) */
+#game { padding: var(--game-pad, 12px); overflow: hidden; }
+.game-grid { display: grid; gap: var(--game-gap, 24px); align-items: center; justify-items: center; }
+.lay-wide {
+  grid-template-columns: var(--side-w, 300px) auto auto auto var(--side-w, 300px);
+  grid-template-areas:
+    "sideL .    up    .     sideR"
+    "sideL left board right sideR"
+    "sideL .    down  .     sideR";
+}
+.lay-tall {
+  grid-template-columns: auto auto auto;
+  grid-template-areas:
+    ".     up    ."
+    "left  board right"
+    ".     down  ."
+    "sideL sideL sideL"
+    "sideR sideR sideR";
+}
+.lay-below {
+  grid-template-columns: auto auto auto;
+  grid-template-areas:
+    "sideL sideL sideL"
+    "board board board"
+    ".     up    ."
+    "left  down  right"
+    "sideR sideR sideR";
+}
+.lay-side {
+  grid-template-columns: auto auto auto auto;
+  grid-template-areas:
+    "board sideL sideL sideL"
+    "board .     up    ."
+    "board left  down  right"
+    "board sideR sideR sideR";
+}
+.side-left { grid-area: sideL; }
+.side-right { grid-area: sideR; }
+.arrow-up { grid-area: up; }
+.arrow-down { grid-area: down; }
+.arrow-left { grid-area: left; }
+.arrow-right { grid-area: right; }
+.board-wrap { grid-area: board; position: relative; width: var(--board-w, 600px); height: var(--board-h, 500px); }
+#board {
+  display: block; width: 100%; height: 100%;
+  border: 3px solid var(--bb-frame); border-radius: 10px;
+  box-shadow: 0 0 calc(20px * var(--glow)) color-mix(in srgb, var(--bb-frame) 60%, transparent), inset 0 0 calc(10px * var(--glow)) var(--bb-frame);
+  box-sizing: border-box;
+}
+.arrow { padding: 0; }
+.arrow svg { width: calc(var(--btn) * 0.62); height: calc(var(--btn) * 0.62); fill: var(--ui-soft); stroke: var(--ui); stroke-width: 5; stroke-linejoin: round; }
+.arrow-up, .arrow-down { width: var(--arrow-long, calc(var(--btn) * 2)); height: var(--btn); }
+.arrow-left, .arrow-right { height: var(--arrow-long, calc(var(--btn) * 2)); width: var(--btn); }
+
+.side {
+  width: var(--side-w, 300px);
+  display: flex; flex-direction: column; align-items: stretch; gap: calc(var(--gap) * 0.5);
+  align-self: center;
+}
+.side-logo { height: clamp(56px, 9vh, 100px); align-self: center; }
+.hud-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.hud {
+  padding: 6px 10px; text-align: center;
+  background: var(--panel); border-radius: 14px; border: 1px solid var(--ui-soft);
+}
+.hud-label { font-size: 0.95rem; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
+.hud-value { font-size: clamp(1.8rem, calc(var(--side-w, 300px) * 0.09), 2.6rem); font-weight: 800; font-variant-numeric: tabular-nums; color: var(--ui-text); line-height: 1.15; }
+.hud-sub { font-size: 0.9rem; color: var(--muted); }
+.hud-sub.open { color: var(--bb-door); font-weight: 700; }
+.hud-power { font-size: 1.1rem; color: var(--muted); }
+.hud-power b { color: var(--ui-text); font-size: 1.35rem; }
+.lives-num { display: none; }
+.hearts { display: flex; gap: 4px; justify-content: center; align-items: center; min-height: 2.5rem; padding-top: 2px; flex-wrap: wrap; }
+.heart { width: clamp(26px, calc(var(--side-w, 300px) * 0.085), 40px); height: clamp(24px, calc(var(--side-w, 300px) * 0.08), 38px); fill: var(--bb-bomb); stroke: color-mix(in srgb, var(--bb-bomb) 50%, #fff); stroke-width: 5; filter: drop-shadow(0 0 calc(6px * var(--glow)) var(--bb-bomb)); }
+.legend { margin: 0; font-size: 0.95rem; color: var(--muted); text-align: center; line-height: 1.6; text-shadow: 0 1px 4px #000; }
+.legend .sw { display: inline-block; width: 22px; height: 16px; vertical-align: -2px; border-radius: 3px; margin: 0 4px 0 8px; }
+.sw-strong { background: repeating-linear-gradient(135deg, var(--bb-danger) 0 4px, color-mix(in srgb, var(--bb-danger) 25%, transparent) 4px 8px); border: 2px solid var(--bb-danger); }
+.sw-soft { background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--bb-danger) 40%, transparent) 0 2px, transparent 2px 7px); }
+.pause-btn { align-self: center; width: var(--btn); height: var(--btn); padding: 6px; }
+.pause-btn svg { width: 46%; height: 46%; fill: var(--ui); }
+
+/* Handlingsknapper: Bombe, Vent og Fortryd */
+.act-btn { flex-direction: row; justify-content: flex-start; gap: 14px; padding: 10px 18px; text-align: left; flex-wrap: wrap; }
+.act-btn svg { width: calc(var(--btn) * 0.5); height: calc(var(--btn) * 0.5); flex: none; }
+.act-btn .big { font-size: 1.7rem; }
+.act-btn .small { flex-basis: 100%; text-align: left; margin-top: -6px; }
+.lay-wide .act-btn { width: 100%; }
+.bomb-btn { border-color: var(--bb-bomb); min-height: calc(var(--btn) * 1.2); }
+.bomb-btn:hover, .bomb-btn.arkade-dwelling { box-shadow: 0 0 calc(24px * var(--glow)) var(--bb-bomb); }
+.ico-line { fill: none; stroke: var(--bb-fuse); stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; }
+.ico-line.thin { stroke: var(--bb-bomb-text); stroke-width: 4; opacity: .6; }
+.ico-tip { fill: var(--bb-fuse-tip); }
+.ico-body { fill: var(--bb-bomb-fill); stroke: var(--bb-bomb); stroke-width: 7; }
+.ico-ring { fill: none; stroke: var(--ui); stroke-width: 7; }
+.ico-dot { fill: var(--ui); }
+#btn-undo .ico-line, .undo-ico .ico-line { stroke: var(--accent); }
+.undo-ico { width: 44px; height: 44px; }
+.act-btn:disabled svg, .act-btn[aria-disabled="true"] svg { opacity: .7; }
+
+/* Kompakt: små skærme (lay-below og lay-side) */
+.compact .side { width: 100%; flex-direction: row; flex-wrap: nowrap; justify-content: center; align-items: center; gap: 8px; }
+.compact .side-logo, .compact .legend, .compact .hud-power { display: none; }
+.lay-below .side-logo, .lay-tall .side-logo { display: block; height: calc(var(--hud-h, 56px) * 0.8); }
+.compact .hud-grid { display: flex; gap: 6px; flex: 0 1 auto; min-width: 0; }
+.compact .hud { padding: 3px 8px; border-radius: 10px; min-width: 0; }
+.compact .hud-label { font-size: 0.72rem; letter-spacing: 0.04em; }
+.compact .hud-value { font-size: 1.25rem; line-height: 1.1; }
+.compact .hud-sub { display: none; }
+.compact .hearts { display: none; }
+.compact .lives-num { display: block; color: var(--bb-bomb); }
+.compact .pause-btn { width: var(--hud-h, 56px); height: var(--hud-h, 56px); min-width: var(--hud-h, 56px); min-height: var(--hud-h, 56px); flex: none; padding: 4px; }
+.compact .pause-btn .small { display: none; }
+.compact .pause-btn svg { width: 50%; height: 50%; }
+.compact .arrow { width: var(--btn); height: var(--btn); }
+.compact .arrow svg { width: 62%; height: 62%; }
+.compact .act-btn { width: var(--btn); height: var(--btn); min-height: var(--btn); flex: none; flex-direction: column; justify-content: center; gap: 2px; padding: 4px; text-align: center; flex-wrap: nowrap; }
+.compact .act-btn svg { width: 46%; height: 46%; }
+.compact .act-btn .big { font-size: clamp(0.85rem, calc(var(--btn) * 0.16), 1.45rem); }
+.compact .act-btn .small { display: none; }
+.compact .bomb-btn { min-height: var(--btn); }
+
+/* Overlays (pause, mistet liv og klaret bane) */
+.overlay {
+  position: absolute; inset: 0; z-index: 5;
+  display: flex; align-items: safe center; justify-content: safe center; overflow: hidden;
+  background: rgba(0, 0, 0, 0.62);
+}
+.overlay.soft { background: rgba(0, 0, 0, 0.42); }
+.overlay .panel { display: flex; flex-direction: column; align-items: center; gap: var(--gap); text-align: center; }
+.overlay .panel p { margin: 0; }
+.clear-bonus { font-size: 2rem; font-weight: 800; color: var(--accent); }
+
+/* ---------- Game over ---------- */
+.go-layout { display: flex; flex-wrap: wrap; gap: calc(var(--gap) * 1.4); align-items: center; justify-content: center; }
+.go-result { display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; }
+.go-reason, .go-plates { margin: 0; font-size: 1.3rem; color: var(--muted); }
+.go-score { display: flex; align-items: baseline; gap: 12px; }
+#go-score { font-size: clamp(3rem, 10vmin, 5rem); font-weight: 800; color: var(--ui-text); text-shadow: 0 0 calc(18px * var(--glow)) var(--ui); }
+.go-unit { font-size: 1.4rem; color: var(--muted); }
+.go-rank { margin: 0; min-height: 1.4em; font-size: 1.3rem; color: var(--accent); font-weight: 700; }
+.go-records { min-width: min(500px, 90vw); }
+.records li .plates { font-weight: 400; color: var(--muted); }
+
+/* ---------- Indstillinger ---------- */
+#settings { justify-content: flex-start; padding-top: max(20px, 4vmin); }
+.tabs { margin-bottom: 4px; }
+.tab-panel { display: flex; flex-direction: column; gap: calc(var(--gap) * 0.8); align-items: stretch; width: min(1100px, 100%); }
+.setting { display: grid; grid-template-columns: 13em 1fr; align-items: center; gap: var(--gap); }
+@media (max-width: 900px) { .setting { grid-template-columns: 1fr; justify-items: center; text-align: center; } .setting .row { justify-content: center !important; } }
+.setting-label { font-size: 1.35rem; font-weight: 700; display: flex; flex-direction: column; text-shadow: 0 1px 4px #000; }
+.setting-label small { font-size: 0.95rem; font-weight: 400; color: var(--muted); margin-top: 4px; }
+.setting .row { justify-content: flex-start; }
+.value-box { min-width: 6em; text-align: center; font-size: 1.8rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.note { max-width: 44em; margin: 0 auto; color: var(--muted); line-height: 1.5; text-align: center; }
+.theme-btn .swatch {
+  width: 64px; height: 32px; border-radius: 6px;
+  background: linear-gradient(90deg, var(--a) 0 33%, var(--b) 33% 66%, var(--c) 66% 100%);
+  border: 2px solid rgba(255,255,255,.5);
+}
+
+/* ---------- Rekorder ---------- */
+#records { justify-content: flex-start; padding-top: max(20px, 3vmin); gap: calc(var(--gap) * 0.6); }
+.records-panel { min-width: min(560px, 92vw); }
+
+/* ---------- Om ---------- */
+#om { gap: calc(var(--gap) * 0.7); }
+.om-logo { height: clamp(84px, 15vh, 200px); }
+@media (max-height: 740px) { .om-logo { height: 84px; } .om-panel p { font-size: 1.15rem; line-height: 1.45; } }
+.om-panel { max-width: 46em; text-align: center; }
+.om-panel h2 { margin-bottom: 12px; }
+.om-panel p { margin: 10px 0 0; font-size: 1.25rem; line-height: 1.55; }
+.link-btn { text-decoration: none; min-width: calc(var(--btn) * 2.4); }
+.link-btn .small { font-size: 0.95rem; }

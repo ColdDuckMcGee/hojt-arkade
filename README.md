@@ -53,6 +53,25 @@ spøgelserne flytter sig kun, når man selv gør.
 - **Rolig visning:** der er ingen blink og ingen hvide lysglimt. Glidningen er en rolig animation. Er animation slået fra, eller er computeren sat til mindre bevægelse, hopper spilleren direkte til slutfeltet.
 - **Test:** `node labyrinten/test/test-logik.js` tjekker labyrinterne, glidning, kollision, kraftpiller, banskift, liv og rekorder.
 
+### Bomberne
+Et roligt, turbaseret bombespil i en labyrint i stil med Bomberman. Der er intet
+ur. Fjenderne flytter sig og bomberne tæller ned, kun når man selv vælger.
+
+- **Styring:** hver tur vælger man én ting: gå et felt med en af de fire store pile omkring brættet, læg en **Bombe**, eller **Vent**. Bagefter flytter fjenderne ét felt, og bomberne tæller én ned. Pile mod en søjle, kasse, bombe eller fjende er slået fra. Tastaturet virker også: piletasterne går, mellemrum eller B lægger en bombe, V eller Enter venter, Z eller Backspace fortryder, og Esc eller P giver pause. Med dwell er hvert dwell præcis ét træk, og en pil gentager aldrig sig selv, mens blikket bliver på den.
+- **Bomber:** en bombe springer efter 3 træk, og tallet står på bomben. Flammen går ud i et kors, 2 felter til at begynde med. Den stoppes af søjler, sprænger den første kasse i hver retning og udløser andre bomber (kædereaktion). Felter, som flammen rammer i næste træk, er tydeligt rødt skraverede. Felter, der rammes senere, er svagt skraverede.
+- **Fjender:** tre slags, hver med sin egen farve og form. **Vandreren** (grøn kugle) går ligeud og drejer af og til. **Jægeren** (rød trekant) går den korteste vej mod spilleren, men aldrig ind i en flamme, der kommer i næste træk. **Den langsomme** (lilla sekskant) går kun hvert andet træk og frem og tilbage. En svag pil viser hver fjendes næste træk. Pilene kan slås fra under Indstillinger.
+- **Kasser og bonusser:** kasserne er glødende glas, søjlerne er mørke med neonkant. Under kasserne gemmer sig **+1 flamme**, **+1 bombe** ad gangen og af og til **+1 liv**. Udgangen ligger også under en kasse og åbner, når alle fjender er væk.
+- **Baner:** man spiller bane efter bane uden ende. Hver bane har flere fjender (og flere jægere) og lidt flere kasser end den forrige. Bonusserne følger med fra bane til bane.
+- **Fortryd:** man kan fortryde sidste træk én gang pr. bane, også lige efter man har mistet et liv.
+- **Liv:** altid tre liv. Mister man et, starter man i hjørnet igen, når man er klar, og fjender tæt på starten flyttes væk.
+- **Point:** 100 point for en vandrer eller en langsom fjende, 200 for en jæger, 10 for en kasse og 50 for en bonus. En klaret bane giver 100 point gange banens nummer.
+- **Bræt:** man vælger lille (9 × 9), mellem (11 × 9) eller stor (13 × 11). Kanten af søjler tegnes som en tynd ramme, så felterne bliver store. Startskærmen siger til, hvis felterne bliver under ca. 1,8 cm.
+- **Alle skærme:** man skal aldrig rulle. På store skærme står pilene rundt om brættet. På lave skærme, tablets og mobiler skifter layoutet, så pilekors og knapper står under eller ved siden af brættet og er så store som muligt.
+- **Rekorder:** der er en lokal top 10 med point, nået bane og dato for hver brætstørrelse.
+- **Lyd:** lydeffekter for skridt, bombe, nedtælling, eksplosion, fjende væk, bonus, mistet liv og klaret bane, og der er musik. Effekter og musik slås til og fra hver for sig.
+- **Rolig visning:** der er ingen blink og ingen hvide lysglimt. Er animation slået fra, eller er computeren sat til mindre bevægelse, bliver eksplosionerne til en rolig fade.
+- **Test:** `node bomberne/test/spillogik.test.js` tjekker brættet, lunte, flammer, kædereaktioner, fjenderne, liv, fortryd, bonusser og banskift.
+
 ## Sådan spiller og tester du
 
 1. Hent eller pak mappen `hojt-arkade` ud.
@@ -86,6 +105,7 @@ arkade/           fælles moduler til alle spil
 slangen/          spillet Slangen (index.html, css/, js/)
 minestryger/      spillet Minestryger (index.html, css/, js/)
 labyrinten/       spillet Labyrinten (index.html, css/, js/, test/)
+bomberne/         spillet Bomberne (index.html, css/, js/, test/)
 LICENSE           MIT-licens
 ```
 
