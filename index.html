@@ -8,48 +8,106 @@
 <title>Hojt Arkade – gratis spil til øjenstyring</title>
 <link rel="icon" href="arkade/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="arkade/arkade.css">
-<style>
-  .forside { gap: calc(var(--gap) * 0.8); }
-  .forside .arkade-logo { height: clamp(140px, 30vh, 300px); }
-  .intro { margin: 0; max-width: 40em; text-align: center; font-size: 1.25rem; line-height: 1.5; color: var(--muted); text-shadow: 0 1px 6px #000; }
-  .games { display: flex; flex-wrap: wrap; gap: var(--gap); justify-content: center; align-items: stretch; }
-  .game-card { flex-direction: row; gap: 22px; padding: 18px 30px; min-height: calc(var(--btn) * 1.3); text-align: left; align-items: center; }
-  .game-card svg { width: calc(var(--btn) * 0.9); height: calc(var(--btn) * 0.9); flex: none; }
-  .game-card .txt { display: flex; flex-direction: column; gap: 6px; }
-  .game-card .big { font-size: 2rem; }
-  .coming { display: flex; align-items: center; justify-content: center; min-height: calc(var(--btn) * 1.3); min-width: calc(var(--btn) * 2.4);
-            padding: 18px 30px; border: 2px dashed var(--ui-soft); border-radius: var(--radius); color: var(--muted); font-size: 1.15rem; text-align: center; background: rgba(0,0,0,.35); }
-  .om-panel { max-width: 46em; text-align: center; }
-  .om-panel p { margin: 10px 0 0; font-size: 1.25rem; line-height: 1.55; }
-  .link-btn { min-width: calc(var(--btn) * 2.4); }
-  @media (max-height: 760px) { .intro { display: none; } }
-</style>
+<link rel="stylesheet" href="hal/hal.css">
 </head>
 <body>
-<canvas id="baggrund" aria-hidden="true"></canvas>
 
-<main id="forside" class="screen forside" aria-labelledby="forside-titel">
-  <h1 id="forside-titel" class="sr-only">Hojt Arkade</h1>
-  <img class="arkade-logo" src="arkade/logo.svg" alt="Hojt Arkade">
-  <p class="intro">Gratis spil til voksne, der bruger øjenstyring. Ingen tidspres, store knapper og rolige farver.</p>
-  <section class="games" aria-label="Spil">
-    <a class="btn primary game-card" id="spil-slangen" href="slangen/index.html">
-      <svg viewBox="0 0 100 100" aria-hidden="true">
-        <g fill="#ff2fd2"><rect x="8" y="58" width="18" height="18" rx="3"/><rect x="30" y="58" width="18" height="18" rx="3"/><rect x="52" y="58" width="18" height="18" rx="3"/><rect x="52" y="36" width="18" height="18" rx="3"/></g>
-        <rect x="52" y="12" width="20" height="20" rx="4" fill="#ffb8f2" stroke="#fff" stroke-width="2"/>
-        <rect x="80" y="17" width="12" height="12" rx="2" fill="#22eaff"/>
-      </svg>
-      <span class="txt"><span class="big">Slangen</span><span class="small">Styr slangen ét felt ad gangen</span></span>
-    </a>
-    <div class="coming" aria-label="Flere spil er på vej">Flere spil<br>er på vej</div>
-  </section>
-  <div class="row">
+<!-- Arkadehallen bag maskinen: mørk væg, slørede neonlys, maskiner i baggrunden og blankt gulv. -->
+<div class="hal-baggrund" aria-hidden="true">
+  <div class="neon neon-1"></div><div class="neon neon-2"></div><div class="neon neon-3"></div><div class="neon neon-4"></div>
+  <svg class="hal-scene" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax slice">
+    <defs>
+      <linearGradient id="hs-gulv" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#1a0a2a"/><stop offset=".35" stop-color="#0d0616"/><stop offset="1" stop-color="#050208"/>
+      </linearGradient>
+      <linearGradient id="hs-refl-pink" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#ff2fd2" stop-opacity=".32"/><stop offset="1" stop-color="#ff2fd2" stop-opacity="0"/>
+      </linearGradient>
+      <linearGradient id="hs-refl-cyan" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#22eaff" stop-opacity=".28"/><stop offset="1" stop-color="#22eaff" stop-opacity="0"/>
+      </linearGradient>
+      <filter id="hs-blur" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="6"/></filter>
+      <filter id="hs-blur-big" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="22"/></filter>
+      <g id="hs-kab">
+        <path d="M0 0h90v14l-6 6v58l12 10v18h-6v170H-6V106h-6V88l12-10V20l-6-6z" fill="#0b0613"/>
+      </g>
+    </defs>
+    <!-- Neonrør på væggen -->
+    <g filter="url(#hs-blur)" opacity=".55">
+      <path d="M90 170h380" stroke="#ff2fd2" stroke-width="6" stroke-linecap="round"/>
+      <path d="M1130 150h380" stroke="#22eaff" stroke-width="6" stroke-linecap="round"/>
+      <path d="M560 110h480" stroke="#a78bff" stroke-width="4" stroke-linecap="round" opacity=".6"/>
+    </g>
+    <!-- Gulv -->
+    <rect x="-10" y="560" width="1620" height="350" fill="url(#hs-gulv)"/>
+    <path d="M-10 560H1610" stroke="#ff2fd2" stroke-opacity=".35" stroke-width="2"/>
+    <!-- Maskiner i baggrunden (silhuetter med svagt lys fra skærm og skilt) -->
+    <g opacity=".95">
+      <g transform="translate(40 290)"><use href="#hs-kab"/><rect x="6" y="4" width="78" height="12" fill="#ff2fd2" opacity=".35"/><rect x="10" y="30" width="70" height="44" fill="#22eaff" opacity=".12"/></g>
+      <g transform="translate(170 300) scale(.95)"><use href="#hs-kab"/><rect x="6" y="4" width="78" height="12" fill="#22eaff" opacity=".35"/><rect x="10" y="30" width="70" height="44" fill="#ff2fd2" opacity=".12"/></g>
+      <g transform="translate(300 310) scale(.9)"><use href="#hs-kab"/><rect x="6" y="4" width="78" height="12" fill="#ffd23a" opacity=".28"/><rect x="10" y="30" width="70" height="44" fill="#22eaff" opacity=".1"/></g>
+      <g transform="translate(420 318) scale(.86)"><use href="#hs-kab"/><rect x="6" y="4" width="78" height="12" fill="#a78bff" opacity=".35"/><rect x="10" y="30" width="70" height="44" fill="#a78bff" opacity=".1"/></g>
+      <g transform="translate(1100 318) scale(.86)"><use href="#hs-kab"/><rect x="6" y="4" width="78" height="12" fill="#39ff6a" opacity=".25"/><rect x="10" y="30" width="70" height="44" fill="#22eaff" opacity=".1"/></g>
+      <g transform="translate(1210 310) scale(.9)"><use href="#hs-kab"/><rect x="6" y="4" width="78" height="12" fill="#ff2fd2" opacity=".35"/><rect x="10" y="30" width="70" height="44" fill="#ff2fd2" opacity=".1"/></g>
+      <g transform="translate(1330 300) scale(.95)"><use href="#hs-kab"/><rect x="6" y="4" width="78" height="12" fill="#22eaff" opacity=".35"/><rect x="10" y="30" width="70" height="44" fill="#ffd23a" opacity=".1"/></g>
+      <g transform="translate(1460 290)"><use href="#hs-kab"/><rect x="6" y="4" width="78" height="12" fill="#ff8a1f" opacity=".3"/><rect x="10" y="30" width="70" height="44" fill="#22eaff" opacity=".12"/></g>
+    </g>
+    <!-- Lysrefleks i det blanke gulv -->
+    <g filter="url(#hs-blur)">
+      <rect x="60" y="566" width="60" height="230" fill="url(#hs-refl-pink)"/>
+      <rect x="190" y="566" width="56" height="200" fill="url(#hs-refl-cyan)"/>
+      <rect x="1230" y="566" width="56" height="200" fill="url(#hs-refl-pink)"/>
+      <rect x="1480" y="566" width="60" height="230" fill="url(#hs-refl-cyan)"/>
+    </g>
+    <ellipse cx="800" cy="600" rx="420" ry="40" fill="#ff2fd2" opacity=".14" filter="url(#hs-blur-big)"/>
+  </svg>
+</div>
+
+<!-- ================= HALLEN ================= -->
+<main id="hal" class="screen hal" aria-labelledby="hal-titel">
+  <h1 id="hal-titel" class="sr-only">Hojt Arkade – vælg et spil</h1>
+  <img class="arkade-logo hal-logo" src="arkade/logo.svg" alt="Hojt Arkade">
+
+  <nav class="hal-menu" aria-label="Menu">
     <button class="btn" id="btn-om"><span class="icon" aria-hidden="true">ⓘ</span><span class="big">Om</span></button>
+    <button class="btn" id="btn-indstillinger"><span class="icon" aria-hidden="true">⚙</span><span class="big">Indstillinger</span></button>
+  </nav>
+
+  <button class="btn neon-pil pil-venstre" id="btn-forrige" aria-label="Forrige spil">
+    <svg viewBox="0 0 100 160" aria-hidden="true"><path d="M70 20 20 80l50 60"/></svg>
+    <span class="small">Forrige</span>
+  </button>
+
+  <section class="maskine-plads" aria-roledescription="spilvælger" aria-label="Spil i hallen">
+    <div class="maskine" id="maskine" role="img" aria-label=""></div>
+  </section>
+
+  <button class="btn neon-pil pil-hojre" id="btn-naeste" aria-label="Næste spil">
+    <svg viewBox="0 0 100 160" aria-hidden="true"><path d="M30 20l50 60-50 60"/></svg>
+    <span class="small">Næste</span>
+  </button>
+
+  <section class="spil-info panel" aria-labelledby="info-navn">
+    <p class="info-status" id="info-status"></p>
+    <h2 class="info-navn" id="info-navn"></h2>
+    <p class="info-tekst" id="info-tekst"></p>
+  </section>
+
+  <div class="spil-styring">
+    <div class="prikker" id="prikker" aria-hidden="true"></div>
+    <a class="btn primary spil-knap" id="btn-spil"><span class="icon" aria-hidden="true">▶</span><span class="big" id="spil-label">Spil</span></a>
+  </div>
+
+  <div class="hal-ekstra">
     <button class="btn js-fullscreen" id="btn-fs"><span class="icon" aria-hidden="true">⛶</span><span class="big js-fs-label">Fuld skærm</span></button>
   </div>
+
+  <p class="sr-only" id="hal-status" aria-live="polite" aria-atomic="true"></p>
 </main>
 
+<!-- ================= OM ================= -->
 <main id="om" class="screen" hidden aria-labelledby="om-title">
+  <img class="arkade-logo om-logo" src="arkade/logo.svg" alt="Hojt Arkade">
   <section class="panel om-panel">
     <h2 id="om-title" class="neon-sub">Om Hojt Arkade</h2>
     <p>Hojt Arkade er udviklet af Jon Leismann Engsager, Hojt Design. Jon er IT- og IKT-konsulent i det specialiserede område og laver blandt andet gratis spil til voksne, der bruger øjenstyring.</p>
@@ -58,52 +116,62 @@
   <div class="row">
     <a class="btn link-btn" href="https://hojt.dk" target="_blank" rel="noopener"><span class="big">Hojt Design</span><span class="small">hojt.dk</span></a>
     <a class="btn link-btn" href="https://github.com/ColdDuckMcGee/hojt-arkade" target="_blank" rel="noopener"><span class="big">Koden på GitHub</span><span class="small">github.com/ColdDuckMcGee/hojt-arkade</span></a>
-  </div>
-  <div class="row">
-    <button class="btn primary wide" id="btn-om-back"><span class="icon" aria-hidden="true">←</span><span class="big">Tilbage</span></button>
+    <button class="btn primary wide js-tilbage"><span class="icon" aria-hidden="true">←</span><span class="big">Tilbage</span></button>
   </div>
 </main>
 
+<!-- ================= INDSTILLINGER ================= -->
+<main id="indstillinger" class="screen" hidden aria-labelledby="set-title">
+  <h2 id="set-title" class="neon-sub">Indstillinger</h2>
+  <div class="set-grid">
+    <section class="set-gruppe panel" aria-labelledby="set-styring">
+      <h3 class="group-label" id="set-styring">Styring</h3>
+      <div class="setting">
+        <div class="setting-label" id="lbl-dwell">Dwell<small>Kig på en knap for at vælge den</small></div>
+        <div class="row" role="group" aria-labelledby="lbl-dwell">
+          <button class="btn option" data-set="dwell" data-value="false"><span class="big">Fra</span></button>
+          <button class="btn option" data-set="dwell" data-value="true"><span class="big">Til</span></button>
+        </div>
+      </div>
+      <div class="setting">
+        <div class="setting-label" id="lbl-dwelltid">Dwell-tid<small>Hvor længe du skal kigge</small></div>
+        <div class="row" role="group" aria-labelledby="lbl-dwelltid">
+          <button class="btn" id="dwell-minus" aria-label="Kortere dwell-tid"><span class="big">−</span><span class="small">Kortere</span></button>
+          <div class="value-box" id="dwell-value" aria-live="polite">1,2 sek.</div>
+          <button class="btn" id="dwell-plus" aria-label="Længere dwell-tid"><span class="big">+</span><span class="small">Længere</span></button>
+        </div>
+      </div>
+    </section>
+    <section class="set-gruppe panel" aria-labelledby="set-lyd">
+      <h3 class="group-label" id="set-lyd">Lyd</h3>
+      <div class="setting">
+        <div class="setting-label" id="lbl-sfx">Lydeffekter<small>Klik og små lyde</small></div>
+        <div class="row" role="group" aria-labelledby="lbl-sfx">
+          <button class="btn option" data-set="sound" data-value="false"><span class="big">Fra</span></button>
+          <button class="btn option" data-set="sound" data-value="true"><span class="big">Til</span></button>
+        </div>
+      </div>
+      <div class="setting">
+        <div class="setting-label" id="lbl-musik">Musik<small>Rolig synthwave</small></div>
+        <div class="row" role="group" aria-labelledby="lbl-musik">
+          <button class="btn option" data-set="music" data-value="false"><span class="big">Fra</span></button>
+          <button class="btn option" data-set="music" data-value="true"><span class="big">Til</span></button>
+        </div>
+      </div>
+    </section>
+  </div>
+  <p class="note">Indstillingerne gælder i alle spil. Har du dwell-klik i dit øjenstyringssystem, fx Tobii, så lad dwell være slået fra her.</p>
+  <div class="row">
+    <button class="btn primary wide js-tilbage"><span class="icon" aria-hidden="true">←</span><span class="big">Tilbage</span></button>
+  </div>
+</main>
+
+<noscript><p class="noscript">Hojt Arkade kræver JavaScript. Du kan åbne <a href="slangen/index.html">Slangen</a> direkte.</p></noscript>
+
 <script src="arkade/settings.js"></script>
 <script src="arkade/dwell.js"></script>
-<script src="arkade/background.js"></script>
-<script>
-(function () {
-  'use strict';
-  // Fælles indstillinger, som spillene også bruger (dwell, tema, baggrund, animation).
-  var s = ArkadeSettings.create('arkade', {
-    dwell: false, dwellTime: 1.2, theme: 'neon', background: 'mork', animation: true, sound: true, music: true
-  });
-  var root = document.documentElement;
-  root.setAttribute('data-theme', s.get('theme'));
-  var css = function (n) { return getComputedStyle(root).getPropertyValue(n).trim(); };
-  var bg = ArkadeBackground.create(document.getElementById('baggrund'));
-  bg.setPalette({ bg0: css('--p-bg0'), bg1: css('--p-bg1'), sky0: css('--p-sky0'), sky1: css('--p-sky1'), sky2: css('--p-sky2'),
-                  sun0: css('--p-sun0'), sun1: css('--p-sun1'), grid: css('--p-grid'), light1: css('--p-light1'), light2: css('--p-light2') });
-  bg.setMode(s.get('background'));
-  var rm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  bg.setAnimated(s.get('animation') && !rm);
-  var dwell = ArkadeDwell.create({ enabled: s.get('dwell'), timeMs: s.get('dwellTime') * 1000 });
-
-  function show(id) {
-    document.querySelectorAll('.screen').forEach(function (el) { el.hidden = el.id !== id; });
-    dwell.reset();
-  }
-  document.getElementById('btn-om').addEventListener('click', function () { show('om'); });
-  document.getElementById('btn-om-back').addEventListener('click', function () { show('forside'); });
-
-  var fsOk = !!(document.fullscreenEnabled || document.webkitFullscreenEnabled);
-  var fsBtn = document.getElementById('btn-fs');
-  if (!fsOk) fsBtn.hidden = true;
-  function isFs() { return !!(document.fullscreenElement || document.webkitFullscreenElement); }
-  fsBtn.addEventListener('click', function () {
-    if (isFs()) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
-    else { var p = (root.requestFullscreen || root.webkitRequestFullscreen).call(root); if (p && p.catch) p.catch(function () {}); }
-  });
-  document.addEventListener('fullscreenchange', function () {
-    document.querySelector('.js-fs-label').textContent = isFs() ? 'Luk fuld skærm' : 'Fuld skærm';
-  });
-})();
-</script>
+<script src="arkade/audio.js"></script>
+<script src="games.js"></script>
+<script src="hal/hal.js"></script>
 </body>
 </html>

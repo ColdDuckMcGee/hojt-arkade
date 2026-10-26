@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 220">
+  <!-- Stillbillede af Slangen til maskinens skærm. Tegnet i SVG, ingen billeder. -->
+  <defs>
+    <pattern id="g" width="20" height="20" patternUnits="userSpaceOnUse" x="10" y="10">
+      <path d="M20 0H0V20" fill="none" stroke="#22eaff" stroke-opacity=".22" stroke-width="1"/>
+    </pattern>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="240" height="220" fill="#0a0414"/>
+  <rect x="10" y="10" width="220" height="200" fill="url(#g)" stroke="#22eaff" stroke-width="2"/>
+  <g filter="url(#glow)">
+    <g fill="#ff2fd2">
+      <rect x="32" y="152" width="16" height="16" rx="3"/><rect x="52" y="152" width="16" height="16" rx="3"/>
+      <rect x="72" y="152" width="16" height="16" rx="3"/><rect x="92" y="152" width="16" height="16" rx="3"/>
+      <rect x="92" y="132" width="16" height="16" rx="3"/><rect x="92" y="112" width="16" height="16" rx="3"/>
+      <rect x="112" y="112" width="16" height="16" rx="3"/><rect x="132" y="112" width="16" height="16" rx="3"/>
+    </g>
+    <rect x="151" y="111" width="18" height="18" rx="4" fill="#ffb8f2" stroke="#fff" stroke-width="1.5"/>
+    <circle cx="163" cy="116" r="2" fill="#2a0525"/><circle cx="163" cy="124" r="2" fill="#2a0525"/>
+    <rect x="194" y="114" width="12" height="12" rx="2" fill="#22eaff"/>
+    <rect x="76" y="56" width="12" height="12" fill="#ffd23a" transform="rotate(45 82 62)"/>
+    <rect x="171" y="31" width="18" height="18" rx="2" fill="#1b1238" stroke="#a78bff" stroke-width="2"/>
+    <rect x="31" y="71" width="18" height="18" rx="2" fill="#1b1238" stroke="#a78bff" stroke-width="2"/>
+  </g>
+</svg>

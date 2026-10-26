@@ -30,7 +30,8 @@ står helt stille ind imellem.
 
 1. Hent eller pak mappen `hojt-arkade` ud.
 2. Åbn `index.html` i Chrome eller Edge (dobbeltklik). Det virker direkte fra disken.
-3. Vælg **Slangen**, eller åbn `slangen/index.html` direkte.
+3. Du står nu i arkadehallen. Bladr mellem maskinerne med de store pile (eller
+   piletasterne), og vælg **Spil** ved Slangen. Du kan også åbne `slangen/index.html` direkte.
 4. Vælg brætstørrelse og **Start spil**. Klik én gang, så lyden starter (det kræver browseren).
 
 Prøv især:
@@ -50,7 +51,10 @@ Til hjemmesiden uploades hele mappen, som den er. Alle stier er relative.
 ## Mappestruktur
 
 ```
-index.html        forside for serien
+index.html        forsiden: arkadehallen (arkade.hojt.dk)
+games.js          listen over spil i hallen – ét spil pr. linje
+hal/              hallens kode (hal.js, hal.css) og skærmbilleder (skaerme/)
+CNAME             eget domæne til GitHub Pages: arkade.hojt.dk
 arkade/           fælles moduler til alle spil
 slangen/          spillet Slangen (index.html, css/, js/)
 LICENSE           MIT-licens
@@ -71,8 +75,27 @@ LICENSE           MIT-licens
 Modulerne er almindelige `<script>`-filer uden import og eksport, så de også
 virker over `file://`. Se [`arkade/README.md`](arkade/README.md) for API'erne.
 
-Et nyt spil laves som en ny mappe ved siden af `slangen/`, der henter
-`../arkade/...`, og tilføjes som et kort på forsiden.
+## Sådan tilføjer du et spil
+
+1. Lav spillet som en ny mappe ved siden af `slangen/`, der henter `../arkade/...`.
+2. Tilføj eller ret én linje i `games.js`:
+
+   ```js
+   { navn: 'Muren', sti: 'muren/', farve: 'orange', status: 'aktiv', tekst: 'Send bolden mod muren, og slå murstenene ned én efter én.' },
+   ```
+
+   - `farve`: pink, cyan, orange, gul, grøn, lilla, blå eller rød.
+   - `status`: `'aktiv'` kan spilles. `'snart'` vises med slukket skærm og skiltet "Kommer snart".
+   - `skaerm` (valgfri): et stillbillede i SVG til maskinens skærm, fx `'hal/skaerme/muren.svg'`.
+3. Rækkefølgen i `games.js` er rækkefølgen i hallen. Der skal ikke rettes andet.
+
+Hallen er lavet til øjenstyring: én maskine ad gangen, store pile til at bladre,
+intet skifter af sig selv, og dwell, lyd og musik styres under **Indstillinger**
+med de samme fælles indstillinger som i spillene.
+
+## Hjemmeside
+
+Siden er tænkt til GitHub Pages med det egne domæne `arkade.hojt.dk` (se `CNAME`).
 
 ## Licens
 
