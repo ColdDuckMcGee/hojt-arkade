@@ -12,7 +12,8 @@
   var D = 1.0;        // afstand fra løberen til næste forhindring, når spillet står stille
   var GAP = 1.4;      // afstand mellem forhindringerne (= hvor langt banen ruller pr. valg)
   var K = 0.5;        // perspektiv
-  var HIT = D / GAP;  // hvornår i et træk løberen når forhindringen (0-1)
+  var HIT = D / GAP;
+  var RUNNER_SCALE = 0.86, RUNNER_ALPHA = 0.72; // løberen nærmest kameraet  // hvornår i et træk løberen når forhindringen (0-1)
 
   function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
   function ease(t) { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); }
@@ -279,7 +280,10 @@
       c.fillStyle = 'rgba(0,0,0,0.45)';
       c.beginPath(); c.ellipse(x, y, u * 0.26 * (1 - lift / u * 0.5), u * 0.06, 0, 0, Math.PI * 2); c.fill();
       var color = hitNow ? col.danger : col.runner;
-      figure(x, y - lift, u, pose, color, 1, false, anim ? (a === 'venstre' ? -1 : a === 'hoejre' ? 1 : 0) : 0);
+      // Løberen er lidt mindre, lidt lavere og halvgennemsigtig, så den ikke dækker forhindringen bag sig
+      c.save(); c.globalAlpha = RUNNER_ALPHA;
+      figure(x, y - lift + u * 0.05, u * RUNNER_SCALE, pose, color, 1, false, anim ? (a === 'venstre' ? -1 : a === 'hoejre' ? 1 : 0) : 0);
+      c.restore();
       if (hitNow) {
         var q = clamp((t - HIT) / (1 - HIT), 0, 1);
         c.strokeStyle = col.danger; c.globalAlpha = 0.8 * (1 - q); c.lineWidth = Math.max(2, u * 0.05); glow(col.danger, 16);

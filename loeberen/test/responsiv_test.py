@@ -111,9 +111,10 @@ def flow_test(b):
         bad = pg.evaluate("['bliv','hop','dyk','venstre','hoejre'].find(a => Loeberen.run.possible(a) && !Loeberen.run.safe(a)) || null")
         if not bad:
             pg.evaluate("() => { const s = Loeberen.run.state.segs[0]; s.lanes = ['lav','lav','lav']; Loeberen.refresh(); }"); bad = 'bliv'
+        m_before = st()['m']
         pg.click('[data-act=%s]' % bad); pg.wait_for_timeout(1300)
         s2 = st()
-        res('forkert valg %d koster et liv' % (k + 1), s2['l'] == 2 - k, json.dumps(s2))
+        res('forkert valg %d koster et liv og giver 0 m' % (k + 1), s2['l'] == 2 - k and s2['m'] == m_before, json.dumps(s2))
         if k < 2:
             res('  "Du mistede et liv" vises', pg.evaluate("!document.getElementById('death-overlay').hidden"))
             pg.click('#btn-continue'); pg.wait_for_timeout(500)

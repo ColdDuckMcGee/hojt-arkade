@@ -96,8 +96,11 @@ test('forkert valg koster et liv; game over ved 0 liv', function () {
   for (var k = 1; k <= 3; k++) {
     var bad = G.ACTIONS.filter(function (a) { return run.possible(a) && !run.safe(a); });
     assert.ok(bad.length > 0, 'første stop bør have et forkert valg');
+    var m0 = run.state.meters, c0 = run.state.coins;
     var r = run.act(bad[0]);
     assert.strictEqual(r.safe, false);
+    assert.strictEqual(run.state.meters, m0, 'forkert valg giver 0 m');
+    assert.strictEqual(run.state.coins, c0, 'forkert valg giver ingen mønt');
     assert.ok(r.cause, 'årsag mangler');
     assert.strictEqual(run.state.lives, 3 - k);
     assert.strictEqual(r.over, k === 3);
@@ -140,6 +143,21 @@ test('mønter giver bonus, og point = meter + mønter × 10', function () {
   assert.ok(!r.safe && !r.coin);
   assert.strictEqual(run.state.coins, 1);
   assert.strictEqual(run.state.score, run.state.meters + run.state.coins * G.COIN_POINTS);
+});
+
+test('mønter: på omkring halvdelen af stoppene, færre på sværere niveauer', function () {
+  var dens = {};
+  DIFFS.forEach(function (d) {
+    var c = 0, n = 0;
+    for (var s = 1; s <= 20; s++) {
+      var g = G.makeGenerator(G.DIFFS[d], seeded(s)); g.reset(1);
+      for (var i = 0; i < 500; i++) { var sg = g.next(i * 10, i === 0); n++; if (sg.coins.some(Boolean)) c++; }
+    }
+    dens[d] = c / n;
+    assert.ok(dens[d] > 0.35 && dens[d] < 0.58, d + ': mønttæthed ' + dens[d].toFixed(2));
+  });
+  assert.ok(dens.rolig >= dens.svaer, 'Rolig bør have mindst lige så mange mønter som Svær');
+  console.log('      (stop med mønt: ' + DIFFS.map(function (d) { return d + ' ' + Math.round(dens[d] * 100) + ' %'; }).join(', ') + ')');
 });
 
 test('man kan se et par segmenter forude', function () {

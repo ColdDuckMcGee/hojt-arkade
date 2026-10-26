@@ -38,9 +38,9 @@
   var OBST = ['fri', 'lav', 'hoej', 'tog'];
 
   var DIFFS = {
-    rolig:  { id: 'rolig',  name: 'Rolig',  traps: false, ramp: 3000, base: 0.0,  coins: 0.5 },
-    normal: { id: 'normal', name: 'Normal', traps: true,  ramp: 1600, base: 0.1,  coins: 0.45 },
-    svaer:  { id: 'svaer',  name: 'Svær',   traps: true,  ramp: 800,  base: 0.35, coins: 0.4 }
+    rolig:  { id: 'rolig',  name: 'Rolig',  traps: false, ramp: 3000, base: 0.0,  coins: 0.26 },
+    normal: { id: 'normal', name: 'Normal', traps: true,  ramp: 1600, base: 0.1,  coins: 0.235 },
+    svaer:  { id: 'svaer',  name: 'Svær',   traps: true,  ramp: 800,  base: 0.35, coins: 0.22 }
   };
 
   function target(lane, action) {
@@ -170,7 +170,7 @@
     function addCoins(seg) {
       seg.coins = [false, false, false];
       if (coinRun.left <= 0 && rng() < diff.coins) {
-        coinRun = { lane: Math.floor(rng() * 3) % 3, left: 2 + Math.floor(rng() * 4) };
+        coinRun = { lane: Math.floor(rng() * 3) % 3, left: 2 + Math.floor(rng() * 3) };
       }
       if (coinRun.left > 0) {
         coinRun.left--;
@@ -260,8 +260,8 @@
         var res = { action: a, from: from, to: t, seg: seg, safe: ok, coin: false, cause: null, over: false };
         state.lane = t;
         state.turns++;
-        state.meters += METERS;
         if (ok) {
+          state.meters += METERS;   // kun et sikkert valg giver meter
           if (seg.coins && seg.coins[t]) { state.coins++; res.coin = true; }
         } else {
           state.lives--; state.hits++;
