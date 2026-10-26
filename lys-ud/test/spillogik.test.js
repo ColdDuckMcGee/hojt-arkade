@@ -290,6 +290,30 @@ test('mange baner på alle størrelser: altid løsbare og aldrig allerede slukke
   });
 });
 
+test('automatisk standardplade: 4 × 4 under ca. 80 px pr. lampe ved 5 × 5, ellers 5 × 5', function () {
+  assert.strictEqual(G.DEFAULT_SIZE, '5x5');
+  assert.strictEqual(G.AUTO_MIN_PX, 80);
+  assert.strictEqual(G.autoSize(207), '5x5');   // 1920 × 1080
+  assert.strictEqual(G.autoSize(95), '5x5');    // 1024 × 768
+  assert.strictEqual(G.autoSize(80), '5x5');    // præcis grænsen
+  assert.strictEqual(G.autoSize(79), '4x4');
+  assert.strictEqual(G.autoSize(73), '4x4');    // mobil 390 × 844
+  assert.strictEqual(G.autoSize(0), '5x5');     // ukendt skærm: almindelig standard
+  assert.ok(G.SIZES[G.AUTO_SMALL_SIZE]);
+});
+
+test('sessionen slutter kun ved end(): klarede baner og point bevares indtil da', function () {
+  var run = G.createRun('3x3', { rng: seeded(5) }), s = run.state;
+  G.solve(s.board, 3).forEach(function (i) { run.tap(i); });
+  var pts = s.score;
+  assert.ok(pts > 0 && !s.ended);
+  assert.ok(run.nextLevel());
+  run.tap(0); run.undo();             // spiller videre (fx efter "Nej, spil videre")
+  assert.ok(!s.ended && s.score === pts && s.level === 2);
+  assert.deepStrictEqual(run.end(), { score: pts, levelsSolved: 1, level: 2 });
+  assert.strictEqual(run.nextLevel(), false);
+});
+
 var failed = 0;
 tests.forEach(function (t) {
   try { t.fn(); console.log('OK    ' + t.name); }

@@ -162,6 +162,18 @@
       </div>
     </div>
   </div>
+
+  <!-- Bekræft Afslut: to store knapper med god afstand. "Nej" står først og har fokus. -->
+  <div class="overlay" id="confirm-overlay" hidden role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-text">
+    <div class="panel">
+      <h2 id="confirm-title" class="neon-sub">Vil du afslutte?</h2>
+      <p class="muted confirm-text" id="confirm-text">Dine point gemmes i rekorderne.</p>
+      <div class="row confirm-row">
+        <button class="btn primary confirm-btn" id="btn-confirm-no"><span class="icon" aria-hidden="true">▶</span><span class="big">Nej, spil videre</span></button>
+        <button class="btn confirm-btn" id="btn-confirm-yes"><span class="icon" aria-hidden="true">■</span><span class="big">Ja, afslut</span><span class="small">gem point</span></button>
+      </div>
+    </div>
+  </div>
 </main>
 
 <!-- ================= SLUT ================= -->

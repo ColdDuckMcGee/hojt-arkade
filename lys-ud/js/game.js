@@ -36,6 +36,10 @@
     '5x5': { id: '5x5', n: 5, label: '5 × 5', name: 'Stor' }
   };
   var DEFAULT_SIZE = '5x5';
+  // Automatisk standard: 4 × 4, når lamperne ved 5 × 5 ville blive under ca. 80 px
+  // på skærmen (fx mobil). Ellers 5 × 5. Har spilleren selv valgt, bruges det valg.
+  var AUTO_SMALL_SIZE = '4x4', AUTO_MIN_PX = 80;
+  function autoSize(cellPx5) { return (cellPx5 > 0 && cellPx5 < AUTO_MIN_PX) ? AUTO_SMALL_SIZE : DEFAULT_SIZE; }
 
   var RULES = {
     basePoint: 20,       // pr. færrest mulige træk
@@ -274,6 +278,7 @@
 
   global.LysUdGame = {
     SIZES: SIZES, DEFAULT_SIZE: DEFAULT_SIZE, RULES: RULES,
+    AUTO_SMALL_SIZE: AUTO_SMALL_SIZE, AUTO_MIN_PX: AUTO_MIN_PX, autoSize: autoSize,
     emptyBoard: emptyBoard, affected: affected, press: press, applyPresses: applyPresses,
     isDark: isDark, litCount: litCount, system: system, solvable: solvable, particular: particular,
     solve: solve, minMoves: minMoves, targetFor: targetFor, generate: generate, levelPoints: levelPoints,

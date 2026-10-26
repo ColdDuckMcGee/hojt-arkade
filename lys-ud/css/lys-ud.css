@@ -334,3 +334,13 @@ ol.records .score { white-space: nowrap; }
 .done-parts { font-size: 1.1rem; max-width: 34em; line-height: 1.45; }
 .hint.ok { color: var(--lu-ok); }
 .hint.tipnote { color: var(--lu-tip); }
+
+/* Bekræft Afslut: to lige store knapper med god afstand (mindst en halv knap) */
+.confirm-row { gap: max(calc(var(--btn) * 0.6), 48px); flex-wrap: nowrap; }
+.confirm-btn { min-width: calc(var(--btn) * 2); min-height: calc(var(--btn) * 1.1); }
+.confirm-btn .big { font-size: 1.5rem; }
+.confirm-text { font-size: 1.2rem; max-width: 30em; }
+.lu-lille .confirm-row { gap: 40px; }
+.lu-lille .confirm-btn { min-width: calc(var(--btn) * 1.5); }
+.lu-lille:not(.lu-tvaers) .confirm-row { flex-direction: column; gap: 32px; }
+.lu-lille:not(.lu-tvaers) .confirm-btn { width: min(100%, 16em); }

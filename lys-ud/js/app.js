@@ -20,15 +20,17 @@
     dwell: false, dwellTime: 1.2, theme: 'neon', background: 'mork',
     animation: true, sound: true, music: true
   });
-  // Standard er 5 × 5. hoverPreview: vis svagt, hvilke lamper der skifter, hvor du kigger.
-  var bset = ArkadeSettings.create('lysud', { boardSize: G.DEFAULT_SIZE, hoverPreview: true });
+  // boardSize 'auto' = spilleren har ikke selv valgt. Så bliver pladen 5 × 5, eller 4 × 4,
+  // hvis lamperne ved 5 × 5 ville blive under ca. 80 px på skærmen (se autoSize).
+  // hoverPreview: vis svagt, hvilke lamper der skifter, hvor du kigger.
+  var bset = ArkadeSettings.create('lysud', { boardSize: 'auto', hoverPreview: true });
   var records = ArkadeHighscores.create('lysud', { max: 10 });
 
   var THEMES = ['neon', 'solnedgang', 'cyberpunk', 'kontrast'];
   var BACKGROUNDS = ['mork', 'solnedgang', 'neonby'];
   if (THEMES.indexOf(arkade.get('theme')) < 0) arkade.set('theme', 'neon');
   if (BACKGROUNDS.indexOf(arkade.get('background')) < 0) arkade.set('background', 'mork');
-  if (!G.SIZES[bset.get('boardSize')]) bset.set('boardSize', G.DEFAULT_SIZE);
+  if (bset.get('boardSize') !== 'auto' && !G.SIZES[bset.get('boardSize')]) bset.set('boardSize', 'auto');
 
   var reducedMotionMq = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
 
@@ -46,11 +48,33 @@
       if (el === gazeLock) suppress = el; else gazeLock = el;
     }
   });
+  var lastPX = -1, lastPY = -1;
   document.addEventListener('pointermove', function (e) {
+    if (e.pointerType !== 'touch') { lastPX = e.clientX; lastPY = e.clientY; }
+    if (gazeGuard) releaseGuard(e.clientX, e.clientY);
     if (!gazeLock) return;
     var r = gazeLock.getBoundingClientRect();
     if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) gazeLock = null;
   }, { passive: true });
+  // Dwell-sikker dialog: når en ny boks åbnes, kan der ligge en knap præcis dér, hvor
+  // blikket allerede er. Den knap kan ikke dwelles, før blikket har forladt den én gang.
+  var gazeGuard = null;
+  function guardUnderGaze(root) {
+    releaseGuard();
+    if (lastPX < 0) return;
+    var el = document.elementFromPoint(lastPX, lastPY);
+    var b = el && el.closest('button, a[href]');
+    if (b && root.contains(b)) { gazeGuard = b; b.setAttribute('data-no-dwell', ''); }
+  }
+  function releaseGuard(x, y) {
+    if (!gazeGuard) return;
+    if (x !== undefined) {
+      var r = gazeGuard.getBoundingClientRect();
+      if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return;
+    }
+    gazeGuard.removeAttribute('data-no-dwell');
+    gazeGuard = null;
+  }
   function swallowed(el) { if (suppress === el) { suppress = null; return true; } return false; }
 
   var audio = ArkadeAudio.create({ sfx: arkade.get('sound'), music: arkade.get('music') });
@@ -123,13 +147,16 @@
   // Lamperne er knapper, så de skal være store. Startskærmen siger til under ca. 1,8 cm.
   var MIN_CM = 1.8;
   function cellCm(size) { return cellSizeFor(size) / (96 / 2.54); }
-  function boardSize() { return bset.get('boardSize'); }
+  function autoSize() { return G.autoSize(cellSizeFor(G.DEFAULT_SIZE)); }
+  function isAutoSize() { return bset.get('boardSize') === 'auto'; }
+  function boardSize() { return isAutoSize() ? autoSize() : bset.get('boardSize'); }
   function syncMenu() {
     var size = boardSize();
     $$('#menu [data-size]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.size === size)); });
     var cm = cellCm(size), note = '';
     if (cm < MIN_CM) note = 'På denne skærm bliver lamperne ca. ' + cm.toFixed(1).replace('.', ',') + ' cm. ' +
       (size === '3x3' ? 'Fuld skærm giver større lamper.' : 'Vælg en mindre plade eller fuld skærm for større lamper.');
+    else if (isAutoSize() && size !== G.DEFAULT_SIZE) note = 'Mellem plade er valgt, så lamperne bliver store nok på denne skærm (ca. ' + cm.toFixed(1).replace('.', ',') + ' cm). Du kan selv vælge en anden.';
     $('#size-note').textContent = note;
     if (current === 'menu') fitScreen($('#menu'));
   }
@@ -223,8 +250,10 @@
     show('game');
     refresh();
   }
-  function hideOverlays() { ['#pause-overlay', '#done-overlay'].forEach(function (o) { $(o).hidden = true; }); }
-  function overlayOpen() { return !$('#pause-overlay').hidden || !$('#done-overlay').hidden; }
+  var OVERLAYS = ['#pause-overlay', '#done-overlay', '#confirm-overlay'];
+  function hideOverlays() { OVERLAYS.forEach(function (o) { $(o).hidden = true; }); releaseGuard(); }
+  function overlayOpen() { return OVERLAYS.some(function (o) { return !$(o).hidden; }); }
+  function confirmOpen() { return !$('#confirm-overlay').hidden; }
   function live() { return run && !paused && !finished && !run.state.solved && current === 'game' && !overlayOpen(); }
 
   function tapCell(i) {
@@ -336,6 +365,7 @@
     $('#done-overlay').hidden = false;
     fitScreen($('#done-overlay'));
     dwell.reset();
+    guardUnderGaze($('#done-overlay'));
     $('#btn-next').focus({ preventScroll: true });
   }
   function nextLevel() {
@@ -349,7 +379,7 @@
     refresh();
   }
   $('#btn-next').addEventListener('click', nextLevel);
-  $('#btn-done-quit').addEventListener('click', function () { sfx('click'); finish(); });
+  $('#btn-done-quit').addEventListener('click', function () { sfx('click'); askQuit('done'); });
 
   function setPaused(p) {
     if (!run || finished || run.state.solved) return;
@@ -357,6 +387,7 @@
     $('#pause-overlay').hidden = !p;
     if (p) fitScreen($('#pause-overlay'));
     dwell.reset();
+    if (p) guardUnderGaze($('#pause-overlay')); else releaseGuard();
     sfx('pause');
     refresh();
     if (p) $('#btn-resume').focus({ preventScroll: true });
@@ -364,7 +395,39 @@
   $('#btn-pause').addEventListener('click', function () { setPaused(!paused); });
   $('#btn-resume').addEventListener('click', function () { setPaused(false); });
   $('#btn-pause-settings').addEventListener('click', function () { sfx('click'); openSettings('game'); });
-  $('#btn-quit').addEventListener('click', function () { sfx('click'); finish(); });
+  $('#btn-quit').addEventListener('click', function () { sfx('click'); askQuit('pause'); });
+
+  // ---------- Bekræft Afslut ----------
+  // Afslut (fra pause og fra Bane klaret) spørger først. Nej / Esc går tilbage dertil,
+  // hvor man kom fra: fra pause fortsætter spillet, fra Bane klaret vises boksen igen.
+  var confirmFrom = null;
+  function askQuit(from) {
+    if (!run || finished) return;
+    confirmFrom = from;
+    $('#pause-overlay').hidden = true;
+    $('#done-overlay').hidden = true;
+    var s = run.state;
+    $('#confirm-text').textContent = 'Du har ' + pointsText(s.score) + ' og ' + levelsText(s.levelsSolved) + ' klaret. Pointene gemmes i rekorderne.';
+    var ov = $('#confirm-overlay');
+    ov.hidden = false;
+    fitScreen(ov);
+    dwell.reset();
+    guardUnderGaze(ov);
+    $('#btn-confirm-no').focus({ preventScroll: true });
+  }
+  function cancelQuit() {
+    if (!confirmOpen()) return;
+    $('#confirm-overlay').hidden = true;
+    releaseGuard();
+    dwell.reset();
+    sfx('click');
+    if (confirmFrom === 'done' && run && run.state.solved) { showDone(); return; }
+    paused = false;
+    if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
+    refresh();
+  }
+  $('#btn-confirm-no').addEventListener('click', cancelQuit);
+  $('#btn-confirm-yes').addEventListener('click', function () { sfx('click'); releaseGuard(); finish(); });
   function quitToMenu() { run = null; paused = false; clearTimeout(doneTimer); hideOverlays(); show('menu'); }
 
   // ---------- Slut (Afslut) ----------
@@ -507,6 +570,7 @@
   document.addEventListener('keydown', function (e) {
     if (e.altKey || e.ctrlKey || e.metaKey) return;
     if (current !== 'game') { if (KEYS[e.key]) e.preventDefault(); return; }
+    if (confirmOpen()) { if (e.key === 'Escape') { e.preventDefault(); cancelQuit(); } return; } // Esc = Nej
     if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') { e.preventDefault(); setPaused(!paused); return; }
     if (overlayOpen()) return; // Enter og mellemrum virker på den fokuserede knap
     var k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
@@ -807,7 +871,8 @@
 
   // Til test og fejlfinding
   window.LysUd = {
-    boardSize: boardSize,
+    boardSize: boardSize, autoSize: autoSize, askQuit: askQuit, cancelQuit: cancelQuit,
+    get guard() { return gazeGuard ? gazeGuard.id : null; },
     get run() { return run; }, get cursor() { return curIdx; },
     settings: arkade, gameSettings: bset, records: records, dwell: dwell, audio: audio,
     start: startGame, show: show, tap: tapCell, undo: undoMove, restart: restartLevel, tip: showTip,

@@ -3,6 +3,10 @@
 # mindste knapstørrelse >= 80 px (lamperne på pladen tæller ikke med – deres størrelse
 # vises som felt=..px) og ingen fejl i konsollen.
 #
+# Desuden: automatisk standardplade (4 × 4 under ca. 80 px pr. lampe ved 5 × 5), at et
+# selvvalgt størrelsesvalg huskes efter genindlæsning, og bekræftelsen ved Afslut
+# (store knapper med god afstand, Esc = Nej, dwell-sikker).
+#
 # Kræver Python med Playwright og Chrome/Chromium:
 #   python3 lys-ud/test/responsiv_test.py
 # Miljøvariabler (valgfri):
@@ -76,6 +80,52 @@ MID = """() => { const r = LysUd.run, n = r.n, G = LysUdGame;
   r._setBoard(G.applyPresses(G.emptyBoard(n), n, [0, n + 2, 2*n + 4, 3*n + 1, n*n - 1])); r.tap(n*n - 1 - n); LysUd.refresh(); }"""
 def cls(pg, c):
     return pg.evaluate("c => [...document.querySelectorAll('#board .cell')].map((e, i) => e.classList.contains(c) ? i : -1).filter(i => i >= 0)", c)
+def confirm_check(pg, w, h, tag, name, shot):
+    vis = pg.evaluate("!document.getElementById('confirm-overlay').hidden && document.activeElement && document.activeElement.id")
+    if vis != 'btn-confirm-no': fails.append('%s %s: bekræftelsen vises ikke / Nej har ikke fokus (%s)' % (tag, name, vis))
+    check(pg, name, '#game', w, h, shot)
+    r = pg.evaluate("""() => { const a = document.getElementById('btn-confirm-no').getBoundingClientRect(), b = document.getElementById('btn-confirm-yes').getBoundingClientRect();
+      const gap = Math.max(b.left - a.right, a.left - b.right, b.top - a.bottom, a.top - b.bottom);
+      return [Math.round(Math.min(a.width, a.height)), Math.round(Math.min(b.width, b.height)), Math.round(gap)]; }""")
+    print('     %dx%d bekræft: Nej %spx, Ja %spx, afstand %spx' % (w, h, r[0], r[1], r[2]))
+    if min(r[0], r[1]) < MIN_BTN or r[2] < 32: fails.append('%s %s: knapper %s/%s px, afstand %s px' % (tag, name, r[0], r[1], r[2]))
+def center(pg, sel):
+    bb = pg.locator(sel).bounding_box(); return bb['x'] + bb['width'] / 2, bb['y'] + bb['height'] / 2
+def dwell_check(pg, w, h, tag):
+    """Dwell-sikker bekræftelse: et dwell på Afslut vælger ikke også knappen på samme plads."""
+    pg.evaluate("() => { LysUd.settings.set('dwellTime', 0.5); }")
+    yes = None
+    # 1) Rigtigt dwell på Afslut i pausen åbner bekræftelsen, og intet andet sker, mens blikket bliver
+    pg.mouse.move(1, 1); pg.keyboard.press('Escape'); pg.wait_for_timeout(80)
+    x, y = center(pg, '#btn-quit'); pg.mouse.move(x, y); pg.wait_for_timeout(30)
+    pg.evaluate("LysUd.settings.set('dwell', true)")
+    try: pg.wait_for_function("!document.getElementById('confirm-overlay').hidden", timeout=3000)
+    except Exception: fails.append(tag + ' dwell på Afslut åbnede ikke bekræftelsen')
+    pg.wait_for_timeout(1500)
+    st = pg.evaluate("[!document.getElementById('confirm-overlay').hidden, LysUd.run.state.ended]")
+    pg.evaluate("LysUd.settings.set('dwell', false)")
+    if st != [True, False]: fails.append('%s dwell på Afslut valgte også en knap i bekræftelsen %s' % (tag, st))
+    if not st[0]: print('FEJL %dx%d dwell' % (w, h)); return
+    yes = center(pg, '#btn-confirm-yes')
+    pg.keyboard.press('Escape'); pg.wait_for_timeout(80)
+    # 2) Værste fald: blikket står præcis dér, hvor "Ja, afslut" dukker op
+    pg.keyboard.press('Escape'); pg.wait_for_timeout(80)
+    pg.mouse.move(yes[0], yes[1]); pg.wait_for_timeout(30)
+    pg.evaluate("() => { LysUd.askQuit('pause'); LysUd.settings.set('dwell', true); }")
+    pg.wait_for_timeout(1500)
+    st = pg.evaluate("[!document.getElementById('confirm-overlay').hidden, LysUd.run.state.ended, LysUd.guard]")
+    if st != [True, False, 'btn-confirm-yes']: fails.append('%s Ja under blikket blev valgt af dwell %s' % (tag, st))
+    if not st[0]:
+        pg.evaluate("LysUd.settings.set('dwell', false)"); print('FEJL %dx%d dwell' % (w, h)); return
+    # 3) Når blikket flytter til "Nej, spil videre", virker dwell som normalt
+    nx, ny = center(pg, '#btn-confirm-no'); pg.mouse.move(nx, ny, steps=4)
+    try: pg.wait_for_function("document.getElementById('confirm-overlay').hidden", timeout=3000)
+    except Exception: fails.append(tag + ' dwell på Nej virkede ikke')
+    pg.evaluate("LysUd.settings.set('dwell', false)")
+    st = pg.evaluate("[LysUd.run.state.ended, document.querySelectorAll('#game .overlay:not([hidden])').length]")
+    if st != [False, 0]: fails.append('%s efter dwell på Nej %s' % (tag, st))
+    print('OK   %dx%d dwell-sikker bekræftelse' % (w, h) if not [f for f in fails if f.startswith(tag) and 'dwell' in f] else 'FEJL %dx%d dwell' % (w, h))
+    pg.mouse.move(1, 1)
 with sync_playwright() as p:
     b = p.chromium.launch(executable_path=CHROME if os.path.exists(CHROME) else None, args=['--no-sandbox'])
     for (w,h) in [x for x in SIZES if not os.environ.get('ONLY') or '%dx%d'%x in os.environ['ONLY'].split(',')]:
@@ -87,8 +137,21 @@ with sync_playwright() as p:
         pg.on('pageerror', lambda e: errs.append('pageerror: '+str(e)))
         pg.goto(URL); pg.wait_for_timeout(400)
         check(pg,'start','#menu',w,h, tag+'-start.png')
-        sel = pg.evaluate("() => [LysUd.boardSize(), document.querySelector('#menu [data-size][aria-pressed=true]').dataset.size]")
-        if sel != ['5x5', '5x5']: fails.append('%s standardplade %s, ventede 5x5' % (tag, sel))
+        # Automatisk standard: 4 × 4 på mobil (lamper ved 5 × 5 under 80 px), ellers 5 × 5
+        want = '4x4' if (w, h) in [(390, 844), (844, 390)] else '5x5'
+        sel = pg.evaluate("() => [LysUd.boardSize(), document.querySelector('#menu [data-size][aria-pressed=true]').dataset.size, LysUd.gameSettings.get('boardSize'), Math.round(LysUd.cellSizeFor('5x5')), document.getElementById('size-note').textContent]")
+        print('     %dx%d standardplade %s (lampe ved 5x5 = %spx)' % (w, h, sel[0], sel[3]))
+        if sel[:3] != [want, want, 'auto']: fails.append('%s standardplade %s, ventede %s' % (tag, sel[:3], want))
+        if (want == '4x4') != ('Mellem plade er valgt' in sel[4]): fails.append('%s note om automatisk valg: %r' % (tag, sel[4]))
+        if want == '4x4' and SHOT: pg.screenshot(path=SHOT + tag + '-start-auto.png')
+        # Et selvvalgt størrelsesvalg huskes efter genindlæsning og bruges i stedet for standarden
+        other = '5x5' if want == '4x4' else '3x3'
+        pg.click('#menu [data-size="%s"]' % other); pg.wait_for_timeout(60)
+        pg.reload(); pg.wait_for_timeout(300)
+        kept = pg.evaluate("() => [LysUd.boardSize(), LysUd.gameSettings.get('boardSize'), document.querySelector('#menu [data-size][aria-pressed=true]').dataset.size]")
+        if kept != [other, other, other]: fails.append('%s valgt størrelse blev ikke husket: %s' % (tag, kept))
+        pg.evaluate("LysUd.gameSettings.set('boardSize', 'auto')"); pg.reload(); pg.wait_for_timeout(300)
+        if pg.evaluate("LysUd.boardSize()") != want: fails.append(tag + ' tilbage til automatisk standard virkede ikke')
         pg.evaluate("LysUd.show('om')"); pg.wait_for_timeout(100)
         pages(pg, '#om', w, h, 'om', small and tag+'-om')
         for tab in ['styring','udseende','lyd']:
@@ -136,12 +199,29 @@ with sync_playwright() as p:
         if pg.evaluate("document.getElementById('done-overlay').hidden"): fails.append(tag + ' Bane klaret blev ikke vist')
         check(pg,'bane klaret','#game',w,h, tag+'-bane-klaret.png')
         pts = pg.evaluate("LysUd.run.state.score")
+        # Afslut fra Bane klaret: bekræftelse. Esc = Nej, og "Nej" viser Bane klaret igen
+        pg.click('#btn-done-quit'); pg.wait_for_timeout(100)
+        confirm_check(pg, w, h, tag, 'bekræft afslut (bane klaret)', tag + '-bekraeft.png')
+        pg.keyboard.press('Escape'); pg.wait_for_timeout(80)
+        if pg.evaluate("[document.getElementById('confirm-overlay').hidden, document.getElementById('done-overlay').hidden, LysUd.run.state.ended]") != [True, False, False]: fails.append(tag + ' Esc i bekræftelsen gik ikke tilbage til Bane klaret')
+        pg.click('#btn-done-quit'); pg.wait_for_timeout(80); pg.click('#btn-confirm-no'); pg.wait_for_timeout(80)
+        if pg.evaluate("[document.getElementById('confirm-overlay').hidden, document.getElementById('done-overlay').hidden, LysUd.run.state.ended]") != [True, False, False]: fails.append(tag + ' Nej i bekræftelsen gik ikke tilbage til Bane klaret')
         pg.click('#btn-next'); pg.wait_for_timeout(100)
         if pg.evaluate("[LysUd.run.state.level, LysUd.run.state.levelsSolved]") != [2, 1]: fails.append(tag + ' Næste bane virkede ikke')
         check(pg,'bane 2','#game',w,h)
         # Afslut: rekord gemmes med antal baner
         pg.evaluate("() => { for (let i = 0; i < 3; i++) LysUd.records.add('5x5', 400 + i * 50, {levels: 3 + i}); }")
-        pg.keyboard.press('Escape'); pg.wait_for_timeout(80); pg.click('#btn-quit'); pg.wait_for_timeout(150)
+        # Afslut fra pause: bekræftelse, Esc = Nej (spillet fortsætter)
+        pg.keyboard.press('Escape'); pg.wait_for_timeout(80); pg.click('#btn-quit'); pg.wait_for_timeout(100)
+        confirm_check(pg, w, h, tag, 'bekræft afslut (pause)', small and tag + '-bekraeft-pause.png')
+        pg.keyboard.press('Escape'); pg.wait_for_timeout(80)
+        st = pg.evaluate("() => [document.querySelectorAll('#game .overlay:not([hidden])').length, LysUd.run.state.ended, LysUd.run.state.level]")
+        if st != [0, False, 2]: fails.append('%s Esc i bekræftelsen fortsatte ikke spillet %s' % (tag, st))
+        dwell_check(pg, w, h, tag)
+        # Ja, afslut: pointene gemmes
+        pg.keyboard.press('Escape'); pg.wait_for_timeout(80); pg.click('#btn-quit'); pg.wait_for_timeout(80)
+        pg.click('#btn-confirm-yes'); pg.wait_for_timeout(150)
+        if pg.evaluate("document.getElementById('gameover').hidden"): fails.append(tag + ' Ja, afslut viste ikke resultatet')
         rec = pg.evaluate("LysUd.records.list('5x5').some(e => e.levels === 1 && e.score === %d)" % pts)
         if not rec: fails.append(tag + ' rekorden blev ikke gemt')
         split = pg.evaluate("!document.getElementById('btn-go-rec').hidden")
