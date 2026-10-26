@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 220">
+  <!-- Stillbillede af Løberen til maskinens skærm. Tegnet i SVG, ingen billeder og ingen skrifttyper. -->
+  <defs>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.8" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <clipPath id="braet"><rect x="10" y="10" width="220" height="200" rx="4"/></clipPath>
+    <linearGradient id="himmel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0d0322"/><stop offset="1" stop-color="#3a0a4a"/></linearGradient>
+    <linearGradient id="sol" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd23a"/><stop offset="1" stop-color="#ff3fd8"/></linearGradient>
+  </defs>
+  <rect width="240" height="220" fill="#0a0414"/>
+  <g clip-path="url(#braet)">
+    <rect x="10" y="10" width="220" height="72" fill="url(#himmel)"/>
+    <path d="M90 78a30 30 0 0 1 60 0z" fill="url(#sol)"/>
+    <path d="M90 66H150M90 71H150M90 75H150" stroke="#2a0838" stroke-width="2"/>
+    <path d="M10 82V44h14v-8h12v46M44 82V52h10v-12h10v42M176 82V40h12v10h10v32M206 82V48h12v-6h12v40" fill="#120626" stroke="#b07bff" stroke-opacity=".6" stroke-width="1"/>
+    <rect x="10" y="80" width="220" height="130" fill="#0b0618"/>
+    <path d="M120 80L10 210H230Z" fill="#170a2e"/>
+    <path d="M120 80L83 210H157Z" fill="#22103c"/>
+    <path d="M96 108H144M84 126H156M70 148H170M50 178H190" stroke="#22eaff" stroke-opacity=".25" stroke-width="1"/>
+    <g filter="url(#glow)" fill="none" stroke-linecap="round">
+      <path d="M120 80L10 210M120 80L230 210" stroke="#ff3fd8" stroke-width="2"/>
+      <path d="M120 80L83 210M120 80L157 210" stroke="#22eaff" stroke-width="1.4" stroke-opacity=".8"/>
+      <!-- tog i venstre bane -->
+      <rect x="66" y="104" width="30" height="34" rx="3" fill="#2a0a2e" stroke="#ff3fd8" stroke-width="1.8"/>
+      <rect x="71" y="109" width="20" height="11" rx="1.5" stroke="#22eaff" stroke-width="1.2"/>
+      <circle cx="73" cy="131" r="2" fill="#ffd23a" stroke="none"/><circle cx="89" cy="131" r="2" fill="#ffd23a" stroke="none"/>
+      <!-- høj bjælke i højre bane -->
+      <path d="M140 96V122M162 96V122" stroke="#22eaff" stroke-width="1.6"/>
+      <rect x="138" y="96" width="26" height="7" rx="2" fill="#062a33" stroke="#22eaff" stroke-width="1.6"/>
+      <!-- lav barriere i midten længere fremme -->
+      <rect x="108" y="92" width="24" height="5" rx="1.5" fill="#3a1a06" stroke="#ff8a1f" stroke-width="1.4"/>
+      <!-- mønter -->
+      <circle cx="120" cy="112" r="3.2" stroke="#ffd23a" stroke-width="1.6"/>
+      <circle cx="120" cy="128" r="4" stroke="#ffd23a" stroke-width="1.8"/>
+      <circle cx="120" cy="148" r="5" stroke="#ffd23a" stroke-width="2"/>
+      <!-- stoplinje -->
+      <path d="M44 170H196" stroke="#ffd23a" stroke-width="1.6" stroke-dasharray="7 5" stroke-opacity=".8"/>
+      <!-- løberen -->
+      <g stroke="#39ff6a" stroke-width="3">
+        <circle cx="120" cy="160" r="6" fill="#03140a"/>
+        <path d="M120 166L118 186M118 186L110 197L106 207M118 186L126 196L130 205M119 171L108 180L104 172M119 171L131 178L134 170"/>
+      </g>
+    </g>
+  </g>
+  <rect x="9" y="9" width="222" height="202" rx="5" fill="none" stroke="#ff3fd8" stroke-width="2"/>
+</svg>
