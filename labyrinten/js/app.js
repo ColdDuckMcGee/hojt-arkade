@@ -15,7 +15,7 @@
     dwell: false, dwellTime: 1.2, theme: 'neon', background: 'mork',
     animation: true, sound: true, music: true
   });
-  var lab = ArkadeSettings.create('labyrinten', { difficulty: 'normal', size: 'mellem' });
+  var lab = ArkadeSettings.create('labyrinten', { difficulty: 'normal', showPlans: true });
   var records = ArkadeHighscores.create('labyrinten', { max: 10 });
   var LIVES = 3;   // altid tre liv
 
@@ -24,7 +24,7 @@
   if (THEMES.indexOf(arkade.get('theme')) < 0) arkade.set('theme', 'neon');
   if (BACKGROUNDS.indexOf(arkade.get('background')) < 0) arkade.set('background', 'mork');
   if (!G.DIFFICULTIES[lab.get('difficulty')]) lab.set('difficulty', 'normal');
-  if (!G.SIZES[lab.get('size')]) lab.set('size', 'mellem');
+  if (typeof lab.get('showPlans') !== 'boolean') lab.set('showPlans', true);
 
   var reducedMotionMq = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
 
@@ -33,7 +33,7 @@
   var dwell = ArkadeDwell.create({ enabled: arkade.get('dwell'), timeMs: arkade.get('dwellTime') * 1000 });
   var audio = ArkadeAudio.create({ sfx: arkade.get('sound'), music: arkade.get('music') });
   // Lydene kommer fra det fælles lydmodul. Labyrinten bruger disse navne:
-  var SFX = { move: 'move', dot: 'eat', pellet: 'bonus', ghost: 'bonusSpawn', frightEnd: 'bonusGone', caught: 'crash', cleared: 'bonus', record: 'record', click: 'click', pause: 'pause' };
+  var SFX = { move: 'move', dot: 'eat', pellet: 'bonus', guard: 'bonusSpawn', frightEnd: 'bonusGone', caught: 'crash', cleared: 'bonus', record: 'record', click: 'click', pause: 'pause', bump: 'obstacle' };
   function sfx(name) { audio.play(SFX[name] || name); }
 
   function unlockAudio() { audio.unlock(); }
@@ -49,9 +49,10 @@
       board: cssVar('--lab-board'), wall: cssVar('--lab-wall'), wallFill: cssVar('--lab-wall-fill'),
       dot: cssVar('--lab-dot'), pellet: cssVar('--lab-pellet'),
       player: cssVar('--lab-player'), playerRim: cssVar('--lab-player-rim'),
-      ghost: { jager: cssVar('--lab-g-jager'), afskaerer: cssVar('--lab-g-afskaerer'), vandrer: cssVar('--lab-g-vandrer'), lurer: cssVar('--lab-g-lurer') },
-      scared: cssVar('--lab-scared'), scaredText: cssVar('--lab-scared-text'),
-      eyes: cssVar('--lab-eyes'), eyeWhite: cssVar('--lab-eye-white'), pupil: cssVar('--lab-pupil'),
+      guard: { jaeger: cssVar('--lab-g-jaeger'), afskaerer: cssVar('--lab-g-afskaerer'), patrulje: cssVar('--lab-g-patrulje'), lurer: cssVar('--lab-g-lurer') },
+      visor: cssVar('--lab-visor'), visorDot: cssVar('--lab-visor-dot'),
+      scared: cssVar('--lab-scared'), scaredRim: cssVar('--lab-scared-rim'), scaredText: cssVar('--lab-scared-text'),
+      eyes: cssVar('--lab-eyes'), pupil: cssVar('--lab-pupil'),
       preview: cssVar('--lab-preview'), danger: cssVar('--lab-danger'),
       glow: cssVar('--glow') !== '0'
     };
@@ -74,7 +75,7 @@
     root.classList.toggle('lab-anim', animationOn());
     $('#motion-note').textContent = reducedMotionMq.matches
       ? 'Slået fra, fordi din computer er sat til mindre bevægelse'
-      : 'Bevægelse i baggrunden og rolig glidning. Fra får brikkerne til at hoppe direkte';
+      : 'Bevægelse i baggrunden og en kort glidning pr. felt. Fra får brikkerne til at hoppe direkte';
   }
   if (reducedMotionMq.addEventListener) reducedMotionMq.addEventListener('change', applyAnimation);
 
@@ -87,6 +88,7 @@
     if (key === 'sound') audio.setSfx(value);
     if (key === 'music') { audio.unlock(); audio.setMusic(value); }
     syncSettingsUi();
+    fitScreen();
   });
 
   // ---------- Skærme ----------
@@ -98,38 +100,35 @@
     dwell.reset();
     if (id === 'game') layoutGame();
     if (id === 'menu') syncMenu();
+    fitScreen();
     var first = $('#' + id + ' [data-autofocus]');
     if (first) first.focus({ preventScroll: true });
   }
 
   // ---------- Tekster ----------
   function diffLabel(d) { return G.DIFFICULTIES[d].label; }
-  function sizeLabel(s) { return G.SIZES[s].label; }
-  function category(d, s) { return d + '-' + s; }
+  function category(d) { return d; }   // én top 10 pr. sværhedsgrad
   function levelsText(n) { return n === 1 ? '1 bane ryddet' : n + ' baner ryddet'; }
-  function ghostsText(n) { return n === 1 ? '1 spøgelse' : n + ' spøgelser'; }
+  function guardsText(n) { return n === 1 ? '1 vagt' : n + ' vagter'; }
+  function movesText(n) { return n === 1 ? '1 træk' : n + ' træk'; }
   var DIFF_NOTES = {
-    rolig: 'Rolig: 2–3 spøgelser, der kun flytter sig ét felt for hvert andet felt, du glider. Lang tid som bange.',
-    normal: 'Normal: 3–4 spøgelser, der flytter sig ét felt for hvert felt, du glider.',
-    svaer: 'Svær: 4 spøgelser fra start. Jægeren og afskæreren finder den korteste vej, og de er bange i kortere tid.'
+    rolig: 'Rolig: 2–3 vagter, der kun flytter sig ét felt efter hvert andet træk. Sårbare i ' + G.DIFFICULTIES.rolig.fright(1) + ' træk.',
+    normal: 'Normal: 3–4 vagter, der flytter sig ét felt efter hvert træk. Sårbare i ' + G.DIFFICULTIES.normal.fright(1) + ' træk.',
+    svaer: 'Svær: 4 kloge vagter fra start, der finder den korteste vej. Sårbare i kun ' + G.DIFFICULTIES.svaer.fright(1) + ' træk.'
   };
 
   // ---------- Startmenu ----------
   function syncMenu() {
-    var d = lab.get('difficulty'), s = lab.get('size');
+    var d = lab.get('difficulty');
     $$('#menu [data-difficulty]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.difficulty === d)); });
-    $$('#menu [data-size]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.size === s)); });
     $('#diff-note').textContent = DIFF_NOTES[d];
   }
   $$('#menu [data-difficulty]').forEach(function (b) {
     b.addEventListener('click', function () { lab.set('difficulty', b.dataset.difficulty); syncMenu(); sfx('click'); });
   });
-  $$('#menu [data-size]').forEach(function (b) {
-    b.addEventListener('click', function () { lab.set('size', b.dataset.size); syncMenu(); sfx('click'); });
-  });
   $('#btn-start').addEventListener('click', function () { sfx('click'); startGame(); });
   $('#btn-settings').addEventListener('click', function () { sfx('click'); openSettings('menu'); });
-  $('#btn-records').addEventListener('click', function () { sfx('click'); openRecords(lab.get('difficulty'), lab.get('size')); });
+  $('#btn-records').addEventListener('click', function () { sfx('click'); openRecords(lab.get('difficulty')); });
   // Tilbage til hallen: stop musikken og skriv indstillingerne, før siden skifter.
   var leaving = false;
   function goToHall() {
@@ -168,21 +167,22 @@
     if (!fsSupported) { b.hidden = true; return; }
     b.addEventListener('click', function () { sfx('click'); toggleFullscreen(); });
   });
-  function onFs() { syncFullscreen(); layoutGame(); }
+  function onFs() { syncFullscreen(); layoutGame(); fitScreen(); }
   document.addEventListener('fullscreenchange', onFs);
   document.addEventListener('webkitfullscreenchange', onFs);
 
   // ---------- Spillet ----------
   var run = null, paused = false, boardCanvas = $('#board');
-  var anim = null;            // igangværende glidning
-  var displayItems = null;    // prikkerne, som de ses på skærmen (under en glidning)
+  var anim = null;            // igangværende bevægelse (ét felt) eller et lille ryk mod en væg
   var hoverDir = null;        // pilen, blikket hviler på (forhåndsvisning)
+  var bumpMark = null, bumpTimer = 0;
   var DIR_NAMES = { up: 'op', down: 'ned', left: 'til venstre', right: 'til højre' };
-  var STEP_MS = 150;          // rolig glidning: ca. 0,15 sek. pr. felt
+  var STEP_MS = 180;          // kort, rolig glidning fra ét felt til det næste
+  var BUMP_MS = 220;          // lille ryk mod en væg
 
   function startGame() {
     cancelAnim();
-    run = G.createRun({ size: lab.get('size'), difficulty: lab.get('difficulty'), lives: LIVES });
+    run = G.createRun({ difficulty: lab.get('difficulty') });
     paused = false;
     hideOverlays();
     show('game');
@@ -195,110 +195,142 @@
   }
 
   function viewFromState() {
-    var s = run.state;
+    var s = run.state, playing = s.status === 'play';
     return {
-      maze: s.maze, items: s.items, fright: s.fright,
+      maze: s.maze, items: s.items, fright: s.fright, showPlans: lab.get('showPlans') && playing,
       player: { x: s.player.x, y: s.player.y, dir: s.player.dir },
-      ghosts: s.ghosts.map(function (g) {
+      guards: s.guards.map(function (g) {
         return { id: g.id, type: g.type, x: g.x, y: g.y, dir: g.dir, mode: g.mode, scared: g.scared, wait: g.wait,
-                 intent: s.status === 'play' ? run.ghostIntent(g) : null };
-      })
+                 plan: playing ? run.guardPlan(g) : null };
+      }),
+      bump: bumpMark
     };
   }
   function drawBoard() {
     if (!run || anim) return;
     var v = viewFromState();
-    if (hoverDir && canPlay() && run.canMove(hoverDir)) v.preview = run.preview(hoverDir);
+    if (hoverDir && canPlay()) v.preview = run.preview(hoverDir);
     LabyrintenRender.draw(boardCanvas, v, colors);
   }
   function refresh() {
     if (!run) return;
     var s = run.state;
     $('#hud-score').textContent = s.score;
-    $('#hud-best').textContent = 'Rekord ' + records.best(category(s.difficulty, s.size));
+    $('#hud-best').textContent = 'Rekord ' + records.best(category(s.difficulty));
     $('#hud-level').textContent = s.level;
     var h = $('#hud-lives');
     h.innerHTML = '';
     for (var i = 0; i < s.maxLives; i++) {
-      h.insertAdjacentHTML('beforeend', '<svg class="heart' + (i < s.lives ? ' full' : '') + '" aria-hidden="true"><use href="#lb-heart"/></svg>');
+      h.insertAdjacentHTML('beforeend', '<svg class="heart' + (i < s.lives ? ' full' : '') + '" viewBox="0 0 100 100" aria-hidden="true"><use href="#lb-heart"/></svg>');
     }
     h.setAttribute('aria-label', s.lives === 1 ? '1 liv tilbage' : s.lives + ' liv tilbage');
     var hf = $('#hud-fright');
     if (s.fright > 0) {
       hf.classList.add('active');
       $('#hud-fright-value').textContent = s.fright;
-      $('#hud-fright-text').textContent = s.fright === 1 ? 'felt tilbage' : 'felter tilbage';
+      $('#hud-fright-text').textContent = 'træk tilbage';
     } else {
       hf.classList.remove('active');
       $('#hud-fright-value').textContent = '–';
       $('#hud-fright-text').textContent = 'ingen lige nu';
     }
+    // Pilene er aldrig slået fra. Går man mod en væg, sker der intet (og det koster ikke et træk).
     $$('.arrow').forEach(function (b) {
-      var ok = run.canMove(b.dataset.dir);
-      b.disabled = !ok;
-      b.setAttribute('aria-label', (ok ? 'Glid ' : 'Væg – kan ikke gå ') + DIR_NAMES[b.dataset.dir]);
+      var d = b.dataset.dir, name = DIR_NAMES[d];
+      b.setAttribute('aria-label', run.canMove(d) ? 'Gå ' + name : 'Gå ' + name + ' (væg)');
     });
-    if (hoverDir && !run.canMove(hoverDir)) hoverDir = null;
     drawBoard();
   }
 
+  function playEvents(events) {
+    var any = false;
+    events.forEach(function (e) {
+      if (SFX[e.type]) { sfx(e.type); any = true; }
+    });
+    if (!any) sfx('move');
+  }
   function move(dir) {
     if (!canPlay()) return;
-    var before = viewFromState();
-    before.items = run.state.items.slice();
+    var beforeItems = run.state.items.slice();
     var res = run.move(dir);
     if (res.ignored) return;
-    if (!res.events.some(function (e) { return e.type === 'dot' || e.type === 'pellet'; })) sfx('move');
-    var announced = false;
-    function playEvents(f) {
-      f.events.forEach(function (e) {
-        if (e.type === 'dot' && !announced) { sfx('dot'); announced = true; }
-        else if (e.type !== 'dot' && SFX[e.type]) sfx(e.type);
-      });
-    }
+    if (res.bump) { bump(dir); return; }
     if (!animationOn()) {
-      res.frames.forEach(playEvents);
+      playEvents(res.events);
       finishMove(res);
       return;
     }
-    // Rolig glidning felt for felt. Input er låst imens.
-    displayItems = before.items;
-    anim = { frames: res.frames, from: before, i: 0, t0: performance.now(), res: res, raf: 0, play: playEvents };
+    // Kort, rolig glidning fra ét felt til det næste. Input er låst imens (under 0,2 sek.).
+    anim = { kind: 'step', res: res, items: beforeItems, t0: performance.now(), raf: 0 };
     anim.raf = requestAnimationFrame(tickAnim);
   }
   function lerp(a, b, t) { return a + (b - a) * t; }
+  function alongPath(path, t) {
+    if (path.length === 1) return path[0];
+    var segs = path.length - 1, pos = Math.min(segs, t * segs), k = Math.min(segs - 1, Math.floor(pos)), f = pos - k;
+    return { x: lerp(path[k].x, path[k + 1].x, f), y: lerp(path[k].y, path[k + 1].y, f) };
+  }
+  function ease(t) { return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; }
   function tickAnim(now) {
     if (!anim) return;
-    var a = anim, f = a.frames[a.i], prev = a.i === 0 ? a.from : frameView(a.frames[a.i - 1]);
-    var t = Math.min(1, (now - a.t0) / STEP_MS);
-    var s = run.state;
+    var a = anim, s = run.state;
+    if (a.kind === 'bump') {
+      var tb = Math.min(1, (now - a.t0) / BUMP_MS);
+      var off = Math.sin(tb * Math.PI) * 0.16, d = G.DIRS[a.dir];
+      var vb = viewFromState();
+      vb.showPlans = false;
+      vb.player = { x: s.player.x + d.x * off, y: s.player.y + d.y * off, dir: s.player.dir };
+      LabyrintenRender.draw(boardCanvas, vb, colors);
+      if (tb >= 1) { anim = null; drawBoard(); return; }
+      a.raf = requestAnimationFrame(tickAnim);
+      return;
+    }
+    var res = a.res, f = res.frames[0];
+    var t = ease(Math.min(1, (now - a.t0) / STEP_MS));
     var v = {
-      maze: s.maze, items: displayItems, fright: prev.fright, moving: true,
-      player: { x: lerp(prev.player.x, f.player.x, t), y: lerp(prev.player.y, f.player.y, t), dir: f.player.dir },
-      ghosts: f.ghosts.map(function (g, k) {
-        var pg = prev.ghosts[k] || g;
-        return { id: g.id, type: s.ghosts[k].type, x: lerp(pg.x, g.x, t), y: lerp(pg.y, g.y, t), dir: g.dir,
-                 mode: t < 1 ? pg.mode : g.mode, scared: t < 1 ? pg.scared : g.scared, wait: g.wait };
+      maze: s.maze, items: a.items, fright: f.fright, moving: true,
+      player: { x: lerp(res.from.player.x, f.player.x, t), y: lerp(res.from.player.y, f.player.y, t), dir: f.player.dir },
+      guards: f.guards.map(function (g, k) {
+        var pos = alongPath(res.paths[k] || [g], t);
+        return { id: g.id, type: s.guards[k].type, x: pos.x, y: pos.y, dir: g.dir,
+                 mode: g.mode, scared: g.scared, wait: g.wait };
       })
     };
     LabyrintenRender.draw(boardCanvas, v, colors);
     if (t >= 1) {
-      // feltet er nået: spis prikken og spil lyden
-      displayItems[f.player.y * s.maze.w + f.player.x] = 0;
-      a.play(f);
-      $('#hud-score').textContent = f.score;
-      a.i++;
-      a.t0 = now;
-      if (a.i >= a.frames.length) { anim = null; displayItems = null; finishMove(a.res); return; }
+      anim = null;
+      playEvents(res.events);
+      finishMove(res);
+      return;
     }
     a.raf = requestAnimationFrame(tickAnim);
   }
-  function frameView(f) { return { player: f.player, ghosts: f.ghosts, fright: f.fright }; }
+  // Mod en væg: intet sker, men et lille ryk (eller med animation fra: en kort streg ved væggen).
+  function bump(dir) {
+    sfx('bump');
+    var btn = $('.arrow[data-dir="' + dir + '"]');
+    if (btn) { btn.classList.remove('bumped'); void btn.offsetWidth; btn.classList.add('bumped'); }
+    $('#board-status').textContent = 'Der er en væg ' + DIR_NAMES[dir] + '. Det koster ikke et træk.';
+    clearTimeout(bumpTimer);
+    bumpMark = { dir: dir };
+    bumpTimer = setTimeout(function () { bumpMark = null; drawBoard(); }, 600);
+    if (animationOn()) {
+      anim = { kind: 'bump', dir: dir, t0: performance.now(), raf: 0 };
+      anim.raf = requestAnimationFrame(tickAnim);
+    } else {
+      drawBoard();
+    }
+  }
   function cancelAnim() {
     if (anim && anim.raf) cancelAnimationFrame(anim.raf);
-    anim = null; displayItems = null;
+    anim = null; bumpMark = null; clearTimeout(bumpTimer);
   }
 
+  function showOverlay(id, focusId) {
+    $(id).hidden = false;
+    fitScreen();
+    $(focusId).focus({ preventScroll: true });
+  }
   function finishMove(res) {
     refresh();
     dwell.reset();
@@ -307,24 +339,23 @@
     if (res.result === 'caught' || res.result === 'over') {
       $('#caught-title').textContent = res.result === 'over' ? 'Fanget – ingen liv tilbage' : 'Fanget!';
       $('#caught-text').textContent = res.result === 'over'
-        ? 'Spøgelserne fangede dig på bane ' + s.level + '.'
+        ? 'Vagterne fangede dig på bane ' + s.level + '.'
         : 'Du har ' + (s.lives === 1 ? '1 liv' : s.lives + ' liv') + ' tilbage. Alle stiller sig på plads igen, og prikkerne bliver liggende.';
       $('#btn-continue .big').textContent = res.result === 'over' ? 'Se resultatet' : 'Fortsæt';
-      $('#caught-overlay').hidden = false;
-      $('#btn-continue').focus({ preventScroll: true });
+      showOverlay('#caught-overlay', '#btn-continue');
       status.textContent = $('#caught-text').textContent;
     } else if (res.result === 'cleared') {
-      sfx('cleared');
-      var nextGhosts = G.DIFFICULTIES[s.difficulty].ghosts(s.level + 1);
-      var nextMaze = G.loadMaze(s.size, s.level).name;
+      var bonus = res.events.filter(function (e) { return e.type === 'cleared'; })[0].bonus;
+      var nextGuards = G.DIFFICULTIES[s.difficulty].guards(s.level + 1);
+      var nextMaze = G.loadMaze(s.level).name;
       $('#clear-score').textContent = s.score + ' point';
-      $('#clear-next').textContent = 'Næste labyrint hedder ' + nextMaze + ' og har ' + ghostsText(nextGhosts) + '.';
+      $('#clear-bonus').textContent = '+' + bonus + ' point for bane ' + s.level;
+      $('#clear-next').textContent = 'Næste labyrint hedder ' + nextMaze + ' og har ' + guardsText(nextGuards) + '.';
       $('#btn-next-sub').textContent = 'Bane ' + (s.level + 1);
-      $('#clear-overlay').hidden = false;
-      $('#btn-next').focus({ preventScroll: true });
-      status.textContent = 'Banen er ryddet.';
+      showOverlay('#clear-overlay', '#btn-next');
+      status.textContent = 'Banen er ryddet. ' + bonus + ' point for banen.';
     } else {
-      status.textContent = s.score + ' point. ' + (s.fright > 0 ? 'Spøgelserne er bange i ' + s.fright + ' felter endnu.' : '');
+      status.textContent = s.score + ' point. ' + (s.fright > 0 ? 'Vagterne er sårbare i ' + movesText(s.fright) + ' endnu.' : '');
     }
   }
 
@@ -347,7 +378,7 @@
 
   $$('.arrow').forEach(function (b) {
     b.addEventListener('click', function () { move(b.dataset.dir); });
-    // Forhåndsvisning: hvor ender jeg, og hvor står spøgelserne bagefter?
+    // Forhåndsvisning: hvor ender jeg, og bliver jeg fanget?
     function on() { hoverDir = b.dataset.dir; drawBoard(); }
     function off() { if (hoverDir === b.dataset.dir) { hoverDir = null; drawBoard(); } }
     b.addEventListener('pointerenter', on);
@@ -362,7 +393,7 @@
     $('#pause-overlay').hidden = !p;
     dwell.reset();
     sfx('pause');
-    if (p) $('#btn-resume').focus({ preventScroll: true });
+    if (p) { fitScreen(); $('#btn-resume').focus({ preventScroll: true }); }
     drawBoard();
   }
   $('#btn-pause').addEventListener('click', function () { setPaused(!paused); });
@@ -374,7 +405,7 @@
   // ---------- Game over ----------
   var lastEntryId = null;
   function gameOver() {
-    var s = run.state, cat = category(s.difficulty, s.size);
+    var s = run.state, cat = category(s.difficulty);
     var rankText = '';
     lastEntryId = null;
     if (s.score > 0) {
@@ -386,12 +417,12 @@
     } else {
       rankText = 'Ingen point denne gang';
     }
-    $('#go-reason').textContent = 'Spøgelserne fangede dig på bane ' + s.level + '.';
+    $('#go-reason').textContent = 'Vagterne fangede dig på bane ' + s.level + '.';
     $('#go-score').textContent = s.score;
     $('#go-levels').textContent = levelsText(s.cleared);
     $('#go-rank').textContent = rankText;
-    $('#go-again-sub').textContent = diffLabel(s.difficulty) + ' · ' + sizeLabel(s.size).toLowerCase();
-    $('#go-records-title').textContent = 'Rekorder – ' + diffLabel(s.difficulty) + ', ' + sizeLabel(s.size).toLowerCase();
+    $('#go-again-sub').textContent = diffLabel(s.difficulty);
+    $('#go-records-title').textContent = 'Rekorder – ' + diffLabel(s.difficulty);
     renderRecordList($('#go-records'), cat, lastEntryId);
     show('gameover');
   }
@@ -421,19 +452,15 @@
   }
 
   // ---------- Rekorder ----------
-  var recDiff = 'normal', recSize = 'mellem';
-  function openRecords(d, s) { recDiff = d; recSize = s; syncRecords(); show('records'); }
+  var recDiff = 'normal';
+  function openRecords(d) { recDiff = d; syncRecords(); show('records'); }
   function syncRecords() {
     $$('#records [data-rec-difficulty]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.recDifficulty === recDiff)); });
-    $$('#records [data-rec-size]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.recSize === recSize)); });
-    $('#rec-title').textContent = 'Rekorder – ' + diffLabel(recDiff) + ', ' + sizeLabel(recSize).toLowerCase();
-    renderRecordList($('#rec-list'), category(recDiff, recSize), null);
+    $('#rec-title').textContent = 'Rekorder – ' + diffLabel(recDiff);
+    renderRecordList($('#rec-list'), category(recDiff), null);
   }
   $$('#records [data-rec-difficulty]').forEach(function (b) {
     b.addEventListener('click', function () { sfx('click'); recDiff = b.dataset.recDifficulty; syncRecords(); });
-  });
-  $$('#records [data-rec-size]').forEach(function (b) {
-    b.addEventListener('click', function () { sfx('click'); recSize = b.dataset.recSize; syncRecords(); });
   });
   $('#btn-records-back').addEventListener('click', function () { sfx('click'); show('menu'); });
 
@@ -449,18 +476,29 @@
       var match = typeof cur === 'boolean' ? String(cur) === val : cur === val;
       b.setAttribute('aria-pressed', String(match));
     });
+    $$('#settings [data-labset]').forEach(function (b) {
+      b.setAttribute('aria-pressed', String(String(lab.get(b.dataset.labset)) === b.dataset.value));
+    });
     var t = arkade.get('dwellTime');
     $('#dwell-value').textContent = fmtSeconds(t);
     $('#dwell-minus').disabled = t <= 0.5 + 1e-9;
     $('#dwell-plus').disabled = t >= 3 - 1e-9;
   }
   $$('#settings [data-tab]').forEach(function (b) {
-    b.addEventListener('click', function () { sfx('click'); settingsTab = b.dataset.tab; syncSettingsUi(); });
+    b.addEventListener('click', function () { sfx('click'); settingsTab = b.dataset.tab; syncSettingsUi(); fitScreen(); });
   });
   $$('#settings [data-set]').forEach(function (b) {
     b.addEventListener('click', function () {
       var key = b.dataset.set, val = b.dataset.value;
       arkade.set(key, (val === 'true' || val === 'false') ? val === 'true' : val);
+      sfx('click');
+      syncSettingsUi();
+    });
+  });
+  $$('#settings [data-labset]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var val = b.dataset.value;
+      lab.set(b.dataset.labset, (val === 'true' || val === 'false') ? val === 'true' : val);
       sfx('click');
       syncSettingsUi();
     });
@@ -475,7 +513,7 @@
   $('#dwell-plus').addEventListener('click', function () { stepDwell(0.25); });
   $('#btn-settings-back').addEventListener('click', function () {
     sfx('click');
-    if (settingsReturn === 'game' && run) { show('game'); refresh(); $('#pause-overlay').hidden = false; $('#btn-resume').focus({ preventScroll: true }); }
+    if (settingsReturn === 'game' && run) { show('game'); refresh(); showOverlay('#pause-overlay', '#btn-resume'); }
     else show('menu');
   });
 
@@ -491,29 +529,139 @@
     }
   });
 
+  // ---------- Tilpasning til skærmen ----------
+  // Ingen skærm må kræve, at man ruller. Knapperne er ca. 3–4,2 cm, når der er plads;
+  // ellers skrues knapstørrelse, afstande og skrift ned, til alt kan være der.
+  var CM = 96 / 2.54;
+  function baseSizes() {
+    var vmin = Math.min(window.innerWidth, window.innerHeight) / 100;
+    return { btn: Math.max(3 * CM, Math.min(15 * vmin, 4.2 * CM)), gap: Math.max(0.8 * CM, 3 * vmin) };
+  }
+  function applyScale(scale, compact) {
+    var b = baseSizes();
+    root.style.setProperty('--btn', Math.max(40, Math.round(b.btn * scale)) + 'px');
+    root.style.setProperty('--gap', Math.max(6, Math.round(b.gap * scale)) + 'px');
+    root.style.fontSize = (18 * Math.max(0.6, Math.min(1, 0.4 + 0.6 * scale))).toFixed(1) + 'px';
+    root.classList.toggle('fit-compact', !!compact);
+    root.classList.toggle('fit-tight', scale < 0.75);
+  }
+  function overflows(el) {
+    if (el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1) return true;
+    var r = el.getBoundingClientRect();
+    return Array.prototype.some.call(el.children, function (c) {
+      if (c.hidden || c.id === 'game-grid' || getComputedStyle(c).display === 'none') return false;
+      var cr = c.getBoundingClientRect();
+      return cr.top < r.top - 1 || cr.bottom > r.bottom + 1 || cr.left < r.left - 1 || cr.right > r.right + 1;
+    });
+  }
+  function fitScreen() {
+    var el = $('#' + current);
+    if (!el) return;
+    var targets = [el].concat($$('.overlay', el).filter(function (o) { return !o.hidden; }));
+    var tries = [];
+    // Først: hold knapperne på mindst 3 cm og skjul hellere de forklarende tekster.
+    var minScale = Math.min(1, 3 * CM / baseSizes().btn);
+    [1, 0.97, 0.94, 0.9].forEach(function (s) { if (s >= minScale - 0.001) tries.push([s, false]); });
+    if (tries.length === 0 || tries[tries.length - 1][0] > minScale) tries.push([minScale, false]);
+    [1, 0.97, 0.94, 0.9].forEach(function (s) { if (s >= minScale - 0.001) tries.push([s, true]); });
+    for (var s = Math.min(minScale, 1) - 0.04; s >= 0.299; s -= 0.04) tries.push([Math.round(s * 100) / 100, true]);
+    for (var i = 0; i < tries.length; i++) {
+      applyScale(tries[i][0], tries[i][1]);
+      if (!targets.some(overflows)) return;
+    }
+  }
+
   // ---------- Layout af spilleskærmen ----------
+  // Tre opstillinger; den, der giver de største felter, vælges (knapperne holdes så store som muligt):
+  //   rundt  – pilene står rundt om brættet (bred skærm med god højde)
+  //   siden  – et pilekryds ved siden af brættet og point/bane/sårbare i en kolonne (på langs)
+  //   under  – point m.m. i en række øverst, brættet og et pilekryds under det (på højkant)
+  function computeLayout(W, H, mw, mh, b) {
+    var pad = Math.max(8, Math.min(W, H) * 0.015), g = Math.max(10, b * 0.18), out = [];
+    // rundt
+    var side = b * 1.2;
+    var cA = Math.floor(Math.min((W - 2 * pad - 2 * side - 2 * g) / mw, (H - 2 * pad - 2 * b - 2 * g) / mh));
+    out.push({ name: 'rundt', cell: cA, score: cA * 1.15, b: b, g: g, side: side });
+    // siden
+    var hw = b * 1.25, hh = b * 0.85, padW = 3 * b + 2 * g;
+    var colH = b + 3 * hh + 3 * g;
+    if (colH <= H - 2 * pad && padW <= H - 2 * pad) {
+      var cB = Math.floor(Math.min((W - 2 * pad - hw - padW - 2 * g) / mw, (H - 2 * pad) / mh));
+      out.push({ name: 'siden', cell: cB, score: cB, b: b, g: g, hw: hw, hh: hh, padW: padW });
+    }
+    // under
+    var boxW = Math.min(b * 1.3, (W - 2 * pad - 3 * g) / 4);
+    if (boxW >= b * 0.85 && padW <= W - 2 * pad) {
+      var cC = Math.floor(Math.min((W - 2 * pad) / mw, (H - 2 * pad - hh - padW - 2 * g) / mh));
+      out.push({ name: 'under', cell: cC, score: cC, b: b, g: g, boxW: boxW, hh: hh, padW: padW });
+    }
+    return out.filter(function (l) { return l.cell >= 14; }).sort(function (a, c) { return c.score - a.score; })[0] || null;
+  }
+  function place(el, x, y, w, h) {
+    el.style.left = Math.round(x) + 'px'; el.style.top = Math.round(y) + 'px';
+    el.style.width = Math.round(w) + 'px'; el.style.height = Math.round(h) + 'px';
+    el.style.setProperty('--s', Math.round(Math.min(w, h)) + 'px');
+  }
+  var lastLayout = null;
   function layoutGame() {
     if (current !== 'game' || !run) return;
     var m = run.state.maze;
-    var btn = $('#btn-pause').offsetWidth || 120;
     var W = window.innerWidth, H = window.innerHeight;
-    var pad = Math.max(10, Math.min(W, H) * 0.016);
-    var gap = Math.max(19, Math.min(W, H) * 0.025);   // mindst ca. 0,5 cm
-    var side = Math.max(btn, 170);
-    var cell = Math.floor(Math.min((W - 2 * pad - 2 * side - 2 * gap) / m.w, (H - 2 * pad - 2 * btn - 2 * gap) / m.h));
-    cell = Math.max(14, cell);
-    var bw = cell * m.w, bh = cell * m.h;
+    var b0 = baseSizes().btn, L = null;
+    for (var b = b0; b >= 36 && !L; b *= 0.95) L = computeLayout(W, H, m.w, m.h, b);
+    if (!L) L = { name: 'rundt', cell: 12, b: 36, g: 8, side: 43 };
+    lastLayout = L;
+    var cell = L.cell, bw = cell * m.w, bh = cell * m.h, b = L.b, g = L.g;
     var grid = $('#game-grid');
-    grid.style.setProperty('--board-w', bw + 'px');
-    grid.style.setProperty('--board-h', bh + 'px');
-    grid.style.setProperty('--game-gap', gap + 'px');
-    grid.style.setProperty('--arrow-long', Math.max(btn, Math.min(Math.min(bw, bh) * 0.75, btn * 2.4)) + 'px');
+    grid.className = 'game-grid lay-' + L.name;
+    grid.style.setProperty('--u', (b / 100).toFixed(3) + 'px');
+    var E = {
+      pause: $('#btn-pause'), score: $('#hud-score-box'), level: $('#hud-level-box'), fright: $('#hud-fright'),
+      board: $('#board-wrap'), up: $('.arrow-up'), left: $('.arrow-left'), right: $('.arrow-right'), down: $('.arrow-down')
+    };
+    function crossPad(px, py) {
+      place(E.up, px + b + g, py, b, b);
+      place(E.left, px, py + b + g, b, b);
+      place(E.right, px + 2 * (b + g), py + b + g, b, b);
+      place(E.down, px + b + g, py + 2 * (b + g), b, b);
+    }
+    if (L.name === 'rundt') {
+      var side = L.side, long = Math.max(b, Math.min(Math.min(bw, bh) * 0.75, b * 2.6));
+      var tw = side + g + bw + g + side, th = b + g + bh + g + b;
+      var x0 = (W - tw) / 2, y0 = (H - th) / 2, bx = x0 + side + g, by = y0 + b + g, cx = bx + bw / 2, cy = by + bh / 2;
+      var rx = bx + bw + g, low = by + bh + g;
+      place(E.board, bx, by, bw, bh);
+      place(E.pause, x0 + side - b, y0, b, b);
+      place(E.up, cx - long / 2, y0, long, b);
+      place(E.score, rx, y0, side, b);
+      place(E.left, x0 + side - b, cy - long / 2, b, long);
+      place(E.right, rx, cy - long / 2, b, long);
+      place(E.level, x0, low, side, b);
+      place(E.down, cx - long / 2, low, long, b);
+      place(E.fright, rx, low, side, b);
+    } else if (L.name === 'siden') {
+      var tw2 = L.hw + g + bw + g + L.padW, x1 = (W - tw2) / 2;
+      var colH = b + 3 * L.hh + 3 * g, cy0 = (H - colH) / 2;
+      place(E.pause, x1 + (L.hw - b) / 2, cy0, b, b);
+      place(E.score, x1, cy0 + b + g, L.hw, L.hh);
+      place(E.level, x1, cy0 + b + g + L.hh + g, L.hw, L.hh);
+      place(E.fright, x1, cy0 + b + 2 * (g + L.hh) + g, L.hw, L.hh);
+      place(E.board, x1 + L.hw + g, (H - bh) / 2, bw, bh);
+      crossPad(x1 + L.hw + g + bw + g, (H - L.padW) / 2);
+    } else {
+      var th3 = L.hh + g + bh + g + L.padW, y3 = (H - th3) / 2;
+      var rowW = 4 * L.boxW + 3 * g, rx3 = (W - rowW) / 2;
+      [E.pause, E.score, E.level, E.fright].forEach(function (el, k) { place(el, rx3 + k * (L.boxW + g), y3, L.boxW, L.hh); });
+      place(E.board, (W - bw) / 2, y3 + L.hh + g, bw, bh);
+      crossPad((W - L.padW) / 2, y3 + L.hh + g + bh + g);
+    }
+    [E.score, E.level, E.fright].forEach(function (el) { el.classList.toggle('slim', L.name === 'under' && L.hh < 80); });
     var dpr = Math.min(2, window.devicePixelRatio || 1);
     boardCanvas.width = Math.round(bw * dpr);
     boardCanvas.height = Math.round(bh * dpr);
     drawBoard();
   }
-  window.addEventListener('resize', layoutGame);
+  window.addEventListener('resize', function () { layoutGame(); fitScreen(); });
 
   // ---------- Start ----------
   applyTheme();
@@ -525,9 +673,9 @@
 
   // Til test og fejlfinding
   window.Labyrinten = {
-    get run() { return run; }, get busy() { return busy(); }, get screen() { return current; },
+    get run() { return run; }, get busy() { return busy(); }, get screen() { return current; }, get layout() { return lastLayout; },
     settings: arkade, gameSettings: lab, records: records, dwell: dwell, audio: audio,
-    start: startGame, show: show, move: move, gameOver: gameOver,
+    start: startGame, show: show, move: move, gameOver: gameOver, fit: fitScreen, refresh: refresh,
     hover: function (d) { hoverDir = d; drawBoard(); }
   };
 })();

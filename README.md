@@ -39,20 +39,6 @@ har mistet sine liv.
 - **Rekorder:** der er en lokal top 10 med point, antal ryddede plader og dato for hver kombination af liv og brætstørrelse.
 - **Rolig visning:** der er ingen blink og ingen hvide lysglimt. Er animation slået fra, eller er computeren sat til mindre bevægelse, bliver eksplosionen og tilbagespolingen til en rolig fade.
 
-### Labyrinten
-Et roligt, turbaseret labyrintspil i stil med Pac-Man. Der er intet ur, og
-spøgelserne flytter sig kun, når man selv gør.
-
-- **Styring:** fire store pile står omkring brættet. Piletasterne virker også, og Esc eller P giver pause. Et valg får spilleren til at glide hen til næste kryds, sving eller væg. Pile, der peger ind i en væg, er slået fra. Hviler blikket på en pil (eller musen eller fokus), viser brættet med stiplede streger, hvor man ender, og hvor spøgelserne står bagefter. Et rødt kryds viser, hvis man bliver fanget.
-- **Spøgelser:** de har faste, forudsigelige personligheder. **Jageren** går efter spilleren, **afskæreren** går efter feltet foran spilleren, **vandreren** patruljerer hjørnerne, og **lureren** jager på afstand, men trækker sig tæt på. Øjnene og en lille pil viser, hvor hvert spøgelse er på vej hen. Et tal viser, hvor mange træk et spøgelse venter, før det går ud. Man bliver også fanget, hvis man og et spøgelse krydser hinanden.
-- **Point:** 10 point for en prik og 50 for en kraftpille. Efter en kraftpille er spøgelserne bange i et antal felter, som står med tal på brættet og ved siden af. Bange spøgelser går halvt så hurtigt. Spiste spøgelser giver 200, 400, 800 og 1.600 point og løber hjem som øjne.
-- **Sværhedsgrad:** **Rolig** har færre spøgelser (2–3), som flytter ét felt for hvert andet felt, man glider, og lang bange-tid. **Normal** har 3–4 spøgelser, der flytter ét felt for hvert felt. **Svær** har fire klogere spøgelser fra start, som finder den korteste vej, og kortere bange-tid. Valget huskes.
-- **Bræt:** man vælger lille (11 × 11), mellem (15 × 13) eller stor (19 × 15). Hver størrelse har tre håndlavede labyrinter, der skifter fra bane til bane. Spøgelserne kommer hurtigere ud, jo længere man når.
-- **Liv:** altid tre liv. Bliver man fanget, stiller alle sig på plads igen, og prikkerne bliver liggende. Man fortsætter med en knap, når man er klar.
-- **Rekorder:** der er en lokal top 10 med point, antal ryddede baner og dato for hver kombination af sværhedsgrad og brætstørrelse.
-- **Rolig visning:** der er ingen blink og ingen hvide lysglimt. Glidningen er en rolig animation. Er animation slået fra, eller er computeren sat til mindre bevægelse, hopper spilleren direkte til slutfeltet.
-- **Test:** `node labyrinten/test/test-logik.js` tjekker labyrinterne, glidning, kollision, kraftpiller, banskift, liv og rekorder.
-
 ### Bomberne
 Et roligt, turbaseret bombespil i en labyrint i stil med Bomberman. Der er intet
 ur. Fjenderne flytter sig og bomberne tæller ned, kun når man selv vælger.
@@ -104,7 +90,6 @@ CNAME             eget domæne til GitHub Pages: arkade.hojt.dk
 arkade/           fælles moduler til alle spil
 slangen/          spillet Slangen (index.html, css/, js/)
 minestryger/      spillet Minestryger (index.html, css/, js/)
-labyrinten/       spillet Labyrinten (index.html, css/, js/, test/)
 bomberne/         spillet Bomberne (index.html, css/, js/, test/)
 LICENSE           MIT-licens
 ```

@@ -1,4 +1,9 @@
-/* Labyrinten – spillets egen opsætning. Bygger på ../arkade/arkade.css. */
+/* Labyrinten – spillets egen opsætning. Bygger på ../arkade/arkade.css.
+ *
+ * Alle skærme skal passe i vinduet uden at rulle, på langs og på højkant.
+ * js/app.js (fitScreen) skalerer --btn, --gap og skriftstørrelsen ned, hvis en skærm
+ * ikke kan være der, og layoutGame() placerer brættet og pilene på spilleskærmen.
+ */
 
 /* ---------- Farver ---------- */
 :root, [data-theme] {
@@ -6,126 +11,131 @@
   --lab-board: rgba(6, 2, 14, 0.9);
   --lab-dot: #ffd9a8; --lab-pellet: #22eaff;
   --lab-player: #ffd23a; --lab-player-rim: #fff3b0;
-  --lab-g-jager: #ff3b5c; --lab-g-afskaerer: #ff7bd8; --lab-g-vandrer: #ff9a2e; --lab-g-lurer: #39ff6a;
-  --lab-scared: #3d5cff; --lab-scared-text: #ffffff;
-  --lab-eyes: #e6dcff; --lab-eye-white: #f4f0ff; --lab-pupil: #120a40;
+  --lab-g-jaeger: #ff3b5c; --lab-g-afskaerer: #ff7bd8; --lab-g-patrulje: #ff9a2e; --lab-g-lurer: #39ff6a;
+  --lab-visor: #1a0630; --lab-visor-dot: #ffffff;
+  --lab-scared: #1b2a8c; --lab-scared-rim: #8fa4ff; --lab-scared-text: #ffffff;
+  --lab-eyes: #e6dcff; --lab-pupil: #120a40;
   --lab-preview: #22eaff; --lab-danger: #ff3b5c;
 }
-[data-theme="solnedgang"] { --lab-wall: #ff6a2a; --lab-wall-fill: rgba(70, 14, 40, 0.55); --lab-pellet: #c77dff; --lab-preview: #c77dff; --lab-g-vandrer: #ffd23a; }
+[data-theme="solnedgang"] { --lab-wall: #ff6a2a; --lab-wall-fill: rgba(70, 14, 40, 0.55); --lab-pellet: #c77dff; --lab-preview: #c77dff; --lab-g-patrulje: #ffd23a; }
 [data-theme="cyberpunk"] { --lab-wall: #2a9dff; --lab-wall-fill: rgba(4, 30, 60, 0.55); --lab-pellet: #39ff6a; --lab-g-lurer: #22eaff; --lab-preview: #39ff6a; }
 [data-theme="kontrast"] {
   --lab-wall: #ffffff; --lab-wall-fill: #1a1a1a; --lab-board: #000000;
   --lab-dot: #ffffff; --lab-pellet: #00ffff;
   --lab-player: #ffff00; --lab-player-rim: #ffffff;
-  --lab-g-jager: #ff2020; --lab-g-afskaerer: #ff00ff; --lab-g-vandrer: #ff8800; --lab-g-lurer: #00ff00;
-  --lab-scared: #3060ff; --lab-scared-text: #ffffff;
-  --lab-eyes: #ffffff; --lab-eye-white: #ffffff; --lab-pupil: #000000;
+  --lab-g-jaeger: #ff2020; --lab-g-afskaerer: #ff00ff; --lab-g-patrulje: #ff8800; --lab-g-lurer: #00ff00;
+  --lab-visor: #000000; --lab-visor-dot: #ffffff;
+  --lab-scared: #0000a8; --lab-scared-rim: #ffffff; --lab-scared-text: #ffffff;
+  --lab-eyes: #ffffff; --lab-pupil: #000000;
   --lab-preview: #00ffff; --lab-danger: #ff2020;
 }
 
+/* ---------- Grundlag: skærmene følger vinduet ---------- */
+/* Teksten følger html-skriftstørrelsen, som fitScreen() kan skrue ned på små skærme. */
+body { font-size: 1rem; }
+html, body { height: 100%; height: 100dvh; }
+.screen { height: 100%; height: 100dvh; max-width: 100vw; overflow: hidden; }
+.screen > * { flex-shrink: 0; }
+/* Kompakt: når pladsen er trang, skjules de forklarende tekster (de står også under Om) */
+.fit-compact .lead, .fit-compact .note, .fit-compact .om-logo, .fit-compact .diff-note { display: none; }
+.records li { font-size: 1.15rem; }
+.fit-tight .records li { padding: 1px 8px; }
+
 /* ---------- Startmenu ---------- */
-#menu { gap: calc(var(--gap) * 0.7); }
+#menu { justify-content: flex-start; gap: calc(var(--gap) * 0.6); }
+.menu-top { width: 100%; display: flex; justify-content: space-between; align-items: flex-start; gap: var(--gap); margin-bottom: auto; }
+#menu > .row:last-child { margin-bottom: auto; }
 .title-block { text-align: center; max-width: 1100px; }
-.title-row { display: flex; align-items: center; justify-content: center; gap: max(16px, 3vmin); flex-wrap: wrap; }
-.title-row .arkade-logo { height: clamp(100px, 18vh, 200px); }
-.neon-title { font-size: clamp(2.6rem, 8.5vmin, 5.5rem); letter-spacing: 0.1em; }
+.neon-title { font-size: clamp(2rem, min(9vmin, 12vw), 5.5rem); letter-spacing: 0.1em; }
 .lead { text-shadow: 0 1px 6px #000, 0 0 2px #000; margin: 10px auto 0; max-width: 46em; color: var(--muted); font-size: 1.1rem; line-height: 1.5; }
-.menu-choices { display: flex; flex-wrap: wrap; justify-content: center; gap: calc(var(--gap) * 1.6); }
 .menu-group { display: flex; flex-direction: column; align-items: center; }
 .diff-note { margin: 0; color: var(--muted); text-align: center; max-width: 50em; font-size: 1.1rem; text-shadow: 0 1px 4px #000; }
 .diff-note:empty { display: none; }
-@media (max-height: 900px) {
-  .lead { display: none; }
-  .title-row .arkade-logo { height: clamp(80px, 14vh, 150px); }
-}
+.corner-logo { height: calc(var(--btn) * 0.95); max-width: 40vw; }
 
-/* Tilbage til hallen: fast i hjørnet, roligere stil end de andre knapper */
+/* Tilbage til hallen: stor knap i hjørnet, roligere stil end de andre knapper */
 .hall-btn {
-  position: absolute; top: max(16px, 2.5vmin); left: max(16px, 2.5vmin);
-  width: var(--btn); min-height: var(--btn); padding: 8px 10px;
+  width: calc(var(--btn) * 1.15); min-height: var(--btn); padding: 8px 10px;
   border-width: 2px; border-color: color-mix(in srgb, var(--muted) 70%, transparent);
   background: rgba(0, 0, 0, 0.45); box-shadow: none; color: var(--muted);
 }
-.hall-btn .big { font-size: 1.05rem; font-weight: 600; line-height: 1.2; text-align: center; }
+.hall-btn .big { font-size: 1.1rem; font-weight: 600; line-height: 1.2; text-align: center; }
 .hall-ico { width: 42%; height: auto; fill: none; stroke: var(--muted); stroke-width: 7; stroke-linejoin: round; }
 .hall-btn:hover, .hall-btn.arkade-dwelling { color: var(--ui-text); border-color: var(--muted); background: rgba(255, 255, 255, 0.08); box-shadow: none; }
-@media (max-aspect-ratio: 4/5) { #menu { padding-top: calc(var(--btn) + 4vmin); } }
 
 /* ---------- Spilleskærm ---------- */
-#game { padding: max(10px, 1.6vmin); overflow: hidden; }
-.game-grid {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  grid-template-rows: auto auto auto;
-  gap: var(--game-gap, 24px);
-  align-items: center; justify-items: center;
-}
-.board-wrap { width: var(--board-w, 400px); height: var(--board-h, 400px); position: relative; }
+/* layoutGame() sætter left/top/width/height på hver del og --u (1/100 af knapstørrelsen). */
+#game { padding: 0; }
+.game-grid { position: absolute; inset: 0; --u: 1.4px; }
+.game-grid > * { position: absolute; margin: 0; }
+.game-grid .btn { min-width: 0; min-height: 0; padding: 0; }
+.board-wrap { width: 400px; height: 400px; }
 #board {
   display: block; width: 100%; height: 100%;
   border: 2px solid var(--lab-wall); border-radius: 6px;
   box-shadow: 0 0 calc(18px * var(--glow)) var(--lab-wall);
 }
-.arrow { padding: 0; }
-.arrow svg { width: calc(var(--btn) * 0.62); height: calc(var(--btn) * 0.62); fill: var(--ui-soft); stroke: var(--ui); stroke-width: 5; stroke-linejoin: round; }
-.arrow-up, .arrow-down { width: var(--arrow-long, calc(var(--btn) * 2)); height: var(--btn); }
-.arrow-left, .arrow-right { height: var(--arrow-long, calc(var(--btn) * 2)); width: var(--btn); }
-/* Pile ind i en væg er slået fra: stiplet og dæmpet (fælles stil), og pilen tones ned */
-.arrow:disabled svg { fill: transparent; stroke: var(--muted); }
-.arrow-left, .hud-level { justify-self: end; }
-.arrow-right, .hud-fright, .hud-score { justify-self: start; }
-.pause-btn { justify-self: end; width: var(--btn); height: var(--btn); padding: 6px; }
+.arrow svg { width: calc(var(--s, 120px) * 0.6); height: calc(var(--s, 120px) * 0.6); fill: var(--ui-soft); stroke: var(--ui); stroke-width: 5; stroke-linejoin: round; }
+/* Lille ryk, når man går mod en væg: pilen trykkes kort ind (kun med animation) */
+.lab-anim .arrow.bumped svg { animation: lab-bump .22s ease-out; }
+@keyframes lab-bump { 0% { transform: scale(1); } 40% { transform: scale(0.86); } 100% { transform: scale(1); } }
 .pause-btn svg { width: 46%; height: 46%; fill: var(--ui); }
+.pause-btn .small { font-size: calc(var(--u) * 12); }
 
 .hud {
-  min-width: max(var(--btn), 9em); padding: 8px 14px; text-align: center;
-  background: var(--panel); border-radius: 14px; border: 1px solid var(--ui-soft);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: calc(var(--u) * 4); text-align: center; overflow: hidden;
+  background: var(--panel); border-radius: calc(var(--u) * 12); border: 1px solid var(--ui-soft);
 }
-.hud-label { font-size: 0.95rem; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; display: flex; gap: 8px; align-items: center; justify-content: center; }
-.hud-value { font-size: 2rem; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--ui-text); }
-.hud-sub { font-size: 0.95rem; color: var(--muted); }
-.hud-fright.active { border-color: var(--lab-scared); box-shadow: 0 0 calc(14px * var(--glow)) var(--lab-scared); }
-.hud-fright.active .hud-value { color: var(--ui-text); }
-.mini-ghost { width: 18px; height: 18px; fill: var(--lab-scared); }
-.hearts { display: flex; gap: 6px; justify-content: center; align-items: center; min-height: 2rem; padding-top: 2px; }
-.heart { width: 30px; height: 28px; fill: transparent; stroke: color-mix(in srgb, var(--lab-player) 55%, transparent); stroke-width: 6; }
+.hud-label { font-size: calc(var(--u) * 11); color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; display: flex; gap: calc(var(--u) * 5); align-items: center; justify-content: center; white-space: nowrap; }
+.hud-value { font-size: calc(var(--u) * 28); line-height: 1.1; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--ui-text); }
+.hud-sub { font-size: calc(var(--u) * 11); color: var(--muted); white-space: nowrap; }
+.hud-fright.active { background: color-mix(in srgb, var(--lab-scared) 70%, #000); border: 2px solid var(--lab-scared-rim); }
+.hud-fright.active .hud-value { color: #fff; font-size: calc(var(--u) * 36); }
+.hud-fright.active .hud-sub, .hud-fright.active .hud-label { color: #e6ebff; }
+.mini-guard { width: calc(var(--u) * 14); height: calc(var(--u) * 14); fill: var(--lab-scared-rim); }
+.hearts { display: flex; gap: calc(var(--u) * 4); justify-content: center; align-items: center; padding-top: 2px; }
+.heart { width: calc(var(--u) * 22); height: calc(var(--u) * 20); fill: transparent; stroke: color-mix(in srgb, var(--lab-player) 55%, transparent); stroke-width: 6; }
 .heart.full { fill: var(--lab-player); stroke: color-mix(in srgb, var(--lab-player) 50%, #fff); filter: drop-shadow(0 0 calc(6px * var(--glow)) var(--lab-player)); }
+/* Små HUD-felter (på højkant): kun det vigtigste */
+.hud.slim .hud-sub { display: none; }
 
 /* Overlays (pause, fanget, ryddet bane) */
 .overlay {
   position: absolute; inset: 0; z-index: 5;
   display: flex; align-items: center; justify-content: center;
+  padding: max(10px, 2vmin); overflow: hidden;
   background: rgba(0, 0, 0, 0.62);
 }
 .overlay.soft { background: rgba(0, 0, 0, 0.45); }
-.overlay .panel { display: flex; flex-direction: column; align-items: center; gap: var(--gap); text-align: center; max-width: 40em; }
+.overlay .panel { display: flex; flex-direction: column; align-items: center; gap: calc(var(--gap) * 0.8); text-align: center; max-width: min(40em, 100%); }
 .overlay .panel p { margin: 0; font-size: 1.2rem; line-height: 1.45; }
 .clear-score { font-size: 2rem !important; font-weight: 800; color: var(--accent); }
+.clear-bonus { font-weight: 700; color: var(--ui-text); }
 /* Rolig indtoning af overlays, når animation er slået til */
 .lab-anim .overlay.soft:not([hidden]) { animation: lab-fade .45s ease-out; }
 @keyframes lab-fade { from { opacity: 0; } to { opacity: 1; } }
 
 /* ---------- Game over ---------- */
-.go-layout { display: flex; flex-wrap: wrap; gap: calc(var(--gap) * 1.4); align-items: center; justify-content: center; }
-.go-result { display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; }
+.go-layout { display: flex; flex-wrap: wrap; gap: calc(var(--gap) * 1.2); align-items: center; justify-content: center; max-width: 100%; }
+.go-result { display: flex; flex-direction: column; align-items: center; gap: calc(var(--gap) * 0.4); text-align: center; }
 .go-reason, .go-levels { margin: 0; font-size: 1.3rem; color: var(--muted); }
 .go-score { display: flex; align-items: baseline; gap: 12px; }
-#go-score { font-size: clamp(3rem, 10vmin, 5rem); font-weight: 800; color: var(--ui-text); text-shadow: 0 0 calc(18px * var(--glow)) var(--ui); }
+#go-score { font-size: clamp(2.4rem, 9vmin, 5rem); font-weight: 800; color: var(--ui-text); text-shadow: 0 0 calc(18px * var(--glow)) var(--ui); }
 .go-unit { font-size: 1.4rem; color: var(--muted); }
 .go-rank { margin: 0; min-height: 1.4em; font-size: 1.3rem; color: var(--accent); font-weight: 700; }
-.go-records { min-width: min(520px, 90vw); }
+.go-records { min-width: min(460px, 100%); }
+.records { min-width: min(420px, 100%); }
 .records li .levels { font-weight: 400; color: var(--muted); }
 
 /* ---------- Indstillinger ---------- */
-#settings { justify-content: flex-start; padding-top: max(20px, 4vmin); }
-.tabs { margin-bottom: 4px; }
-.tab-panel { display: flex; flex-direction: column; gap: calc(var(--gap) * 0.8); align-items: stretch; width: min(1100px, 100%); }
-.setting { display: grid; grid-template-columns: 13em 1fr; align-items: center; gap: var(--gap); }
-@media (max-width: 900px) { .setting { grid-template-columns: 1fr; justify-items: center; text-align: center; } .setting .row { justify-content: center !important; } }
+#settings { justify-content: flex-start; gap: calc(var(--gap) * 0.7); }
+.tab-panel { display: flex; flex-direction: column; gap: calc(var(--gap) * 0.6); align-items: stretch; width: min(1100px, 100%); }
+.setting { display: grid; grid-template-columns: minmax(8em, 13em) 1fr; align-items: center; gap: calc(var(--gap) * 0.7); }
 .setting-label { font-size: 1.35rem; font-weight: 700; display: flex; flex-direction: column; text-shadow: 0 1px 4px #000; }
 .setting-label small { font-size: 0.95rem; font-weight: 400; color: var(--muted); margin-top: 4px; }
-.setting .row { justify-content: flex-start; }
-.value-box { min-width: 6em; text-align: center; font-size: 1.8rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.setting .row { justify-content: flex-start; gap: calc(var(--gap) * 0.7); }
+.value-box { min-width: 5em; text-align: center; font-size: 1.8rem; font-weight: 800; font-variant-numeric: tabular-nums; }
 .note { max-width: 44em; margin: 0 auto; color: var(--muted); line-height: 1.5; text-align: center; }
 .theme-btn .swatch {
   width: 64px; height: 32px; border-radius: 6px;
@@ -134,19 +144,36 @@
 }
 
 /* ---------- Rekorder ---------- */
-#records { justify-content: flex-start; padding-top: max(20px, 3vmin); gap: calc(var(--gap) * 0.6); }
-.records-panel { min-width: min(560px, 92vw); }
+#records { justify-content: flex-start; gap: calc(var(--gap) * 0.6); }
+.records-panel { min-width: min(560px, 100%); }
 
 /* ---------- Om ---------- */
-#om { gap: calc(var(--gap) * 0.7); }
-.om-logo { height: clamp(84px, 15vh, 200px); }
-@media (max-height: 740px) { .om-logo { height: 84px; } .om-panel p { font-size: 1.15rem; line-height: 1.45; } }
+#om { gap: calc(var(--gap) * 0.6); }
+.om-logo { height: clamp(60px, 13vh, 180px); }
 .om-panel { max-width: 46em; text-align: center; }
 .om-panel h2 { margin-bottom: 12px; }
-.om-panel p { margin: 10px 0 0; font-size: 1.25rem; line-height: 1.55; }
-.link-btn { text-decoration: none; min-width: calc(var(--btn) * 2.4); }
-.link-btn .small { font-size: 0.95rem; }
+.om-panel p { margin: 10px 0 0; font-size: 1.2rem; line-height: 1.5; }
+.link-btn { text-decoration: none; min-width: calc(var(--btn) * 2.2); }
+.link-btn .small { font-size: 0.95rem; overflow-wrap: anywhere; }
+
+/* Trang plads: hjørneknapperne lægges ovenpå, ikoner og spillets forklaring skjules */
+.fit-compact .menu-top { position: absolute; width: auto; top: max(8px, 1.5vmin); left: max(8px, 1.5vmin); right: max(8px, 1.5vmin); pointer-events: none; }
+.fit-compact .menu-top > * { pointer-events: auto; }
+.fit-compact #menu { justify-content: center; }
+.fit-compact #menu > .row:last-child { margin-bottom: 0; }
+.fit-compact .om-game { display: none; }
+.fit-tight .btn .icon { display: none; }
+.fit-tight .btn { padding: 4px 12px; }
+.fit-tight .overlay .panel p, .fit-tight .om-panel p { font-size: 1.05rem; }
+/* På langs: resultat og rekorder ved siden af hinanden */
+@media (min-aspect-ratio: 5/4) { .go-layout { flex-wrap: nowrap; } .go-result { flex: 0 0 auto; } .go-records { min-width: min(460px, 52vw); } .go-records .records { min-width: 0; } }
+
+/* Smalle skærme (højkant): indstillingernes etiket over knapperne */
+@media (max-aspect-ratio: 3/4) {
+  .setting { grid-template-columns: 1fr; justify-items: center; text-align: center; }
+  .setting .row { justify-content: center; }
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .lab-anim .overlay.soft:not([hidden]) { animation: none; }
+  .lab-anim .overlay.soft:not([hidden]), .lab-anim .arrow.bumped svg { animation: none; }
 }
