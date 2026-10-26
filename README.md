@@ -66,14 +66,15 @@ og skildpadder rykker sig kun, når man selv hopper eller venter.
 - **Næste træk:** svage, stiplede skygger viser, hvor biler, stammer og skildpadder står efter næste træk. Et hop, der vil koste et liv, får stiplet rød kant på pilen, og en rød ring om frøen viser, at det er farligt at stå stille. Det kan slås fra under Indstillinger.
 - **Brættet:** 11 × 13 felter. Nederst er startrækken, så kommer fem vejbaner, en sikker midterrække, fem flodbaner og øverst en mur med fem huller.
 - **Floden:** frøen skal stå på en stamme eller en skildpadde, og den følger med, når de rykker. Bliver den båret ud over kanten, mister man et liv.
-- **Liv:** man vælger tre liv eller ét liv på startskærmen. Man mister et liv, hvis en bil rammer frøen, hvis den falder i vandet, hvis den bliver båret ud over kanten, eller hvis den hopper ind i muren eller et hul, der allerede er fyldt. Bagefter starter frøen i bunden igen, når man er klar.
+- **Liv:** man vælger tre liv eller ét liv på startskærmen. Man mister et liv, hvis en bil rammer frøen, hvis den falder i vandet, eller hvis den bliver båret ud over kanten. Bagefter starter frøen i bunden igen, når man er klar.
+- **Muren og fyldte huller:** står frøen lige under muren eller et hul, der allerede er fyldt, er pilen op slået fra og nedtonet, ligesom pile mod en mur i Bomberne. På pilen står en kort forklaring ("Muren er i vejen" eller "Hullet er optaget"), og feltet over frøen får et roligt kryds. Piletasten op gør heller intet, og et dwell på pilen bliver ikke til et træk, så man mister hverken et træk eller et liv.
 - **Baner:** når alle fem huller er fyldt, starter en ny bane uden ende. Hver bane har flere og længere biler og færre eller kortere stammer, og færre baner rykker langsomt. Det testes, at hver bane altid kan klares.
 - **Point:** 10 point for hver ny række, frøen når frem til i et forsøg, 50 for et fyldt hul og 200 gange banens nummer for en klaret bane.
 - **Alle skærme:** man skal aldrig rulle. På store skærme står pilene rundt om brættet. På lave skærme, tablets og mobiler står pilekors og knapper under eller ved siden af brættet og er så store som muligt. Startskærmen siger til, hvis felterne bliver under ca. 1,2 cm.
 - **Rekorder:** der er en lokal top 10 med point, nået bane og dato for tre liv og for ét liv hver for sig.
 - **Lyd:** lydeffekter for hop, plask, bil, fyldt hul, mistet liv og klaret bane, og der er musik. Effekter og musik slås til og fra hver for sig.
 - **Rolig visning:** der er ingen blink og ingen hvide lysglimt. Er animation slået fra, eller er computeren sat til mindre bevægelse, bliver effekterne til en rolig fade.
-- **Test:** `node froeen/test/spillogik.test.js` tjekker brættet, hop, banernes faste rytme, biler, flod og kanten, huller og mur, banskift, point og liv, og at et hul altid kan nås. `python3 froeen/test/responsiv_test.py` tjekker alle skærmstørrelser i Chrome.
+- **Test:** `node froeen/test/spillogik.test.js` tjekker brættet, hop, banernes faste rytme, biler, flod og kanten, huller, at muren og fyldte huller afviser hoppet uden træk og uden livstab, banskift, point og liv, og at et hul altid kan nås. `python3 froeen/test/responsiv_test.py` tjekker alle skærmstørrelser i Chrome, også at pilen op er slået fra under muren og et fyldt hul (med mus, tastatur og dwell).
 
 ## Sådan spiller og tester du
 

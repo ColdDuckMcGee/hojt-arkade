@@ -130,6 +130,21 @@
       c.restore();
     });
 
+    // ---------- slået fra: muren eller et optaget hul over frøen ----------
+    if (opts.blockedUp && !s.dead) {
+      var bx = X(s.frog.x), by = Y(0);
+      c.save();
+      c.globalAlpha = 0.75; c.strokeStyle = col.danger; c.lineWidth = Math.max(2, cell * 0.05);
+      c.setLineDash([cell * 0.12, cell * 0.1]);
+      roundRect(c, bx + cell * 0.1, by + cell * 0.1, cell * 0.8, cell * 0.8, cell * 0.16); c.stroke();
+      c.setLineDash([]); c.lineCap = 'round';
+      c.beginPath();
+      c.moveTo(bx + cell * 0.32, by + cell * 0.32); c.lineTo(bx + cell * 0.68, by + cell * 0.68);
+      c.moveTo(bx + cell * 0.68, by + cell * 0.32); c.lineTo(bx + cell * 0.32, by + cell * 0.68);
+      c.stroke();
+      c.restore();
+    }
+
     // ---------- frøen ----------
     var fr = s.frog;
     var fx = Math.max(0, Math.min(s.cols - 1, fr.x));

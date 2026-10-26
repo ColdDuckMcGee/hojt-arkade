@@ -48,7 +48,7 @@
   var audio = ArkadeAudio.create({ sfx: arkade.get('sound'), music: arkade.get('music') });
   // Lydene kommer fra det fælles lydmodul. Frøen bruger disse navne:
   var SFX = {
-    hop: 'move', wait: 'click', splash: 'obstacle', car: 'crash', edge: 'obstacle', wall: 'obstacle', hole: 'eat',
+    hop: 'move', wait: 'click', splash: 'obstacle', car: 'crash', edge: 'obstacle', hole: 'eat',
     lifeLost: 'bonusGone', cleared: 'bonus', record: 'record', click: 'click', pause: 'pause'
   };
   function sfx(name) { audio.play(SFX[name] || name); }
@@ -213,6 +213,7 @@
     FroeenRender.draw(boardCanvas, run, colors, {
       preview: prev, frogNext: prev ? frogNext() : null,
       waitDanger: prev && run.playable() && !!run.simulate('wait'),
+      blockedUp: run.playable() && !!run.blocked('up'),
       fx: fx, now: now || performance.now(), calm: !animationOn()
     });
   }
@@ -248,6 +249,15 @@
       b.classList.toggle('risky', !!risk);
       b.setAttribute('aria-label', ok ? 'Hop ' + DIR_NAMES[b.dataset.dir] + (risk ? ' (farligt: ' + CAUSE_SHORT[risk] + ')' : '') : 'Kan ikke hoppe ' + DIR_NAMES[b.dataset.dir]);
     });
+    // Pil op over muren eller et optaget hul: slået fra med en kort forklaring.
+    var blockUp = live ? run.blocked('up') : null;
+    var up = $('.arrow-up'), note = $('#up-note');
+    up.classList.toggle('blocked', !!blockUp);
+    note.hidden = !blockUp;
+    note.textContent = blockUp ? BLOCKED[blockUp] : '';
+    if (blockUp) up.setAttribute('aria-label', 'Kan ikke hoppe op. ' + BLOCKED[blockUp] + '.');
+    var liveTxt = blockUp ? BLOCKED[blockUp] + '.' : '';
+    if ($('#block-live').textContent !== liveTxt) $('#block-live').textContent = liveTxt;
     $('#btn-wait').disabled = !live;
     var waitRisk = live && bset.get('preview') ? run.simulate('wait') : null;
     $('#wait-sub').textContent = waitRisk ? 'farligt at stå stille' : 'stå stille ét træk';
@@ -255,7 +265,8 @@
     boardCanvas.setAttribute('aria-label', boardLabel(s));
     drawBoard();
   }
-  var CAUSE_SHORT = { bil: 'bil', vand: 'vand', kant: 'kanten', mur: 'mur', optaget: 'optaget hul' };
+  var CAUSE_SHORT = { bil: 'bil', vand: 'vand', kant: 'kanten' };
+  var BLOCKED = { mur: 'Muren er i vejen', optaget: 'Hullet er optaget' };
   function boardLabel(s) {
     var txt = 'Spillebræt. Bane ' + s.level + '. ' + s.holes.filter(Boolean).length + ' af 5 huller fyldt. Frøen står i række ' + (s.rows - s.frog.y) + ' fra bunden, kolonne ' + (s.frog.x + 1) + '.';
     if (run.playable() && run.simulate('wait')) txt += ' Det er farligt at stå stille!';
@@ -287,7 +298,7 @@
       busy = true;
       var f = run.state.frog, fxX = Math.max(0, Math.min(run.state.cols - 1, f.x));
       if (ev.cause === 'vand') { sfx('splash'); fx.push({ kind: 'splash', x: fxX, y: f.y, t0: now, dur: calm ? 600 : 900 }); }
-      else { sfx(ev.cause === 'bil' ? 'car' : 'wall'); fx.push({ kind: 'hit', x: fxX, y: f.y, t0: now, dur: calm ? 600 : 800 }); }
+      else { sfx(ev.cause === 'bil' ? 'car' : 'edge'); fx.push({ kind: 'hit', x: fxX, y: f.y, t0: now, dur: calm ? 600 : 800 }); }
       sfx('lifeLost');
       refresh();
       animate();
@@ -302,8 +313,7 @@
   $('#btn-wait').addEventListener('click', function () { if (!swallowed(this)) act('wait'); });
 
   var CAUSES = {
-    bil: 'En bil ramte frøen.', vand: 'Frøen faldt i vandet.', kant: 'Frøen blev ført ud over kanten.',
-    mur: 'Frøen hoppede ind i muren.', optaget: 'Hullet var allerede optaget.'
+    bil: 'En bil ramte frøen.', vand: 'Frøen faldt i vandet.', kant: 'Frøen blev ført ud over kanten.'
   };
   function showDeath() {
     var s = run.state;

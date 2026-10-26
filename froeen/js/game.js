@@ -13,8 +13,9 @@
  *
  * Rækkefølge i et træk:
  *   1. Frøen hopper (eller venter). Lander den på en bil eller i vandet,
- *      eller hopper den ind i muren eller et optaget hul, mister den et liv.
- *      Lander den i et ledigt hul, fyldes hullet, og frøen starter forfra.
+ *      mister den et liv. Lander den i et ledigt hul, fyldes hullet, og
+ *      frøen starter forfra. Et hop op i muren eller et optaget hul er slået
+ *      fra: det er ikke et træk, og intet rykker sig.
  *   2. Banerne rykker. Står frøen på en stamme eller skildpadde, følger den
  *      med. Bliver den ført ud over kanten, eller kører en bil ind i den,
  *      mister den et liv.
@@ -162,7 +163,17 @@
       var d = DIRS[dir];
       if (!d || !playable()) return false;
       var nx = s.frog.x + d.x, ny = s.frog.y + d.y;
-      return nx >= 0 && nx < COLS && ny >= 0 && ny < ROWS;
+      if (!(nx >= 0 && nx < COLS && ny >= 0 && ny < ROWS)) return false;
+      return !blocked(dir);
+    }
+    // Står muren eller et optaget hul i vejen for hoppet? ('mur' | 'optaget' | null)
+    function blocked(dir) {
+      var d = DIRS[dir];
+      if (!d || !playable()) return null;
+      var nx = s.frog.x + d.x, ny = s.frog.y + d.y;
+      if (ny !== 0 || nx < 0 || nx >= COLS) return null;
+      var t = topAt(nx);
+      return t === 'hul' ? null : t;
     }
     // Hvad rammer frøen i toprækken ved x?
     function topAt(x) {
@@ -191,7 +202,7 @@
       if (action === 'wait') {
         ev.events.push('wait');
       } else {
-        if (!canMove(action)) { ev.ignored = true; return ev; }
+        if (!canMove(action)) { ev.ignored = true; ev.blocked = blocked(action); return ev; }
         var d = DIRS[action];
         s.frog.x += d.x; s.frog.y += d.y; s.facing = action;
         ev.events.push('hop');
@@ -200,8 +211,6 @@
           s.score += RULES.pointsStep; ev.points += RULES.pointsStep;
         }
         if (s.frog.y === 0) {
-          var t = topAt(s.frog.x);
-          if (t !== 'hul') return die(ev, t);
           var h = HOLES.indexOf(s.frog.x);
           s.holes[h] = true;
           s.score += RULES.pointsHole; ev.points += RULES.pointsHole;
@@ -250,7 +259,7 @@
     buildLevel(opts.level || 1);
 
     var api = {
-      state: s, act: act, canMove: canMove, playable: playable, respawn: respawn, nextLevel: nextLevel,
+      state: s, act: act, canMove: canMove, blocked: blocked, playable: playable, respawn: respawn, nextLevel: nextLevel,
       simulate: simulate, hazard: function () { return hazard(); }, topAt: topAt,
       laneAt: laneAt, objAt: objAt, spans: spans, movesNext: movesNext, nextOffset: nextOffset,
       _setState: function (ns) { s = ns; api.state = s; }

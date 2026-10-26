@@ -54,6 +54,57 @@ def check(pg, name, sel, w, h, shot=None):
     summary.setdefault('%dx%d' % (w, h), []).append((name, r['minBtn']))
     if not ok: fails.append(line)
     if shot and SHOT: pg.screenshot(path=SHOT + shot)
+BLOCK_SETUP = """kind => { Froeen.start(); const r = Froeen.run, s = r.state;
+  if (kind === 'optaget') s.holes[1] = true;
+  const lane = r.laneAt(1);
+  for (let x = 0; x < s.cols; x++) {
+    if (r.topAt(x) === kind && r.objAt(lane, x)) { s.frog = { x: x, y: 1 }; s.bestY = 1; Froeen.refresh(); return x; }
+  }
+  for (let x = 0; x < s.cols; x++) if (r.topAt(x) === kind) { s.frog = { x: x, y: 1 }; s.bestY = 1; Froeen.refresh(); return x; }
+  return -1; }"""
+BLOCK_STATE = """() => { const r = Froeen.run, s = r.state, b = document.querySelector('.arrow-up'), n = document.getElementById('up-note');
+  return { turn: s.turn, lives: s.lives, dead: s.dead, x: s.frog.x, y: s.frog.y, disabled: b.disabled, note: n.hidden ? '' : n.textContent }; }"""
+def blocked_up(pg, w, h, tag, dwell=False):
+    """Pil op under muren og et optaget hul: slået fra, med forklaring, og intet træk."""
+    for kind, txt in (('mur', 'Muren er i vejen'), ('optaget', 'Hullet er optaget')):
+        pg.evaluate(BLOCK_SETUP, kind); pg.wait_for_timeout(80)
+        before = pg.evaluate(BLOCK_STATE)
+        pg.keyboard.press('ArrowUp'); pg.wait_for_timeout(60)
+        pg.click('.arrow-up', force=True); pg.wait_for_timeout(60)
+        if dwell:
+            pg.evaluate("() => { Froeen.settings.set('dwell', true); Froeen.settings.set('dwellTime', 0.6); }")
+            box = pg.locator('.arrow-up').bounding_box()
+            pg.mouse.move(box['x'] + box['width'] / 2, box['y'] + box['height'] / 2, steps=4)
+            pg.wait_for_timeout(1600)
+            pg.mouse.move(5, 5)
+            pg.evaluate("() => Froeen.settings.set('dwell', false)")
+        after = pg.evaluate(BLOCK_STATE)
+        ok = (before['disabled'] and before['note'] == txt and after == before)
+        line = '%s %dx%d %-30s %s' % ('OK  ' if ok else 'FEJL', w, h, 'pil op slået fra (%s)%s' % (kind, ' + dwell' if dwell else ''), json.dumps(after, ensure_ascii=False))
+        print(line)
+        if not ok: fails.append(line)
+        check(pg, 'pil op slået fra (%s)' % kind, '#game', w, h)
+        if SHOT and kind == 'mur': pg.screenshot(path=SHOT + tag + '-pil-op-slaaet-fra.png')
+        if SHOT and kind == 'mur' and (w, h) == (1920, 1080): pg.screenshot(path=SHOT + 'pil-op-slaaet-fra.png')
+        if SHOT and kind == 'optaget' and (w, h) == (1920, 1080): pg.screenshot(path=SHOT + 'pil-op-hul-optaget.png')
+    if dwell:
+        # kontrol: dwell på en pil, der er slået til, giver præcis ét træk
+        pg.evaluate("() => { Froeen.start(); Froeen.settings.set('dwell', true); Froeen.settings.set('dwellTime', 0.6); }")
+        t0 = pg.evaluate("Froeen.run.state.turn")
+        box = pg.locator('.arrow-up').bounding_box()
+        pg.mouse.move(box['x'] + box['width'] / 2, box['y'] + box['height'] / 2, steps=4)
+        for _ in range(40):  # vent op til 4 sek. på dwell (headless kan være langsom)
+            pg.wait_for_timeout(100)
+            if pg.evaluate("Froeen.run.state.turn") != t0: break
+        pg.wait_for_timeout(1500)  # blikket bliver på pilen: der må ikke komme et træk mere
+        t1 = pg.evaluate("Froeen.run.state.turn")
+        if t1 != t0 + 1:
+            print('DEBUG', pg.evaluate("() => { const b = document.querySelector('.arrow-up').getBoundingClientRect(); const e = document.elementFromPoint(b.x + b.width/2, b.y + b.height/2); return [e && e.outerHTML.slice(0, 120), Froeen.dwell.isEnabled(), document.querySelector('.arrow-up').disabled, document.activeElement && document.activeElement.id, Froeen.busy, [...document.querySelectorAll('.overlay:not([hidden]), [id$=overlay]:not([hidden])')].map(o => o.id)]; }"))
+        pg.mouse.move(5, 5); pg.evaluate("() => Froeen.settings.set('dwell', false)")
+        ok = t1 == t0 + 1
+        line = '%s %dx%d %-30s tur %d -> %d' % ('OK  ' if ok else 'FEJL', w, h, 'kontrol: dwell på pil op', t0, t1)
+        print(line)
+        if not ok: fails.append(line)
 def pages(pg, scr, w, h, name, shotbase):
     """Gå alle sider igennem på en skærm med Forrige/Næste."""
     n = 1
@@ -94,6 +145,7 @@ with sync_playwright() as p:
                     pg.evaluate("id => { document.getElementById(id).hidden = false; window.dispatchEvent(new Event('resize')); }", ov); pg.wait_for_timeout(80)
                     check(pg, nm, '#game', w, h)
                     pg.evaluate("id => { document.getElementById(id).hidden = true; }", ov)
+                blocked_up(pg, w, h, tag, dwell=(w, h) == (1920, 1080))
         # game over med rekorder
         pg.evaluate("() => { const s = Froeen.run.state; for (let i = 0; i < 3; i++) Froeen.records.add('1', 500 + i * 10, {level: 3}); s.score = 777; s.level = 4; s.over = true; s.lives = 0; s.deathCause = 'vand'; Froeen.gameOver(); }")
         pg.wait_for_timeout(150)

@@ -160,7 +160,7 @@ test('kanten: stammen fører frøen ud over kanten', function () {
   assert.strictEqual(run2.act('up').cause, 'kant');
 });
 
-test('huller: ledigt hul fyldes, optaget hul og mur koster et liv', function () {
+test('huller: ledigt hul fyldes, og frøen starter forfra', function () {
   var run = calmRun();
   frogAt(run, 3, 1);
   var score0 = run.state.score;
@@ -171,12 +171,33 @@ test('huller: ledigt hul fyldes, optaget hul og mur koster et liv', function () 
   assert.deepStrictEqual(run.state.frog, { x: 5, y: 12 }, 'frøen starter forfra i bunden');
   assert.strictEqual(run.state.score - score0, G.RULES.pointsStep + G.RULES.pointsHole);
   assert.strictEqual(run.topAt(3), 'optaget'); assert.strictEqual(run.topAt(4), 'mur'); assert.strictEqual(run.topAt(5), 'hul');
-  frogAt(run, 3, 1);
-  assert.strictEqual(run.act('up').cause, 'optaget');
-  run.respawn();
+});
+
+test('mur og optaget hul: pil op er slået fra, og hoppet afvises uden træk og uden livstab', function () {
+  var run = calmRun();
+  frogAt(run, 3, 1); run.act('up');               // hul 1 (x = 3) er nu optaget
+  [[3, 'optaget'], [4, 'mur'], [0, 'mur'], [10, 'mur']].forEach(function (c) {
+    frogAt(run, c[0], 1);
+    var before = JSON.stringify(run.state);
+    assert.strictEqual(run.blocked('up'), c[1], 'x=' + c[0]);
+    assert.strictEqual(run.canMove('up'), false, 'pil op er slået fra ved x=' + c[0]);
+    assert.strictEqual(run.simulate('up'), 'ugyldigt');
+    var ev = run.act('up');
+    assert.ok(ev.ignored, 'hoppet afvises');
+    assert.strictEqual(ev.blocked, c[1]);
+    assert.strictEqual(ev.cause, undefined, 'ingen dødsårsag');
+    assert.strictEqual(JSON.stringify(run.state), before, 'intet har flyttet sig, ingen tur, ingen point');
+    assert.strictEqual(run.state.lives, 3, 'intet liv er mistet');
+    assert.strictEqual(run.state.dead, false);
+  });
+  // under et ledigt hul er pil op slået til
+  frogAt(run, 5, 1);
+  assert.strictEqual(run.blocked('up'), null);
+  assert.strictEqual(run.canMove('up'), true);
+  // andre retninger er ikke berørt af muren
   frogAt(run, 4, 1);
-  assert.strictEqual(run.act('up').cause, 'mur');
-  assert.strictEqual(run.state.lives, 1);
+  assert.strictEqual(run.blocked('left'), null);
+  assert.strictEqual(run.blocked('down'), null);
 });
 
 test('banskift: alle fem huller giver bonus og en sværere bane', function () {

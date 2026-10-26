@@ -357,3 +357,9 @@ html, body { height: 100%; height: 100dvh; }
 /* Farligt træk (kun når "Næste træk" vises): stiplet rød kant, intet blink */
 .turn-btn.risky:not(:disabled) { border-style: dashed; border-color: var(--fr-danger); }
 .turn-btn.risky:not(:disabled) svg { opacity: .8; }
+/* Pil op slået fra under muren eller et optaget hul: pilen er nedtonet som
+   andre slåede-fra pile, men den korte forklaring skal kunne læses. */
+.arrow-up.blocked:disabled { opacity: 1; flex-direction: column; gap: 2px; border-color: var(--muted); }
+.arrow-up.blocked:disabled svg { opacity: .22; width: calc(var(--btn) * 0.4); height: calc(var(--btn) * 0.4); }
+.arrow-note { font-size: clamp(.78rem, calc(var(--btn) * .125), 1.35rem); font-weight: 600; line-height: 1.1; color: var(--muted); text-align: center; padding: 0 4px; }
+.compact .arrow-up.blocked:disabled svg { width: 40%; height: 40%; }
