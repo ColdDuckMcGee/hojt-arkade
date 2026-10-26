@@ -88,9 +88,48 @@
     current = id;
     dwell.reset();
     if (id === 'game') layoutGame();
+    refit();
     var first = $('#' + id + ' [data-autofocus]');
     if (first) first.focus({ preventScroll: true });
   }
+
+  // ---------- Tilpas til skærmen: aldrig scroll ----------
+  // Menuskærme og pause-vinduet skaleres med --fit (knapper, afstande og tekst),
+  // indtil indholdet passer. Knapperne er fulde 3 cm, når der er plads.
+  var rootEl = document.documentElement;
+  var MIN_FIT = 0.4;
+  function visibleLayer() {
+    if (current === 'game') { var ov = $('#pause-overlay'); return ov.hidden ? null : ov; }
+    return document.getElementById(current);
+  }
+  function hit(a, b) { return a.left < b.right - 0.5 && b.left < a.right - 0.5 && a.top < b.bottom - 0.5 && b.top < a.bottom - 0.5; }
+  function floatsCollide(layer) {
+    var floats = $$('[data-fit-float]', layer);
+    if (!floats.length) return false;
+    var others = $$('button, a[href], .arkade-logo, h1, h2, .panel', layer).filter(function (e) {
+      return floats.indexOf(e) < 0 && e.getClientRects().length;
+    });
+    return floats.some(function (f) {
+      var r = f.getBoundingClientRect();
+      return others.some(function (o) { return hit(r, o.getBoundingClientRect()); });
+    });
+  }
+  function overflowing(layer) {
+    return layer.scrollHeight > layer.clientHeight + 1 || layer.scrollWidth > layer.clientWidth + 1 || floatsCollide(layer);
+  }
+  function refit() {
+    var layer = visibleLayer();
+    var fit = 1;
+    rootEl.style.setProperty('--fit', '1');
+    if (layer) {
+      while (fit > MIN_FIT && overflowing(layer)) {
+        fit = Math.round((fit - 0.03) * 100) / 100;
+        rootEl.style.setProperty('--fit', String(fit));
+      }
+    }
+    rootEl.dataset.fit = String(fit);
+  }
+  function onViewportChange() { layoutGame(); refit(); }
 
   // ---------- Startmenu ----------
   function syncMenu() {
@@ -148,8 +187,8 @@
     if (!fsSupported) { b.hidden = true; return; }
     b.addEventListener('click', function () { audio.play('click'); toggleFullscreen(); });
   });
-  document.addEventListener('fullscreenchange', function () { syncFullscreen(); layoutGame(); });
-  document.addEventListener('webkitfullscreenchange', function () { syncFullscreen(); layoutGame(); });
+  document.addEventListener('fullscreenchange', function () { syncFullscreen(); onViewportChange(); });
+  document.addEventListener('webkitfullscreenchange', function () { syncFullscreen(); onViewportChange(); });
 
   // ---------- Spillet ----------
   var game = null, paused = false, boardCanvas = $('#board');
@@ -213,6 +252,7 @@
     if (!game || game.state.over) return;
     paused = p;
     $('#pause-overlay').hidden = !p;
+    refit();
     dwell.reset();
     audio.play('pause');
     if (p) $('#btn-resume').focus({ preventScroll: true });
@@ -279,6 +319,7 @@
     $$('#records [data-rec-size]').forEach(function (b) { b.setAttribute('aria-pressed', String(Number(b.dataset.recSize) === recSize)); });
     $('#rec-title').textContent = 'Rekorder – ' + recSize + ' × ' + recSize;
     renderRecordList($('#rec-list'), recSize, null);
+    if (current === 'records') refit();
   }
   $$('#records [data-rec-size]').forEach(function (b) {
     b.addEventListener('click', function () { audio.play('click'); recSize = Number(b.dataset.recSize); syncRecords(); });
@@ -301,6 +342,7 @@
     $('#dwell-value').textContent = fmtSeconds(t);
     $('#dwell-minus').disabled = t <= 0.5 + 1e-9;
     $('#dwell-plus').disabled = t >= 3 - 1e-9;
+    if (current === 'settings') refit();
   }
   $$('#settings [data-tab]').forEach(function (b) {
     b.addEventListener('click', function () { audio.play('click'); settingsTab = b.dataset.tab; syncSettingsUi(); });
@@ -323,7 +365,7 @@
   $('#dwell-plus').addEventListener('click', function () { stepDwell(0.25); });
   $('#btn-settings-back').addEventListener('click', function () {
     audio.play('click');
-    if (settingsReturn === 'game' && game) { show('game'); drawBoard(); $('#pause-overlay').hidden = false; }
+    if (settingsReturn === 'game' && game) { show('game'); drawBoard(); $('#pause-overlay').hidden = false; refit(); }
     else { syncMenu(); show('menu'); }
   });
 
@@ -344,26 +386,143 @@
   });
 
   // ---------- Layout af spilleskærmen ----------
+  // Tre opstillinger; den med de største knapper (helst fulde 3 cm) vinder:
+  //  'rundt'  – pile over, under og på siderne af brættet (pc, tablet)
+  //  'under'  – pile i et kryds under brættet, tal i en bjælke foroven (stående mobil)
+  //  'siden'  – pile i et kryds til højre for brættet, tal til venstre (liggende mobil)
+  var CM3 = 113.4, CM42 = 158.7;          // 3 cm og 4,2 cm i CSS-pixels
+  var HUD_W = 140, HUD_H = 100;           // talfelternes naturlige størrelse ved skala 1
+  function gameLayouts(AW, AH, b, minBoard) {
+    var g = Math.max(14, 0.18 * b);       // afstand mellem bræt og knapper
+    var gd = Math.max(10, 0.15 * b);      // afstand i pile-krydset
+    var hg = Math.max(8, 0.08 * b);       // afstand mellem talfelter
+    var CW = 3 * b + 2 * gd;              // pile-krydsets bredde og højde
+    var out = [];
+    function cross(x, y) {
+      var s = b + gd;
+      return { up: [x + s, y, b, b], left: [x, y + s, b, b], right: [x + 2 * s, y + s, b, b], down: [x + s, y + 2 * s, b, b] };
+    }
+    function merge(a, c) { for (var k in c) a[k] = c[k]; return a; }
+
+    // Pile rundt om brættet
+    (function () {
+      var side = Math.max(b, 140);
+      var board = Math.floor(Math.min(AW - 2 * side - 2 * g, AH - 2 * b - 2 * g));
+      if (board < minBoard) return;
+      var long = Math.max(b, Math.min(board * 0.75, b * 2.4));
+      var hw = Math.min(side, 170), hh = Math.min(b, 120);
+      var xb = side + g, xr = side + 2 * g + board, yb = b + g, yd = b + 2 * g + board;
+      out.push({ name: 'rundt', b: b, board: board, w: 2 * side + 2 * g + board, h: 2 * b + 2 * g + board, el: {
+        pause: [side - b, 0, b, b],
+        up: [xb + (board - long) / 2, 0, long, b],
+        down: [xb + (board - long) / 2, yd, long, b],
+        left: [side - b, yb + (board - long) / 2, b, long],
+        right: [xr, yb + (board - long) / 2, b, long],
+        board: [xb, yb, board, board],
+        score: [xr, (b - hh) / 2, hw, hh],
+        record: [side - hw, yd + (b - hh) / 2, hw, hh],
+        bonus: [xr, yd + (b - hh) / 2, hw, hh] } });
+    })();
+
+    // Pile under brættet
+    (function () {
+      var board = Math.floor(Math.min(AW, AH - b - CW - 2 * g));
+      if (board < minBoard) return;
+      var BW = Math.min(AW, Math.max(board, CW, b + 3 * (HUD_W + hg)));
+      var hw = (BW - b - 3 * hg) / 3, hh = Math.min(b, 120);
+      if (hw < 64) return;
+      var el = {
+        pause: [0, 0, b, b],
+        score: [b + hg, (b - hh) / 2, hw, hh],
+        bonus: [b + 2 * hg + hw, (b - hh) / 2, hw, hh],
+        record: [b + 3 * hg + 2 * hw, (b - hh) / 2, hw, hh],
+        board: [(BW - board) / 2, b + g, board, board]
+      };
+      merge(el, cross((BW - CW) / 2, b + 2 * g + board));
+      out.push({ name: 'under', b: b, board: board, w: BW, h: b + 2 * g + board + CW, el: el });
+    })();
+
+    // Pile ved siden af brættet
+    (function () {
+      if (CW > AH) return;
+      var hc = Math.max(b, 120);
+      var board = Math.floor(Math.min(AH, AW - hc - CW - 2 * g));
+      if (board < minBoard) return;
+      var hh = Math.min(110, (AH - b - 3 * hg) / 3);
+      if (hh < 56) return;
+      var BH = Math.max(board, CW, b + 3 * (hh + hg));
+      var el = {
+        pause: [0, 0, b, b],
+        score: [0, b + hg, hc, hh],
+        bonus: [0, b + 2 * hg + hh, hc, hh],
+        record: [0, b + 3 * hg + 2 * hh, hc, hh],
+        board: [hc + g, (BH - board) / 2, board, board]
+      };
+      merge(el, cross(hc + 2 * g + board, (BH - CW) / 2));
+      out.push({ name: 'siden', b: b, board: board, w: hc + 2 * g + board + CW, h: BH, el: el });
+    })();
+    return out;
+  }
+  var ORDER = { rundt: 0, under: 1, siden: 2 };
+  function chooseLayout(AW, AH, W, H) {
+    var ideal = Math.max(CM3, Math.min(0.15 * Math.min(W, H), CM42));
+    var minBoard = Math.max(140, 0.42 * Math.min(AW, AH));
+    for (var pass = 0; pass < 2; pass++) {
+      var best = {};
+      for (var b = ideal; b >= 44; b = (b === ideal ? Math.floor(ideal) : b - 1)) {
+        gameLayouts(AW, AH, b, minBoard).forEach(function (c) { if (!best[c.name]) best[c.name] = c; });
+        if (best.rundt && best.under && best.siden) break;
+      }
+      var list = Object.keys(best).map(function (k) { return best[k]; });
+      if (list.length) {
+        list.sort(function (a, c) {
+          if (Math.abs(a.b - c.b) > 0.5) return c.b - a.b;     // størst knapper
+          return ORDER[a.name] - ORDER[c.name];                // helst pile rundt om brættet
+        });
+        return list[0];
+      }
+      minBoard = 60;  // meget lille skærm: accepter et mindre bræt
+    }
+    return gameLayouts(AW, AH, 44, 0)[0];
+  }
+  var gameEls = null;
   function layoutGame() {
     if (current !== 'game') return;
-    var pauseBtn = $('#btn-pause');
-    var btn = pauseBtn.offsetWidth || 120;
-    var W = window.innerWidth, H = window.innerHeight;
-    var pad = Math.max(10, Math.min(W, H) * 0.016);
-    var gap = Math.max(19, Math.min(W, H) * 0.025);   // mindst ca. 0,5 cm
-    var side = Math.max(btn, 150);
-    var board = Math.floor(Math.min(W - 2 * pad - 2 * side - 2 * gap, H - 2 * pad - 2 * btn - 2 * gap));
-    board = Math.max(160, board);
+    var scr = $('#game');
+    var W = scr.clientWidth || window.innerWidth, H = scr.clientHeight || window.innerHeight;
+    var pad = Math.max(8, Math.min(W, H) * 0.016);
+    var AW = W - 2 * pad, AH = H - 2 * pad;
+    var c = chooseLayout(AW, AH, W, H);
+    if (!gameEls) {
+      gameEls = {
+        pause: $('#btn-pause'), up: $('.arrow-up'), down: $('.arrow-down'), left: $('.arrow-left'), right: $('.arrow-right'),
+        board: $('#board-wrap'), score: $('.hud-score'), record: $('.hud-record'), bonus: $('#hud-bonus')
+      };
+    }
+    var ox = pad + (AW - c.w) / 2, oy = pad + (AH - c.h) / 2;
+    Object.keys(gameEls).forEach(function (k) {
+      var r = c.el[k], e = gameEls[k];
+      e.style.left = Math.round(ox + r[0]) + 'px';
+      e.style.top = Math.round(oy + r[1]) + 'px';
+      e.style.width = r[2].toFixed(1) + 'px';
+      e.style.height = r[3].toFixed(1) + 'px';
+      if (k === 'score' || k === 'record' || k === 'bonus') {
+        e.style.setProperty('--hud-s', Math.max(0.5, Math.min(1, r[2] / HUD_W, r[3] / HUD_H)).toFixed(3));
+      }
+    });
     var grid = $('#game-grid');
-    grid.style.setProperty('--board', board + 'px');
-    grid.style.setProperty('--game-gap', gap + 'px');
-    grid.style.setProperty('--arrow-long', Math.max(btn, Math.min(board * 0.75, btn * 2.4)) + 'px');
+    grid.dataset.layout = c.name;
+    grid.style.setProperty('--arrow-icon', Math.round(c.b * 0.62) + 'px');
+    grid.style.setProperty('--game-btn', Math.round(c.b) + 'px');
+    var board = Math.round(c.board);
     var dpr = Math.min(2, window.devicePixelRatio || 1);
     boardCanvas.width = Math.round(board * dpr);
     boardCanvas.height = Math.round(board * dpr);
     drawBoard();
   }
-  window.addEventListener('resize', layoutGame);
+  window.addEventListener('resize', onViewportChange);
+  window.addEventListener('orientationchange', function () { setTimeout(onViewportChange, 150); });
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', onViewportChange);
 
   // ---------- Start ----------
   applyTheme();

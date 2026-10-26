@@ -16,7 +16,7 @@
 
 <!-- ================= STARTMENU ================= -->
 <main id="menu" class="screen" aria-labelledby="titel">
-  <button class="btn hall-btn" id="btn-hallen" type="button">
+  <button class="btn hall-btn" id="btn-hallen" type="button" data-fit-float>
     <svg class="hall-icon" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
       <path d="M8 22 L24 9 L40 22" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
       <path d="M12 20 V39 H36 V20" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round"/>
@@ -39,10 +39,10 @@
       <button class="btn option" data-size="20" aria-pressed="false"><span class="big">Stor</span><span class="small">20 × 20</span></button>
     </div>
   </section>
-  <div class="row">
+  <div class="row start-row">
     <button class="btn primary wide" id="btn-start"><span class="big">Start spil</span></button>
   </div>
-  <div class="row">
+  <div class="row menu-bottom">
     <button class="btn" id="btn-settings"><span class="icon" aria-hidden="true">⚙</span><span class="big">Indstillinger</span></button>
     <button class="btn" id="btn-records"><span class="icon" aria-hidden="true">★</span><span class="big">Rekorder</span></button>
     <button class="btn js-fullscreen"><span class="icon" aria-hidden="true">⛶</span><span class="big js-fs-label">Fuld skærm</span></button>
@@ -58,11 +58,11 @@
     <p>Hojt Arkade er udviklet af Jon Leismann Engsager, Hojt Design. Jon er IT- og IKT-konsulent i det specialiserede område og laver blandt andet gratis spil til voksne, der bruger øjenstyring.</p>
     <p>Koden er åben og frit tilgængelig under MIT-licensen, så alle kan bruge den og bygge videre på den.</p>
   </section>
-  <div class="row">
+  <div class="row om-links">
     <a class="btn link-btn" id="link-hojt" href="https://hojt.dk" target="_blank" rel="noopener"><span class="big">Hojt Design</span><span class="small">hojt.dk</span></a>
     <a class="btn link-btn" id="link-github" href="https://github.com/ColdDuckMcGee/hojt-arkade" target="_blank" rel="noopener"><span class="big">Koden på GitHub</span><span class="small">github.com/ColdDuckMcGee/hojt-arkade</span></a>
   </div>
-  <div class="row">
+  <div class="row om-nav">
     <button class="btn primary wide" id="btn-om-back"><span class="icon" aria-hidden="true">←</span><span class="big">Tilbage</span></button>
     <a class="btn" id="link-alle-spil" href="../index.html"><span class="icon" aria-hidden="true">▦</span><span class="big">Alle spil</span></a>
   </div>
@@ -167,7 +167,7 @@
     </div>
     <div class="setting">
       <div class="setting-label">Dwell-tid<small>Hvor længe du skal kigge</small></div>
-      <div class="row">
+      <div class="row stepper">
         <button class="btn" id="dwell-minus" aria-label="Kortere dwell-tid"><span class="big">−</span><span class="small">Kortere</span></button>
         <div class="value-box" id="dwell-value" aria-live="polite">1,2 sek.</div>
         <button class="btn" id="dwell-plus" aria-label="Længere dwell-tid"><span class="big">+</span><span class="small">Længere</span></button>
@@ -179,7 +179,7 @@
   <section class="tab-panel" data-panel="udseende" hidden>
     <div class="setting">
       <div class="setting-label">Tema</div>
-      <div class="row" role="group">
+      <div class="row theme-row" role="group">
         <button class="btn option theme-btn" data-set="theme" data-value="neon"><span class="swatch" style="--a:#ff2fd2;--b:#22eaff;--c:#1a0b2a"></span><span class="small">Pink og cyan</span></button>
         <button class="btn option theme-btn" data-set="theme" data-value="solnedgang"><span class="swatch" style="--a:#ff8a1f;--b:#22eaff;--c:#2a0b3d"></span><span class="small">Orange og lilla</span></button>
         <button class="btn option theme-btn" data-set="theme" data-value="cyberpunk"><span class="swatch" style="--a:#39ff6a;--b:#2a8dff;--c:#000"></span><span class="small">Grøn og blå</span></button>
