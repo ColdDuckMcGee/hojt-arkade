@@ -183,6 +183,9 @@ html, body { font-size: calc(18px * var(--kfit)); }
 .btn.fire-btn { height: var(--s); border-color: var(--kn-player); }
 .btn.fire-btn .big { font-size: calc(var(--s) * 0.3); letter-spacing: 0.08em; text-transform: uppercase; }
 
+/* Dødseffekt: gennemsigtigt lag over hele skærmen, så pixlerne kan flyve hen over panelet */
+.kn-fx { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; z-index: 4; }
+
 /* Overlays (pause og sejr) */
 .overlay {
   position: absolute; inset: 0; z-index: 5;

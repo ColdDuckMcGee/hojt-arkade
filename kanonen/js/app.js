@@ -38,6 +38,7 @@
   var dwell = ArkadeDwell.create({ enabled: arkade.get('dwell'), timeMs: arkade.get('dwellTime') * 1000 });
   var audio = ArkadeAudio.create({ sfx: arkade.get('sound'), music: arkade.get('music') });
   var view = KanonenRender.create($('#field'));
+  var doed = KanonenDoed.create($('#fx'));   // dødseffekten (pixelblokke over hele skærmen)
   // Lydene kommer fra det fælles lydmodul. Kanonen bruger disse navne:
   var SFX = { fall: 'obstacle', fire: 'obstacle', impact: 'crash', hit: 'eat', win: 'bonus', bomb: 'bonusSpawn', granat: 'bonusGone', record: 'record', click: 'click', step: 'click', pause: 'pause', turn: 'move' };
   function sfx(name) { audio.play(SFX[name] || name); }
@@ -164,7 +165,7 @@
   var FLIGHT_SPEED = 0.85, DT = 1 / 120;
 
   function after(ms, fn) { timers.push({ at: clock + ms, fn: fn }); kick(); }
-  function busy() { return !!(scene.flight || falls.length || aim || timers.length || scene.effects.length); }
+  function busy() { return !!(scene.flight || falls.length || aim || timers.length || scene.effects.length || shake || doed.active()); }
   function kick() { if (!raf) { lastFrame = 0; raf = requestAnimationFrame(frame); } }
   function frame(t) {
     raf = 0;
@@ -180,6 +181,8 @@
       timers = timers.filter(function (x) { return x.at > clock; });
       due.forEach(function (x) { x.fn(); });
       draw();
+      doed.draw(clock);
+      applyShake();
     }
     if (busy() && run) raf = requestAnimationFrame(frame);
   }
@@ -201,6 +204,7 @@
   function resetAnim() {
     timers = []; falls = []; aim = null;
     scene.flight = null; scene.effects = [];
+    doed.clear(); shake = null; $('#game-layout').style.transform = '';
     if (raf) { cancelAnimationFrame(raf); raf = 0; }
   }
   function newMatch() {
@@ -350,11 +354,13 @@
       msg.push((isPlayer ? 'Du' : 'Modstanderen') + ' mistede ' + d.amount + ' liv');
     });
     if (hitOther) after(260, function () { sfx('hit'); });
+    m.cannons.forEach(function (c) { if (c.hp <= 0 && !c.dead) after(calm ? 300 : 180, function () { kill(c); }); });
     line.textContent = msg.length ? msg.join(' · ') : (f.ammo === 'bombe' ? 'Bomben ramte jorden' : 'Granaten ramte jorden');
     // Kanoner, der har mistet jorden under sig, falder ned i krateret.
     m.cannons.forEach(function (c) {
       var y = G.restY(m, c);
-      if (y > c.y + 0.5) {
+      if (y > c.y + 0.5 && c.hp <= 0) c.y = y; // ødelagt kanon: vraget lægger sig bare i krateret
+      else if (y > c.y + 0.5) {
         var fl = { c: c, from: c.y, to: y, v: 0, shooter: f.shooter };
         if (calm) { c.y = y; after(450, function () { fallLanded(fl); }); } else falls.push(fl);
       }
@@ -383,22 +389,55 @@
     var line = $('#turn-line'), add = (isPlayer ? 'Du' : 'Modstanderen') + ' faldt og mistede ' + n + ' liv';
     line.textContent = /liv$|jorden$/.test(line.textContent) ? line.textContent + ' · ' + add : add;
     refresh();
+    if (c.hp <= 0) after(150, function () { kill(c); });
+  }
+
+  // ---------- Dødseffekt ----------
+  // Kanonen splittes i pixelblokke, der flyver ud over skærmen (eller opløses roligt uden animation).
+  var shake = null;
+  function kill(c) {
+    var m = scene.match;
+    if (!m || c.dead) return;
+    c.dead = true;
+    var isPlayer = c === m.player, calm = !animationOn();
+    var cv = $('#field').getBoundingClientRect(), gr = $('#game').getBoundingClientRect(), sc = cv.width / G.WORLD.w;
+    function P(x, y) { return { x: cv.left - gr.left + x * sc, y: cv.top - gr.top + y * sc }; }
+    var mz = G.muzzle(c), foot = P(c.x, c.y), b1 = P(c.x, c.y - 22), b2 = P(mz.x, mz.y);
+    doed.start({ x: foot.x, y: foot.y, scale: sc, now: clock, calm: calm,
+      color: cssVar(isPlayer ? '--kn-player' : '--kn-cpu'), accent: cssVar('--kn-ground'),
+      barrel: { x1: b1.x, y1: b1.y, x2: b2.x, y2: b2.y } });
+    if (!calm) shake = { t0: clock, dur: 480, amp: Math.max(3, Math.min(8, 0.012 * Math.min(innerWidth, innerHeight))) };
+    // lyd: et tungt brag, en dyb rumlen – og en faldende tone, når det er din kanon
+    sfx('impact');
+    after(110, function () { sfx('fall'); });
+    after(isPlayer ? 380 : 300, function () { sfx(isPlayer ? 'granat' : 'fall'); });
+    $('#turn-line').textContent = isPlayer ? 'Din kanon er ødelagt' : 'Modstander ' + m.no + ' er ødelagt!';
+    refresh(); draw(); kick();
+  }
+  // Lille, dæmpet skærmrystelse (kun med animation). Ingen lysændringer.
+  function applyShake() {
+    var el = $('#game-layout');
+    if (!shake) return;
+    var k = (clock - shake.t0) / shake.dur;
+    if (k >= 1 || paused) { el.style.transform = ''; shake = null; return; }
+    var a = shake.amp * (1 - k) * (1 - k), t = (clock - shake.t0) / 1000;
+    el.style.transform = 'translate(' + (a * Math.sin(t * Math.PI * 2 * 11)).toFixed(1) + 'px,' + (a * Math.sin(t * Math.PI * 2 * 8 + 1)).toFixed(1) + 'px)';
   }
 
   function resolve() {
-    if (falls.length) { after(100, resolve); return; }
     var m = scene.match;
-    m.cannons.forEach(function (c) { if (c.hp <= 0) c.dead = true; });
+    // vent på fald og på, at dødseffekten er helt færdig, før sejr/game over vises
+    if (falls.length || doed.active() || m.cannons.some(function (c) { return c.hp <= 0 && !c.dead; })) { after(100, resolve); return; }
     refresh(); draw();
     if (m.player.dead) {
       if (m.cpu.dead) { run.wins++; run.score += G.winPoints(m.no, m.shots); }
       run.over = true; setPhase('over');
       $('#turn-line').textContent = 'Din kanon er ødelagt';
-      after(1400, gameOver);
+      after(450, gameOver);
     } else if (m.cpu.dead) {
       setPhase('win');
       $('#turn-line').textContent = 'Modstander ' + m.no + ' er ødelagt!';
-      after(1100, matchWon);
+      after(350, matchWon);
     } else {
       nextTurn();
     }
@@ -469,7 +508,7 @@
 
   // ---------- Pause ----------
   function setPaused(p) {
-    if (!run || run.over || !$('#win-overlay').hidden) return;
+    if (!run || run.over || !$('#win-overlay').hidden || doed.active()) return;
     paused = p;
     $('#pause-overlay').hidden = !p;
     dwell.reset();
@@ -792,7 +831,7 @@
   // Til test og fejlfinding
   window.Kanonen = {
     get run() { return run; }, get match() { return scene.match; }, get phase() { return phase; },
-    get paused() { return paused; }, get layout() { return lastMetrics; }, get busy() { return busy(); },
+    get paused() { return paused; }, get layout() { return lastMetrics; }, get fxCount() { return doed.count(); }, get fxActive() { return doed.active(); }, get busy() { return busy(); },
     settings: arkade, gameSettings: kanon, records: records, dwell: dwell, audio: audio,
     start: startGame, show: show, adjust: adjust, toggleAmmo: toggleAmmo,
     fire: function () { if (phase === 'aim') fire(scene.match.player); },
