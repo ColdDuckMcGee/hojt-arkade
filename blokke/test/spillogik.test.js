@@ -212,6 +212,62 @@ test('fortryd: virker også efter game over og efter et nyt sæt brikker', funct
   assert.deepStrictEqual(run2.state.tray.map(function (p) { return p && p.id; }), ['prik', null, null]);
 });
 
+function ids(tray) { return tray.map(function (p) { return p ? p.id : null; }).join(','); }
+// Læg brikken i første ledige placering (fra start eller fra slutningen af brættet)
+function placeAny(run, slot, fromEnd) {
+  var n = run.n;
+  for (var t = 0; t < n * n; t++) {
+    var i = fromEnd ? n * n - 1 - t : t, pv = run.preview(slot, i % n, Math.floor(i / n));
+    if (pv && pv.ok) return run.place(slot, i % n, Math.floor(i / n));
+  }
+  return null;
+}
+function firstSlot(run) { for (var i = 0; i < 3; i++) if (run.state.tray[i]) return i; return -1; }
+
+test('fortryd: samme sæt brikker kommer igen, også når man lægger anderledes efter fortryd', function () {
+  [seeded(7), Math.random].forEach(function (rng) {
+    var run = G.createRun('8x8', { rng: rng });
+    var first = ids(run.state.tray);
+    placeAny(run, 0, false); placeAny(run, 1, false);
+    var res = placeAny(run, 2, false);      // henter sæt nr. 2
+    assert.ok(res.newSet);
+    var set2 = ids(run.state.tray);
+    // 1) fortryd: det første sæt (med den sidste brik) er tilbage, præcis som før
+    assert.ok(run.undo());
+    assert.strictEqual(ids(run.state.tray), first.split(',').map(function (id, i) { return i === 2 ? id : null; }).join(','));
+    // 2) læg den sidste brik et andet sted: præcis det samme sæt nr. 2 igen
+    res = placeAny(run, 2, true);
+    assert.ok(res.newSet);
+    assert.strictEqual(ids(run.state.tray), set2);
+    // 3) fortryd to træk tilbage og læg begge om: stadig samme sæt nr. 2
+    assert.ok(run.undo());
+    assert.ok(run.undo());
+    placeAny(run, 1, true); res = placeAny(run, 2, false);
+    assert.ok(res.newSet);
+    assert.strictEqual(ids(run.state.tray), set2);
+    assert.strictEqual(run.state.undoLeft, 0);
+  });
+});
+
+test('fortryd: sættene efter et fortrudt træk er de samme som uden fortryd', function () {
+  // To spil med samme tilfældighed: det ene fortryder og lægger om, det andet ikke.
+  // Sæt nr. 2 og 3 skal være ens, når de første træk ender med samme bræt.
+  var a = G.createRun('8x8', { rng: seeded(21) }), b = G.createRun('8x8', { rng: seeded(21) });
+  assert.strictEqual(ids(a.state.tray), ids(b.state.tray));
+  var setsA = [], setsB = [];
+  for (var m = 0; m < 6; m++) {
+    var sa = firstSlot(a), sb = firstSlot(b);
+    var ra = placeAny(a, sa, false);
+    if (m === 2 || m === 4) { a.undo(); ra = placeAny(a, sa, false); } // fortryd og læg samme sted igen
+    var rb = placeAny(b, sb, false);
+    if (ra.newSet) setsA.push(ids(a.state.tray));
+    if (rb.newSet) setsB.push(ids(b.state.tray));
+  }
+  assert.strictEqual(setsA.length, 2);
+  assert.deepStrictEqual(setsA, setsB);
+  assert.strictEqual(a.state.score, b.state.score);
+});
+
 test('retfærdige sæt: på et tomt eller let fyldt bræt kan alle tre brikker altid lægges', function () {
   var fairCount = {};
   for (var seed = 1; seed < 120; seed++) {

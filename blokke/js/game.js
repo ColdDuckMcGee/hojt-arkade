@@ -223,9 +223,14 @@
       combo: 0, bestCombo: 0, setsDealt: 0, undoLeft: RULES.undos, over: false, lastFair: null
     };
     var history = []; // øjebliksbilleder til fortryd (kun det seneste bruges, men flere gemmes)
+    // Alle sæt, der er givet i spillet, efter nummer. Fortryder man og lægger igen, kommer
+    // præcis det samme sæt nummer k igen – man kan ikke fiske efter bedre brikker.
+    // Listen overlever fortryd (den er ikke en del af øjebliksbilledet).
+    var dealt = [];
 
     function deal() {
-      var res = dealSet(s.board, n, rng, s.setsDealt);
+      var k = s.setsDealt, res = dealt[k];
+      if (!res) { res = dealSet(s.board, n, rng, k); dealt[k] = res; }
       s.tray = res.pieces.slice();
       s.lastFair = res.fair;
       s.setsDealt++;
@@ -296,7 +301,10 @@
       return true;
     }
 
-    if (opts.tray) { s.tray = opts.tray.map(function (id) { return id ? PIECES[id] : null; }); s.setsDealt = 1; }
+    if (opts.tray) {
+      s.tray = opts.tray.map(function (id) { return id ? PIECES[id] : null; }); s.setsDealt = 1;
+      dealt = [{ pieces: s.tray.slice(), fair: null }];
+    }
     else deal();
     checkOver();
 

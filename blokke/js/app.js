@@ -22,14 +22,15 @@
     dwell: false, dwellTime: 1.2, theme: 'neon', background: 'mork',
     animation: true, sound: true, music: true
   });
-  var bset = ArkadeSettings.create('blokke', { boardSize: G.DEFAULT_SIZE, hoverPreview: true });
+  // boardSize 'auto' = brugeren har ikke selv valgt. Så vælges brættet ud fra skærmen (se autoSize).
+  var bset = ArkadeSettings.create('blokke', { boardSize: 'auto', hoverPreview: true });
   var records = ArkadeHighscores.create('blokke', { max: 10 });
 
   var THEMES = ['neon', 'solnedgang', 'cyberpunk', 'kontrast'];
   var BACKGROUNDS = ['mork', 'solnedgang', 'neonby'];
   if (THEMES.indexOf(arkade.get('theme')) < 0) arkade.set('theme', 'neon');
   if (BACKGROUNDS.indexOf(arkade.get('background')) < 0) arkade.set('background', 'mork');
-  if (!G.SIZES[bset.get('boardSize')]) bset.set('boardSize', G.DEFAULT_SIZE);
+  if (bset.get('boardSize') !== 'auto' && !G.SIZES[bset.get('boardSize')]) bset.set('boardSize', 'auto');
 
   var reducedMotionMq = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
 
@@ -122,13 +123,22 @@
   // ---------- Startmenu ----------
   // Felterne er knapper, så de skal være store. Startskærmen siger til under ca. 1,8 cm.
   var MIN_CM = 1.8;
+  // Har brugeren ikke selv valgt en størrelse, bliver standarden 8 × 8 – medmindre felterne
+  // ved 8 × 8 ville blive under ca. 1,5 cm på denne skærm. Så bliver den 6 × 6.
+  // Samme beregning som advarslen herunder (cellSizeFor = spillets eget layout).
+  var AUTO_SMALL_CM = 1.5;
+  function cellCm(size) { return cellSizeFor(size) / (96 / 2.54); }
+  function autoSize() { return cellCm(G.DEFAULT_SIZE) < AUTO_SMALL_CM ? '6x6' : G.DEFAULT_SIZE; }
+  function isAutoSize() { return bset.get('boardSize') === 'auto'; }
+  function boardSize() { return isAutoSize() ? autoSize() : bset.get('boardSize'); }
   function syncMenu() {
-    var size = bset.get('boardSize');
+    var size = boardSize();
     $$('#menu [data-size]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.size === size)); });
-    var cm = cellSizeFor(size) / (96 / 2.54);
-    $('#size-note').textContent = cm < MIN_CM
-      ? 'På denne skærm bliver felterne ca. ' + cm.toFixed(1).replace('.', ',') + ' cm. Vælg et mindre bræt eller fuld skærm for større felter.'
-      : '';
+    var cm = cellCm(size), note = '';
+    if (cm < MIN_CM) note = 'På denne skærm bliver felterne ca. ' + cm.toFixed(1).replace('.', ',') + ' cm. ' +
+      (size === '6x6' ? 'Fuld skærm giver større felter.' : 'Vælg et mindre bræt eller fuld skærm for større felter.');
+    else if (isAutoSize() && size !== G.DEFAULT_SIZE) note = 'Lille bræt er valgt, så felterne bliver store nok på denne skærm (ca. ' + cm.toFixed(1).replace('.', ',') + ' cm). Du kan selv vælge et andet.';
+    $('#size-note').textContent = note;
     if (current === 'menu') fitScreen($('#menu'));
   }
   $$('#menu [data-size]').forEach(function (b) {
@@ -136,7 +146,7 @@
   });
   $('#btn-start').addEventListener('click', function () { sfx('click'); startGame(); });
   $('#btn-settings').addEventListener('click', function () { sfx('click'); openSettings('menu'); });
-  $('#btn-records').addEventListener('click', function () { sfx('click'); openRecords(bset.get('boardSize')); });
+  $('#btn-records').addEventListener('click', function () { sfx('click'); openRecords(boardSize()); });
   // Tilbage til hallen: stop musikken og skriv indstillingerne, før siden skifter.
   function goToHall() {
     sfx('click');
@@ -209,7 +219,7 @@
   boardEl.addEventListener('pointerleave', function () { if (hoverIdx >= 0) { hoverIdx = -1; renderBoard(); } });
 
   function startGame() {
-    run = G.createRun(bset.get('boardSize'));
+    run = G.createRun(boardSize());
     paused = false; finished = false;
     selSlot = -1; selCell = -1; hoverIdx = -1; vanishing = {}; popping = {}; lastNote = '';
     clearTimeout(animTimer); clearTimeout(popTimer); clearTimeout(stuckTimer);
@@ -897,6 +907,7 @@
 
   // Til test og fejlfinding
   window.Blokke = {
+    boardSize: boardSize, autoSize: autoSize,
     get run() { return run; }, get selection() { return { slot: selSlot, cell: selCell }; },
     settings: arkade, gameSettings: bset, records: records, dwell: dwell, audio: audio,
     start: startGame, show: show, selectPiece: selectPiece, selectCell: selectCell, place: place,

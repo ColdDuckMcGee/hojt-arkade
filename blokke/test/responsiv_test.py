@@ -85,6 +85,17 @@ with sync_playwright() as p:
         pg.on('pageerror', lambda e: errs.append('pageerror: '+str(e)))
         pg.goto(URL); pg.wait_for_timeout(400)
         check(pg,'start','#menu',w,h, tag+'-start.png')
+        # Standardbræt ud fra skærmen: 6x6, hvis felterne ved 8x8 ville blive under ca. 1,5 cm – ellers 8x8
+        auto = pg.evaluate("() => { const cm = Blokke.cellSizeFor('8x8') / (96 / 2.54); return [Blokke.gameSettings.get('boardSize'), Blokke.boardSize(), Math.round(cm * 100) / 100, document.querySelector('#menu [data-size][aria-pressed=true]').dataset.size]; }")
+        want = '6x6' if auto[2] < 1.5 else '8x8'
+        print('     %dx%d standardbræt: gemt=%s valgt=%s (8x8 ville give %.2f cm)' % (w, h, auto[0], auto[1], auto[2]))
+        if auto[0] != 'auto' or auto[1] != want or auto[3] != want: fails.append('%s standardbræt %s, ventede %s' % (tag, auto, want))
+        # Et valg, brugeren selv har gemt, respekteres efter genindlæsning
+        pg.click('#menu [data-size="8x8"]'); pg.reload(); pg.wait_for_timeout(300)
+        kept = pg.evaluate("() => [Blokke.boardSize(), document.querySelector('#menu [data-size][aria-pressed=true]').dataset.size]")
+        if kept != ['8x8', '8x8']: fails.append('%s gemt valg 8x8 blev ikke respekteret: %s' % (tag, kept))
+        if want == '6x6': check(pg,'start (selv valgt 8x8)','#menu',w,h)
+        pg.evaluate("Blokke.gameSettings.set('boardSize', 'auto')"); pg.reload(); pg.wait_for_timeout(300)
         pg.evaluate("Blokke.show('om')"); pg.wait_for_timeout(100)
         pages(pg, '#om', w, h, 'om', small and tag+'-om')
         for tab in ['styring','udseende','lyd']:
