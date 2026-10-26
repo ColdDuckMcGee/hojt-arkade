@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Hojt Arkade favicon – MIT-licens -->
+  <defs>
+    <linearGradient id="s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff4fdc"/><stop offset="1" stop-color="#5a1480"/></linearGradient>
+    <linearGradient id="c" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset=".5" stop-color="#9a9cb2"/><stop offset=".55" stop-color="#e6e7f0"/><stop offset="1" stop-color="#c4c6d6"/></linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="12" fill="#12061e"/>
+  <path d="M10 40 A22 22 0 0 1 54 40 Z" fill="url(#s)"/>
+  <g fill="#12061e"><rect x="8" y="30" width="48" height="2"/><rect x="8" y="35" width="48" height="2.5"/></g>
+  <path d="M6 50 H58" stroke="#2ee6ff" stroke-width="3" stroke-linecap="round"/>
+  <path transform="translate(9 0) skewX(-12)" d="M18 14 H26 V26 H36 V14 H44 V46 H36 V33 H26 V46 H18 Z" fill="url(#c)" stroke="#ff3fd8" stroke-width="2" stroke-linejoin="round"/>
+</svg>

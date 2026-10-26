@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="da" data-theme="neon">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0c0612">
+<meta name="description" content="Hojt Arkade – gratis spil til voksne, der bruger øjenstyring. Udviklet af Hojt Design.">
+<title>Hojt Arkade – gratis spil til øjenstyring</title>
+<link rel="icon" href="arkade/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="arkade/arkade.css">
+<style>
+  .forside { gap: calc(var(--gap) * 0.8); }
+  .forside .arkade-logo { height: clamp(140px, 30vh, 300px); }
+  .intro { margin: 0; max-width: 40em; text-align: center; font-size: 1.25rem; line-height: 1.5; color: var(--muted); text-shadow: 0 1px 6px #000; }
+  .games { display: flex; flex-wrap: wrap; gap: var(--gap); justify-content: center; align-items: stretch; }
+  .game-card { flex-direction: row; gap: 22px; padding: 18px 30px; min-height: calc(var(--btn) * 1.3); text-align: left; align-items: center; }
+  .game-card svg { width: calc(var(--btn) * 0.9); height: calc(var(--btn) * 0.9); flex: none; }
+  .game-card .txt { display: flex; flex-direction: column; gap: 6px; }
+  .game-card .big { font-size: 2rem; }
+  .coming { display: flex; align-items: center; justify-content: center; min-height: calc(var(--btn) * 1.3); min-width: calc(var(--btn) * 2.4);
+            padding: 18px 30px; border: 2px dashed var(--ui-soft); border-radius: var(--radius); color: var(--muted); font-size: 1.15rem; text-align: center; background: rgba(0,0,0,.35); }
+  .om-panel { max-width: 46em; text-align: center; }
+  .om-panel p { margin: 10px 0 0; font-size: 1.25rem; line-height: 1.55; }
+  .link-btn { min-width: calc(var(--btn) * 2.4); }
+  @media (max-height: 760px) { .intro { display: none; } }
+</style>
+</head>
+<body>
+<canvas id="baggrund" aria-hidden="true"></canvas>
+
+<main id="forside" class="screen forside" aria-labelledby="forside-titel">
+  <h1 id="forside-titel" class="sr-only">Hojt Arkade</h1>
+  <img class="arkade-logo" src="arkade/logo.svg" alt="Hojt Arkade">
+  <p class="intro">Gratis spil til voksne, der bruger øjenstyring. Ingen tidspres, store knapper og rolige farver.</p>
+  <section class="games" aria-label="Spil">
+    <a class="btn primary game-card" id="spil-slangen" href="slangen/index.html">
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <g fill="#ff2fd2"><rect x="8" y="58" width="18" height="18" rx="3"/><rect x="30" y="58" width="18" height="18" rx="3"/><rect x="52" y="58" width="18" height="18" rx="3"/><rect x="52" y="36" width="18" height="18" rx="3"/></g>
+        <rect x="52" y="12" width="20" height="20" rx="4" fill="#ffb8f2" stroke="#fff" stroke-width="2"/>
+        <rect x="80" y="17" width="12" height="12" rx="2" fill="#22eaff"/>
+      </svg>
+      <span class="txt"><span class="big">Slangen</span><span class="small">Styr slangen ét felt ad gangen</span></span>
+    </a>
+    <div class="coming" aria-label="Flere spil er på vej">Flere spil<br>er på vej</div>
+  </section>
+  <div class="row">
+    <button class="btn" id="btn-om"><span class="icon" aria-hidden="true">ⓘ</span><span class="big">Om</span></button>
+    <button class="btn js-fullscreen" id="btn-fs"><span class="icon" aria-hidden="true">⛶</span><span class="big js-fs-label">Fuld skærm</span></button>
+  </div>
+</main>
+
+<main id="om" class="screen" hidden aria-labelledby="om-title">
+  <section class="panel om-panel">
+    <h2 id="om-title" class="neon-sub">Om Hojt Arkade</h2>
+    <p>Hojt Arkade er udviklet af Jon Leismann Engsager, Hojt Design. Jon er IT- og IKT-konsulent i det specialiserede område og laver blandt andet gratis spil til voksne, der bruger øjenstyring.</p>
+    <p>Koden er åben og frit tilgængelig under MIT-licensen, så alle kan bruge den og bygge videre på den.</p>
+  </section>
+  <div class="row">
+    <a class="btn link-btn" href="https://hojt.dk" target="_blank" rel="noopener"><span class="big">Hojt Design</span><span class="small">hojt.dk</span></a>
+    <a class="btn link-btn" href="https://github.com/ColdDuckMcGee/hojt-arkade" target="_blank" rel="noopener"><span class="big">Koden på GitHub</span><span class="small">github.com/ColdDuckMcGee/hojt-arkade</span></a>
+  </div>
+  <div class="row">
+    <button class="btn primary wide" id="btn-om-back"><span class="icon" aria-hidden="true">←</span><span class="big">Tilbage</span></button>
+  </div>
+</main>
+
+<script src="arkade/settings.js"></script>
+<script src="arkade/dwell.js"></script>
+<script src="arkade/background.js"></script>
+<script>
+(function () {
+  'use strict';
+  // Fælles indstillinger, som spillene også bruger (dwell, tema, baggrund, animation).
+  var s = ArkadeSettings.create('arkade', {
+    dwell: false, dwellTime: 1.2, theme: 'neon', background: 'mork', animation: true, sound: true, music: true
+  });
+  var root = document.documentElement;
+  root.setAttribute('data-theme', s.get('theme'));
+  var css = function (n) { return getComputedStyle(root).getPropertyValue(n).trim(); };
+  var bg = ArkadeBackground.create(document.getElementById('baggrund'));
+  bg.setPalette({ bg0: css('--p-bg0'), bg1: css('--p-bg1'), sky0: css('--p-sky0'), sky1: css('--p-sky1'), sky2: css('--p-sky2'),
+                  sun0: css('--p-sun0'), sun1: css('--p-sun1'), grid: css('--p-grid'), light1: css('--p-light1'), light2: css('--p-light2') });
+  bg.setMode(s.get('background'));
+  var rm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  bg.setAnimated(s.get('animation') && !rm);
+  var dwell = ArkadeDwell.create({ enabled: s.get('dwell'), timeMs: s.get('dwellTime') * 1000 });
+
+  function show(id) {
+    document.querySelectorAll('.screen').forEach(function (el) { el.hidden = el.id !== id; });
+    dwell.reset();
+  }
+  document.getElementById('btn-om').addEventListener('click', function () { show('om'); });
+  document.getElementById('btn-om-back').addEventListener('click', function () { show('forside'); });
+
+  var fsOk = !!(document.fullscreenEnabled || document.webkitFullscreenEnabled);
+  var fsBtn = document.getElementById('btn-fs');
+  if (!fsOk) fsBtn.hidden = true;
+  function isFs() { return !!(document.fullscreenElement || document.webkitFullscreenElement); }
+  fsBtn.addEventListener('click', function () {
+    if (isFs()) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+    else { var p = (root.requestFullscreen || root.webkitRequestFullscreen).call(root); if (p && p.catch) p.catch(function () {}); }
+  });
+  document.addEventListener('fullscreenchange', function () {
+    document.querySelector('.js-fs-label').textContent = isFs() ? 'Luk fuld skærm' : 'Fuld skærm';
+  });
+})();
+</script>
+</body>
+</html>

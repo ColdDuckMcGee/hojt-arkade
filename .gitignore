@@ -1,0 +1,15 @@
+# Systemfiler
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editorer
+.vscode/
+.idea/
+*.swp
+
+# Test og byggefiler holdes uden for repoet
+node_modules/
+screenshots/
+*.zip
+*.log

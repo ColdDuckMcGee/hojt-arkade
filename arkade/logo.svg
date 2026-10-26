@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="20 90 960 720" role="img" aria-labelledby="logo-title">
+  <title id="logo-title">Hojt Arkade</title>
+  <!-- Hojt Arkade-logo. Alle bogstaver er tegnet som stier (ingen skrifttyper, ingen billeder).
+       Copyright (c) 2026 Jon Leismann Engsager / Hojt Design – MIT-licens. -->
+  <defs>
+    <linearGradient id="ha-sun" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff4fdc"/>
+      <stop offset="0.45" stop-color="#c41aa8"/>
+      <stop offset="1" stop-color="#3c0f63"/>
+    </linearGradient>
+    <linearGradient id="ha-chrome" gradientUnits="userSpaceOnUse" x1="0" y1="330" x2="0" y2="560">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.38" stop-color="#d9dbe6"/>
+      <stop offset="0.5" stop-color="#8b8da3"/>
+      <stop offset="0.53" stop-color="#5d5f78"/>
+      <stop offset="0.62" stop-color="#e9eaf3"/>
+      <stop offset="0.85" stop-color="#b4b6c8"/>
+      <stop offset="1" stop-color="#f4f4fa"/>
+    </linearGradient>
+    <mask id="ha-sun-stripes" maskUnits="userSpaceOnUse" x="0" y="0" width="1000" height="800">
+      <rect x="0" y="0" width="1000" height="800" fill="#fff"/>
+      <g fill="#000">
+        <rect x="250" y="262" width="500" height="3"/>
+        <rect x="250" y="284" width="500" height="4"/>
+        <rect x="250" y="306" width="500" height="5"/>
+        <rect x="250" y="328" width="500" height="6"/>
+        <rect x="250" y="350" width="500" height="7"/>
+        <rect x="250" y="372" width="500" height="8"/>
+        <rect x="250" y="394" width="500" height="9"/>
+        <rect x="250" y="416" width="500" height="10"/>
+        <rect x="250" y="438" width="500" height="11"/>
+      </g>
+    </mask>
+    <filter id="ha-glow-pink" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="7" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="ha-glow-cyan" x="-20%" y="-30%" width="140%" height="160%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <!-- HOJT som stier. H stor, OJT mindre, som i Hojt Designs logo. -->
+    <g id="ha-hojt">
+      <path d="M120 330 H182 V418 H268 V330 H330 V560 H268 V472 H182 V560 H120 Z"/>
+      <path fill-rule="evenodd" d="M400 390 H472 Q522 390 522 440 V510 Q522 560 472 560 H400 Q350 560 350 510 V440 Q350 390 400 390 Z
+                                   M418 444 Q406 444 406 456 V494 Q406 506 418 506 H454 Q466 506 466 494 V456 Q466 444 454 444 Z"/>
+      <path d="M612 390 H672 V500 Q672 560 612 560 H594 Q538 560 538 506 V482 H594 V494 Q594 506 603 506 Q612 506 612 494 Z"/>
+      <path d="M690 390 H872 V446 H810 V560 H752 V446 H690 Z"/>
+    </g>
+  </defs>
+
+  <!-- Solstråler -->
+  <g stroke="#ff3fd8" stroke-width="4" stroke-linecap="round" filter="url(#ha-glow-pink)" opacity="0.9">
+    <path d="M300 300 L190 255 M292 330 L170 312 M312 272 L232 205"/>
+    <path d="M700 300 L810 255 M708 330 L830 312 M688 272 L768 205"/>
+  </g>
+
+  <!-- Stribet retrosol -->
+  <g mask="url(#ha-sun-stripes)">
+    <path d="M300 460 A200 200 0 0 1 700 460 Z" fill="url(#ha-sun)"/>
+  </g>
+  <path d="M300 460 A200 200 0 0 1 700 460" fill="none" stroke="#ff4fdc" stroke-width="5" filter="url(#ha-glow-pink)"/>
+
+  <!-- Cyan neonramme: lodret til venstre, linje under HOJT, bøjer ned til højre -->
+  <path d="M62 420 V614 H940 V770" fill="none" stroke="#2ee6ff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" filter="url(#ha-glow-cyan)"/>
+
+  <!-- HOJT i kursiv krom med pink neonkant -->
+  <g transform="translate(96 0) skewX(-12)">
+    <use href="#ha-hojt" fill="none" stroke="#ff3fd8" stroke-width="16" stroke-linejoin="round" filter="url(#ha-glow-pink)" opacity="0.85"/>
+    <use href="#ha-hojt" fill="#2a0630" stroke="#2a0630" stroke-width="10" stroke-linejoin="round"/>
+    <use href="#ha-hojt" fill="url(#ha-chrome)" stroke="#ff5ce0" stroke-width="5" stroke-linejoin="round"/>
+    <use href="#ha-hojt" fill="none" stroke="#ffffff" stroke-width="1.5" stroke-linejoin="round" opacity="0.6" transform="translate(-2 -2)"/>
+  </g>
+
+  <!-- ARKADE som neonrør -->
+  <g transform="translate(296 648) skewX(-16)" fill="none" stroke="#2ee6ff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" filter="url(#ha-glow-cyan)">
+    <path d="M0 90 L30 0 L60 90 M13 56 H47"/>
+    <path transform="translate(80 0)" d="M0 90 V0 H34 Q58 0 58 24 Q58 48 34 48 H0 M30 48 L58 90"/>
+    <path transform="translate(160 0)" d="M0 0 V90 M56 0 L4 54 M22 36 L58 90"/>
+    <path transform="translate(240 0)" d="M0 90 L30 0 L60 90 M13 56 H47"/>
+    <path transform="translate(320 0)" d="M0 0 V90 H20 Q60 90 60 45 Q60 0 20 0 Z"/>
+    <path transform="translate(400 0)" d="M56 0 H0 V90 H56 M0 45 H44"/>
+  </g>
+  <path d="M236 790 Q520 778 800 756" fill="none" stroke="#2ee6ff" stroke-width="7" stroke-linecap="round" filter="url(#ha-glow-cyan)"/>
+</svg>

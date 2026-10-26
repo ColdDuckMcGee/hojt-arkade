@@ -1,0 +1,174 @@
+/* Hojt Arkade – fælles udseende: temaer, knapper, skærme, dwell-ring. */
+
+/* ---------- Temaer ---------- */
+:root, [data-theme="neon"] {
+  --bg: #0c0612; --bg2: #1d0b2e;
+  --ui: #ff3fd8; --ui-soft: rgba(255, 63, 216, 0.18); --ui-text: #ffe8fb;
+  --accent: #22eaff;
+  --text: #f6ecff; --muted: #c4b0de;
+  --panel: rgba(18, 7, 30, 0.88);
+  --glow: 1;
+  /* bræt */
+  --c-board: rgba(10, 4, 20, 0.88); --c-grid: rgba(34, 234, 255, 0.16); --c-border: #22eaff;
+  --c-snake: #ff2fd2; --c-head: #ffb8f2; --c-head-rim: #ffffff; --c-eye: #2a0525;
+  --c-food: #22eaff; --c-bonus: #ffd23a; --c-bonus-text: #241400;
+  --c-obstacle: #a78bff; --c-obstacle-fill: #1b1238; --c-crash: #ffffff;
+  /* baggrund */
+  --p-bg0: #0a0510; --p-bg1: #1e0b31; --p-sky0: #06041a; --p-sky1: #2c0b4a; --p-sky2: #ff2f8f;
+  --p-sun0: #ffd23a; --p-sun1: #ff2f8f; --p-grid: #ff2fd2; --p-light1: #ff2fd2; --p-light2: #22eaff;
+}
+[data-theme="solnedgang"] {
+  --bg: #12060f; --bg2: #2a0b3d;
+  --ui: #ff8a1f; --ui-soft: rgba(255, 138, 31, 0.18); --ui-text: #fff0e0;
+  --accent: #c77dff;
+  --text: #fff2e6; --muted: #e0bfd8;
+  --panel: rgba(30, 9, 34, 0.88);
+  --c-board: rgba(22, 6, 28, 0.88); --c-grid: rgba(199, 125, 255, 0.18); --c-border: #c77dff;
+  --c-snake: #ff7a1a; --c-head: #ffcf94; --c-head-rim: #ffffff; --c-eye: #2a0d00;
+  --c-food: #22eaff; --c-bonus: #ff4fd8; --c-bonus-text: #ffffff;
+  --c-obstacle: #b07bff; --c-obstacle-fill: #24103d; --c-crash: #ffffff;
+  --p-bg0: #0e040e; --p-bg1: #2a0b3d; --p-sky0: #12051f; --p-sky1: #4a1257; --p-sky2: #ff6a2a;
+  --p-sun0: #ffe14d; --p-sun1: #ff4f6d; --p-grid: #c77dff; --p-light1: #ff8a1f; --p-light2: #c77dff;
+}
+[data-theme="cyberpunk"] {
+  --bg: #000403; --bg2: #031410;
+  --ui: #2a9dff; --ui-soft: rgba(42, 157, 255, 0.18); --ui-text: #e2f4ff;
+  --accent: #39ff6a;
+  --text: #e8fff0; --muted: #a7d4c0;
+  --panel: rgba(0, 10, 12, 0.9);
+  --c-board: rgba(0, 6, 6, 0.9); --c-grid: rgba(57, 255, 106, 0.14); --c-border: #2a9dff;
+  --c-snake: #39ff6a; --c-head: #c4ffd3; --c-head-rim: #ffffff; --c-eye: #002a0c;
+  --c-food: #22eaff; --c-bonus: #ffd23a; --c-bonus-text: #241400;
+  --c-obstacle: #c06bff; --c-obstacle-fill: #1a0a2a; --c-crash: #ffffff;
+  --p-bg0: #000202; --p-bg1: #021612; --p-sky0: #000208; --p-sky1: #04203a; --p-sky2: #2a9dff;
+  --p-sun0: #39ff6a; --p-sun1: #2a9dff; --p-grid: #2a9dff; --p-light1: #39ff6a; --p-light2: #2a9dff;
+}
+[data-theme="kontrast"] {
+  --bg: #000000; --bg2: #000000;
+  --ui: #ffffff; --ui-soft: rgba(255, 255, 255, 0.22); --ui-text: #ffffff;
+  --accent: #ffff00;
+  --text: #ffffff; --muted: #ffffff;
+  --panel: rgba(0, 0, 0, 0.96);
+  --glow: 0;
+  --c-board: #000000; --c-grid: rgba(255, 255, 255, 0.35); --c-border: #ffffff;
+  --c-snake: #ffff00; --c-head: #ffffff; --c-head-rim: #ffff00; --c-eye: #000000;
+  --c-food: #00ffff; --c-bonus: #ff00ff; --c-bonus-text: #ffffff;
+  --c-obstacle: #ff8800; --c-obstacle-fill: #000000; --c-crash: #ff0000;
+  --p-bg0: #000000; --p-bg1: #0b0b0b; --p-sky0: #000000; --p-sky1: #101010; --p-sky2: #444444;
+  --p-sun0: #ffffff; --p-sun1: #888888; --p-grid: #555555; --p-light1: #777777; --p-light2: #555555;
+}
+
+/* ---------- Grundlag ---------- */
+:root {
+  --btn: max(3cm, min(15vmin, 4.2cm));     /* mindst ca. 3×3 cm */
+  --gap: max(0.8cm, 3vmin);                 /* god afstand mellem knapper */
+  --radius: 18px;
+  --font: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html, body {
+  margin: 0; height: 100%; overflow: hidden;
+  background: var(--bg); color: var(--text);
+  font-family: var(--font); font-size: 18px;
+  -webkit-user-select: none; user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+#baggrund { position: fixed; inset: 0; z-index: 0; display: block; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+[hidden] { display: none !important; }
+
+.screen {
+  position: fixed; inset: 0; z-index: 1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: var(--gap);
+  padding: max(16px, 2.5vmin);
+  overflow: auto;
+}
+.row { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: var(--gap); }
+
+/* ---------- Knapper ---------- */
+.btn {
+  position: relative;
+  min-width: var(--btn); min-height: var(--btn);
+  padding: 10px 22px;
+  display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  font: inherit; color: var(--ui-text);
+  background: rgba(0, 0, 0, 0.62);
+  border: 3px solid var(--ui); border-radius: var(--radius);
+  box-shadow: 0 0 calc(14px * var(--glow)) var(--ui-soft), inset 0 0 calc(12px * var(--glow)) var(--ui-soft);
+  cursor: pointer;
+  transition: background-color .15s ease, box-shadow .15s ease;
+}
+.btn:hover, .btn.arkade-dwelling { background: var(--ui-soft); box-shadow: 0 0 calc(24px * var(--glow)) var(--ui), inset 0 0 14px var(--ui-soft); }
+.btn:focus-visible { outline: 4px solid var(--accent); outline-offset: 5px; }
+.btn:active { background: var(--ui-soft); }
+.btn .big { font-size: 1.45rem; font-weight: 700; letter-spacing: 0.02em; }
+.btn .small { font-size: 1rem; color: var(--muted); }
+.btn .icon { font-size: 1.6rem; line-height: 1; }
+.btn.wide { min-width: calc(var(--btn) * 2.6); }
+.btn.primary { border-width: 4px; background: var(--ui-soft); }
+.btn.primary .big { font-size: 1.8rem; }
+.btn:disabled, .btn[aria-disabled="true"] {
+  opacity: 0.22; border-style: dashed; box-shadow: none; cursor: default; background: transparent;
+}
+.btn.option[aria-pressed="true"] {
+  background: var(--ui); color: var(--bg); border-color: var(--ui);
+  box-shadow: 0 0 calc(22px * var(--glow)) var(--ui);
+}
+.btn.option[aria-pressed="true"] .small { color: var(--bg); }
+.btn.option[aria-pressed="true"]::after {
+  content: "✓"; position: absolute; top: 4px; right: 10px; font-size: 1.2rem; font-weight: 800;
+}
+@media (hover: none) { .btn:hover { background: rgba(0,0,0,.62); } }
+
+/* ---------- Logo ---------- */
+.arkade-logo { display: block; width: auto; max-width: 92vw; height: 160px; user-select: none; -webkit-user-drag: none; pointer-events: none; }
+a.btn { text-decoration: none; }
+
+/* ---------- Tekst og paneler ---------- */
+.neon-title {
+  margin: 0; font-size: clamp(3rem, 11vmin, 6.5rem); font-weight: 800; letter-spacing: 0.14em;
+  color: var(--ui-text);
+  text-shadow: 0 0 calc(10px * var(--glow)) var(--ui), 0 0 calc(32px * var(--glow)) var(--ui);
+}
+.neon-sub {
+  margin: 0; font-size: clamp(2rem, 6vmin, 3.2rem); letter-spacing: 0.06em; color: var(--ui-text);
+  text-shadow: 0 0 calc(10px * var(--glow)) var(--ui);
+}
+.brand { margin: 0; text-transform: uppercase; letter-spacing: 0.4em; font-size: 0.95rem; color: var(--accent); }
+.group-label { text-shadow: 0 1px 4px #000; margin: 0 0 10px; font-size: 1.15rem; font-weight: 600; color: var(--muted); letter-spacing: 0.05em; text-align: center; }
+.muted { color: var(--muted); }
+.panel {
+  background: var(--panel); border: 2px solid var(--ui-soft); border-radius: 22px;
+  padding: max(18px, 3vmin);
+}
+
+/* ---------- Rekordliste ---------- */
+.records { list-style: none; margin: 0; padding: 0; min-width: min(420px, 80vw); counter-reset: r; }
+.records li {
+  counter-increment: r;
+  display: grid; grid-template-columns: 2.4em 1fr auto; gap: 12px; align-items: baseline;
+  padding: 5px 10px; border-radius: 8px; font-size: 1.15rem;
+}
+.records li::before { content: counter(r) "."; color: var(--muted); text-align: right; }
+.records li .score { font-weight: 700; font-variant-numeric: tabular-nums; }
+.records li .date { color: var(--muted); font-variant-numeric: tabular-nums; }
+.records li.new { background: var(--ui-soft); outline: 2px solid var(--ui); }
+.records li.new .score::after { content: "  ◀ ny"; color: var(--accent); font-weight: 600; font-size: 0.9em; }
+.records li.empty { color: var(--muted); }
+.records li.empty::before { content: ""; }
+
+/* ---------- Dwell-ring ---------- */
+.arkade-dwell-ring { position: fixed; z-index: 9999; pointer-events: none; display: none; }
+.arkade-dwell-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); overflow: visible; }
+.arkade-dwell-track { fill: rgba(0, 0, 0, 0.35); stroke: rgba(255, 255, 255, 0.28); stroke-width: 9; }
+.arkade-dwell-progress {
+  fill: none; stroke: var(--accent); stroke-width: 9; stroke-linecap: round;
+  stroke-dasharray: 100; stroke-dashoffset: 100;
+  filter: drop-shadow(0 0 calc(5px * var(--glow)) var(--accent));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn { transition: none; }
+}
