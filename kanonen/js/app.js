@@ -39,7 +39,7 @@
   var audio = ArkadeAudio.create({ sfx: arkade.get('sound'), music: arkade.get('music') });
   var view = KanonenRender.create($('#field'));
   // Lydene kommer fra det fælles lydmodul. Kanonen bruger disse navne:
-  var SFX = { fire: 'obstacle', impact: 'crash', hit: 'eat', win: 'bonus', bomb: 'bonusSpawn', granat: 'bonusGone', record: 'record', click: 'click', step: 'click', pause: 'pause', turn: 'move' };
+  var SFX = { fall: 'obstacle', fire: 'obstacle', impact: 'crash', hit: 'eat', win: 'bonus', bomb: 'bonusSpawn', granat: 'bonusGone', record: 'record', click: 'click', step: 'click', pause: 'pause', turn: 'move' };
   function sfx(name) { audio.play(SFX[name] || name); }
 
   function unlockAudio() { audio.unlock(); }
@@ -102,6 +102,7 @@
     current = id;
     dwell.reset();
     if (id === 'game') { layoutGame(); draw(); }
+    fitCurrent();
     if (id === 'menu') syncMenu();
     var first = $('#' + id + ' [data-autofocus]');
     if (first) first.focus({ preventScroll: true });
@@ -343,7 +344,7 @@
     var hitOther = false, msg = [];
     dmg.forEach(function (d) {
       var isPlayer = d.cannon === m.player;
-      scene.effects.push({ kind: 'dmg', x: d.cannon.x, y: d.cannon.y - 200, text: '−' + d.amount, color: isPlayer ? view.rgba(cssVar('--kn-player'), 1) : view.rgba(cssVar('--kn-cpu'), 1), t0: clock + 150, dur: 1600, calm: calm });
+      scene.effects.push({ kind: 'dmg', x: d.cannon.x, cy: d.cannon.y, off: 200, text: '−' + d.amount, color: isPlayer ? view.rgba(cssVar('--kn-player'), 1) : view.rgba(cssVar('--kn-cpu'), 1), t0: clock + 150, dur: 1600, calm: calm });
       if (d.cannon !== f.shooter) hitOther = true;
       if (f.shooter === m.player && d.cannon === m.cpu) { run.score += d.amount * G.RULES.pointsPerDamage; m.damageDealt += d.amount; }
       msg.push((isPlayer ? 'Du' : 'Modstanderen') + ' mistede ' + d.amount + ' liv');
@@ -353,7 +354,10 @@
     // Kanoner, der har mistet jorden under sig, falder ned i krateret.
     m.cannons.forEach(function (c) {
       var y = G.restY(m, c);
-      if (y > c.y + 0.5) { if (calm) c.y = y; else falls.push({ c: c, to: y, v: 0 }); }
+      if (y > c.y + 0.5) {
+        var fl = { c: c, from: c.y, to: y, v: 0, shooter: f.shooter };
+        if (calm) { c.y = y; after(450, function () { fallLanded(fl); }); } else falls.push(fl);
+      }
     });
     refresh();
     after(calm ? 1100 : 1300, resolve);
@@ -362,8 +366,23 @@
     falls = falls.filter(function (fl) {
       fl.v = Math.min(420, fl.v + 900 * dt);
       fl.c.y = Math.min(fl.to, fl.c.y + fl.v * dt);
-      return fl.c.y < fl.to;
+      if (fl.c.y < fl.to) return true;
+      fallLanded(fl);
+      return false;
     });
+  }
+  // Faldskade: jo dybere fald, jo mere skade (se G.fallDamage). Point, hvis spillerens skud fik modstanderen til at falde.
+  function fallLanded(fl) {
+    var m = scene.match, c = fl.c, n = Math.min(c.hp, G.fallDamage(fl.to - fl.from));
+    if (n <= 0) return;
+    c.hp -= n;
+    var isPlayer = c === m.player;
+    if (fl.shooter === m.player && c === m.cpu) { run.score += n * G.RULES.pointsPerDamage; m.damageDealt += n; }
+    sfx('fall');
+    scene.effects.push({ kind: 'dmg', x: c.x, cy: c.y, off: 252, text: '−' + n + ' fald', color: view.rgba(cssVar(isPlayer ? '--kn-player' : '--kn-cpu'), 1), t0: clock, dur: 1600, calm: !animationOn() });
+    var line = $('#turn-line'), add = (isPlayer ? 'Du' : 'Modstanderen') + ' faldt og mistede ' + n + ' liv';
+    line.textContent = /liv$|jorden$/.test(line.textContent) ? line.textContent + ' · ' + add : add;
+    refresh();
   }
 
   function resolve() {
@@ -585,41 +604,182 @@
     }
   });
 
-  // ---------- Layout af spilleskærmen ----------
-  // Slagmarken er 16:9 og fylder mest muligt; panelet har knapper på mindst 3 × 3 cm.
-  var CM = 96 / 2.54;
+  // ---------- Layout: alt skaleres til vinduet, intet ruller ----------
+  // Spilleskærmen beregnes her: for hver variant (panel ved siden af eller under slagmarken,
+  // værdien over eller midt mellem knapperne, de to knaprækker under eller ved siden af hinanden)
+  // findes den største knapstørrelse, der kan være der, og den variant vælges, der giver knapper
+  // tættest på 3 cm og samtidig den største slagmark. Spillets logik kender kun banens egne
+  // koordinater (1600 × 900), så visningsstørrelsen påvirker aldrig fysikken.
+  var CM = 96 / 2.54, CM3 = 3 * CM;
+  function clampN(v, a, b) { return Math.max(a, Math.min(b, v)); }
+  function gameMetrics(W, H) {
+    var pad = clampN(Math.min(W, H) * 0.016, 6, 18);
+    var gameGap = clampN(Math.min(W, H) * 0.025, 8, 28);
+    var capS = Math.max(CM3, Math.min(150, 0.125 * Math.min(W, H)));
+    var best = null, perVariant = {};
+    var variants = [];
+    ['side', 'bottom', 'split'].forEach(function (mode) {
+      [false, true].forEach(function (inline) {
+        [false, true].forEach(function (pair) {
+          [false, true].forEach(function (pauseFull) {
+            if (mode !== 'bottom' && pair) return;
+            if (mode === 'split' && inline) return;
+            variants.push({ mode: mode, inline: inline, pair: pair, pauseFull: pauseFull });
+          });
+        });
+      });
+    });
+    variants.forEach(function (v) {
+      for (var s = Math.floor(capS); s >= 30; s--) {
+        var g = clampN(0.15 * s, 6, 20);
+        var turnH = clampN(0.36 * s, 26, 46);
+        var headH = v.inline ? 0 : clampN(0.36 * s, 22, 46);
+        var topH = v.pauseFull ? s : clampN(0.62 * s, 40, 84);
+        var panelW, bw, fw, fh, ok, hudCols, hudH, hudBlock, ctrlH, ctrlsH, colW = 0;
+        if (v.mode === 'split') {
+          // Vinkel til venstre og krudt til højre for slagmarken (2 × 2 knapper hver), HUD over og statuslinje under.
+          bw = s; colW = 2 * s + g;
+          hudCols = 4; hudH = clampN(0.5 * s, 36, 70); headH = clampN(0.3 * s, 20, 40);
+          var leftH = topH + g + headH + 4 + 2 * s + g;
+          var rightH = headH + 4 + 2 * s + g + g + s;
+          if (Math.max(leftH, rightH) > H - 2 * pad) continue;
+          fw = Math.min(W - 2 * pad - 2 * colW - 2 * gameGap, (H - 2 * pad - hudH - turnH - 2 * g) * 16 / 9);
+          fh = fw * 9 / 16; panelW = fw;
+          ok = fw >= Math.max(220, W * 0.4) && (fw - 3 * 8) / 4 >= 80;
+        } else {
+          if (v.mode === 'side') {
+            bw = s;
+            panelW = v.inline ? 5.3 * bw + 4 * g : 4 * bw + 3 * g;
+          } else {
+            panelW = Math.min(W - 2 * pad, (v.pair ? 2 : 1) * (v.inline ? 5.3 : 4) * 1.6 * s + 12 * g);
+            var groupW = v.pair ? (panelW - g) / 2 : panelW;
+            bw = v.inline ? (groupW - 4 * g) / 5.3 : (groupW - 3 * g) / 4;
+            if (s > bw * 1.1) continue;  // knapperne må ikke blive højere end brede
+          }
+          hudCols = (panelW - 3 * 8) / 4 >= 88 ? 4 : 2;
+          hudH = clampN((hudCols === 4 ? 0.62 : 0.5) * s, 40, 84);
+          hudBlock = hudCols === 4 ? hudH : 2 * hudH + 8;
+          ctrlH = (headH ? headH + 4 : 0) + s;
+          ctrlsH = v.pair ? ctrlH : 2 * ctrlH + g;
+          if (v.mode === 'side') {
+            var panelH = topH + g + hudBlock + g + turnH + g + ctrlsH + g + s;
+            if (panelH > H - 2 * pad) continue;
+            fw = Math.min(W - 2 * pad - panelW - gameGap, (H - 2 * pad) * 16 / 9);
+            fh = fw * 9 / 16;
+            ok = fw >= Math.max(220, W * 0.38);
+          } else {
+            var rest = topH + g + g + hudBlock + g + turnH + g + ctrlsH + g + s;
+            fh = Math.min(H - 2 * pad - rest, (W - 2 * pad) * 9 / 16);
+            fw = fh * 16 / 9;
+            ok = fh >= Math.max(110, H * 0.2);
+          }
+        }
+        if (!ok) continue;
+        var sEff = Math.min(s, bw), pause = v.pauseFull ? s : topH;
+        var score = Math.min(sEff, CM3) / CM3 + 1.3 * (fw * fh) / (W * H) +
+          0.05 * Math.min(sEff, 160) / 160 + 0.3 * Math.min(pause, CM3) / CM3;
+        var vk = v.mode + (v.inline ? '+inline' : '') + (v.pair ? '+pair' : '') + (v.pauseFull ? '+pause' : '');
+        if (!perVariant[vk] || score > perVariant[vk].score) perVariant[vk] = { score: +score.toFixed(3), s: s, fw: Math.round(fw) };
+        if (!best || score > best.score) {
+          best = { score: score, v: v, s: s, bw: bw, g: g, turnH: turnH, headH: headH, topH: topH, panelW: panelW,
+            hudCols: hudCols, hudH: hudH, fw: fw, fh: fh, pad: pad, gameGap: gameGap, colW: colW };
+        }
+      }
+    });
+    if (!best) { // nødløsning til meget små vinduer: alt i mindste størrelse under hinanden
+      var s0 = 30, g0 = 6;
+      best = { v: { mode: 'bottom', inline: true, pair: false, pauseFull: false }, s: s0, bw: s0, g: g0, turnH: 26, headH: 0, topH: 40,
+        panelW: W - 12, hudCols: 4, hudH: 40, pad: 6, gameGap: 6 };
+      best.fh = Math.max(60, H - 12 - (40 + 40 + 26 + 2 * s0 + g0 + s0 + 7 * g0)); best.fw = Math.min(W - 12, best.fh * 16 / 9); best.fh = best.fw * 9 / 16;
+    }
+    best.variants = perVariant;
+    return best;
+  }
+  var lastMetrics = null;
   function layoutGame() {
     if (current !== 'game') return;
-    var W = window.innerWidth, H = window.innerHeight;
-    var btn = parseFloat(getComputedStyle($('#btn-fire')).minWidth) || 120;
-    var pad = Math.max(10, Math.min(W, H) * 0.016);
-    var gap = Math.max(19, Math.min(W, H) * 0.025);
-    var stepGap = Math.max(20, gap * 0.8);
-    var step = Math.max(3.05 * CM, Math.min(150, btn * 0.8));
-    // Panelets højde: top + HUD + turlinje + 2 × (overskrift + knapper) + skyd-række.
-    // Er der ikke plads, bliver HUD'en til én række (kompakt), og knapperne krymper aldrig under 3 cm.
-    var compact = false;
-    function sideH(st, sg) { return st + (compact ? 96 : 190) + (compact ? 40 : 50) + 2 * ((compact ? 40 : 52) + st) + Math.max(3 * CM, st) + 6 * sg; }
-    var sideGap = 16;
-    while (sideH(step, sideGap) > H - 2 * pad && step > 3.05 * CM) step = Math.max(3.05 * CM, step - 4);
-    if (sideH(step, sideGap) > H - 2 * pad) sideGap = 10;
-    if (sideH(step, sideGap) > H - 2 * pad) compact = true;
-    var sideW = 4 * step + 3 * stepGap;
-    var portrait = W - 2 * pad - sideW - gap < Math.min(H - 2 * pad, 520) * 16 / 9 * 0.75;
-    var lay = $('#game-layout');
-    lay.classList.toggle('portrait', portrait);
-    lay.classList.toggle('compact', compact && !portrait);
-    lay.style.setProperty('--game-gap', gap + 'px');
-    lay.style.setProperty('--side-w', Math.floor(sideW) + 'px');
-    lay.style.setProperty('--step', Math.floor(step) + 'px');
-    lay.style.setProperty('--step-gap', Math.floor(stepGap) + 'px');
-    lay.style.setProperty('--side-gap', sideGap + 'px');
-    var availW = portrait ? W - 2 * pad : W - 2 * pad - sideW - gap;
-    var availH = portrait ? H - 2 * pad - sideH(step, sideGap) - gap : H - 2 * pad;
-    var fw = Math.floor(Math.max(240, Math.min(availW, availH * 16 / 9)) - 6);
+    var W = window.innerWidth, H = window.innerHeight, m = gameMetrics(W, H);
+    lastMetrics = m;
+    var lay = $('#game-layout'), v = m.v;
+    lay.classList.toggle('mode-side', v.mode === 'side');
+    lay.classList.toggle('mode-bottom', v.mode === 'bottom');
+    lay.classList.toggle('inline', v.inline);
+    lay.classList.toggle('pair', v.pair);
+    lay.classList.toggle('s-small', m.s < 84);
+    lay.classList.toggle('hud-small', m.hudH < 64);
+    lay.classList.toggle('top-small', m.topH < 70);
+    var set = function (k, val) { lay.style.setProperty(k, Math.floor(val) + 'px'); };
+    set('--s', m.s); set('--g', m.g); set('--turn-h', m.turnH); set('--head-h', m.headH); set('--top-h', m.topH);
+    set('--panel-w', m.panelW); set('--hud-h', m.hudH); set('--game-gap', m.gameGap); set('--pad', m.pad);
+    lay.style.setProperty('--hud-cols', m.hudCols);
+    lay.classList.toggle('mode-split', v.mode === 'split');
+    placeSplit(m, W, H);
+    var fw = Math.floor(m.fw) - 6; // 3 px kant på hver side
     view.resize(fw, Math.round(fw * 9 / 16));
   }
-  window.addEventListener('resize', function () { layoutGame(); draw(); });
+  // Delt layout: hver del placeres præcist (venstre: logo, pause og vinkel; midt: HUD, slagmark og
+  // statuslinje; højre: krudt, ammunition og Skyd). I de andre layouts klarer CSS'en placeringen.
+  var SPLIT_PARTS = ['.side-top', '.hud-grid', '#turn-line', '#ctrl-angle', '#ctrl-power', '.fire-row', '#field-wrap'];
+  function placeSplit(m, W, H) {
+    SPLIT_PARTS.forEach(function (q) { var e = $(q); ['left', 'top', 'width', 'height'].forEach(function (k) { e.style[k] = ''; }); });
+    if (m.v.mode !== 'split') return;
+    var s = m.s, g = m.g, cw = m.colW, fw = Math.floor(m.fw), fh = Math.round(m.fw * 9 / 16);
+    var totalW = 2 * cw + fw + 2 * m.gameGap, x0 = Math.max(m.pad, (W - totalW) / 2);
+    var cx = x0 + cw + m.gameGap, rx = cx + fw + m.gameGap;
+    var leftH = m.topH + g + m.headH + 4 + 2 * s + g, rightH = m.headH + 4 + 2 * s + g + g + s;
+    var midH = m.hudH + g + fh + g + m.turnH;
+    var ly = (H - leftH) / 2, ry = (H - rightH) / 2, my = (H - midH) / 2;
+    function put(q, x, y, w, h) { var e = $(q); e.style.left = Math.round(x) + 'px'; e.style.top = Math.round(y) + 'px'; e.style.width = Math.round(w) + 'px'; if (h != null) e.style.height = Math.round(h) + 'px'; }
+    put('.side-top', x0, ly, cw, m.topH);
+    put('#ctrl-angle', x0, ly + m.topH + g, cw, m.headH + 4 + 2 * s + g);
+    put('#ctrl-power', rx, ry, cw, m.headH + 4 + 2 * s + g);
+    put('.fire-row', rx, ry + m.headH + 4 + 2 * s + 2 * g, cw, s);
+    put('.hud-grid', cx, my, fw, m.hudH);
+    put('#field-wrap', cx, my + m.hudH + g, fw, fh);
+    put('#turn-line', cx, my + m.hudH + g + fh + g, fw, m.turnH);
+  }
+
+  // Øvrige skærme (menu, indstillinger, rekorder, om, game over og spillets overlays):
+  // passer indholdet ikke, skaleres tekst, knapper og afstande trinvis ned (--kfit) – aldrig rulning.
+  function overflows(el) {
+    if (!el || el.hidden) return false;
+    if (el.classList.contains('overlay')) {
+      var p = el.querySelector('.panel').getBoundingClientRect();
+      return p.top < 0 || p.left < 0 || p.bottom > window.innerHeight || p.right > window.innerWidth;
+    }
+    return el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1;
+  }
+  function fitTo(el) {
+    var k = 1;
+    root.style.setProperty('--kfit', '1');
+    while (k > 0.36 && overflows(el)) { k = Math.round((k - 0.03) * 100) / 100; root.style.setProperty('--kfit', String(k)); }
+  }
+  function fitCurrent() {
+    if (!current) return;
+    if (current === 'game') {
+      layoutGame(); draw();
+      var ov = ['#pause-overlay', '#win-overlay'].map(function (q) { return $(q); }).filter(function (o) { return !o.hidden; })[0];
+      fitTo(ov || null);
+    } else {
+      fitTo($('#' + current));
+    }
+  }
+  var fitQueued = false;
+  function queueFit() {
+    if (fitQueued) return;
+    fitQueued = true;
+    requestAnimationFrame(function () { fitQueued = false; fitCurrent(); });
+  }
+  window.addEventListener('resize', queueFit);
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', queueFit);
+  // Når en skærm, fane eller et overlay vises/skjules, eller lister fyldes, tilpasses der igen.
+  new MutationObserver(function (list) {
+    for (var i = 0; i < list.length; i++) {
+      var t = list[i].target;
+      if (list[i].type === 'attributes' || t.id === 'rec-list' || t.id === 'go-records' || t.id === 'menu-best') { queueFit(); return; }
+    }
+  }).observe(document.body, { attributes: true, attributeFilter: ['hidden'], subtree: true, childList: true });
+
 
   // ---------- Start ----------
   applyTheme();
@@ -632,7 +792,7 @@
   // Til test og fejlfinding
   window.Kanonen = {
     get run() { return run; }, get match() { return scene.match; }, get phase() { return phase; },
-    get paused() { return paused; }, get busy() { return busy(); },
+    get paused() { return paused; }, get layout() { return lastMetrics; }, get busy() { return busy(); },
     settings: arkade, gameSettings: kanon, records: records, dwell: dwell, audio: audio,
     start: startGame, show: show, adjust: adjust, toggleAmmo: toggleAmmo,
     fire: function () { if (phase === 'aim') fire(scene.match.player); },

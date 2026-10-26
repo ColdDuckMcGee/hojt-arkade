@@ -26,7 +26,7 @@
     var c = canvas.getContext('2d');
     var colors = {};
     var stars = [];
-    var dpr = 1, cw = 0, ch = 0, s = 1;
+    var dpr = 1, cw = 0, ch = 0, s = 1, u = 1; // u: forstørrelse af tekst på små skærme
 
     function setColors(col) { colors = col; }
     function newSky(seed) {
@@ -35,7 +35,7 @@
       for (var i = 0; i < 140; i++) stars.push({ x: r() * G.WORLD.w, y: r() * G.WORLD.h * 0.62, r: 0.6 + r() * 1.6, a: 0.25 + r() * 0.6 });
     }
     function resize(w, h) {
-      dpr = Math.min(2, global.devicePixelRatio || 1);
+      dpr = Math.min(3, global.devicePixelRatio || 1);
       cw = w; ch = h;
       canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
       canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
@@ -138,14 +138,18 @@
       c.fillStyle = color;
       for (var i = -2; i <= 2; i++) { c.beginPath(); c.arc(i * 12, -4, 3, 0, Math.PI * 2); c.fill(); }
       c.restore();
-      // livsbjælke og navn over kanonen
+      // livsbjælke og navn over kanonen – forstørret (u) på små skærme, så teksten kan læses
       var bw = 100, bx = cn.x - bw / 2, by = cn.y - 112;
       c.save();
+      c.translate(cn.x, cn.y - 80); c.scale(u, u); c.translate(-cn.x, -(cn.y - 80));
       c.fillStyle = 'rgba(0,0,0,0.6)'; c.fillRect(bx - 3, by - 3, bw + 6, 18);
       c.strokeStyle = rgba(color, 0.8); c.lineWidth = 2; c.strokeRect(bx - 3, by - 3, bw + 6, 18);
       c.fillStyle = color; c.fillRect(bx, by, bw * Math.max(0, cn.hp) / 100, 12);
       c.font = '700 26px ' + colors.font; c.textAlign = 'center'; c.textBaseline = 'bottom';
-      c.fillStyle = colors.text; c.fillText(label, cn.x, by - 8);
+      var half = c.measureText(label).width / 2 + 6, lx = cn.x;
+      var minX = cn.x - (cn.x - half * u) / u, maxX = cn.x + (G.WORLD.w - cn.x - half * u) / u;
+      lx = Math.max(minX, Math.min(maxX, lx));
+      c.fillStyle = colors.text; c.fillText(label, lx, by - 8);
       if (active) { // fast markering af hvis tur det er (ingen blink)
         c.fillStyle = color;
         c.beginPath(); c.moveTo(cn.x - 14, by - 48); c.lineTo(cn.x + 14, by - 48); c.lineTo(cn.x, by - 34); c.closePath(); c.fill();
@@ -184,9 +188,12 @@
       } else if (e.kind === 'dmg') {
         var rise = e.calm ? 0 : 40 * t;
         c.globalAlpha = t < 0.7 ? 1 : 1 - (t - 0.7) / 0.3;
-        c.font = '800 34px ' + colors.font; c.textAlign = 'center'; c.textBaseline = 'middle';
-        c.lineWidth = 5; c.strokeStyle = 'rgba(0,0,0,0.8)'; c.strokeText(e.text, e.x, e.y - rise);
-        c.fillStyle = e.color; c.fillText(e.text, e.x, e.y - rise);
+        c.font = '800 ' + Math.round(34 * u) + 'px ' + colors.font; c.textAlign = 'center'; c.textBaseline = 'middle';
+        // over kanonens navn; skaleres med u ligesom navn og livsbjælke
+        var ey = e.cy - 80 - (e.off - 80) * u, hw = c.measureText(e.text).width / 2 + 8;
+        var ex = Math.max(hw, Math.min(G.WORLD.w - hw, e.x));
+        c.lineWidth = 5; c.strokeStyle = 'rgba(0,0,0,0.8)'; c.strokeText(e.text, ex, ey - rise);
+        c.fillStyle = e.color; c.fillText(e.text, ex, ey - rise);
       }
       c.restore();
       return t >= 1;
@@ -195,6 +202,7 @@
     function windGauge(wind) {
       var W = G.WORLD.w, x = W / 2, y = 52;
       c.save();
+      c.translate(x, 0); c.scale(u, u); c.translate(-x, 0);
       c.fillStyle = 'rgba(0,0,0,0.55)'; c.strokeStyle = rgba(colors.wind, 0.7); c.lineWidth = 2;
       c.beginPath(); c.rect(x - 170, y - 34, 340, 68); c.fill(); c.stroke();
       c.font = '700 24px ' + colors.font; c.textBaseline = 'middle'; c.textAlign = 'center';
@@ -213,6 +221,7 @@
 
     // state: { match, active: 'spiller'|'computer'|null, flight, effects, now }
     function draw(st) {
+      u = Math.max(1, Math.min(2.4, 0.42 / s));
       c.setTransform(dpr * s, 0, 0, dpr * s, 0, 0);
       c.clearRect(0, 0, G.WORLD.w, G.WORLD.h);
       sky();

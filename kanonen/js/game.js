@@ -28,8 +28,16 @@
     pointsPerDamage: 10,   // point pr. skadepoint på modstanderen
     winPoints: 500,        // point for en sejr (gange modstanderens nummer)
     fewShotsLimit: 8,      // bonus for hvert skud under dette tal ved sejr …
-    fewShotsBonus: 100     // … med så mange point pr. skud
+    fewShotsBonus: 100,    // … med så mange point pr. skud
+    fallMin: 8,            // fald under så mange enheder giver ingen skade …
+    fallPerUnit: 0.5,      // … derefter et halvt liv pr. enhed …
+    fallMax: 30            // … og højst så mange liv pr. fald
   };
+  // Skade ved fald ned i et krater, ud fra faldhøjden i spilkoordinater.
+  function fallDamage(drop) {
+    if (!(drop > RULES.fallMin)) return 0;
+    return Math.min(RULES.fallMax, Math.max(1, Math.round((drop - RULES.fallMin) * RULES.fallPerUnit)));
+  }
   var AMMO = {
     granat: { id: 'granat', name: 'Granat', craterR: 38, dmgR: 64, maxDmg: 42 },
     bombe:  { id: 'bombe',  name: 'Stor bombe', craterR: 78, dmgR: 118, maxDmg: 68 }
@@ -216,6 +224,6 @@
     WORLD: WORLD, RULES: RULES, AMMO: AMMO, LIMITS: LIMITS,
     createMatch: createMatch, newWind: newWind, launch: launch, step: step, simulate: simulate,
     impact: impact, restY: restY, carve: carve, damageFor: damageFor, muzzle: muzzle,
-    aiPlan: aiPlan, aiSkill: aiSkill, winPoints: winPoints, clamp: clamp
+    aiPlan: aiPlan, aiSkill: aiSkill, winPoints: winPoints, clamp: clamp, fallDamage: fallDamage
   };
 })(window);

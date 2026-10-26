@@ -31,6 +31,18 @@
   --kn-star: #bbbbbb; --kn-boom: #ff8800; --kn-boom2: #ffff00; --kn-wind: #ffff00; --kn-cannon-fill: #000000;
 }
 
+/* ---------- Tilpasning til vinduet ----------
+   Intet ruller: passer en skærm ikke, sætter app.js --kfit lavere, og tekst, knapper og afstande krymper. */
+:root {
+  --kfit: 1;
+  --btn: calc(max(3cm, min(15vmin, 4.2cm)) * var(--kfit));
+  --gap: calc(max(0.8cm, 3vmin) * var(--kfit));
+}
+html, body { font-size: calc(18px * var(--kfit)); }
+.screen { overflow: hidden; justify-content: safe center; height: 100dvh; padding: calc(max(16px, 2.5vmin) * var(--kfit)); }
+.btn { padding: calc(10px * var(--kfit)) calc(22px * var(--kfit)); }
+.panel { padding: calc(max(18px, 3vmin) * var(--kfit)); }
+
 /* ---------- Startmenu ---------- */
 #menu { gap: calc(var(--gap) * 0.8); }
 .title-block { text-align: center; max-width: 1100px; }
@@ -57,95 +69,119 @@
 .hall-btn:hover, .hall-btn.arkade-dwelling { color: var(--ui-text); border-color: var(--muted); background: rgba(255, 255, 255, 0.08); box-shadow: none; }
 @media (max-aspect-ratio: 4/5) { #menu { padding-top: calc(var(--btn) + 4vmin); } }
 
-/* ---------- Spilleskærm ---------- */
-#game { padding: max(10px, 1.6vmin); overflow: hidden; }
-.game-layout {
-  display: flex; align-items: center; justify-content: center;
-  gap: var(--game-gap, 24px);
+/* ---------- Spilleskærm ----------
+   Alle mål sættes af app.js (layoutGame) ud fra vinduet, så intet nogensinde ruller:
+   --s knaphøjde, --g afstand, --top-h/--hud-h/--turn-h/--head-h rækkehøjder, --panel-w panelbredde.
+   .mode-side: panelet til højre for slagmarken. .mode-bottom: panelet under slagmarken (højkant/smalle skærme).
+   .inline: værdien står midt mellem −/+-knapperne. .pair: vinkel og krudt ved siden af hinanden. */
+#game { padding: 0; overflow: hidden; }
+.game-layout { position: absolute; inset: 0; padding: var(--pad, 10px); }
+.game-layout.mode-side {
+  display: flex; flex-direction: row; align-items: center; justify-content: center; gap: var(--game-gap, 24px);
 }
-.game-layout.portrait { flex-direction: column; }
-.field-wrap { position: relative; flex: none; }
+.game-layout.mode-bottom {
+  display: grid; justify-content: center; align-content: center;
+  grid-template-columns: repeat(2, calc((var(--panel-w) - var(--g)) / 2));
+  column-gap: var(--g); row-gap: var(--g);
+  grid-template-areas: "top top" "field field" "hud hud" "turn turn" "angle angle" "power power" "fire fire";
+}
+.game-layout.mode-bottom.pair { grid-template-areas: "top top" "field field" "hud hud" "turn turn" "angle power" "fire fire"; }
+.game-layout.mode-bottom .side { display: contents; }
+.game-layout.mode-bottom .field-wrap { justify-self: center; }
+.field-wrap { position: relative; flex: none; grid-area: field; }
+/* Delt layout (lave, brede skærme): app.js placerer delene absolut */
+.game-layout.mode-split .side { display: contents; }
+.game-layout.mode-split .side-top, .game-layout.mode-split .hud-grid, .game-layout.mode-split .turn-line,
+.game-layout.mode-split .ctrl, .game-layout.mode-split .fire-row, .game-layout.mode-split .field-wrap { position: absolute; }
+.game-layout.mode-split .step-row { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: var(--g); }
+.game-layout.mode-split .fire-row { grid-template-columns: 1fr 1fr; }
 #field {
   display: block; border-radius: 10px;
   border: 3px solid color-mix(in srgb, var(--kn-ground) 80%, transparent);
   box-shadow: 0 0 calc(22px * var(--glow)) color-mix(in srgb, var(--kn-ground) 40%, transparent);
 }
 
-/* ---------- Sidepanel ---------- */
+/* ---------- Panel ---------- */
 .side {
-  position: relative; z-index: 2;
-  width: var(--side-w, 540px);
-  display: flex; flex-direction: column; align-items: stretch; gap: var(--side-gap, 16px);
+  position: relative; z-index: 2; flex: none;
+  width: var(--panel-w);
+  display: grid; grid-template-columns: 100%; row-gap: var(--g);
+  grid-template-areas: "top" "hud" "turn" "angle" "power" "fire";
 }
-.side-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-.side-logo { height: clamp(56px, 8vh, 96px); }
-.pause-btn { width: var(--step, 120px); min-width: 3cm; height: var(--step, 120px); min-height: 3cm; padding: 6px; }
+.side-top { grid-area: top; height: var(--top-h); display: flex; align-items: center; justify-content: space-between; gap: var(--g); min-width: 0; }
+.side-logo { height: min(calc(var(--top-h) * 0.85), 96px); max-width: 60%; }
+.game-layout .btn { min-width: 0; min-height: 0; padding: 2px; border-radius: clamp(8px, calc(var(--s) * 0.15), 18px); }
+.game-layout.s-small .btn { border-width: 2px; }
+.pause-btn { width: var(--top-h); height: var(--top-h); flex: none; }
 .pause-btn svg { width: 46%; height: 46%; fill: var(--ui); }
+.pause-btn .small { font-size: clamp(9px, calc(var(--top-h) * 0.13), 16px); }
+.top-small .pause-btn .small { display: none; }
+.top-small .pause-btn svg { width: 60%; height: 60%; }
 
-.hud-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.hud-grid { grid-area: hud; display: grid; grid-template-columns: repeat(var(--hud-cols, 4), minmax(0, 1fr)); grid-auto-rows: var(--hud-h); gap: 8px; }
 .hud {
-  padding: 6px 12px; text-align: center;
-  background: var(--panel); border-radius: 14px; border: 1px solid var(--ui-soft);
+  container-type: inline-size; min-width: 0; overflow: hidden;
+  display: flex; flex-direction: column; justify-content: center;
+  padding: 2px 6px; text-align: center;
+  background: var(--panel); border-radius: 12px; border: 1px solid var(--ui-soft);
 }
-.hud-label { font-size: 1rem; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
-.hud-value { font-size: 2.1rem; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--ui-text); line-height: 1.15; }
-.hud-sub { font-size: 0.95rem; color: var(--muted); }
+.hud-label { font-size: max(9px, min(calc(var(--hud-h) * 0.19), 10cqw)); color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap; line-height: 1.15; }
+.hud-value { font-size: max(12px, min(calc(var(--hud-h) * 0.38), 26cqw)); font-weight: 800; font-variant-numeric: tabular-nums; color: var(--ui-text); line-height: 1.1; white-space: nowrap; }
+.hud-sub { font-size: max(9px, min(calc(var(--hud-h) * 0.14), 9cqw)); color: var(--muted); white-space: nowrap; line-height: 1.15; }
+.hud-small .hud-sub { display: none; }
 .hud-player { border-color: var(--kn-player); }
 .hud-player .hud-value { color: var(--kn-player); }
 .hud-cpu { border-color: var(--kn-cpu); }
 .hud-cpu .hud-value { color: var(--kn-cpu); }
-.hp-bar { height: 10px; border-radius: 5px; background: rgba(255, 255, 255, 0.12); overflow: hidden; margin: 4px 0 2px; }
+.hp-bar { height: max(4px, calc(var(--hud-h) * 0.09)); border-radius: 5px; background: rgba(255, 255, 255, 0.12); overflow: hidden; margin: 2px 0 1px; flex: none; }
 .hp-bar span { display: block; height: 100%; width: 100%; transition: width .4s ease; }
 .hud-player .hp-bar span { background: var(--kn-player); }
 .hud-cpu .hp-bar span { background: var(--kn-cpu); }
-.wind-value { display: flex; align-items: center; justify-content: center; gap: 10px; }
-.wind-arrow { width: 54px; height: 32px; fill: var(--kn-wind); transition: transform .3s ease; }
+.wind-value { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.wind-arrow { width: calc(var(--hud-h) * 0.5); height: calc(var(--hud-h) * 0.3); fill: var(--kn-wind); transition: transform .3s ease; flex: none; }
 .wind-arrow.left { transform: scaleX(-1); }
 .wind-arrow.none { opacity: 0.2; }
 .hud-wind .hud-value { color: var(--kn-wind); }
 
 .turn-line {
-  margin: 0; text-align: center; font-size: 1.45rem; font-weight: 800; letter-spacing: 0.04em;
-  padding: 6px 10px; border-radius: 12px; background: var(--panel); border: 2px solid var(--kn-player); color: var(--kn-player);
+  grid-area: turn; height: var(--turn-h); overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0; text-align: center; font-size: calc(var(--turn-h) * 0.4); line-height: 1.12; font-weight: 800; letter-spacing: 0.02em;
+  padding: 0 8px; border-radius: 10px; background: var(--panel); border: 2px solid var(--kn-player); color: var(--kn-player);
 }
 .turn-line.cpu { border-color: var(--kn-cpu); color: var(--kn-cpu); }
 .turn-line.wait { border-color: var(--ui-soft); color: var(--muted); }
 
-.ctrl { display: flex; flex-direction: column; gap: 8px; }
-.ctrl-head { display: flex; align-items: baseline; justify-content: space-between; padding: 0 4px; }
-.ctrl-label { font-size: 1.3rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; text-shadow: 0 1px 4px #000; }
-.ctrl-value { font-size: 2.6rem; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--kn-player); text-shadow: 0 0 calc(12px * var(--glow)) var(--kn-player); line-height: 1; }
-.step-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--step-gap, 20px); }
-.btn.step { min-width: 3cm; min-height: 3cm; width: 100%; height: var(--step, 120px); padding: 4px; }
-.btn.step .big { font-size: 2rem; }
-
-.fire-row { display: grid; grid-template-columns: 1fr 1.2fr; gap: var(--step-gap, 20px); }
-.btn.ammo-btn { min-height: max(3cm, var(--step, 120px)); padding: 6px 8px; gap: 2px; }
-.ammo-ico { width: 46px; height: 46px; color: var(--kn-boom); }
-.btn.ammo-btn[data-ammo="bombe"] { border-color: var(--kn-boom); box-shadow: 0 0 calc(18px * var(--glow)) var(--kn-boom); }
-.btn.ammo-btn .big { font-size: 1.35rem; }
-.btn.ammo-btn .small { font-size: 0.95rem; }
-.btn.fire-btn { min-height: max(3cm, var(--step, 120px)); border-color: var(--kn-player); }
-.btn.fire-btn .big { font-size: 2.3rem; letter-spacing: 0.08em; text-transform: uppercase; }
-
-/* Mindre skærme: logoet væk, tættere panel */
-@media (max-height: 900px) {
-  .side-logo { height: 56px; }
-  .hud-value { font-size: 1.7rem; }
-  .ctrl-value { font-size: 2.1rem; }
-  .turn-line { font-size: 1.2rem; padding: 4px 8px; }
+#ctrl-angle { grid-area: angle; }
+#ctrl-power { grid-area: power; }
+.ctrl { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.ctrl-head { height: var(--head-h); display: flex; align-items: center; justify-content: space-between; padding: 0 4px; }
+.ctrl-label { font-size: calc(var(--head-h) * 0.48); font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; text-shadow: 0 1px 4px #000; }
+.ctrl-value { font-size: calc(var(--head-h) * 0.85); font-weight: 800; font-variant-numeric: tabular-nums; color: var(--kn-player); text-shadow: 0 0 calc(12px * var(--glow)) var(--kn-player); line-height: 1; white-space: nowrap; }
+.step-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--g); }
+.btn.step { width: 100%; height: var(--s); }
+.btn.step .big { font-size: calc(var(--s) * 0.3); }
+/* Værdien midt mellem knapperne: −5 −1 [VINKEL 45°] +1 +5 */
+.inline .ctrl { display: grid; grid-template-columns: 1fr 1fr 1.3fr 1fr 1fr; gap: var(--g); align-items: stretch; }
+.inline .step-row { display: contents; }
+.inline .step-row .btn:nth-child(1) { order: 1; } .inline .step-row .btn:nth-child(2) { order: 2; }
+.inline .ctrl-head { order: 3; } .inline .step-row .btn:nth-child(3) { order: 4; } .inline .step-row .btn:nth-child(4) { order: 5; }
+.inline .ctrl-head {
+  height: var(--s); flex-direction: column; justify-content: center; gap: 2px; padding: 0;
+  border-radius: 12px; background: var(--panel); border: 1px solid var(--ui-soft); min-width: 0;
 }
-.game-layout.portrait .side { width: min(var(--side-w, 540px), 96vw); }
-/* Lav skærm: HUD på én række, og panelet kan rulle som sidste udvej (knapperne krymper ikke under 3 cm) */
-.game-layout.compact .side { max-height: calc(100vh - 16px); overflow-y: auto; }
-.game-layout.compact .hud-grid { grid-template-columns: repeat(4, 1fr); gap: 8px; }
-.game-layout.compact .hud { padding: 4px 6px; }
-.game-layout.compact .hud-label { font-size: 0.8rem; letter-spacing: 0.04em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.game-layout.compact .hud-value { font-size: 1.5rem; }
-.game-layout.compact .hud-sub { display: none; }
-.game-layout.compact .wind-arrow { width: 34px; height: 22px; }
-.game-layout.compact .ctrl { gap: 4px; }
-.game-layout.compact .ctrl-value { font-size: 1.9rem; }
+.inline .ctrl-label { font-size: calc(var(--s) * 0.15); letter-spacing: 0.02em; }
+.inline .ctrl-value { font-size: calc(var(--s) * 0.3); }
+
+.fire-row { grid-area: fire; height: var(--s); display: grid; grid-template-columns: 1fr 1.2fr; gap: var(--g); }
+.btn.ammo-btn { height: var(--s); gap: 0; overflow: hidden; }
+.ammo-ico { width: calc(var(--s) * 0.32); height: calc(var(--s) * 0.32); color: var(--kn-boom); flex: none; }
+.btn.ammo-btn[data-ammo="bombe"] { border-color: var(--kn-boom); box-shadow: 0 0 calc(18px * var(--glow)) var(--kn-boom); }
+.btn.ammo-btn .big { font-size: calc(var(--s) * 0.17); line-height: 1.15; }
+.btn.ammo-btn .small { font-size: max(9px, calc(var(--s) * 0.11)); line-height: 1.15; }
+.s-small .btn.ammo-btn .small { display: none; }
+.btn.fire-btn { height: var(--s); border-color: var(--kn-player); }
+.btn.fire-btn .big { font-size: calc(var(--s) * 0.3); letter-spacing: 0.08em; text-transform: uppercase; }
 
 /* Overlays (pause og sejr) */
 .overlay {
@@ -173,7 +209,7 @@
 .tabs { margin-bottom: 4px; }
 .tab-panel { display: flex; flex-direction: column; gap: calc(var(--gap) * 0.8); align-items: stretch; width: min(1100px, 100%); }
 .setting { display: grid; grid-template-columns: 13em 1fr; align-items: center; gap: var(--gap); }
-@media (max-width: 900px) { .setting { grid-template-columns: 1fr; justify-items: center; text-align: center; } .setting .row { justify-content: center !important; } }
+@media (max-width: 640px) { .setting { grid-template-columns: 1fr; justify-items: center; text-align: center; } .setting .row { justify-content: center !important; } }
 .setting-label { font-size: 1.35rem; font-weight: 700; display: flex; flex-direction: column; text-shadow: 0 1px 4px #000; }
 .setting-label small { font-size: 0.95rem; font-weight: 400; color: var(--muted); margin-top: 4px; }
 .setting .row { justify-content: flex-start; }
@@ -188,6 +224,28 @@
 /* ---------- Rekorder ---------- */
 #records { justify-content: flex-start; padding-top: max(20px, 3vmin); gap: calc(var(--gap) * 0.6); }
 .records-panel { min-width: min(560px, 92vw); }
+
+/* Lave, brede skærme (fx mobil på langs): ting ved siden af hinanden i stedet for under */
+@media (max-height: 560px) and (min-aspect-ratio: 1/1) {
+  #rec-list { column-count: 2; column-gap: calc(var(--gap) * 1.2); }
+  #rec-list li { break-inside: avoid; }
+  /* Game over: knapperne på én række */
+  .go-result { flex-direction: row; flex-wrap: wrap; justify-content: center; gap: calc(10px * var(--kfit)) var(--gap); }
+  .go-result > :not(.row) { flex-basis: 100%; justify-content: center; }
+  .go-result .btn.wide { min-width: calc(var(--btn) * 1.5); }
+  .go-result .row { gap: calc(var(--gap) * 0.6); }
+  .go-layout { flex-wrap: nowrap; }
+  /* Indstillinger: fanerne i to spalter til venstre, indstillingerne til højre */
+  #settings { display: grid; grid-template-columns: auto auto; justify-content: center; align-content: center; column-gap: calc(var(--gap) * 1.2); }
+  #settings .tabs { display: grid; grid-template-columns: repeat(2, auto); margin: 0; }
+  #settings .setting { grid-template-columns: 9em 1fr; }
+  /* Om: tekst til venstre, knapper til højre */
+  #om { display: grid; grid-template-columns: minmax(0, 1.5fr) auto; grid-template-areas: "panel b1" "panel b2"; align-content: center; justify-content: center; column-gap: var(--gap); }
+  #om .om-logo { display: none; }
+  #om .om-panel { grid-area: panel; }
+  #om .row:nth-of-type(1) { grid-area: b1; } #om .row:nth-of-type(2) { grid-area: b2; }
+  .om-panel p { font-size: 1.05rem; line-height: 1.4; }
+}
 
 /* ---------- Om ---------- */
 #om { gap: calc(var(--gap) * 0.7); }
