@@ -1,0 +1,260 @@
+/* Minestryger – spillets egen opsætning. Bygger på ../arkade/arkade.css. */
+
+/* ---------- Farver ---------- */
+:root, [data-theme] {
+  --ms-open: #22eaff;            /* tilstanden Åbn */
+  --ms-flag: #ff3fd8;            /* tilstanden Flag og selve flagene */
+  --ms-mine: #ff8a1f;            /* afsløret mine (orange, aldrig hvid) */
+  --ms-cell: linear-gradient(155deg, rgba(60, 40, 110, 0.55), rgba(14, 6, 30, 0.82) 55%, rgba(8, 3, 18, 0.9));
+  --ms-cell-open: rgba(4, 2, 10, 0.78);
+  --ms-edge: var(--c-border);
+  /* tallene: 1 cyan, 2 grøn, 3 pink, 4 gul, 5 orange, 6 lilla, 7 rød, 8 lys */
+  --n1: #22eaff; --n2: #39ff6a; --n3: #ff3fd8; --n4: #ffd23a;
+  --n5: #ff8a1f; --n6: #b98cff; --n7: #ff5a7a; --n8: #e8e8ff;
+}
+[data-theme="solnedgang"] { --ms-cell: linear-gradient(155deg, rgba(110, 40, 90, 0.5), rgba(30, 8, 30, 0.82) 55%, rgba(16, 4, 16, 0.9)); }
+[data-theme="cyberpunk"] { --ms-cell: linear-gradient(155deg, rgba(20, 70, 90, 0.5), rgba(0, 14, 16, 0.85) 55%, rgba(0, 6, 8, 0.92)); }
+[data-theme="kontrast"] {
+  --ms-open: #00ffff; --ms-flag: #ff00ff; --ms-mine: #ff8800;
+  --ms-cell: #1a1a1a; --ms-cell-open: #000000; --ms-edge: #ffffff;
+  --n1: #00ffff; --n2: #00ff00; --n3: #ff00ff; --n4: #ffff00;
+  --n5: #ff8800; --n6: #c080ff; --n7: #ff4060; --n8: #ffffff;
+}
+
+/* ---------- Startmenu ---------- */
+#menu { gap: calc(var(--gap) * 0.7); }
+.title-block { text-align: center; max-width: 1100px; }
+.title-row { display: flex; align-items: center; justify-content: center; gap: max(16px, 3vmin); flex-wrap: wrap; }
+.title-row .arkade-logo { height: clamp(100px, 18vh, 200px); }
+.neon-title { font-size: clamp(2.6rem, 8.5vmin, 5.5rem); letter-spacing: 0.1em; }
+.lead { text-shadow: 0 1px 6px #000, 0 0 2px #000; margin: 10px auto 0; max-width: 46em; color: var(--muted); font-size: 1.1rem; line-height: 1.5; }
+.menu-choices { display: flex; flex-wrap: wrap; justify-content: center; gap: calc(var(--gap) * 1.6); }
+.menu-group { display: flex; flex-direction: column; align-items: center; }
+.size-note { margin: 0; min-height: 0; color: var(--accent); text-align: center; max-width: 40em; text-shadow: 0 1px 4px #000; }
+.size-note:empty { display: none; }
+.hearts-mini { display: flex; gap: 4px; }
+.hearts-mini svg { width: 26px; height: 26px; fill: var(--ms-flag); }
+.btn.option[aria-pressed="true"] .hearts-mini svg { fill: var(--bg); }
+@media (max-height: 900px) {
+  .lead { display: none; }
+  .title-row .arkade-logo { height: clamp(80px, 14vh, 150px); }
+}
+
+/* ---------- Spilleskærm ---------- */
+#game { padding: max(10px, 1.6vmin); overflow: hidden; }
+.game-layout {
+  display: flex; align-items: center; justify-content: center;
+  gap: var(--game-gap, 24px);
+}
+.game-layout.portrait { flex-direction: column; }
+
+.board-wrap { position: relative; }
+#board {
+  display: flex; flex-direction: column; gap: var(--cell-gap, 8px);
+  padding: var(--cell-gap, 8px);
+  border: 3px solid var(--ms-open); border-radius: 14px;
+  background: rgba(6, 2, 14, 0.55);
+  box-shadow: 0 0 calc(22px * var(--glow)) color-mix(in srgb, var(--ms-open) 45%, transparent);
+  transition: border-color .2s ease, box-shadow .2s ease;
+}
+.board-wrap[data-mode="flag"] #board {
+  border-color: var(--ms-flag);
+  box-shadow: 0 0 calc(22px * var(--glow)) color-mix(in srgb, var(--ms-flag) 45%, transparent);
+}
+.board-row { display: flex; gap: var(--cell-gap, 8px); }
+
+/* Ét felt: mørkt glas med neonkant */
+.cell {
+  position: relative; flex: none;
+  width: calc(var(--cell, 120px) - var(--cell-gap, 8px));
+  height: calc(var(--cell, 120px) - var(--cell-gap, 8px));
+  padding: 0; margin: 0;
+  font: inherit; color: var(--text);
+  background: var(--ms-cell);
+  border: 2px solid color-mix(in srgb, var(--ms-edge) 70%, transparent);
+  border-radius: 12px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), inset 0 0 calc(14px * var(--glow)) color-mix(in srgb, var(--ms-edge) 22%, transparent), 0 0 calc(8px * var(--glow)) color-mix(in srgb, var(--ms-edge) 25%, transparent);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  will-change: transform;
+}
+.cell::before { /* glasrefleks */
+  content: ""; position: absolute; left: 8%; right: 8%; top: 6%; height: 34%;
+  border-radius: 9px; background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0));
+  pointer-events: none;
+}
+.cell:focus-visible { outline: 4px solid var(--accent); outline-offset: 3px; }
+.cell .ico { width: 70%; height: 70%; position: relative; }
+
+/* Forhåndsvisning af tilstanden, når blikket/musen er på et felt */
+.cell-hint { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; pointer-events: none; }
+.cell-hint .ico { width: 58%; height: 58%; }
+.board-wrap[data-mode="open"] .cell.is-closed:is(:hover, .arkade-dwelling, :focus-visible) .hint-open,
+.board-wrap[data-mode="flag"] .cell.is-closed:is(:hover, .arkade-dwelling, :focus-visible) .hint-flag { display: flex; }
+.board-wrap[data-mode="open"] .cell.is-closed:is(:hover, .arkade-dwelling, :focus-visible) {
+  border-color: var(--ms-open); background: color-mix(in srgb, var(--ms-open) 22%, rgba(8, 3, 18, 0.9));
+  box-shadow: 0 0 calc(18px * var(--glow)) var(--ms-open), inset 0 0 18px color-mix(in srgb, var(--ms-open) 40%, transparent);
+}
+.board-wrap[data-mode="flag"] .cell:is(.is-closed, .is-flag):is(:hover, .arkade-dwelling, :focus-visible) {
+  border-color: var(--ms-flag); background: color-mix(in srgb, var(--ms-flag) 20%, rgba(8, 3, 18, 0.9));
+  box-shadow: 0 0 calc(18px * var(--glow)) var(--ms-flag), inset 0 0 18px color-mix(in srgb, var(--ms-flag) 40%, transparent);
+}
+.hint-flag .ico { opacity: 0.55; }
+.open-ring { fill: none; stroke: var(--ico-open, var(--ms-open)); stroke-width: 7; stroke-linecap: round; }
+.hint-open .ico { filter: drop-shadow(0 0 calc(6px * var(--glow)) var(--ms-open)); }
+
+/* Flag: stang og vimpel i pink neon */
+.flag-pole { fill: var(--ico-pole, color-mix(in srgb, var(--ms-flag) 55%, #ffffff)); }
+.flag-cloth { fill: var(--ico-cloth, var(--ms-flag)); stroke: var(--ico-pole, color-mix(in srgb, var(--ms-flag) 50%, #ffffff)); stroke-width: 3; stroke-linejoin: round; }
+.flag-ico { filter: drop-shadow(0 0 calc(7px * var(--glow)) var(--ms-flag)); }
+.cell.is-flag { border-color: var(--ms-flag); }
+/* I flag-tilstand viser et flag på hover, at det fjernes */
+.board-wrap[data-mode="flag"] .cell.is-flag:is(:hover, .arkade-dwelling, :focus-visible) .flag-ico { opacity: 0.4; }
+.board-wrap[data-mode="flag"] .cell.is-flag:is(:hover, .arkade-dwelling, :focus-visible)::after {
+  content: "Fjern"; position: absolute; bottom: 6%; font-size: max(14px, calc(var(--cell) * 0.16)); font-weight: 700; color: var(--ui-text);
+}
+
+/* Åbnede felter: dybere, mørkere glas med lysende tal */
+.cell.is-open {
+  background: var(--ms-cell-open); cursor: default;
+  border-color: color-mix(in srgb, var(--ms-edge) 22%, transparent);
+  box-shadow: inset 0 0 14px rgba(0, 0, 0, 0.8);
+}
+.cell.is-open::before { display: none; }
+.cell .num {
+  font-size: calc(var(--cell, 120px) * 0.56); font-weight: 800; line-height: 1;
+  font-variant-numeric: tabular-nums; color: var(--nc);
+  text-shadow: 0 0 calc(10px * var(--glow)) var(--nc), 0 0 calc(22px * var(--glow)) var(--nc);
+}
+.cell.n1 { --nc: var(--n1); } .cell.n2 { --nc: var(--n2); } .cell.n3 { --nc: var(--n3); } .cell.n4 { --nc: var(--n4); }
+.cell.n5 { --nc: var(--n5); } .cell.n6 { --nc: var(--n6); } .cell.n7 { --nc: var(--n7); } .cell.n8 { --nc: var(--n8); }
+
+/* Mine (afsløret efter et tabt liv) */
+.cell.is-mine {
+  background: color-mix(in srgb, var(--ms-mine) 18%, #0a0410); border-color: var(--ms-mine); cursor: default;
+  box-shadow: 0 0 calc(16px * var(--glow)) var(--ms-mine), inset 0 0 16px color-mix(in srgb, var(--ms-mine) 35%, transparent);
+}
+.mine-spikes path { stroke: var(--ms-mine); stroke-width: 8; stroke-linecap: round; }
+.mine-body { fill: #1a0a06; stroke: var(--ms-mine); stroke-width: 6; }
+.mine-shine { fill: var(--ms-mine); opacity: 0.8; }
+.mine-ico { filter: drop-shadow(0 0 calc(6px * var(--glow)) var(--ms-mine)); }
+
+/* Eksplosion og spol tilbage */
+.shockwave {
+  position: absolute; width: var(--cell, 120px); height: var(--cell, 120px); border-radius: 50%;
+  border: 6px solid var(--ms-mine); pointer-events: none; z-index: 3;
+  box-shadow: 0 0 30px var(--ms-mine), inset 0 0 30px color-mix(in srgb, var(--ms-mine) 50%, transparent);
+}
+.board-wrap.exploding #board { border-color: color-mix(in srgb, var(--ms-mine) 70%, transparent); }
+.rewind-veil {
+  position: absolute; inset: -12px; z-index: 4; pointer-events: none; display: none;
+  align-items: flex-start; justify-content: center; border-radius: 18px;
+  background: repeating-linear-gradient(180deg, rgba(34, 234, 255, 0.07) 0 3px, transparent 3px 7px);
+  border: 3px dashed var(--ms-open);
+}
+.board-wrap.rewinding .rewind-veil { display: flex; }
+.board-wrap.rewinding #board { filter: hue-rotate(-25deg) saturate(1.3); }
+.rewind-label {
+  margin-top: -26px; display: flex; align-items: center; gap: 12px;
+  padding: 8px 20px; border-radius: 12px; background: var(--panel); border: 2px solid var(--ms-open);
+  font-size: 1.4rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ms-open);
+}
+.rewind-label svg { width: 46px; height: 28px; fill: var(--ms-open); }
+
+/* ---------- Sidepanel ---------- */
+.side {
+  position: relative; z-index: 2; /* felterne flyver bag om panelet */
+  width: var(--side-w, 340px); max-width: 600px;
+  display: flex; flex-direction: column; align-items: stretch; gap: calc(var(--gap) * 0.6);
+}
+.game-layout.portrait .side { width: auto; flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: center; }
+.side-logo { height: clamp(60px, 10vh, 110px); align-self: center; }
+.game-layout.portrait .side-logo { display: none; }
+.hud-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.hud {
+  padding: 8px 12px; text-align: center;
+  background: var(--panel); border-radius: 14px; border: 1px solid var(--ui-soft);
+}
+.hud-label { font-size: clamp(0.95rem, calc(var(--side-w, 340px) * 0.03), 1.2rem); color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
+.hud-value { font-size: clamp(2rem, calc(var(--side-w, 340px) * 0.085), 3rem); font-weight: 800; font-variant-numeric: tabular-nums; color: var(--ui-text); }
+.hud-sub { font-size: 0.9rem; color: var(--muted); }
+.hearts { display: flex; gap: 6px; justify-content: center; align-items: center; min-height: 2.6rem; padding-top: 4px; }
+.heart { width: clamp(34px, calc(var(--side-w, 340px) * 0.09), 50px); height: clamp(32px, calc(var(--side-w, 340px) * 0.085), 47px); fill: transparent; stroke: color-mix(in srgb, var(--ms-flag) 55%, transparent); stroke-width: 6; }
+.heart.full { fill: var(--ms-flag); stroke: color-mix(in srgb, var(--ms-flag) 50%, #fff); filter: drop-shadow(0 0 calc(7px * var(--glow)) var(--ms-flag)); }
+
+/* Tilstandsknappen: to halvdele, den valgte lyser tydeligt */
+.mode-btn { flex-direction: row; gap: 10px; padding: 10px; min-height: calc(var(--btn) * 1.15); border-color: var(--ms-open); }
+.mode-btn[data-mode="flag"] { border-color: var(--ms-flag); }
+.mode-part {
+  flex: 1; align-self: stretch; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  border-radius: 12px; border: 2px dashed rgba(255, 255, 255, 0.25); opacity: 0.55; padding: 6px 4px;
+}
+.mode-part svg { width: 52%; max-width: 96px; aspect-ratio: 1; height: auto; }
+.mode-name { font-size: clamp(1.4rem, calc(var(--side-w, 340px) * 0.055), 2rem); font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; }
+.mode-check { font-size: 0.95rem; font-weight: 700; visibility: hidden; }
+.mode-btn[data-mode="open"] .part-open, .mode-btn[data-mode="flag"] .part-flag { opacity: 1; border-style: solid; }
+.mode-btn[data-mode="open"] .part-open { background: var(--ms-open); border-color: var(--ms-open); color: #03141a; box-shadow: 0 0 calc(18px * var(--glow)) var(--ms-open); }
+.mode-btn[data-mode="flag"] .part-flag { background: var(--ms-flag); border-color: var(--ms-flag); color: #22001c; box-shadow: 0 0 calc(18px * var(--glow)) var(--ms-flag); }
+.mode-btn[data-mode="open"] .part-open .mode-check, .mode-btn[data-mode="flag"] .part-flag .mode-check { visibility: visible; }
+/* Ikonerne ligger i <use>, så farven gives videre med arvede variabler */
+.mode-btn[data-mode="open"] .part-open { --ico-open: #03141a; }
+.mode-btn[data-mode="flag"] .part-flag { --ico-cloth: #22001c; --ico-pole: #22001c; }
+.pause-btn { align-self: center; width: var(--btn); height: var(--btn); padding: 6px; }
+.pause-btn svg { width: 46%; height: 46%; fill: var(--ui); }
+.game-layout.portrait .mode-btn { min-width: calc(var(--btn) * 2.2); }
+
+/* Overlays (pause og ryddet plade) */
+.overlay {
+  position: absolute; inset: 0; z-index: 5;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0, 0, 0, 0.62);
+}
+.overlay .panel { display: flex; flex-direction: column; align-items: center; gap: var(--gap); text-align: center; }
+.overlay .panel p { margin: 0; }
+.clear-bonus { font-size: 2rem; font-weight: 800; color: var(--accent); }
+
+/* ---------- Game over ---------- */
+.go-layout { display: flex; flex-wrap: wrap; gap: calc(var(--gap) * 1.4); align-items: center; justify-content: center; }
+.go-result { display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; }
+.go-reason, .go-plates { margin: 0; font-size: 1.3rem; color: var(--muted); }
+.go-score { display: flex; align-items: baseline; gap: 12px; }
+#go-score { font-size: clamp(3rem, 10vmin, 5rem); font-weight: 800; color: var(--ui-text); text-shadow: 0 0 calc(18px * var(--glow)) var(--ui); }
+.go-unit { font-size: 1.4rem; color: var(--muted); }
+.go-rank { margin: 0; min-height: 1.4em; font-size: 1.3rem; color: var(--accent); font-weight: 700; }
+.go-records { min-width: min(500px, 90vw); }
+.records li .plates { font-weight: 400; color: var(--muted); }
+
+/* ---------- Indstillinger ---------- */
+#settings { justify-content: flex-start; padding-top: max(20px, 4vmin); }
+.tabs { margin-bottom: 4px; }
+.tab-panel { display: flex; flex-direction: column; gap: calc(var(--gap) * 0.8); align-items: stretch; width: min(1100px, 100%); }
+.setting { display: grid; grid-template-columns: 13em 1fr; align-items: center; gap: var(--gap); }
+@media (max-width: 900px) { .setting { grid-template-columns: 1fr; justify-items: center; text-align: center; } .setting .row { justify-content: center !important; } }
+.setting-label { font-size: 1.35rem; font-weight: 700; display: flex; flex-direction: column; text-shadow: 0 1px 4px #000; }
+.setting-label small { font-size: 0.95rem; font-weight: 400; color: var(--muted); margin-top: 4px; }
+.setting .row { justify-content: flex-start; }
+.value-box { min-width: 6em; text-align: center; font-size: 1.8rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.note { max-width: 44em; margin: 0 auto; color: var(--muted); line-height: 1.5; text-align: center; }
+.theme-btn .swatch {
+  width: 64px; height: 32px; border-radius: 6px;
+  background: linear-gradient(90deg, var(--a) 0 33%, var(--b) 33% 66%, var(--c) 66% 100%);
+  border: 2px solid rgba(255,255,255,.5);
+}
+
+/* ---------- Rekorder ---------- */
+#records { justify-content: flex-start; padding-top: max(20px, 3vmin); gap: calc(var(--gap) * 0.6); }
+.records-panel { min-width: min(560px, 92vw); }
+
+/* ---------- Om ---------- */
+#om { gap: calc(var(--gap) * 0.7); }
+.om-logo { height: clamp(84px, 15vh, 200px); }
+@media (max-height: 740px) { .om-logo { height: 84px; } .om-panel p { font-size: 1.15rem; line-height: 1.45; } }
+.om-panel { max-width: 46em; text-align: center; }
+.om-panel h2 { margin-bottom: 12px; }
+.om-panel p { margin: 10px 0 0; font-size: 1.25rem; line-height: 1.55; }
+.link-btn { text-decoration: none; min-width: calc(var(--btn) * 2.4); }
+.link-btn .small { font-size: 0.95rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  #board, .cell { transition: none; }
+}

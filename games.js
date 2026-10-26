@@ -17,7 +17,7 @@ window.HOJT_SPIL = [
   { navn: 'Muren',          sti: 'muren/',          farve: 'orange', status: 'snart', tekst: 'Send bolden mod muren, og slå murstenene ned én efter én.' },
   { navn: 'Bobler',         sti: 'bobler/',         farve: 'lilla',  status: 'snart', tekst: 'Skyd bobler op, og saml tre i samme farve, så de forsvinder.' },
   { navn: 'Blokke',         sti: 'blokke/',         farve: 'grøn',   status: 'snart', tekst: 'Læg blokkene på plads, og fyld hele rækker.' },
-  { navn: 'Minestryger',    sti: 'minestryger/',    farve: 'blå',    status: 'snart', tekst: 'Find alle de sikre felter ved hjælp af tallene, og undgå minerne.' },
+  { navn: 'Minestryger',    sti: 'minestryger/',    farve: 'blå',    status: 'aktiv', tekst: 'Find alle de sikre felter ved hjælp af tallene, og undgå minerne.', skaerm: 'hal/skaerme/minestryger.svg' },
   { navn: 'Vendespil',      sti: 'vendespil/',      farve: 'gul',    status: 'snart', tekst: 'Vend to kort ad gangen, og find alle parrene.' },
   { navn: 'Juveler',        sti: 'juveler/',        farve: 'rød',    status: 'snart', tekst: 'Byt om på to juveler, og lav rækker med tre ens.' },
   { navn: 'Rørlægger',      sti: 'rorlaegger/',     farve: 'cyan',   status: 'snart', tekst: 'Drej rørene, så vandet kan løbe hele vejen igennem.' },

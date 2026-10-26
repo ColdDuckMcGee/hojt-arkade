@@ -26,6 +26,19 @@ står helt stille ind imellem.
 - **Rekorder:** der er en lokal top 10 med dato for hver brætstørrelse.
 - **Pause:** der er en stor pauseknap, og Esc eller P virker også.
 
+### Minestryger
+Et roligt minestrygerspil uden ur. Man spiller plade efter plade, indtil man
+har mistet sine liv.
+
+- **Styring:** én stor knap ved siden af brættet skifter mellem **Åbn** og **Flag**. Den valgte halvdel lyser, og felterne viser det samme: i Åbn-tilstand lyser feltet cyan med et åbn-ikon, når blikket er på det, og i Flag-tilstand lyser det pink med et flag. Der er ingen højreklik. Tastaturet virker også: piletasterne flytter, Enter eller mellemrum vælger, F skifter tilstand, og Esc eller P giver pause.
+- **Første felt:** det første felt, man åbner på hver plade, er aldrig en mine, og det samme gælder dets naboer, så første valg altid åbner et område. Felter uden nabominer åbner automatisk resten af klyngen. Pladerne laves, så de kan løses uden at gætte.
+- **Bræt:** man vælger lille (6 × 6), mellem (8 × 8) eller stor (10 × 8). På en 1920 × 1080-skærm bliver felterne mindst ca. 3 × 3 cm. På mindre skærme siger startskærmen til, hvis felterne bliver mindre.
+- **Plader og miner:** første plade har 4, 8 eller 10 miner. Hver ny plade har én mine mere, op til et loft på 8, 14 eller 18 miner (ca. 22 % af felterne).
+- **Liv:** man vælger **ét liv** eller **tre liv**. Rammer man en mine, springer pladen i luften. Har man et liv tilbage, spoles eksplosionen baglæns, så pladen samler sig igen. Minen ligger derefter afsløret, og man spiller videre. Livene følger med fra plade til plade.
+- **Point:** 10 point for hvert sikkert felt, der åbnes, også felter, der åbnes automatisk. En ryddet plade giver en bonus på 25 point pr. mine på pladen.
+- **Rekorder:** der er en lokal top 10 med point, antal ryddede plader og dato for hver kombination af liv og brætstørrelse.
+- **Rolig visning:** der er ingen blink og ingen hvide lysglimt. Er animation slået fra, eller er computeren sat til mindre bevægelse, bliver eksplosionen og tilbagespolingen til en rolig fade.
+
 ## Sådan spiller og tester du
 
 1. Hent eller pak mappen `hojt-arkade` ud.
@@ -57,6 +70,7 @@ hal/              hallens kode (hal.js, hal.css) og skærmbilleder (skaerme/)
 CNAME             eget domæne til GitHub Pages: arkade.hojt.dk
 arkade/           fælles moduler til alle spil
 slangen/          spillet Slangen (index.html, css/, js/)
+minestryger/      spillet Minestryger (index.html, css/, js/)
 LICENSE           MIT-licens
 ```
 
