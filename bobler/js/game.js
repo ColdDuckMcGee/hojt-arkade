@@ -56,7 +56,7 @@
   };
   var RULES = {
     match: 3,             // mindst 3 ens forsvinder
-    ceilingEvery: 5,      // loftet rykker efter 5 skud, der ikke fjerner noget
+    ceilingEvery: 5,      // loftet rykker efter 5 skud i træk, der ikke fjerner noget
     pointsPop: 10,        // pr. sprængt boble
     pointsFall: 20,       // pr. faldet boble
     bigFall: 6,           // falder 6 eller flere på én gang, tæller de dobbelt
@@ -245,6 +245,9 @@
         if (ev.fallen.length >= RULES.bigFall) fallPts *= 2;
         ev.points = pts + fallPts; ev.fallPoints = fallPts;
         s.score += ev.points;
+        // Et skud, der fjerner bobler, nulstiller loftets nedtælling
+        if (s.misses > 0) ev.events.push('ceilingReset');
+        s.misses = 0;
       } else {
         s.misses++;
         if (s.misses >= RULES.ceilingEvery) {

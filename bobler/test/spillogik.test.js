@@ -147,7 +147,7 @@ test('mange faldne på én gang tæller dobbelt', function () {
   assert.strictEqual(ev.fallPoints, 6 * G.RULES.pointsFall * 2);
 });
 
-test('loftet rykker kun ned efter 5 skud, der ikke fjerner noget', function () {
+test('loftet rykker kun ned efter 5 skud i træk, der ikke fjerner noget', function () {
   var run = runWith(['1 2 1 2 1 2 1 2'], { current: 3, next: 4 });
   for (var i = 1; i <= 4; i++) {
     run.state.current = (i % 2) ? 3 : 4;
@@ -164,6 +164,44 @@ test('loftet rykker kun ned efter 5 skud, der ikke fjerner noget', function () {
   // efter loftet er rykket, ligger boblerne en række længere nede
   assert.ok(Math.abs(G.cellY(0, run.state.ceiling) - G.cellY(1, 0)) < 1e-9);
   assert.ok(tr.cell);
+});
+
+test('et skud, der fjerner bobler, nulstiller loftets nedtælling – og fortryd gendanner den', function () {
+  // tre skud uden fangst, så et skud der sprænger tre røde
+  var run = runWith(['1 1 . . . . . 3', ' 0 0 . . . . .'], { current: 4, next: 4, misses: 3 });
+  assert.strictEqual(run.shotsToCeiling(), 2);
+  var angle = null;
+  for (var a = -G.MAX_ANGLE; a <= 0; a += 0.5) { var c = run.aim(a).cell; if (c.r === 1 && c.c === 2) { angle = a; break; } }
+  assert.ok(angle !== null);
+  run.state.current = 0;
+  var ev = run.shoot(angle);
+  assert.strictEqual(ev.popped.length, 3);
+  assert.ok(ev.events.indexOf('ceilingReset') >= 0);
+  assert.strictEqual(ev.events.indexOf('ceiling'), -1);
+  assert.strictEqual(run.state.misses, 0);
+  assert.strictEqual(run.shotsToCeiling(), G.RULES.ceilingEvery);
+  assert.strictEqual(run.state.ceiling, 0);
+  // fortryd: nedtællingen er tilbage på 2 skud
+  assert.ok(run.undo());
+  assert.strictEqual(run.state.misses, 3);
+  assert.strictEqual(run.shotsToCeiling(), 2);
+  // efter nulstilling tæller skud uden fangst ned forfra: loftet rykker først efter 5 nye
+  run.state.current = 0; run.shoot(angle);
+  var cols = [2, 4, 5, 6, 2], angs = [-60, 20, 40, 60, 70];
+  for (var i = 1; i <= 5; i++) {
+    run.state.current = cols[i - 1];  // farver, der ikke danner tre ens → ingen fangst
+    ev = run.shoot(angs[i - 1]);
+    assert.strictEqual(ev.popped.length, 0);
+    if (i < 5) { assert.strictEqual(ev.events.indexOf('ceiling'), -1); assert.strictEqual(run.shotsToCeiling(), 5 - i); }
+  }
+  assert.ok(ev.events.indexOf('ceiling') >= 0);
+  assert.strictEqual(run.state.ceiling, 1);
+  // et skud, der fanger uden at nedtællingen var startet, giver ingen nulstillings-hændelse
+  var run2 = runWith(['1 1 . . . . . 3', ' 0 0 . . . . .'], { current: 0, misses: 0 });
+  var ev2 = run2.shoot(angle);
+  assert.strictEqual(ev2.popped.length, 3);
+  assert.strictEqual(ev2.events.indexOf('ceilingReset'), -1);
+  assert.strictEqual(run2.shotsToCeiling(), 5);
 });
 
 test('game over, når en boble når bundlinjen', function () {

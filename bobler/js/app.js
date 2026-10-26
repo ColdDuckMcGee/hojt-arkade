@@ -332,7 +332,7 @@
       wait = calm ? 450 : 750;
     }
     if (e.indexOf('ceiling') >= 0) { sfx('ceiling'); say('Loftet rykkede en række ned.'); }
-    else if (ev.points) say('+' + ev.points + ' point.');
+    else if (ev.points) say('+' + ev.points + ' point.' + (e.indexOf('ceilingReset') >= 0 ? ' Loftets nedtælling starter forfra.' : ''));
     refresh();
     if (fx.length) animate();
     if (e.indexOf('cleared') >= 0) {
