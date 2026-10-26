@@ -1,7 +1,7 @@
 /*
  * Hojt Arkade – hallen (forsiden).
  * Én arkademaskine ad gangen. Spillene kommer fra games.js (window.HOJT_SPIL).
- * Genbruger arkade/settings.js, dwell.js og audio.js.
+ * Genbruger arkade/settings.js, dwell.js, audio.js og background.js.
  * Intet skifter af sig selv: maskinen skifter kun, når man vælger en pil.
  */
 (function () {
@@ -48,7 +48,11 @@
   });
   var hal = ArkadeSettings.create('hal', { valgt: '' });
   var root = document.documentElement;
-  root.setAttribute('data-theme', arkade.get('theme'));
+  // Samme nøgler og værdier som i spillene (se slangen/js/app.js).
+  var THEMES = ['neon', 'solnedgang', 'cyberpunk', 'kontrast'];
+  var BACKGROUNDS = ['mork', 'solnedgang', 'neonby'];
+  if (THEMES.indexOf(arkade.get('theme')) < 0) arkade.set('theme', 'neon');
+  if (BACKGROUNDS.indexOf(arkade.get('background')) < 0) arkade.set('background', 'mork');
 
   var dwell = ArkadeDwell.create({ enabled: arkade.get('dwell'), timeMs: arkade.get('dwellTime') * 1000 });
   var audio = ArkadeAudio.create({ sfx: arkade.get('sound'), music: arkade.get('music') });
@@ -56,7 +60,31 @@
   document.addEventListener('pointerdown', unlock, { once: true });
   document.addEventListener('keydown', unlock, { once: true });
 
-  var reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
+  var reducedMotion = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
+
+  // ---------- Tema og baggrund (fælles for alle spil) ----------
+  var bg = ArkadeBackground.create($('#baggrund'));
+  function cssVar(n) { return getComputedStyle(root).getPropertyValue(n).trim(); }
+  function animationOn() { return arkade.get('animation') && !reducedMotion.matches; }
+  function applyTheme() {
+    root.setAttribute('data-theme', arkade.get('theme'));
+    var meta = $('meta[name="theme-color"]'); if (meta) meta.content = cssVar('--bg');
+    bg.setPalette({
+      bg0: cssVar('--p-bg0'), bg1: cssVar('--p-bg1'), sky0: cssVar('--p-sky0'), sky1: cssVar('--p-sky1'),
+      sky2: cssVar('--p-sky2'), sun0: cssVar('--p-sun0'), sun1: cssVar('--p-sun1'), grid: cssVar('--p-grid'),
+      light1: cssVar('--p-light1'), light2: cssVar('--p-light2')
+    });
+  }
+  function applyBackground() { bg.setMode(arkade.get('background')); }
+  function applyAnimation() {
+    bg.setAnimated(animationOn());
+    var note = $('#motion-note');
+    if (note) note.textContent = reducedMotion.matches
+      ? 'Slået fra, fordi din computer er sat til mindre bevægelse'
+      : 'Langsom bevægelse i baggrunden';
+  }
+  if (reducedMotion.addEventListener) reducedMotion.addEventListener('change', applyAnimation);
+  applyTheme(); applyBackground(); applyAnimation();
 
   // ---------- Valgt maskine ----------
   var index = 0;
@@ -279,7 +307,13 @@
 
   // ---------- Indstillinger ----------
   function fmtSeconds(v) { return v.toFixed(v * 10 % 1 === 0 ? 1 : 2).replace('.', ',') + ' sek.'; }
+  var settingsTab = 'styring';
   function syncSettings() {
+    $$('#indstillinger [data-tab]').forEach(function (b) {
+      var on = b.dataset.tab === settingsTab;
+      b.setAttribute('aria-pressed', String(on)); b.setAttribute('aria-selected', String(on));
+    });
+    $$('#indstillinger [data-panel]').forEach(function (p) { p.hidden = p.dataset.panel !== settingsTab; });
     $$('#indstillinger [data-set]').forEach(function (b) {
       var cur = arkade.get(b.dataset.set);
       b.setAttribute('aria-pressed', String(String(cur) === b.dataset.value));
@@ -289,6 +323,9 @@
     $('#dwell-minus').disabled = t <= 0.5 + 1e-9;
     $('#dwell-plus').disabled = t >= 3 - 1e-9;
   }
+  $$('#indstillinger [data-tab]').forEach(function (b) {
+    b.addEventListener('click', function () { audio.play('click'); settingsTab = b.dataset.tab; syncSettings(); });
+  });
   $$('#indstillinger [data-set]').forEach(function (b) {
     b.addEventListener('click', function () {
       var v = b.dataset.value;
@@ -308,7 +345,9 @@
     if (key === 'dwellTime') dwell.setTime(value * 1000);
     if (key === 'sound') audio.setSfx(value);
     if (key === 'music') { audio.unlock(); audio.setMusic(value); }
-    if (key === 'theme') root.setAttribute('data-theme', value);
+    if (key === 'theme') applyTheme();
+    if (key === 'background') applyBackground();
+    if (key === 'animation') applyAnimation();
     syncSettings();
   });
 
@@ -347,7 +386,7 @@
 
   // Til test og fejlfinding (påvirker ikke almindelig brug)
   window.HojtHal = {
-    spil: SPIL, settings: arkade, dwell: dwell, audio: audio, show: show, ga: ga,
+    spil: SPIL, settings: arkade, dwell: dwell, bg: bg, audio: audio, show: show, ga: ga,
     get index() { return index; }
   };
 })();

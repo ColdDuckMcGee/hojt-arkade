@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="hal/hal.css">
 </head>
 <body>
+<canvas id="baggrund" aria-hidden="true"></canvas>
 
 <!-- Arkadehallen bag maskinen: mørk væg, slørede neonlys, maskiner i baggrunden og blankt gulv. -->
 <div class="hal-baggrund" aria-hidden="true">
@@ -18,7 +19,7 @@
   <svg class="hal-scene" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax slice">
     <defs>
       <linearGradient id="hs-gulv" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="#1a0a2a"/><stop offset=".35" stop-color="#0d0616"/><stop offset="1" stop-color="#050208"/>
+        <stop offset="0" stop-color="#14081f" stop-opacity=".72"/><stop offset=".35" stop-color="#0d0616" stop-opacity=".82"/><stop offset="1" stop-color="#050208" stop-opacity=".94"/>
       </linearGradient>
       <linearGradient id="hs-refl-pink" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0" stop-color="#ff2fd2" stop-opacity=".32"/><stop offset="1" stop-color="#ff2fd2" stop-opacity="0"/>
@@ -34,8 +35,8 @@
     </defs>
     <!-- Neonrør på væggen -->
     <g filter="url(#hs-blur)" opacity=".55">
-      <path d="M90 170h380" stroke="#ff2fd2" stroke-width="6" stroke-linecap="round"/>
-      <path d="M1130 150h380" stroke="#22eaff" stroke-width="6" stroke-linecap="round"/>
+      <path d="M90 170h380" class="hs-l1" stroke-width="6" stroke-linecap="round"/>
+      <path d="M1130 150h380" class="hs-l2" stroke-width="6" stroke-linecap="round"/>
       <path d="M560 110h480" stroke="#a78bff" stroke-width="4" stroke-linecap="round" opacity=".6"/>
     </g>
     <!-- Gulv -->
@@ -122,48 +123,76 @@
 
 <!-- ================= INDSTILLINGER ================= -->
 <main id="indstillinger" class="screen" hidden aria-labelledby="set-title">
-  <h2 id="set-title" class="neon-sub">Indstillinger</h2>
-  <div class="set-grid">
-    <section class="set-gruppe panel" aria-labelledby="set-styring">
-      <h3 class="group-label" id="set-styring">Styring</h3>
-      <div class="setting">
-        <div class="setting-label" id="lbl-dwell">Dwell<small>Kig på en knap for at vælge den</small></div>
-        <div class="row" role="group" aria-labelledby="lbl-dwell">
-          <button class="btn option" data-set="dwell" data-value="false"><span class="big">Fra</span></button>
-          <button class="btn option" data-set="dwell" data-value="true"><span class="big">Til</span></button>
-        </div>
-      </div>
-      <div class="setting">
-        <div class="setting-label" id="lbl-dwelltid">Dwell-tid<small>Hvor længe du skal kigge</small></div>
-        <div class="row" role="group" aria-labelledby="lbl-dwelltid">
-          <button class="btn" id="dwell-minus" aria-label="Kortere dwell-tid"><span class="big">−</span><span class="small">Kortere</span></button>
-          <div class="value-box" id="dwell-value" aria-live="polite">1,2 sek.</div>
-          <button class="btn" id="dwell-plus" aria-label="Længere dwell-tid"><span class="big">+</span><span class="small">Længere</span></button>
-        </div>
-      </div>
-    </section>
-    <section class="set-gruppe panel" aria-labelledby="set-lyd">
-      <h3 class="group-label" id="set-lyd">Lyd</h3>
-      <div class="setting">
-        <div class="setting-label" id="lbl-sfx">Lydeffekter<small>Klik og små lyde</small></div>
-        <div class="row" role="group" aria-labelledby="lbl-sfx">
-          <button class="btn option" data-set="sound" data-value="false"><span class="big">Fra</span></button>
-          <button class="btn option" data-set="sound" data-value="true"><span class="big">Til</span></button>
-        </div>
-      </div>
-      <div class="setting">
-        <div class="setting-label" id="lbl-musik">Musik<small>Rolig synthwave</small></div>
-        <div class="row" role="group" aria-labelledby="lbl-musik">
-          <button class="btn option" data-set="music" data-value="false"><span class="big">Fra</span></button>
-          <button class="btn option" data-set="music" data-value="true"><span class="big">Til</span></button>
-        </div>
-      </div>
-    </section>
+  <h2 id="set-title" class="sr-only">Indstillinger</h2>
+  <div class="row tabs" role="tablist" aria-label="Indstillinger">
+    <button class="btn js-tilbage" id="btn-set-tilbage"><span class="icon" aria-hidden="true">←</span><span class="big">Tilbage</span></button>
+    <button class="btn option tab" data-tab="styring" role="tab" aria-controls="panel-styring"><span class="big">Styring</span></button>
+    <button class="btn option tab" data-tab="udseende" role="tab" aria-controls="panel-udseende"><span class="big">Udseende</span></button>
+    <button class="btn option tab" data-tab="lyd" role="tab" aria-controls="panel-lyd"><span class="big">Lyd</span></button>
   </div>
-  <p class="note">Indstillingerne gælder i alle spil. Har du dwell-klik i dit øjenstyringssystem, fx Tobii, så lad dwell være slået fra her.</p>
-  <div class="row">
-    <button class="btn primary wide js-tilbage"><span class="icon" aria-hidden="true">←</span><span class="big">Tilbage</span></button>
-  </div>
+
+  <section class="tab-panel panel" id="panel-styring" data-panel="styring" role="tabpanel">
+    <div class="setting">
+      <div class="setting-label" id="lbl-dwell">Dwell<small>Kig på en knap for at vælge den</small></div>
+      <div class="row" role="group" aria-labelledby="lbl-dwell">
+        <button class="btn option" data-set="dwell" data-value="false"><span class="big">Fra</span></button>
+        <button class="btn option" data-set="dwell" data-value="true"><span class="big">Til</span></button>
+      </div>
+    </div>
+    <div class="setting">
+      <div class="setting-label" id="lbl-dwelltid">Dwell-tid<small>Hvor længe du skal kigge</small></div>
+      <div class="row" role="group" aria-labelledby="lbl-dwelltid">
+        <button class="btn" id="dwell-minus" aria-label="Kortere dwell-tid"><span class="big">−</span><span class="small">Kortere</span></button>
+        <div class="value-box" id="dwell-value" aria-live="polite">1,2 sek.</div>
+        <button class="btn" id="dwell-plus" aria-label="Længere dwell-tid"><span class="big">+</span><span class="small">Længere</span></button>
+      </div>
+    </div>
+    <p class="note">Indstillingerne gælder i alle spil. Har du dwell-klik i dit øjenstyringssystem, fx Tobii, så lad dwell være slået fra her. Piletasterne på tastaturet virker altid.</p>
+  </section>
+
+  <section class="tab-panel panel" id="panel-udseende" data-panel="udseende" role="tabpanel" hidden>
+    <div class="setting">
+      <div class="setting-label" id="lbl-tema">Tema</div>
+      <div class="row" role="group" aria-labelledby="lbl-tema">
+        <button class="btn option theme-btn" data-set="theme" data-value="neon"><span class="swatch" style="--a:#ff2fd2;--b:#22eaff;--c:#1a0b2a"></span><span class="small">Pink og cyan</span></button>
+        <button class="btn option theme-btn" data-set="theme" data-value="solnedgang"><span class="swatch" style="--a:#ff8a1f;--b:#22eaff;--c:#2a0b3d"></span><span class="small">Orange og lilla</span></button>
+        <button class="btn option theme-btn" data-set="theme" data-value="cyberpunk"><span class="swatch" style="--a:#39ff6a;--b:#2a8dff;--c:#000"></span><span class="small">Grøn og blå</span></button>
+        <button class="btn option theme-btn" data-set="theme" data-value="kontrast"><span class="swatch" style="--a:#ffff00;--b:#00ffff;--c:#000"></span><span class="small">Høj kontrast</span></button>
+      </div>
+    </div>
+    <div class="setting">
+      <div class="setting-label" id="lbl-baggrund">Baggrund</div>
+      <div class="row" role="group" aria-labelledby="lbl-baggrund">
+        <button class="btn option" data-set="background" data-value="mork"><span class="big">Mørk</span></button>
+        <button class="btn option" data-set="background" data-value="solnedgang"><span class="big">Solnedgang</span></button>
+        <button class="btn option" data-set="background" data-value="neonby"><span class="big">Neonby</span></button>
+      </div>
+    </div>
+    <div class="setting">
+      <div class="setting-label" id="lbl-animation">Animation<small id="motion-note">Langsom bevægelse i baggrunden</small></div>
+      <div class="row" role="group" aria-labelledby="lbl-animation">
+        <button class="btn option" data-set="animation" data-value="false"><span class="big">Fra</span></button>
+        <button class="btn option" data-set="animation" data-value="true"><span class="big">Til</span></button>
+      </div>
+    </div>
+  </section>
+
+  <section class="tab-panel panel" id="panel-lyd" data-panel="lyd" role="tabpanel" hidden>
+    <div class="setting">
+      <div class="setting-label" id="lbl-sfx">Lydeffekter<small>Klik og små lyde</small></div>
+      <div class="row" role="group" aria-labelledby="lbl-sfx">
+        <button class="btn option" data-set="sound" data-value="false"><span class="big">Fra</span></button>
+        <button class="btn option" data-set="sound" data-value="true"><span class="big">Til</span></button>
+      </div>
+    </div>
+    <div class="setting">
+      <div class="setting-label" id="lbl-musik">Musik<small>Rolig synthwave</small></div>
+      <div class="row" role="group" aria-labelledby="lbl-musik">
+        <button class="btn option" data-set="music" data-value="false"><span class="big">Fra</span></button>
+        <button class="btn option" data-set="music" data-value="true"><span class="big">Til</span></button>
+      </div>
+    </div>
+  </section>
 </main>
 
 <noscript><p class="noscript">Hojt Arkade kræver JavaScript. Du kan åbne <a href="slangen/index.html">Slangen</a> direkte.</p></noscript>
@@ -171,6 +200,7 @@
 <script src="arkade/settings.js"></script>
 <script src="arkade/dwell.js"></script>
 <script src="arkade/audio.js"></script>
+<script src="arkade/background.js"></script>
 <script src="games.js"></script>
 <script src="hal/hal.js"></script>
 </body>
