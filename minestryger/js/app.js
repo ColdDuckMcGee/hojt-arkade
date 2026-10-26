@@ -112,6 +112,16 @@
   $('#btn-start').addEventListener('click', function () { sfx('click'); startGame(); });
   $('#btn-settings').addEventListener('click', function () { sfx('click'); openSettings('menu'); });
   $('#btn-records').addEventListener('click', function () { sfx('click'); openRecords(mine.get('lives'), mine.get('boardSize')); });
+  // Tilbage til hallen: stop musikken og skriv indstillingerne, før siden skifter.
+  function goToHall() {
+    sfx('click');
+    audio.setMusic(false); // stopper kun musikken nu – den gemte indstilling ændres ikke
+    [arkade, mine].forEach(function (s) {
+      try { localStorage.setItem(s.storageKey, JSON.stringify(s.all())); } catch (e) { /* fx privat tilstand */ }
+    });
+    location.href = $('#btn-hall').dataset.href;
+  }
+  $('#btn-hall').addEventListener('click', goToHall);
   $('#btn-om').addEventListener('click', function () { sfx('click'); show('om'); });
   $('#btn-om-back').addEventListener('click', function () { sfx('click'); show('menu'); });
 

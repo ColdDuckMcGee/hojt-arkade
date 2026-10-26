@@ -40,6 +40,17 @@
   .title-row .arkade-logo { height: clamp(80px, 14vh, 150px); }
 }
 
+/* Tilbage til hallen: fast i hjørnet, roligere stil end de andre knapper */
+.hall-btn {
+  position: absolute; top: max(16px, 2.5vmin); left: max(16px, 2.5vmin);
+  width: var(--btn); min-height: var(--btn); padding: 8px 10px;
+  border-width: 2px; border-color: color-mix(in srgb, var(--muted) 70%, transparent);
+  background: rgba(0, 0, 0, 0.45); box-shadow: none; color: var(--muted);
+}
+.hall-btn .big { font-size: 1.05rem; font-weight: 600; line-height: 1.2; text-align: center; }
+.hall-ico { width: 42%; height: auto; fill: none; stroke: var(--muted); stroke-width: 7; stroke-linejoin: round; }
+.hall-btn:hover, .hall-btn.arkade-dwelling { color: var(--ui-text); border-color: var(--muted); background: rgba(255, 255, 255, 0.08); box-shadow: none; }
+
 /* ---------- Spilleskærm ---------- */
 #game { padding: max(10px, 1.6vmin); overflow: hidden; }
 .game-layout {
