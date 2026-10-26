@@ -215,7 +215,7 @@ html, body { height: 100%; height: 100dvh; }
 .compact .hud-sub { display: none; }
 .compact .hearts { display: none; }
 .compact .lives-num { display: block; color: var(--bb-bomb); }
-.compact .pause-btn { width: var(--hud-h, 56px); height: var(--hud-h, 56px); min-width: var(--hud-h, 56px); min-height: var(--hud-h, 56px); flex: none; padding: 4px; }
+.compact .pause-btn { width: var(--pause-s, 84px); height: var(--pause-s, 84px); min-width: var(--pause-s, 84px); min-height: var(--pause-s, 84px); flex: none; padding: 4px; }
 .compact .pause-btn .small { display: none; }
 .compact .pause-btn svg { width: 50%; height: 50%; }
 .compact .arrow { width: var(--btn); height: var(--btn); }
@@ -240,6 +240,8 @@ html, body { height: 100%; height: 100dvh; }
 /* ---------- Game over ---------- */
 .go-layout { display: flex; flex-wrap: wrap; gap: calc(var(--gap) * 1.4); align-items: center; justify-content: center; }
 .go-result { display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; }
+.go-head { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.go-actions { display: flex; flex-direction: column; align-items: center; gap: var(--gap); }
 .go-reason, .go-plates { margin: 0; font-size: 1.3rem; color: var(--muted); }
 .go-score { display: flex; align-items: baseline; gap: 12px; }
 #go-score { font-size: clamp(3rem, 10vmin, 5rem); font-weight: 800; color: var(--ui-text); text-shadow: 0 0 calc(18px * var(--glow)) var(--ui); }
@@ -278,3 +280,86 @@ html, body { height: 100%; height: 100dvh; }
 .om-panel p { margin: 10px 0 0; font-size: 1.25rem; line-height: 1.55; }
 .link-btn { text-decoration: none; min-width: calc(var(--btn) * 2.4); }
 .link-btn .small { font-size: 0.95rem; }
+
+/* ---------- Sider (kun når der ikke er plads til det hele) ---------- */
+.trin-skjult { display: none !important; }
+.trin-nav { display: contents; }
+.trin-nav[hidden] { display: none; }
+.trin-label { align-self: center; min-width: 6.5em; text-align: center; font-size: 1.1rem; font-weight: 700; color: var(--muted); text-shadow: 0 1px 4px #000; }
+.trin-nav .btn .icon { font-size: 2rem; }
+.tight .opt { display: none; }
+
+/* ---------- Små skærme (korteste side under 560 px) ----------
+ * Knapperne er mindst 84 px (sat i js/app.js), og der zoomes ikke.
+ * Brede knapper må gerne blive smallere, så flere kan stå på én række. */
+.bb-lille .btn { padding: 6px 12px; gap: 2px; }
+.bb-lille .btn .big { font-size: 1.2rem; }
+.bb-lille .btn.primary .big { font-size: 1.45rem; }
+.bb-lille .btn .icon { font-size: 1.3rem; }
+.bb-lille .btn .small { font-size: 0.9rem; }
+.bb-lille .btn.wide { min-width: calc(var(--btn) * 1.6); }
+/* Sideknapperne viser kun pilen på små skærme (teksten står i aria-label) */
+.bb-lille .trin-nav .btn .big { display: none; }
+.bb-lille .trin-nav .btn .icon { font-size: 2.4rem; }
+.bb-lille .trin-label { min-width: 0; font-size: 1rem; }
+/* Startmenu på højkant: de fire små knapper i to kolonner */
+.bb-lille:not(.bb-tvaers) #menu .more-row { display: grid; grid-template-columns: 1fr 1fr; width: min(100%, 26em); }
+/* Spillet på højkant: logoet gør plads til en stor pauseknap */
+.bb-lille .lay-below .side-logo { display: none; }
+.bb-lille .link-btn { min-width: calc(var(--btn) * 1.6); }
+.bb-lille .screen { padding: 12px; }
+.bb-lille .panel { padding: 14px 18px; }
+.bb-lille .overlay .panel { gap: 12px; }
+.bb-lille .records li { padding-top: 3px; padding-bottom: 3px; }
+.bb-lille #settings, .bb-lille #records { padding-top: 12px; }
+.bb-lille .setting-label { font-size: 1.2rem; }
+.bb-lille .setting .row { gap: 12px; }
+.bb-lille .theme-btn .swatch { width: 48px; height: 26px; }
+.bb-lille .overlay .panel { max-width: calc(100% - 16px); }
+.bb-lille #menu.hall-inflow .hall-btn { min-height: var(--btn); }
+
+/* Game over: knapperne på én række, der må ombrydes */
+.bb-lille .go-actions { flex-direction: row; flex-wrap: wrap; justify-content: center; }
+.bb-lille .go-actions > .row { display: contents; }
+.bb-lille .go-head { gap: 6px; }
+.bb-lille #go-score { font-size: clamp(2.4rem, 9vmin, 4rem); }
+.go-split .go-records { display: none; }
+.go-split.go-vis-rekorder .go-records { display: block; }
+.go-split.go-vis-rekorder .go-head { display: none; }
+
+/* Mobil på tværs: startmenuen som et gitter med tre rækker knapper */
+.bb-tvaers #menu {
+  display: grid; justify-content: safe center; align-content: safe center; justify-items: center; align-items: center;
+  grid-template-columns: auto auto auto;
+  grid-template-areas: "hall title title" "sizes sizes start" "note note note" "more more more";
+  column-gap: var(--gap); row-gap: calc(var(--gap) * 0.6);
+}
+.bb-tvaers #menu .hall-btn { grid-area: hall; position: static; justify-self: start; }
+.bb-tvaers #menu .title-block { grid-area: title; justify-self: start; }
+.bb-tvaers #menu .title-row .arkade-logo { height: calc(var(--btn) * 0.8); }
+.bb-tvaers #menu .neon-title { font-size: clamp(2rem, 11vh, 3.4rem); }
+.bb-tvaers #menu .lead { display: none; }
+.bb-tvaers #menu .menu-group { grid-area: sizes; }
+.bb-tvaers #menu .group-label { margin: 0 0 4px; }
+.bb-tvaers #menu .size-note { grid-area: note; }
+.bb-tvaers #menu .start-row { grid-area: start; align-self: end; }
+.bb-tvaers #menu .more-row { grid-area: more; }
+
+/* Mobil på tværs: indstillinger med teksten ved siden af knapperne */
+.bb-tvaers .setting { grid-template-columns: minmax(6em, 10em) auto; column-gap: 16px; justify-items: start; justify-content: center; text-align: left; }
+.bb-tvaers .setting .row { justify-content: flex-start !important; }
+.bb-tvaers #settings .tab-panel { gap: 10px; }
+.bb-tvaers .om-logo { height: 84px; }
+.bb-tvaers .om-panel p { font-size: 1.1rem; line-height: 1.45; }
+.bb-tvaers .go-layout { flex-wrap: nowrap; align-items: center; }
+.bb-lille #menu.tight .title-row .arkade-logo { height: 72px; }
+/* Game over på tværs: rekordlisten i fuld bredde (to spalter) over knapperne */
+.bb-tvaers .go-split.go-vis-rekorder .go-layout { flex-direction: column; flex-wrap: nowrap; gap: 12px; }
+.bb-tvaers .go-split.go-vis-rekorder .go-records { order: -1; width: min(820px, 100%); padding-top: 8px; padding-bottom: 8px; }
+.bb-tvaers .go-split.go-vis-rekorder .go-records .group-label { margin: 0 0 4px; }
+/* Indstillinger på små skærme: tætte faner; på højkant to faner pr. række */
+.bb-lille #settings .tabs { gap: 10px; }
+.bb-lille:not(.bb-tvaers) #settings .tabs { display: grid; grid-template-columns: 1fr 1fr; width: min(100%, 24em); }
+.bb-lille #settings .trin-bund { gap: 10px; margin-top: auto; }
+.bb-tvaers #menu .size-note { font-size: 0.9rem; line-height: 1.25; max-width: 52em; }
+.bb-lille .value-box { min-width: 4.2em; font-size: 1.5rem; }

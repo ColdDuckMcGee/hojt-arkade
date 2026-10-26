@@ -51,7 +51,7 @@
       <img class="arkade-logo" src="../arkade/logo.svg" alt="Hojt Arkade">
       <h1 id="titel" class="neon-title">BOMBERNE</h1>
     </div>
-    <p class="lead">Læg bomber i labyrinten, spræng kasserne, og ram fjenderne. Hver gang du vælger én ting, flytter fjenderne ét felt, og bomberne tæller ned. Rød skravering viser, hvor flammen kommer. Der er ingen tid – tænk dig om.</p>
+    <p class="lead opt">Læg bomber i labyrinten, spræng kasserne, og ram fjenderne. Hver gang du vælger én ting, flytter fjenderne ét felt, og bomberne tæller ned. Rød skravering viser, hvor flammen kommer. Der er ingen tid – tænk dig om.</p>
   </header>
   <section class="menu-group" aria-labelledby="str-label">
     <h2 id="str-label" class="group-label">Brættets størrelse</h2>
@@ -62,10 +62,10 @@
     </div>
   </section>
   <p class="size-note" id="size-note" aria-live="polite"></p>
-  <div class="row">
+  <div class="row start-row">
     <button class="btn primary wide" id="btn-start"><span class="big">Start spil</span><span class="small">Tre liv</span></button>
   </div>
-  <div class="row">
+  <div class="row more-row">
     <button class="btn" id="btn-settings"><span class="icon" aria-hidden="true">⚙</span><span class="big">Indstillinger</span></button>
     <button class="btn" id="btn-records"><span class="icon" aria-hidden="true">★</span><span class="big">Rekorder</span></button>
     <button class="btn js-fullscreen"><span class="icon" aria-hidden="true">⛶</span><span class="big js-fs-label">Fuld skærm</span></button>
@@ -75,18 +75,18 @@
 
 <!-- ================= OM ================= -->
 <main id="om" class="screen" hidden aria-labelledby="om-title">
-  <img class="arkade-logo om-logo" src="../arkade/logo.svg" alt="Hojt Arkade">
+  <img class="arkade-logo om-logo opt" data-trin src="../arkade/logo.svg" alt="Hojt Arkade">
   <section class="panel om-panel">
     <h2 id="om-title" class="neon-sub">Om Hojt Arkade</h2>
-    <p>Hojt Arkade er udviklet af Jon Leismann Engsager, Hojt Design. Jon er IT- og IKT-konsulent i det specialiserede område og laver blandt andet gratis spil til voksne, der bruger øjenstyring.</p>
-    <p>Bomberne: 100 point for en fjende (200 for en jæger), 10 point for en kasse og 50 for en bonus. En klaret bane giver 100 point gange banens nummer. Du kan fortryde ét træk på hver bane.</p>
-    <p>Koden er åben og frit tilgængelig under MIT-licensen, så alle kan bruge den og bygge videre på den.</p>
+    <p data-trin>Hojt Arkade er udviklet af Jon Leismann Engsager, Hojt Design. Jon er IT- og IKT-konsulent i det specialiserede område og laver blandt andet gratis spil til voksne, der bruger øjenstyring.</p>
+    <p data-trin>Bomberne: 100 point for en fjende (200 for en jæger), 10 point for en kasse og 50 for en bonus. En klaret bane giver 100 point gange banens nummer. Du kan fortryde ét træk på hver bane.</p>
+    <p data-trin>Koden er åben og frit tilgængelig under MIT-licensen, så alle kan bruge den og bygge videre på den.</p>
   </section>
-  <div class="row">
+  <div class="row" data-trin>
     <a class="btn link-btn" id="link-hojt" href="https://hojt.dk" target="_blank" rel="noopener"><span class="big">Hojt Design</span><span class="small">hojt.dk</span></a>
     <a class="btn link-btn" id="link-github" href="https://github.com/ColdDuckMcGee/hojt-arkade" target="_blank" rel="noopener"><span class="big">Koden på GitHub</span><span class="small">github.com/ColdDuckMcGee/hojt-arkade</span></a>
   </div>
-  <div class="row">
+  <div class="row om-back-row">
     <button class="btn primary wide" id="btn-om-back"><span class="icon" aria-hidden="true">←</span><span class="big">Tilbage</span></button>
     <a class="btn" id="link-alle-spil" href="../index.html"><span class="icon" aria-hidden="true">▦</span><span class="big">Alle spil</span></a>
   </div>
@@ -185,17 +185,23 @@
 <main id="gameover" class="screen" hidden aria-labelledby="go-title">
   <div class="go-layout">
     <section class="go-result">
-      <h2 id="go-title" class="neon-sub">Spillet er slut</h2>
-      <p class="go-reason" id="go-reason">Flammen ramte dig på bane 1.</p>
-      <div class="go-score"><span id="go-score">0</span><span class="go-unit">point</span></div>
-      <p class="go-plates" id="go-levels">Du nåede bane 1</p>
-      <p class="go-rank" id="go-rank"></p>
-      <div class="row">
-        <button class="btn primary wide" id="btn-again" data-autofocus><span class="big">Nyt spil</span><span class="small" id="go-again-sub">11 × 9</span></button>
+      <div class="go-head">
+        <h2 id="go-title" class="neon-sub">Spillet er slut</h2>
+        <p class="go-reason" id="go-reason">Flammen ramte dig på bane 1.</p>
+        <div class="go-score"><span id="go-score">0</span><span class="go-unit">point</span></div>
+        <p class="go-plates" id="go-levels">Du nåede bane 1</p>
+        <p class="go-rank" id="go-rank"></p>
       </div>
-      <div class="row">
-        <button class="btn" id="btn-go-menu"><span class="icon" aria-hidden="true">⌂</span><span class="big">Til menuen</span></button>
-        <a class="btn" href="../index.html"><span class="icon" aria-hidden="true">▦</span><span class="big">Alle spil</span></a>
+      <div class="go-actions">
+        <div class="row">
+          <button class="btn primary wide" id="btn-again" data-autofocus><span class="big">Nyt spil</span><span class="small" id="go-again-sub">11 × 9</span></button>
+        </div>
+        <div class="row">
+          <button class="btn" id="btn-go-menu"><span class="icon" aria-hidden="true">⌂</span><span class="big">Til menuen</span></button>
+          <a class="btn" id="link-go-alle" href="../index.html"><span class="icon" aria-hidden="true">▦</span><span class="big">Alle spil</span></a>
+          <!-- Kun på små skærme: skifter mellem resultatet og rekordlisten -->
+          <button class="btn go-toggle" id="btn-go-rec" hidden><span class="icon" aria-hidden="true" id="go-rec-icon">★</span><span class="big" id="go-rec-label">Rekorder</span></button>
+        </div>
       </div>
     </section>
     <section class="go-records panel">
@@ -284,6 +290,8 @@
       </div>
     </div>
   </section>
+  <!-- Forrige/Næste nederst, når indstillingerne er delt på flere sider på højkant -->
+  <div class="row trin-bund" hidden></div>
 </main>
 
 <!-- ================= REKORDER ================= -->

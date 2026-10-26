@@ -119,7 +119,7 @@
     current = id;
     dwell.reset();
     if (id === 'menu') syncMenu();
-    if (id === 'game') layoutGame(); else fitScreen($('#' + id));
+    if (id === 'game') layoutGame(); else fitScreen($('#' + id), true);
     var first = $('#' + id + ' [data-autofocus]');
     if (first) first.focus({ preventScroll: true });
   }
@@ -470,7 +470,7 @@
     $('#dwell-plus').disabled = t >= 3 - 1e-9;
   }
   $$('#settings [data-tab]').forEach(function (b) {
-    b.addEventListener('click', function () { sfx('click'); settingsTab = b.dataset.tab; syncSettingsUi(); fitScreen($('#settings')); });
+    b.addEventListener('click', function () { sfx('click'); settingsTab = b.dataset.tab; syncSettingsUi(); fitScreen($('#settings'), true); });
   });
   $$('#settings [data-set]').forEach(function (b) {
     b.addEventListener('click', function () {
@@ -563,15 +563,27 @@
     LAYOUTS.forEach(function (l) { if (!not[l] && (best === null || res[l] > res[best])) best = l; });
     return best;
   }
-  function cellSizeFor(sizeId) {
-    var v = viewport(), b = cssBtn(v.W, v.H), res, cell = 0;
-    for (var k = 0; k < 16 && cell <= 0; k++) {
-      res = candidates(sizeId, b, v.W, v.H);
-      cell = res[pick(res)];
-      b = Math.max(40, b * 0.93);
-    }
-    return Math.max(0, cell);
+  // Som pick, men pile rundt om brættet bruges kun, hvis felterne bliver store nok (som i layoutGame)
+  function pickUsable(res) {
+    var not = {}, lay = pick(res, not);
+    for (var i = 0; i < 2 && (lay === 'wide' || lay === 'tall') && res[lay] < AROUND_MIN; i++) { not[lay] = true; lay = pick(res, not); }
+    return lay;
   }
+  // Omtrentlig feltstørrelse (til advarslen på startskærmen)
+  function cellSizeFor(sizeId) {
+    var v = viewport(), floors = isSmall(v) ? [SMALL_MIN, 40] : [40];
+    for (var f = 0; f < floors.length; f++) {
+      var b = Math.max(floors[f], cssBtn(v.W, v.H));
+      for (var k = 0; k < 16; k++) {
+        var res = candidates(sizeId, b, v.W, v.H), cell = res[pickUsable(res)];
+        if (cell > 0) return cell;
+        if (b <= floors[f]) break;
+        b = Math.max(floors[f], b * 0.93);
+      }
+    }
+    return 0;
+  }
+
 
   var gameEl = $('#game'), gridEl = $('#game-grid');
   function overflows(el) { return el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1; }
@@ -586,7 +598,9 @@
     st.setProperty('--game-pad', res.p + 'px');
     st.setProperty('--game-gap', res.g + 'px');
     st.setProperty('--side-w', Math.floor(res.sideW) + 'px');
-    st.setProperty('--hud-h', Math.round(Math.max(48, Math.min(96, b * 0.62))) + 'px');
+    var hudH = Math.round(Math.max(48, Math.min(96, b * 0.62)));
+    st.setProperty('--hud-h', hudH + 'px');
+    st.setProperty('--pause-s', Math.max(SMALL_MIN, hudH) + 'px'); // pauseknappen er altid mindst SMALL_MIN
     st.setProperty('--board-w', bw + 'px');
     st.setProperty('--board-h', bh + 'px');
     var long = (lay === 'wide' || lay === 'tall') ? Math.max(b, Math.min(Math.min(bw, bh) * 0.75, b * 2.4)) : b;
@@ -604,26 +618,33 @@
   function layoutGame() {
     if (current !== 'game' || !run) return;
     var v = viewport(), sizeId = run.state.sizeId;
-    var b = cssBtn(v.W, v.H), lay, res, cell;
-    for (var k = 0; k < 16; k++) {
-      var not = {};
-      for (var t = 0; t < 3; t++) {
-        res = candidates(sizeId, b, v.W, v.H);
-        lay = pick(res, not);
-        if (!res[lay] && b > 40) break;   // intet layout passer: mindre knapper
-        cell = Math.max(12, res[lay]);
+    var lay, res, cell;
+    // Prøv først med knapper på mindst SMALL_MIN på små skærme; passer intet, så ned til 40 px.
+    var floors = isSmall(v) ? [SMALL_MIN, 40] : [40];
+    for (var f = 0; f < floors.length; f++) {
+      var floor = floors[f], b = Math.max(floor, cssBtn(v.W, v.H)), ok = false;
+      for (var k = 0; k < 16; k++) {
+        var not = {};
+        for (var t = 0; t < 3; t++) {
+          res = candidates(sizeId, b, v.W, v.H);
+          lay = pick(res, not);
+          if (!res[lay] && b > floor) break;   // intet layout passer: mindre knapper
+          cell = Math.max(12, res[lay]);
+          applyLayout(lay, b, cell, res, sizeId);
+          // 2. gang med de målte panelhøjder
+          res = candidates(sizeId, b, v.W, v.H, measurePanels(lay, res));
+          cell = Math.max(12, res[lay]);
+          // Pile rundt om et bræt med for små felter er ikke det værd: prøv et andet layout
+          if ((lay === 'wide' || lay === 'tall') && cell < AROUND_MIN) { not[lay] = true; continue; }
+          break;
+        }
+        if (!res[lay] && b > floor) { b = Math.max(floor, b * 0.93); continue; }
         applyLayout(lay, b, cell, res, sizeId);
-        // 2. gang med de målte panelhøjder
-        res = candidates(sizeId, b, v.W, v.H, measurePanels(lay, res));
-        cell = Math.max(12, res[lay]);
-        // Pile rundt om et bræt med for små felter er ikke det værd: prøv et andet layout
-        if ((lay === 'wide' || lay === 'tall') && cell < AROUND_MIN) { not[lay] = true; continue; }
-        break;
+        if (res[lay] && !overflows(gameEl) && !overflows(root)) { ok = true; break; }
+        if (b <= floor) break;
+        b = Math.max(floor, b * 0.93);
       }
-      if (!res[lay] && b > 40) { b = Math.max(40, b * 0.93); continue; }
-      applyLayout(lay, b, cell, res, sizeId);
-      if (!overflows(gameEl) && !overflows(root)) break;
-      b = Math.max(40, b * 0.93);
+      if (ok) break;
     }
     gameEl.dataset.layout = lay;
     gameEl.dataset.cell = cell;
@@ -631,19 +652,141 @@
     drawBoard();
   }
 
-  // De andre skærme (og pauseboksene) gøres mindre, til alt kan ses:
-  // først mindre knapper og afstande, til sidst zoom som nødløsning.
-  function fitScreen(el) {
+  // ---------- Små skærme ----------
+  // Er vinduets korte side under 560 px (fx mobil på langs og på højkant), er
+  // det en lille skærm. Her bliver knapperne aldrig mindre end SMALL_MIN, og der
+  // zoomes ikke. Er der ikke plads, deles skærmen i stedet op i flere sider.
+  var SMALL_MIN = 84, SMALL_SIDE = 560;
+  function isSmall(v) { v = v || viewport(); return Math.min(v.W, v.H) < SMALL_SIDE; }
+  function syncSmall() {
+    var v = viewport(), small = isSmall(v);
+    root.classList.toggle('bb-lille', small);
+    root.classList.toggle('bb-tvaers', small && v.W > v.H);
+  }
+
+  // Sider: blokkene (data-trin) fordeles på så få sider, som der er plads til.
+  // Knapperne Forrige og Næste står i `navIn`, sammen med de faste knapper.
+  function makePager(screen, opts) {
+    var nav = document.createElement('div');
+    nav.className = 'trin-nav';
+    nav.hidden = true;
+    nav.innerHTML = '<button class="btn trin-prev" aria-label="Forrige side"><span class="icon" aria-hidden="true">‹</span><span class="big">Forrige</span></button>' +
+      '<span class="trin-label" aria-live="polite"></span>' +
+      '<button class="btn trin-next" aria-label="Næste side"><span class="icon" aria-hidden="true">›</span><span class="big">Næste</span></button>';
+    opts.navIn.appendChild(nav);
+    // På højkant kan navigationen stå nederst i stedet (opts.navBottom)
+    function placeNav() {
+      var host = (opts.navBottom && !root.classList.contains('bb-tvaers')) ? opts.navBottom : opts.navIn;
+      if (nav.parentNode !== host) host.appendChild(nav);
+      if (opts.navBottom) opts.navBottom.hidden = host !== opts.navBottom || nav.hidden;
+    }
+    var prev = nav.querySelector('.trin-prev'), next = nav.querySelector('.trin-next'), label = nav.querySelector('.trin-label');
+    var pages = [], idx = 0;
+    function setHidden(el, h) { el.classList.toggle('trin-skjult', h); }
+    function showPage(i, moveFocus) {
+      idx = Math.max(0, Math.min(pages.length - 1, i));
+      pages.forEach(function (pg, k) { pg.forEach(function (el) { setHidden(el, k !== idx); }); });
+      label.textContent = 'Side ' + (idx + 1) + ' af ' + pages.length;
+      prev.disabled = idx === 0;
+      next.disabled = idx === pages.length - 1;
+      if (moveFocus) {
+        var a = document.activeElement;
+        if (a === prev && prev.disabled) next.focus({ preventScroll: true });
+        else if (a === next && next.disabled) prev.focus({ preventScroll: true });
+      }
+    }
+    prev.addEventListener('click', function () { sfx('click'); showPage(idx - 1, true); });
+    next.addEventListener('click', function () { sfx('click'); showPage(idx + 1, true); });
+    return {
+      // Alt vises igen (navigationen skjules)
+      reset: function () {
+        opts.all().forEach(function (el) { setHidden(el, false); });
+        nav.hidden = true; pages = [];
+        placeNav();
+      },
+      // Fordel blokkene på sider. keep: bliv på samme side (fx ved ændret vinduesstørrelse)
+      paginate: function (keep) {
+        var blocks = opts.blocks(), was = keep ? idx : 0;
+        nav.hidden = false;
+        placeNav();
+        label.textContent = 'Side 1 af 2';
+        blocks.forEach(function (el) { setHidden(el, true); });
+        pages = [];
+        var cur = [];
+        blocks.forEach(function (el) {
+          setHidden(el, false);
+          if (cur.length && overflows(screen)) {
+            setHidden(el, true);
+            cur.forEach(function (c) { setHidden(c, true); });
+            pages.push(cur);
+            cur = [el];
+            setHidden(el, false);
+          } else cur.push(el);
+        });
+        if (cur.length) pages.push(cur);
+        if (pages.length < 2) { this.reset(); return; }
+        showPage(was);
+      },
+      get pages() { return pages.length; },
+      get index() { return idx; },
+      go: function (i) { showPage(i, true); }
+    };
+  }
+  var pagers = {
+    settings: makePager($('#settings'), {
+      navIn: $('#settings .tabs'),
+      navBottom: $('#settings .trin-bund'),
+      all: function () { return $$('#settings .tab-panel > *'); },
+      blocks: function () { return $$('#settings .tab-panel:not([hidden]) > *'); }
+    }),
+    om: makePager($('#om'), {
+      navIn: $('#om .om-back-row'),
+      all: function () { return $$('#om [data-trin]'); },
+      blocks: function () { return $$('#om [data-trin]'); }
+    })
+  };
+
+  // Game over på en lille skærm: resultatet og rekordlisten på hver sin side,
+  // og én knap skifter mellem dem. Nyt spil står på begge sider.
+  var goEl = $('#gameover'), goShowRecords = false;
+  function setGoSplit(on) {
+    goEl.classList.toggle('go-split', on);
+    $('#btn-go-rec').hidden = !on;
+    goEl.classList.toggle('go-vis-rekorder', on && goShowRecords);
+    $('#go-rec-label').textContent = goShowRecords ? 'Resultat' : 'Rekorder';
+    $('#go-rec-icon').textContent = goShowRecords ? '←' : '★';
+  }
+  $('#btn-go-rec').addEventListener('click', function () {
+    sfx('click');
+    goShowRecords = !goShowRecords;
+    setGoSplit(true);
+    fitScreen(goEl);
+    $('#btn-go-rec').focus({ preventScroll: true });
+  });
+
+  // De andre skærme (og pauseboksene) tilpasses vinduet, til alt kan ses:
+  // 1) mindre knapper og afstande (på små skærme aldrig under SMALL_MIN),
+  // 2) valgfri tekst skjules, 3) indholdet deles på flere sider,
+  // 4) til allersidst zoom som nødløsning (kun hvis vinduet er meget lille).
+  function fitScreen(el, resetPage) {
     if (!el || el.hidden) return;
-    var v = viewport(), base = cssBtn(v.W, v.H), gap = cssGap(v.W, v.H);
-    var target = el.classList.contains('overlay') ? el.querySelector('.panel') : el;
-    var box = el;
+    var v = viewport(), small = isSmall(v), gap = cssGap(v.W, v.H);
+    var isOverlay = el.classList.contains('overlay');
+    var target = isOverlay ? el.querySelector('.panel') : el;
+    var box = el, pager = pagers[el.id];
     target.style.zoom = '';
-    if (el !== gameEl && !el.classList.contains('overlay')) { el.style.removeProperty('--btn'); el.style.removeProperty('--gap'); }
+    el.style.removeProperty('--btn'); el.style.removeProperty('--gap');
+    el.classList.remove('tight');
     if (el.id === 'menu') el.classList.remove('hall-inflow');
+    var keepPage = !resetPage && pager && pager.pages > 1;
+    if (pager) pager.reset();
+    if (el === goEl) { if (resetPage) goShowRecords = false; setGoSplit(false); }
+    var base = isOverlay ? (parseFloat(getComputedStyle(el).getPropertyValue('--btn')) || cssBtn(v.W, v.H)) : cssBtn(v.W, v.H);
+    var minB = small ? SMALL_MIN : 52;
+    if (base < minB) { base = minB; el.style.setProperty('--btn', base + 'px'); }
     var fits = function () {
       if (overflows(box)) return false;
-      if (el.id === 'menu') {
+      if (el.id === 'menu' && !root.classList.contains('bb-tvaers')) {
         var h = $('#btn-hall').getBoundingClientRect(), t = $('.title-block').getBoundingClientRect();
         if (!el.classList.contains('hall-inflow') && h.right > t.left && h.bottom > t.top && h.left < t.right && h.top < t.bottom) {
           el.classList.add('hall-inflow');
@@ -653,14 +796,15 @@
       return true;
     };
     if (fits()) return;
-    if (!el.classList.contains('overlay')) {
-      var b = base;
-      for (var i = 0; i < 12 && !fits() && b > 52; i++) {
-        b = Math.max(52, b * 0.92);
-        el.style.setProperty('--btn', b + 'px');
-        el.style.setProperty('--gap', Math.max(10, gap * b / base) + 'px');
-      }
+    var b = base;
+    for (var i = 0; i < 12 && !fits() && b > minB; i++) {
+      b = Math.max(minB, b * 0.92);
+      el.style.setProperty('--btn', b + 'px');
+      el.style.setProperty('--gap', Math.max(10, gap * b / base) + 'px');
     }
+    if (!fits()) el.classList.add('tight');
+    if (!fits() && el === goEl) setGoSplit(true);
+    if (!fits() && pager) pager.paginate(keepPage);
     var z = 1;
     for (var j = 0; j < 10 && !fits(); j++) {
       var r = Math.min(box.clientHeight / box.scrollHeight, box.clientWidth / box.scrollWidth, 0.97);
@@ -673,6 +817,7 @@
   }
   var resizeTimer = 0;
   window.addEventListener('resize', function () {
+    syncSmall();
     if (current === 'menu') syncMenu();
     fitCurrent();
     clearTimeout(resizeTimer);
@@ -680,6 +825,7 @@
   });
 
   // ---------- Start ----------
+  syncSmall();
   applyTheme();
   applyBackground();
   applyAnimation();
