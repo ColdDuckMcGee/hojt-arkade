@@ -1,0 +1,490 @@
+/* Søslag – spillets egen opsætning. Bygger på ../arkade/arkade.css.
+ * Startmenu, overlays, game over, indstillinger, rekorder, Om og små skærme
+ * følger Blokke og Bomberne, så spillene ser ens ud og opfører sig ens. */
+
+/* ---------- Farver ----------
+ * Plask, ramt og sænket har hver sin form OG farve:
+ *   plask  = ring (blå)      ramt = kryds (orange)      sænket = fyldt rødt felt med kryds
+ * Computerens hav har cyan ramme (radar), dit eget hav har temaets farve. */
+:root, [data-theme] {
+  --ss-sea: rgba(4, 8, 26, 0.9);
+  --ss-grid: rgba(80, 170, 255, 0.2);
+  --ss-enemy: #22eaff;
+  --ss-home: #ff3fd8;
+  --ss-hull: #b07bff;
+  --ss-miss: #7fb4ff;
+  --ss-hit: #ffa52e;
+  --ss-sunk: #ff2d55;
+  --ss-aim: #ffd23a;
+  --ss-last: #ffe8fb;
+  --ss-ok: #39ff6a;
+  --ss-bad: #ff2d55;
+  --ss-hover: rgba(255, 232, 251, 0.55);
+}
+[data-theme="solnedgang"] { --ss-enemy: #4fd8ff; --ss-home: #ff8a1f; --ss-hull: #c77dff; --ss-sea: rgba(16, 6, 30, 0.9); --ss-grid: rgba(199, 125, 255, 0.2); }
+[data-theme="cyberpunk"] { --ss-enemy: #39ff6a; --ss-home: #2a9dff; --ss-hull: #2a9dff; --ss-sea: rgba(0, 8, 10, 0.92); --ss-grid: rgba(57, 255, 106, 0.16); --ss-miss: #9fd0ff; }
+[data-theme="kontrast"] {
+  --ss-sea: #000000; --ss-grid: rgba(255, 255, 255, 0.45);
+  --ss-enemy: #ffffff; --ss-home: #ffff00; --ss-hull: #00ffff;
+  --ss-miss: #00ffff; --ss-hit: #ff8800; --ss-sunk: #ff0000; --ss-aim: #ffff00; --ss-last: #ff00ff;
+  --ss-ok: #00ff00; --ss-bad: #ff0000; --ss-hover: #ffffff;
+}
+
+/* ---------- Startmenu ---------- */
+#menu { gap: calc(var(--gap) * 0.7); }
+.title-block { text-align: center; max-width: 1100px; }
+.title-row { display: flex; align-items: center; justify-content: center; gap: max(16px, 3vmin); flex-wrap: wrap; }
+.title-row .arkade-logo { height: clamp(100px, 18vh, 200px); }
+.neon-title { font-size: clamp(2.6rem, 8.5vmin, 5.5rem); letter-spacing: 0.1em; }
+.lead { text-shadow: 0 1px 6px #000, 0 0 2px #000; margin: 10px auto 0; max-width: 46em; color: var(--muted); font-size: 1.1rem; line-height: 1.5; }
+.menu-group { display: flex; flex-direction: column; align-items: center; }
+.size-note { margin: 0; min-height: 0; color: var(--accent); text-align: center; max-width: 40em; text-shadow: 0 1px 4px #000; }
+.size-note:empty { display: none; }
+@media (max-height: 900px) {
+  .lead { display: none; }
+  .title-row .arkade-logo { height: clamp(80px, 14vh, 150px); }
+}
+
+/* Tilbage til hallen: fast i hjørnet, roligere stil end de andre knapper */
+.hall-btn {
+  position: absolute; top: max(16px, 2.5vmin); left: max(16px, 2.5vmin);
+  width: max(var(--btn), 7.5em); min-height: var(--btn); padding: 8px 10px;
+  border-width: 2px; border-color: color-mix(in srgb, var(--muted) 70%, transparent);
+  background: rgba(0, 0, 0, 0.45); box-shadow: none; color: var(--muted);
+}
+.hall-btn .big { font-size: 1.05rem; font-weight: 600; line-height: 1.2; text-align: center; }
+.hall-ico { width: 42%; height: auto; fill: none; stroke: var(--muted); stroke-width: 7; stroke-linejoin: round; }
+.hall-btn:hover, .hall-btn.arkade-dwelling { color: var(--ui-text); border-color: var(--muted); background: rgba(255, 255, 255, 0.08); box-shadow: none; }
+
+/* ---------- Hele vinduet, ingen rulning ---------- */
+html, body { height: 100%; height: 100dvh; }
+.screen { justify-content: safe center; align-items: safe center; }
+.screen > *, .overlay > .panel, .tab-panel > *, .go-result > * { flex-shrink: 0; }  /* intet presses sammen – hellere mindre knapper */
+/* Lave skærme: rekordlisten i to spalter */
+@media (max-height: 640px) and (min-width: 700px) {
+  .records { columns: 2; column-gap: 20px; }
+  .records li { break-inside: avoid; }
+}
+/* Tilbage til hallen flyttes ind i rækken, hvis den ellers ville ramme titlen */
+#menu.hall-inflow .hall-btn { position: static; align-self: flex-start; order: -1; flex: none; width: auto; min-height: calc(var(--btn) * 0.7); flex-direction: row; gap: 12px; padding: 8px 18px; }
+#menu.hall-inflow .hall-ico { width: 32px; }
+.menu-groups { display: flex; flex-wrap: wrap; justify-content: center; gap: calc(var(--gap) * 0.6) calc(var(--gap) * 1.4); }
+
+/* ---------- Spilleskærm ----------
+ * js/app.js vælger det layout, der giver de største felter, og sætter
+ * --btn, --cell, --lab, --board-px, --mini-cell m.fl. på #game. */
+#game { padding: var(--game-pad, 12px); overflow: hidden; }
+.game-grid { display: grid; gap: var(--game-gap, 24px); align-items: center; justify-items: center; }
+.lay-wide { grid-template-columns: var(--side-w, 300px) auto var(--side-w, 300px); grid-template-areas: "sideL board sideR"; }
+.lay-side { grid-template-columns: auto var(--panel-w, 400px); grid-template-areas: "board sideL" "board sideR"; }
+.lay-below { grid-template-columns: var(--panel-w, 360px); grid-template-areas: "sideL" "board" "sideR"; }
+.side-left { grid-area: sideL; }
+.side-right { grid-area: sideR; }
+
+/* Hvilke dele der vises i hvilken fase */
+#game[data-phase="place"] :is(.ph-battle, .ph-end):not(.ph-place),
+#game[data-phase="battle"] :is(.ph-place, .ph-end):not(.ph-battle),
+#game[data-phase="end"] :is(.ph-place, .ph-battle):not(.ph-end) { display: none !important; }
+
+.side { width: var(--side-w, 300px); display: flex; flex-direction: column; align-items: stretch; gap: calc(var(--gap) * 0.45); align-self: center; }
+.side-logo { height: clamp(56px, 9vh, 100px); align-self: center; }
+.hud-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.hud { padding: 6px 10px; text-align: center; background: var(--panel); border-radius: 14px; border: 1px solid var(--ui-soft); }
+.hud-label { font-size: 0.95rem; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
+.hud-value { font-size: clamp(1.5rem, calc(var(--side-w, 300px) * 0.085), 2.4rem); font-weight: 800; font-variant-numeric: tabular-nums; color: var(--ui-text); line-height: 1.15; }
+.pause-btn { align-self: center; width: var(--btn); height: var(--btn); padding: 6px; }
+.pause-btn svg { width: 46%; height: 46%; fill: var(--ui); }
+
+/* Computerens skibe, der er tilbage */
+.fleet-box, .ship-box { background: var(--panel); border: 1px solid var(--ui-soft); border-radius: 16px; padding: 10px 12px; }
+.fleet-title { margin: 0 0 8px; font-size: 1.05rem; font-weight: 700; color: var(--muted); text-align: center; letter-spacing: 0.03em; }
+.fleet { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.fleet li { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; font-size: 1.1rem; }
+.fleet .fstate { color: var(--muted); font-size: 0.95rem; }
+.fleet li.sunk .fname { text-decoration: line-through; color: var(--muted); }
+.fleet li.sunk .fstate { color: var(--ss-sunk); font-weight: 700; }
+/* Lille skibsikon: ét felt pr. del, runde ender */
+.sicon { display: inline-flex; gap: 2px; --s: clamp(12px, calc(var(--btn) * 0.16), 24px); }
+.sicon i { position: relative; display: block; width: var(--s); height: var(--s); background: color-mix(in srgb, var(--ss-hull) 40%, #000); border: 2px solid var(--ss-hull); border-radius: 3px; }
+.sicon i.e1 { border-radius: 999px 3px 3px 999px; }
+.sicon i.e2 { border-radius: 3px 999px 999px 3px; }
+.sicon.sunk i { background: color-mix(in srgb, var(--ss-sunk) 55%, #000); border-color: var(--ss-sunk); }
+.sicon i.x::before, .sicon i.x::after { content: ""; position: absolute; left: 10%; right: 10%; top: 50%; height: 2px; background: #fff0f3; transform: rotate(45deg); }
+.sicon i.x::after { transform: rotate(-45deg); }
+[data-theme="kontrast"] .sicon i.x::before, [data-theme="kontrast"] .sicon i.x::after { background: #000; }
+
+/* Placering: knapper til de fem skibe */
+.ship-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.ship-btn { min-width: 0; min-height: 0; height: max(80px, calc(var(--btn) * 0.74)); padding: 6px 8px; gap: 6px; }
+.ship-btn .small { font-size: 0.95rem; line-height: 1.15; text-align: center; }
+.ship-btn:first-child { grid-column: 1 / -1; }
+.ship-btn[aria-pressed="true"] .small { color: var(--bg); }
+.ship-btn[aria-pressed="true"] .sicon i { border-color: var(--bg); }
+
+/* Det store hav */
+.board-wrap { grid-area: board; display: flex; flex-direction: column; align-items: center; gap: 6px; width: var(--board-px, 600px); }
+.board-title {
+  width: 100%; margin: 0; padding: 2px 10px; border-radius: 10px; text-align: center;
+  font-size: clamp(1rem, calc(var(--cell, 80px) * 0.26), 1.6rem); font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--ui-text); text-shadow: 0 1px 4px #000; border: 2px solid transparent;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.board-title.you { color: var(--ss-enemy); }
+.board-title.ai { color: var(--ss-home); border-color: var(--ss-home); background: color-mix(in srgb, var(--ss-home) 16%, rgba(0, 0, 0, 0.6)); }
+.board-title.won { color: var(--ss-ok); border-color: var(--ss-ok); background: rgba(0, 0, 0, 0.55); }
+.board-title.lost { color: var(--ss-sunk); border-color: var(--ss-sunk); background: rgba(0, 0, 0, 0.55); }
+.sea { display: grid; grid-template-columns: var(--lab, 24px) auto; grid-template-rows: var(--lab, 24px) auto; }
+.labels { display: grid; color: var(--muted); font-weight: 700; font-size: calc(var(--lab, 24px) * 0.62); text-shadow: 0 1px 3px #000; }
+.labels span { display: grid; place-items: center; }
+.labels.cols { grid-column: 2; grid-row: 1; grid-template-columns: repeat(var(--n, 8), var(--cell, 80px)); padding: 0 3px; }
+.labels.rows { grid-column: 1; grid-row: 2; grid-template-rows: repeat(var(--n, 8), var(--cell, 80px)); padding: 3px 0; }
+.board {
+  grid-column: 2; grid-row: 2;
+  display: grid; grid-template-columns: repeat(var(--n, 8), var(--cell, 80px)); grid-template-rows: repeat(var(--n, 8), var(--cell, 80px));
+  background: var(--ss-sea); border: 3px solid var(--fr, var(--ss-enemy)); border-radius: 10px; overflow: hidden;
+  box-shadow: 0 0 calc(20px * var(--glow)) color-mix(in srgb, var(--fr, var(--ss-enemy)) 50%, transparent), inset 0 0 calc(10px * var(--glow)) color-mix(in srgb, var(--fr, var(--ss-enemy)) 45%, transparent);
+  --bw: max(2px, calc(var(--cell, 80px) * 0.045));
+}
+.board.home, .mini.home { --fr: var(--ss-home); }
+.board.enemy, .mini.enemy { --fr: var(--ss-enemy); }
+.cell {
+  position: relative; display: block; margin: 0; padding: 0; min-width: 0; min-height: 0;
+  background: transparent; border: 1px solid var(--ss-grid); border-radius: 0;
+  font: inherit; color: inherit;
+}
+button.cell { cursor: pointer; }
+button.cell.off { cursor: default; }
+.cell:focus-visible { outline: 4px solid var(--accent); outline-offset: -6px; z-index: 2; }
+.cell .hl, .cell .mk, .cell .gh { position: absolute; pointer-events: none; }
+.cell .mk, .cell .gh { inset: 0; }
+
+/* Skrog: neon-glas. Stævn og hæk er runde, så et skib ligner et skib */
+.cell.hull .hl {
+  background: linear-gradient(160deg, color-mix(in srgb, var(--ss-hull) 62%, #000), color-mix(in srgb, var(--ss-hull) 26%, #000));
+  border: var(--bw) solid var(--ss-hull);
+  box-shadow: inset 0 0 calc(8px * var(--glow)) color-mix(in srgb, var(--ss-hull) 45%, transparent);
+}
+.cell.end-l .hl { inset: 16% -1px 16% 10%; border-right-width: 0; border-radius: 999px 0 0 999px; }
+.cell.end-r .hl { inset: 16% 10% 16% -1px; border-left-width: 0; border-radius: 0 999px 999px 0; }
+.cell.mid-h .hl { inset: 16% -1px; border-left-width: 0; border-right-width: 0; }
+.cell.end-t .hl { inset: 10% 16% -1px 16%; border-bottom-width: 0; border-radius: 999px 999px 0 0; }
+.cell.end-b .hl { inset: -1px 16% 10% 16%; border-top-width: 0; border-radius: 0 0 999px 999px; }
+.cell.mid-v .hl { inset: -1px 16%; border-top-width: 0; border-bottom-width: 0; }
+[data-theme="kontrast"] .cell.hull .hl { background: #003a3a; }
+/* Valgt skib under placering */
+.cell.chosen .hl { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 22%, #000); }
+/* Computerens skibe, man ikke fandt (vises stiplet, når kampen er tabt) */
+.cell.reveal .hl { background: transparent; border-style: dashed; border-color: var(--muted); box-shadow: none; }
+
+/* Plask: ring */
+.cell.m-miss .mk::before {
+  content: ""; position: absolute; left: 50%; top: 50%; width: 38%; height: 38%; transform: translate(-50%, -50%);
+  border: var(--bw) solid var(--ss-miss); border-radius: 50%;
+}
+/* Ramt: kryds på orange glød */
+.cell.m-hit { background: color-mix(in srgb, var(--ss-hit) 18%, transparent); }
+.cell.m-hit .mk::before, .cell.m-hit .mk::after, .cell.m-sunk .mk::before, .cell.m-sunk .mk::after {
+  content: ""; position: absolute; left: 50%; top: 50%; width: 70%; height: calc(var(--bw) * 2.2);
+  background: var(--ss-hit); border-radius: 99px; transform: translate(-50%, -50%) rotate(45deg);
+  box-shadow: 0 0 calc(6px * var(--glow)) color-mix(in srgb, var(--ss-hit) 70%, transparent);
+}
+.cell.m-hit .mk::after, .cell.m-sunk .mk::after { transform: translate(-50%, -50%) rotate(-45deg); }
+/* Sænket: hele feltet fyldt rødt, skroget rødt, og et mørkt kryds */
+.cell.m-sunk { background: color-mix(in srgb, var(--ss-sunk) 45%, transparent); }
+.cell.m-sunk.hull .hl { border-color: var(--ss-sunk); background: color-mix(in srgb, var(--ss-sunk) 70%, #000); box-shadow: none; }
+.cell.m-sunk .mk::before, .cell.m-sunk .mk::after { background: #fff0f3; box-shadow: none; width: 56%; height: calc(var(--bw) * 1.8); }
+[data-theme="kontrast"] .cell.m-sunk .mk::before, [data-theme="kontrast"] .cell.m-sunk .mk::after { background: #000; }
+
+/* Sigtet: trådkors i gult */
+.cell.aim .gh {
+  inset: 12%; border: var(--bw) solid var(--ss-aim); border-radius: 50%;
+  box-shadow: 0 0 calc(10px * var(--glow)) color-mix(in srgb, var(--ss-aim) 60%, transparent);
+}
+.cell.aim .gh::before, .cell.aim .gh::after { content: ""; position: absolute; background: var(--ss-aim); }
+.cell.aim .gh::before { left: 50%; top: -16%; bottom: -16%; width: var(--bw); transform: translateX(-50%); }
+.cell.aim .gh::after { top: 50%; left: -16%; right: -16%; height: var(--bw); transform: translateY(-50%); }
+.cell.aim { background: color-mix(in srgb, var(--ss-aim) 14%, transparent); }
+/* Placering: valgt felt og skygge */
+.cell.sel:not(.aim) { box-shadow: inset 0 0 0 var(--bw) var(--accent); }
+.cell.g-ok .gh { inset: 8%; background: color-mix(in srgb, var(--ss-ok) 28%, transparent); border: var(--bw) solid var(--ss-ok); border-radius: 18%; }
+.cell.g-bad .gh {
+  inset: 8%; border-radius: 18%; border: var(--bw) solid var(--ss-bad);
+  background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--ss-bad) 55%, transparent) 0 6px, color-mix(in srgb, var(--ss-bad) 12%, transparent) 6px 14px);
+}
+/* Seneste skud: tydelig ramme (ingen blink) */
+.cell.last { box-shadow: inset 0 0 0 calc(var(--bw) * 1.4) var(--ss-last); z-index: 1; }
+
+/* Felt under blikket eller musen */
+button.cell:not(.off):hover, button.cell.arkade-dwelling { box-shadow: inset 0 0 0 var(--bw) var(--ss-hover); }
+button.cell.aim:hover, button.cell.aim.arkade-dwelling { box-shadow: none; }
+@media (hover: none) { button.cell:not(.off):hover { box-shadow: none; } }
+
+/* Et nyt skud lander roligt: lille skalering, eller kun fade */
+.cell.fresh .mk { animation: ss-land 360ms ease-out; }
+@keyframes ss-land { from { opacity: 0; transform: scale(0.6); } }
+.calm .cell.fresh .mk { animation: ss-fade 300ms ease-out; }
+@keyframes ss-fade { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .cell.fresh .mk { animation: ss-fade 300ms ease-out; } }
+
+/* Det lille hav: på en stor knap, der skifter visning */
+.view-btn { width: 100%; min-height: 0; padding: 8px 10px; gap: 6px; }
+.view-btn .big { font-size: 1.2rem; }
+.mini-title { font-size: 0.95rem; font-weight: 700; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; }
+.mini {
+  display: grid; grid-template-columns: repeat(var(--n, 8), var(--mini-cell, 20px)); grid-template-rows: repeat(var(--n, 8), var(--mini-cell, 20px));
+  background: var(--ss-sea); border: 2px solid var(--fr, var(--ss-home)); border-radius: 6px; overflow: hidden;
+  --cell: var(--mini-cell, 20px); --bw: max(1.5px, calc(var(--mini-cell, 20px) * 0.06));
+}
+.mini .cell { border-width: 0.5px; }
+.mini .cell.last { box-shadow: inset 0 0 0 max(2px, calc(var(--mini-cell, 20px) * 0.12)) var(--ss-last); }
+.view-btn:disabled { opacity: 0.6; }
+
+.hint { margin: 0; min-height: 2.7em; font-size: 1.12rem; line-height: 1.35; text-align: center; color: var(--ui-text); text-shadow: 0 1px 4px #000; }
+.hint.ok { color: var(--ss-ok); } .hint.bad { color: var(--ss-bad); } .hint.ai { color: var(--ss-home); font-weight: 700; }
+.act-btn { flex-direction: row; justify-content: center; gap: 14px; padding: 8px 16px; height: var(--btn); min-height: 0; width: 100%; min-width: 0; }
+.act-btn svg { width: calc(var(--btn) * 0.42); height: calc(var(--btn) * 0.42); flex: none; }
+.act-btn .big { font-size: 1.5rem; }
+.fire-btn { flex-wrap: wrap; align-content: center; row-gap: 0; }
+.fire-btn .big { font-size: 2rem; }
+.fire-btn .small { flex-basis: 100%; text-align: center; font-weight: 700; color: var(--ui-text); }
+.ico-line { fill: none; stroke: var(--accent); stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; }
+.ico-dot, .ico-fill { fill: var(--accent); }
+.ico-hull { fill: var(--ui-soft); stroke: var(--ui); stroke-width: 5; stroke-linejoin: round; }
+.orient-row { display: flex; gap: calc(var(--gap) * 0.45); }
+.orient-row .act-btn { flex: 1 1 0; flex-direction: column; gap: 2px; padding: 6px; }
+.orient-row .act-btn svg { width: calc(var(--btn) * 0.38); height: calc(var(--btn) * 0.38); }
+.orient-row .act-btn .big { font-size: 1.2rem; }
+.orient-row .btn.option[aria-pressed="true"] .ico-hull { fill: var(--bg); stroke: var(--bg); }
+.btn.option[aria-pressed="true"] .ico-hull { fill: var(--bg); stroke: var(--bg); }
+
+/* Slut på kampen */
+.end-box { background: var(--panel); border: 2px solid var(--ss-ok); border-radius: 18px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; text-align: center; }
+.end-box.lost { border-color: var(--ss-sunk); }
+.end-title { margin: 0; font-size: 1.6rem; color: var(--ss-ok); text-shadow: 0 0 calc(8px * var(--glow)) color-mix(in srgb, var(--ss-ok) 50%, transparent); }
+.end-box.lost .end-title { color: var(--ss-sunk); text-shadow: none; }
+.end-text { margin: 0; color: var(--muted); font-size: 1.05rem; line-height: 1.35; }
+.end-points { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; font-size: 1.05rem; }
+.end-points li { display: flex; justify-content: space-between; gap: 12px; }
+.end-points li.sum { border-top: 1px solid var(--ui-soft); padding-top: 4px; font-size: 1.2rem; }
+.end-points b { font-variant-numeric: tabular-nums; }
+.end-btn { flex-direction: column; gap: 2px; height: auto; min-height: var(--btn); }
+.end-btn .big { font-size: 1.7rem; }
+.end-btn .small { white-space: normal; text-align: center; line-height: 1.2; }
+#game[data-phase="end"] .compact .hint, #game[data-phase="end"] .compact .fleet-box { display: none; }
+.compact .end-points li:not(.sum) { display: none; }
+.compact .end-points li.sum { border-top: 0; padding-top: 0; }
+.compact .act-btn.ph-place .big, .compact .orient-row .act-btn .big { white-space: normal; text-align: center; line-height: 1.1; }
+
+/* ---------- Kompakt: lay-side og lay-below ---------- */
+.compact .side { width: var(--panel-w, 100%); flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: stretch; gap: 8px; }
+.compact .side-left .side-logo { display: none; }
+.compact .hud-grid { display: flex; gap: 6px; flex: 1 1 0; min-width: 0; justify-content: center; }
+.compact .hud { padding: 3px 8px; border-radius: 10px; min-width: 0; flex: 1 1 0; display: flex; flex-direction: column; justify-content: center; }
+.compact .hud-label { font-size: clamp(0.72rem, calc(var(--btn) * 0.12), 1rem); letter-spacing: 0.04em; }
+.compact .hud-value { font-size: clamp(1.25rem, calc(var(--btn) * 0.28), 2.2rem); line-height: 1.1; }
+.compact .pause-btn { width: var(--btn); height: var(--btn); flex: none; padding: 4px; order: 1; }
+.compact .pause-btn .small { display: none; }
+.compact .pause-btn svg { width: 50%; height: 50%; }
+.compact .fleet-box { flex: 1 1 100%; order: 2; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 5px 10px; }
+.compact .fleet-title { margin: 0; font-size: clamp(0.85rem, calc(var(--btn) * 0.11), 1.1rem); white-space: nowrap; line-height: 1.15; }
+.compact .fleet { flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 4px 10px; }
+.compact .fleet li { display: block; }
+.compact .fleet .fname, .compact .fleet .fstate { display: none; }
+.compact .sicon { --s: clamp(10px, calc(var(--btn) * 0.13), 18px); }
+#game[data-phase="place"] .compact .hud-grid { display: none; }
+.compact .ship-box { flex: 1 1 0; min-width: 0; padding: 0; background: none; border: 0; }
+.compact .ship-box .fleet-title { display: none; }
+.compact .ship-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.compact .ship-btn { flex: 1 1 var(--btn); height: var(--btn); min-width: var(--btn); padding: 4px; }
+.compact .ship-btn:first-child { grid-column: auto; }
+.compact .ship-btn .small { font-size: 0.82rem; }
+.compact .side-right { align-items: stretch; }
+.compact .hint { order: -1; flex: 1 1 100%; min-height: 2.5em; font-size: clamp(1rem, calc(var(--btn) * 0.13), 1.35rem); line-height: 1.25; }
+.compact .view-btn { width: auto; flex: none; padding: 4px 6px; gap: 2px; justify-content: center; }
+.compact .view-btn .big { display: none; }
+.compact .mini-title { font-size: 0.75rem; }
+.compact .fire-btn { flex: 1 1 0; width: auto; align-self: stretch; height: auto; min-height: var(--btn); }
+.compact .orient-row { display: contents; }
+.compact .act-btn.ph-place, .compact .orient-row .act-btn { flex: 1 1 var(--btn); width: auto; min-width: var(--btn); flex-direction: column; gap: 2px; padding: 4px 6px; }
+.compact .act-btn.ph-place svg, .compact .orient-row .act-btn svg { width: calc(var(--btn) * 0.34); height: calc(var(--btn) * 0.34); }
+.compact .act-btn.ph-place .big, .compact .orient-row .act-btn .big { font-size: clamp(0.95rem, calc(var(--btn) * 0.15), 1.3rem); }
+.compact .end-box { flex: 1 1 100%; display: grid; grid-template-columns: 1fr auto; grid-template-areas: "t b" "x b" "p b"; align-items: center; column-gap: 12px; row-gap: 4px; padding: 8px 10px; text-align: left; }
+.compact .end-title { grid-area: t; font-size: 1.25rem; }
+.compact .end-text { grid-area: x; font-size: 0.95rem; }
+.compact .end-points { grid-area: p; font-size: 0.95rem; }
+.compact .end-points li.sum { font-size: 1rem; }
+.compact .end-btn { grid-area: b; width: auto; min-width: calc(var(--btn) * 1.4); height: var(--btn); }
+.compact .end-btn .big { font-size: 1.3rem; }
+.lay-side .side-left, .lay-side .side-right { align-self: start; }
+.lay-side .side-left { align-self: end; }
+
+/* Overlays (pause og ingen flere træk) */
+.overlay {
+  position: absolute; inset: 0; z-index: 5;
+  display: flex; align-items: safe center; justify-content: safe center; overflow: hidden;
+  background: rgba(0, 0, 0, 0.62);
+}
+.overlay.soft { background: rgba(0, 0, 0, 0.42); }
+.overlay .panel { display: flex; flex-direction: column; align-items: center; gap: var(--gap); text-align: center; }
+.overlay .panel p { margin: 0; }
+
+/* ---------- Game over ---------- */
+.go-layout { display: flex; flex-wrap: wrap; gap: calc(var(--gap) * 1.4); align-items: center; justify-content: center; }
+.go-result { display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; }
+.go-head { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.go-actions { display: flex; flex-direction: column; align-items: center; gap: var(--gap); }
+.go-reason, .go-plates { margin: 0; font-size: 1.3rem; color: var(--muted); }
+.go-score { display: flex; align-items: baseline; gap: 12px; }
+#go-score { font-size: clamp(3rem, 10vmin, 5rem); font-weight: 800; color: var(--ui-text); text-shadow: 0 0 calc(18px * var(--glow)) var(--ui); }
+.go-unit { font-size: 1.4rem; color: var(--muted); }
+.go-rank { margin: 0; min-height: 1.4em; font-size: 1.3rem; color: var(--accent); font-weight: 700; }
+.go-records { min-width: min(500px, 90vw); }
+.records li .plates { font-weight: 400; color: var(--muted); }
+
+/* ---------- Indstillinger ---------- */
+#settings { justify-content: flex-start; padding-top: max(20px, 4vmin); }
+.tabs { margin-bottom: 4px; }
+.tab-panel { display: flex; flex-direction: column; gap: calc(var(--gap) * 0.8); align-items: stretch; width: min(1100px, 100%); }
+.setting { display: grid; grid-template-columns: 13em 1fr; align-items: center; gap: var(--gap); }
+@media (max-width: 900px) { .setting { grid-template-columns: 1fr; justify-items: center; text-align: center; } .setting .row { justify-content: center !important; } }
+.setting-label { font-size: 1.35rem; font-weight: 700; display: flex; flex-direction: column; text-shadow: 0 1px 4px #000; }
+.setting-label small { font-size: 0.95rem; font-weight: 400; color: var(--muted); margin-top: 4px; }
+.setting .row { justify-content: flex-start; }
+.value-box { min-width: 6em; text-align: center; font-size: 1.8rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.note { max-width: 44em; margin: 0 auto; color: var(--muted); line-height: 1.5; text-align: center; }
+.theme-btn .swatch {
+  width: 64px; height: 32px; border-radius: 6px;
+  background: linear-gradient(90deg, var(--a) 0 33%, var(--b) 33% 66%, var(--c) 66% 100%);
+  border: 2px solid rgba(255,255,255,.5);
+}
+
+/* ---------- Rekorder ---------- */
+#records { justify-content: flex-start; padding-top: max(20px, 3vmin); gap: calc(var(--gap) * 0.6); }
+.records-panel { min-width: min(560px, 92vw); }
+
+/* ---------- Om ---------- */
+#om { gap: calc(var(--gap) * 0.7); }
+.om-logo { height: clamp(84px, 15vh, 200px); }
+@media (max-height: 740px) { .om-logo { height: 84px; } .om-panel p { font-size: 1.15rem; line-height: 1.45; } }
+.om-panel { max-width: 46em; text-align: center; }
+.om-panel h2 { margin-bottom: 12px; }
+.om-panel p { margin: 10px 0 0; font-size: 1.25rem; line-height: 1.55; }
+.link-btn { text-decoration: none; min-width: calc(var(--btn) * 2.4); }
+.link-btn .small { font-size: 0.95rem; }
+
+/* ---------- Sider (kun når der ikke er plads til det hele) ---------- */
+.trin-skjult { display: none !important; }
+.trin-nav { display: contents; }
+.trin-nav[hidden] { display: none; }
+.trin-label { align-self: center; min-width: 6.5em; text-align: center; font-size: 1.1rem; font-weight: 700; color: var(--muted); text-shadow: 0 1px 4px #000; }
+.trin-nav .btn .icon { font-size: 2rem; }
+.tight .opt { display: none; }
+
+/* ---------- Små skærme (korteste side under 560 px) ----------
+ * Knapperne er mindst 84 px (sat i js/app.js), og der zoomes ikke.
+ * Brede knapper må gerne blive smallere, så flere kan stå på én række. */
+.bk-lille .btn { padding: 6px 12px; gap: 2px; }
+.bk-lille .btn .big { font-size: 1.2rem; }
+.bk-lille .btn.primary .big { font-size: 1.45rem; }
+.bk-lille .btn .icon { font-size: 1.3rem; }
+.bk-lille .btn .small { font-size: 0.9rem; }
+.bk-lille .btn.wide { min-width: calc(var(--btn) * 1.6); }
+/* Sideknapperne viser kun pilen på små skærme (teksten står i aria-label) */
+.bk-lille .trin-nav .btn .big { display: none; }
+.bk-lille .trin-nav .btn .icon { font-size: 2.4rem; }
+.bk-lille .trin-label { min-width: 0; font-size: 1rem; }
+/* Startmenu på højkant: de fire små knapper i to kolonner */
+.bk-lille:not(.bk-tvaers) #menu .more-row { display: grid; grid-template-columns: 1fr 1fr; width: min(100%, 26em); }
+/* Spillet på højkant: logoet gør plads til en stor pauseknap */
+.bk-lille .lay-below .side-logo { display: none; }
+.bk-lille .link-btn { min-width: calc(var(--btn) * 1.6); }
+.bk-lille .screen { padding: 12px; }
+.bk-lille .panel { padding: 14px 18px; }
+.bk-lille .overlay .panel { gap: 12px; }
+.bk-lille .records li { padding-top: 3px; padding-bottom: 3px; }
+.bk-lille #settings, .bk-lille #records { padding-top: 12px; }
+.bk-lille .setting-label { font-size: 1.2rem; }
+.bk-lille .setting .row { gap: 12px; }
+.bk-lille .theme-btn .swatch { width: 48px; height: 26px; }
+.bk-lille .overlay .panel { max-width: calc(100% - 16px); }
+.bk-lille #menu.hall-inflow .hall-btn { min-height: var(--btn); }
+
+/* Game over: knapperne på én række, der må ombrydes */
+.bk-lille .go-actions { flex-direction: row; flex-wrap: wrap; justify-content: center; }
+.bk-lille .go-actions > .row { display: contents; }
+.bk-lille .go-head { gap: 6px; }
+.bk-lille #go-score { font-size: clamp(2.4rem, 9vmin, 4rem); }
+.go-split .go-records { display: none; }
+.go-split.go-vis-rekorder .go-records { display: block; }
+.go-split.go-vis-rekorder .go-head { display: none; }
+
+/* Mobil på tværs: startmenuen som et gitter med tre rækker knapper */
+.bk-tvaers #menu {
+  display: grid; justify-content: safe center; align-content: safe center; justify-items: center; align-items: center;
+  grid-template-columns: auto auto auto;
+  grid-template-areas: "hall title title" "sizes sizes start" "note note note" "more more more";
+  column-gap: var(--gap); row-gap: calc(var(--gap) * 0.6);
+}
+.bk-tvaers #menu .hall-btn { grid-area: hall; position: static; justify-self: start; }
+.bk-tvaers #menu .title-block { grid-area: title; justify-self: start; }
+.bk-tvaers #menu .title-row .arkade-logo { height: calc(var(--btn) * 0.8); }
+.bk-tvaers #menu .neon-title { font-size: clamp(2rem, 11vh, 3.4rem); }
+.bk-tvaers #menu .lead { display: none; }
+.bk-tvaers #menu .group-label { margin: 0 0 4px; }
+.bk-tvaers #menu .size-note { grid-area: note; }
+.bk-tvaers #menu .start-row { grid-area: start; align-self: end; }
+.bk-tvaers #menu .more-row { grid-area: more; }
+
+/* Mobil på tværs: indstillinger med teksten ved siden af knapperne */
+.bk-tvaers .setting { grid-template-columns: minmax(6em, 10em) auto; column-gap: 16px; justify-items: start; justify-content: center; text-align: left; }
+.bk-tvaers .setting .row { justify-content: flex-start !important; }
+.bk-tvaers #settings .tab-panel { gap: 10px; }
+.bk-tvaers .om-logo { height: 84px; }
+.bk-tvaers .om-panel p { font-size: 1.1rem; line-height: 1.45; }
+.bk-tvaers .go-layout { flex-wrap: nowrap; align-items: center; }
+.bk-lille #menu.tight .title-row .arkade-logo { height: 72px; }
+/* Game over på tværs: rekordlisten i fuld bredde (to spalter) over knapperne */
+.bk-tvaers .go-split.go-vis-rekorder .go-layout { flex-direction: column; flex-wrap: nowrap; gap: 12px; }
+.bk-tvaers .go-split.go-vis-rekorder .go-records { order: -1; width: min(820px, 100%); padding-top: 8px; padding-bottom: 8px; }
+.bk-tvaers .go-split.go-vis-rekorder .go-records .group-label { margin: 0 0 4px; }
+/* Indstillinger på små skærme: tætte faner; på højkant to faner pr. række */
+.bk-lille #settings .tabs { gap: 10px; }
+.bk-lille:not(.bk-tvaers) #settings .tabs { display: grid; grid-template-columns: 1fr 1fr; width: min(100%, 24em); }
+.bk-lille #settings .trin-bund { gap: 10px; margin-top: auto; }
+.bk-tvaers #menu .size-note { font-size: 0.9rem; line-height: 1.25; max-width: 52em; }
+.bk-lille .value-box { min-width: 4.2em; font-size: 1.5rem; }
+
+/* Rekordlister: point og linjer på én linje, så listen ikke bliver dobbelt så høj */
+ol.records .score { white-space: nowrap; }
+.bk-tvaers ol.records .plates, .bk-lille ol.records .plates { font-size: .85em; }
+/* Mobil på langs: på game over er der kun plads til point og dato (linjerne står under Rekorder) */
+.bk-tvaers #go-records .plates { display: none; }
+.bk-lille:not(.bk-tvaers) ol.records .score { white-space: normal; }
+/* Mobil: plads til fluebenet over teksten i størrelsesknapperne */
+.bk-lille #menu [data-size] { padding-top: 20px; }
+.bk-lille #menu [data-size][aria-pressed="true"]::after { top: 2px; right: 8px; font-size: 1rem; }
+/* Startmenu på tværs (mobil): sværhedsgrad og størrelse står sammen */
+.bk-tvaers #menu .menu-groups { grid-area: sizes; gap: 6px 16px; }
+.bk-lille #menu [data-level] { padding-top: 20px; }
+.bk-lille #menu [data-level][aria-pressed="true"]::after { top: 2px; right: 8px; font-size: 1rem; }
+/* Rekorder: seks knapper øverst – på små skærme i et gitter */
+.bk-lille:not(.bk-tvaers) #records .tabs { display: grid; grid-template-columns: 1fr 1fr 1fr; width: min(100%, 30em); gap: 10px; }
+.bk-lille #records .tabs { gap: 10px; }
+.bk-lille #menu .menu-group .row { flex-wrap: nowrap; gap: 8px; }
+.bk-lille #menu .menu-group .btn.option { flex: 1 1 0; min-width: var(--btn); padding-left: 6px; padding-right: 6px; }
+.bk-lille #menu .menu-group .btn.option .small { font-size: 0.8rem; line-height: 1.15; }
+.bk-lille:not(.bk-tvaers) #menu .menu-groups { flex-direction: column; align-items: stretch; gap: 6px; width: 100%; }
+.bk-lille #menu .group-label { margin: 0 0 4px; font-size: 1rem; }
+.bk-lille #menu .size-note { font-size: 0.9rem; line-height: 1.25; }
+.bk-tvaers #menu .menu-groups { flex-wrap: nowrap; }
+.bk-tvaers #menu .size-note { font-size: 0.85rem; line-height: 1.2; margin: 0; }
+.bk-tvaers #menu .group-label { font-size: 0.9rem; margin: 0 0 2px; }
+.bk-lille:not(.bk-tvaers) #menu .lead { font-size: 0.92rem; line-height: 1.3; margin: 4px 0; }
+/* Slut på kampen, kompakt: det lille hav og slutboksen står side om side, når der er plads */
+.compact .end-box { flex: 1 1 260px; }
+.end-btn .big { white-space: normal; text-align: center; line-height: 1.1; }
+/* Små skærme: placeringsknapperne viser kun teksten, så den kan stå på to linjer */
+.bk-lille .compact .act-btn.ph-place svg, .bk-lille .compact .orient-row .act-btn svg { display: none; }
+.end-points li { white-space: nowrap; }
+.bk-lille .compact .end-btn .big { font-size: 1.15rem; }
+.bk-lille .compact .end-btn { min-width: var(--btn); padding-left: 10px; padding-right: 10px; }

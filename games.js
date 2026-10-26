@@ -32,7 +32,7 @@ window.HOJT_SPIL = [
   { navn: 'Tårnene',       sti: 'taarnene/',      farve: 'grøn',  status: 'snart', tekst: 'Byg tårne i ro og mag, og stop bølgerne af fjender.' },
   { navn: 'Golf',          sti: 'golf/',          farve: 'pink',  status: 'snart', tekst: 'Sigt, vælg kraft, og få bolden i hul på retro minigolfbaner.' },
   { navn: 'Billard',       sti: 'billard/',       farve: 'blå',   status: 'snart', tekst: 'Sigt, og stød kuglerne i hul mod computeren.' },
-  { navn: 'Søslag',        sti: 'soeslag/',       farve: 'cyan',  status: 'snart', tekst: 'Find og sænk computerens skibe, før den finder dine.' },
+  { navn: 'Søslag',        sti: 'soeslag/',       farve: 'cyan',  status: 'aktiv', tekst: 'Find og sænk computerens skibe, før den finder dine.', skaerm: 'hal/skaerme/soeslag.svg' },
   { navn: 'Frøen',         sti: 'froeen/',        farve: 'grøn',  status: 'aktiv', tekst: 'Hop over vejen og floden. Bilerne og stammerne rykker kun, når du hopper.', skaerm: 'hal/skaerme/froeen.svg' },
   { navn: 'Rumhandleren',  sti: 'rumhandleren/',  farve: 'lilla', status: 'snart', tekst: 'Køb billigt og sælg dyrt mellem planeterne, og pas på rumpiraterne.' }
 ];

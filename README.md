@@ -134,6 +134,28 @@ Man har tre kugler og får ekstra kugler ved høje point.
 - **Rolig visning:** der er ingen blink og ingen hvide lysglimt. Er animation slået fra, eller er computeren sat til mindre bevægelse, tegnes kuglens bane som et tydeligt spor, og lys og effekter er dæmpede.
 - **Test:** `node flipper/test/spillogik.test.js` tjekker frysezonen, at den valgte flipper slår kuglen op, at »Lad være« taber kuglen, at sigtelinjerne passer præcist med kuglens bane, point for bumper, mål, alle lys, bonus og sløjfe, tabt kugle, game over, ekstra kugle, afskydning, frysning ved stille kugle, at farten ikke ændrer fysikken, at kuglen ikke smutter gennem væggene, og at en kugle aldrig tabes uden et valg (hele spil). `python3 flipper/test/responsiv_test.py` (Playwright og Chrome) tjekker alle skærme ved 8 opløsninger.
 
+### Søslag
+Klassisk sænke slagskibe mod computeren, i ro og mag. Der er intet ur, og man skyder på skift.
+Spillet varer kamp efter kamp og slutter første gang, computeren sænker hele ens flåde.
+
+- **Flåde:** fem skibe hver: slagskib (4), krydser (3), fregat (3), korvet (2) og patruljebåd (2). Skibene rører aldrig hinanden, heller ikke på skrå.
+- **Placering:** skibene lægges tilfældigt, og den store **Bland igen**-knap lægger dem på ny. Man kan også flytte dem selv i fire trin uden træk og slip: 1) vælg et skib (på listen eller på havet), 2) vælg et felt til stævnen, 3) vælg **Vandret** eller **Lodret**, 4) tryk **Læg**. Skyggen er grøn, når skibet kan ligge der, og rød, når det ikke kan. Til sidst trykker man **Start kamp**.
+- **Skud i to trin:** vælg et felt på computerens hav (det får et gult sigte), og tryk på den store **Skyd**-knap. Et klik på et felt skyder aldrig. Felter, man har skudt på, kan ikke vælges igen.
+- **Tydelige mærker:** plask er en blå ring, ramt er et orange kryds, og et sænket skib er røde, fyldte felter med skrog og kryds. Det seneste skud har en lys ramme. Formen siger det hele, også uden farver.
+- **Ét stort hav ad gangen:** under kampen er computerens hav stort, og ens eget hav står lille på en stor knap ved siden af (eller under) brættet. Knappen skifter visning, så man kan se sit eget hav stort. Det lille hav viser altid computerens skud.
+- **Computerens tur:** efter hvert skud venter computeren roligt ca. 1 sekund. Overskriften skifter til **Computerens tur**, og teksten fortæller, hvor den skød, og hvad den ramte. Computerens sidste skud har en ramme på det lille hav.
+- **Computeren:** tre niveauer. **Rolig** skyder tilfældigt. **Normal** jager og sigter: efter et træf skyder den rundt om feltet og fortsætter i skibets retning (og skyder i skakternet, når den leder). **Svær** regner et sandsynlighedskort ud fra alle de måder, de resterende skibe kan ligge på. Computeren snyder aldrig: den ser kun sine egne skud og længden af de skibe, der er tilbage.
+- **Overblik:** en liste viser, hvilke af computerens skibe der er tilbage, og hvilke der er sænket. Taber man, vises computerens skibe, man ikke fandt, stiplet.
+- **Point:** 20 point for hvert skib, man sænker (også i den kamp, man taber). En vunden kamp giver 100 point plus 10 point for hvert felt på computerens hav, man aldrig skød på, så få skud giver flere point. Pointene lægges sammen kamp efter kamp.
+- **Tastatur:** piletasterne flytter sigtet (og springer felter over, man har skudt på), Enter eller mellemrum skyder, V skifter hav, og Esc eller P giver pause. Under placering vælger 1–5 et skib, R drejer, B blander, og S starter kampen.
+- **Dwell (valgfrit, slået fra som standard):** ét dwell er én handling. Et felt eller en knap vælges én gang og gentages aldrig, mens blikket bliver på den, så ét dwell på **Skyd** er præcis ét skud.
+- **Bræt:** 8 × 8 er standard. 10 × 10 kan vælges, når felterne stadig bliver mindst ca. 1,5 cm. Felterne er ca. 3 cm, når der er plads, og startskærmen siger til, hvis de bliver mindre.
+- **Alle skærme:** man skal aldrig rulle. På brede skærme står status og flåde til venstre og det lille hav og knapperne til højre. På lave skærme står alt i et panel ved siden af havet, og på høje skærme og mobiler står knapperne under havet. Knapperne er mindst ca. 80 px, også på mobil.
+- **Rekorder:** der er en lokal top 10 for hvert niveau og hver brætstørrelse med point, vundne kampe og dato.
+- **Lyd:** lyde fra arkadens fælles lyd ved sigte, plask, træf, sænket, computerens tur, sejr og nederlag, og der er musik. Effekter og musik slås til og fra hver for sig.
+- **Rolig visning:** der er ingen blink og ingen hvide lysglimt. Et nyt mærke toner roligt frem, og er animation slået fra, eller er computeren sat til mindre bevægelse, er det kun en blød fade. Der er fire temaer, også høj kontrast.
+- **Test:** `node soeslag/test/spillogik.test.js` tjekker placering (også at skibe ikke rører hinanden), skud, sænkning, sejr, nederlag, point og alle tre computerniveauer (også at computeren ikke snyder). `python3 soeslag/test/responsiv_test.py` (Playwright og Chrome) spiller en placering, en kamp, en sejr, et nederlag og game over igennem ved 8 opløsninger og tjekker, at intet ruller, klippes af eller overlapper.
+
 ## Sådan spiller og tester du
 
 1. Hent eller pak mappen `hojt-arkade` ud.
@@ -170,6 +192,7 @@ bomberne/         spillet Bomberne (index.html, css/, js/, test/)
 froeen/           spillet Frøen (index.html, css/, js/, test/)
 lys-ud/           spillet Lys ud (index.html, css/, js/, test/)
 flipper/          spillet Flipper (index.html, css/, js/, test/)
+soeslag/          spillet Søslag (index.html, css/, js/, test/)
 LICENSE           MIT-licens
 ```
 
