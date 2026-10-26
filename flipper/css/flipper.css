@@ -1,0 +1,303 @@
+/* Flipper – spillets egen opsætning. Bygger på ../arkade/arkade.css.
+ * Startmenu, overlays, game over, indstillinger, rekorder, Om og små skærme
+ * følger Blokke og Bomberne, så spillene ser ens ud og opfører sig ens.
+ * Selve bordet tegnes på et canvas i js/render.js med farverne herunder. */
+
+/* ---------- Farver (læses af js/render.js) ---------- */
+:root, [data-theme] {
+  --fl-board0: #120624; --fl-board1: #06020e;
+  --fl-wall: #22eaff;          /* rammen og væggene */
+  --fl-bumper: #ff3fd8;
+  --fl-sling: #b07bff;
+  --fl-target: #ffd23a;        /* lysmålene */
+  --fl-flipper: #ff3fd8;
+  --fl-zone: #22eaff;          /* frysezonen */
+  --fl-loop: #39ff6a;          /* sløjferne */
+  --fl-ball0: #f2eefa; --fl-ball1: #8a80a8; --fl-ball2: #2a2438;
+  --fl-left: #22eaff; --fl-right: #ff3fd8; --fl-both: #ffd23a; --fl-none: #b9a6ff;
+  --fl-launch: #39ff6a;
+  --fl-lost: #ff5a6a;
+}
+[data-theme="solnedgang"] { --fl-wall: #c77dff; --fl-bumper: #ff8a1f; --fl-flipper: #ff8a1f; --fl-zone: #4fd8ff; --fl-left: #4fd8ff; --fl-right: #ff8a1f; --fl-board0: #1d0830; }
+[data-theme="cyberpunk"] { --fl-wall: #2a9dff; --fl-bumper: #39ff6a; --fl-flipper: #39ff6a; --fl-sling: #2a9dff; --fl-zone: #b6ff3a; --fl-left: #2a9dff; --fl-right: #39ff6a; --fl-loop: #b6ff3a; --fl-board0: #021016; --fl-board1: #000; }
+[data-theme="kontrast"] {
+  --fl-board0: #000; --fl-board1: #000; --fl-wall: #ffffff; --fl-bumper: #ff00ff; --fl-sling: #00ffff;
+  --fl-target: #ffff00; --fl-flipper: #ffff00; --fl-zone: #00ffff; --fl-loop: #00ff00;
+  --fl-ball0: #ffffff; --fl-ball1: #c0c0c0; --fl-ball2: #606060;
+  --fl-left: #00ffff; --fl-right: #ff00ff; --fl-both: #ffff00; --fl-none: #ffffff; --fl-launch: #00ff00; --fl-lost: #ff4040;
+}
+
+/* ---------- Startmenu ---------- */
+#menu { gap: calc(var(--gap) * 0.7); }
+.title-block { text-align: center; max-width: 1100px; }
+.title-row { display: flex; align-items: center; justify-content: center; gap: max(16px, 3vmin); flex-wrap: wrap; }
+.title-row .arkade-logo { height: clamp(100px, 18vh, 200px); }
+.neon-title { font-size: clamp(2.6rem, 8.5vmin, 5.5rem); letter-spacing: 0.1em; }
+.lead { text-shadow: 0 1px 6px #000, 0 0 2px #000; margin: 10px auto 0; max-width: 46em; color: var(--muted); font-size: 1.1rem; line-height: 1.5; }
+.menu-group { display: flex; flex-direction: column; align-items: center; }
+@media (max-height: 900px) {
+  .lead { display: none; }
+  .title-row .arkade-logo { height: clamp(80px, 14vh, 150px); }
+}
+
+/* Tilbage til hallen: fast i hjørnet, roligere stil end de andre knapper */
+.hall-btn {
+  position: absolute; top: max(16px, 2.5vmin); left: max(16px, 2.5vmin);
+  width: max(var(--btn), 7.5em); min-height: var(--btn); padding: 8px 10px;
+  border-width: 2px; border-color: color-mix(in srgb, var(--muted) 70%, transparent);
+  background: rgba(0, 0, 0, 0.45); box-shadow: none; color: var(--muted);
+}
+.hall-btn .big { font-size: 1.05rem; font-weight: 600; line-height: 1.2; text-align: center; }
+.hall-ico { width: 42%; height: auto; fill: none; stroke: var(--muted); stroke-width: 7; stroke-linejoin: round; }
+.hall-btn:hover, .hall-btn.arkade-dwelling { color: var(--ui-text); border-color: var(--muted); background: rgba(255, 255, 255, 0.08); box-shadow: none; }
+
+/* ---------- Hele vinduet, ingen rulning ---------- */
+html, body { height: 100%; height: 100dvh; }
+.screen { justify-content: safe center; align-items: safe center; }
+.screen > *, .overlay > .panel, .tab-panel > *, .go-result > * { flex-shrink: 0; }  /* intet presses sammen – hellere mindre knapper */
+/* Lave skærme: rekordlisten i to spalter */
+@media (max-height: 640px) and (min-width: 700px) {
+  .records { columns: 2; column-gap: 20px; }
+  .records li { break-inside: avoid; }
+}
+/* Tilbage til hallen flyttes ind i rækken, hvis den ellers ville ramme titlen */
+#menu.hall-inflow .hall-btn { position: static; align-self: flex-start; order: -1; flex: none; width: auto; min-height: calc(var(--btn) * 0.7); flex-direction: row; gap: 12px; padding: 8px 18px; }
+#menu.hall-inflow .hall-ico { width: 32px; }
+
+/* ---------- Spilleskærm ----------
+ * js/app.js vælger det layout, der giver det største bord, og sætter
+ * --btn, --board-w, --board-h, --ctl-w m.fl. på #game:
+ *  lay-wide:  status til venstre, bordet i midten, valgene til højre
+ *  lay-side:  bordet til venstre; status og valg til højre (lav skærm)
+ *  lay-below: status øverst, bordet i midten, valgene under (højkant) */
+#game { padding: var(--game-pad, 12px); overflow: hidden; }
+.game-grid { display: grid; gap: var(--game-gap, 24px); align-items: center; justify-items: center; }
+.lay-wide { grid-template-columns: var(--side-w, 300px) auto var(--ctl-w, 400px); grid-template-areas: "sideL board sideR"; }
+.lay-side { grid-template-columns: auto var(--ctl-w, 400px); grid-template-areas: "board sideL" "board sideR"; }
+.lay-below { grid-template-columns: var(--ctl-w, 360px); grid-template-areas: "sideL" "board" "sideR"; }
+.side-left { grid-area: sideL; }
+.side-right { grid-area: sideR; }
+.board-wrap { grid-area: board; position: relative; }
+
+.side { width: var(--side-w, 300px); display: flex; flex-direction: column; align-items: stretch; gap: calc(var(--gap) * 0.5); align-self: center; }
+.side-logo { height: clamp(56px, 9vh, 100px); align-self: center; }
+.hud-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.hud { padding: 6px 10px; text-align: center; background: var(--panel); border-radius: 14px; border: 1px solid var(--ui-soft); }
+.hud-label { font-size: 0.95rem; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
+.hud-value { font-size: clamp(1.6rem, calc(var(--side-w, 300px) * 0.09), 2.5rem); font-weight: 800; font-variant-numeric: tabular-nums; color: var(--ui-text); line-height: 1.15; }
+.points-note { margin: 0; min-height: 2.8em; font-size: 1.1rem; line-height: 1.4; color: var(--accent); text-align: center; font-weight: 700; text-shadow: 0 1px 4px #000; }
+.pause-btn { align-self: center; width: var(--btn); height: var(--btn); padding: 6px; }
+.pause-btn svg { width: 46%; height: 46%; fill: var(--ui); }
+
+.board-wrap { width: var(--board-w, 360px); height: var(--board-h, 600px); }
+#board { display: block; width: 100%; height: 100%; border-radius: 14px; }
+.side-left .lights { display: flex; justify-content: center; gap: 10px; }
+.lights i { width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--fl-target); background: rgba(0, 0, 0, 0.5); }
+.lights i.on { background: var(--fl-target); box-shadow: 0 0 calc(10px * var(--glow)) color-mix(in srgb, var(--fl-target) 70%, transparent); }
+
+/* ---------- Valgene ved siden af eller under bordet ----------
+ * Panelet har fast størrelse (--ctl-w × --ctl-h), så intet hopper, når fasen skifter. */
+.ctl { width: var(--ctl-w, 400px); height: var(--ctl-h, 300px); gap: var(--ig, 10px); justify-content: flex-start; }
+.ctl-title { margin: 0; height: var(--title-h, 44px); display: flex; align-items: center; justify-content: center; text-align: center;
+  font-size: 1.35rem; line-height: 1.2; font-weight: 800; color: var(--ui-text); text-shadow: 0 1px 4px #000; overflow: hidden; }
+.ctl-panel[hidden] { display: none !important; }
+.power-grid, .choice-grid { display: grid; gap: var(--ig, 10px); flex: 1 1 auto; min-height: 0; }
+.power-grid { grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); }
+.choice-grid { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, 1fr); }
+.power-grid .btn, .choice-grid .btn { width: auto; height: auto; min-width: 0; min-height: 0; padding: 6px 8px; }
+.power-btn .big { font-size: clamp(1.6rem, calc(var(--btn) * 0.34), 2.6rem); line-height: 1; }
+.power-btn .small { font-size: 0.95rem; }
+.shoot-btn svg { width: calc(var(--btn) * 0.34); height: calc(var(--btn) * 0.34); }
+.shoot-btn .big { font-size: clamp(1.3rem, calc(var(--btn) * 0.22), 2rem); }
+
+.choice-btn { --c: var(--ui); position: relative; gap: 2px; border-color: var(--c); }
+.choice-btn[data-choice="left"] { --c: var(--fl-left); }
+.choice-btn[data-choice="right"] { --c: var(--fl-right); }
+.choice-btn[data-choice="both"] { --c: var(--fl-both); }
+.choice-btn[data-choice="none"] { --c: var(--fl-none); border-style: dashed; }
+.choice-btn svg { width: calc(var(--btn) * 0.4); height: calc(var(--btn) * 0.4); flex: none; }
+.choice-btn .big { font-size: clamp(1.2rem, calc(var(--btn) * 0.22), 1.9rem); line-height: 1.1; }
+.choice-btn .small { font-size: 0.95rem; line-height: 1.2; min-height: 1.2em; color: var(--ui-text); }
+.choice-btn .small.bad { color: var(--fl-lost); font-weight: 700; }
+.choice-btn:hover, .choice-btn:focus-visible, .choice-btn.arkade-dwelling { background: color-mix(in srgb, var(--c) 18%, rgba(0, 0, 0, 0.6)); box-shadow: 0 0 calc(18px * var(--glow)) color-mix(in srgb, var(--c) 55%, transparent); }
+.ico-flip { fill: none; stroke: var(--c, var(--ui)); stroke-width: 11; stroke-linecap: round; }
+.ico-dot { fill: var(--c, var(--ui)); }
+.ico-arrow { fill: none; stroke: var(--ui-text); stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; }
+.shoot-btn { --c: var(--fl-launch); }
+
+.ctl-rolling, .ctl-lost { flex: 1 1 auto; display: flex; flex-direction: column; justify-content: center; gap: var(--ig, 10px); }
+.ctl-text { margin: 0; text-align: center; font-size: 1.15rem; line-height: 1.4; color: var(--muted); text-shadow: 0 1px 4px #000; }
+.ctl-lost .btn { align-self: center; width: 100%; height: var(--btn); }
+
+/* Kompakt: lay-side og lay-below */
+.compact .side-left { width: var(--ctl-w, 100%); flex-direction: row; flex-wrap: nowrap; justify-content: center; align-items: center; gap: 8px; }
+.compact .side-left .side-logo, .compact .lights { display: none; }
+.compact .hud-grid { display: flex; gap: 6px; flex: 1 1 auto; min-width: 0; justify-content: center; }
+.compact .hud { padding: 3px 6px; border-radius: 10px; min-width: 0; flex: 1 1 0; }
+.compact .hud-best { display: none; }
+.compact .hud-label { font-size: 0.72rem; letter-spacing: 0.04em; }
+.compact .hud-value { font-size: 1.25rem; line-height: 1.1; }
+.compact .points-note { display: none; }
+.compact .pause-btn { width: var(--pause-s, 84px); height: var(--pause-s, 84px); min-width: var(--pause-s, 84px); min-height: var(--pause-s, 84px); flex: none; padding: 4px; }
+.compact .pause-btn .small { display: none; }
+.compact .pause-btn svg { width: 50%; height: 50%; }
+.compact .ctl-title { font-size: 1.1rem; }
+.compact .choice-btn .small, .compact .power-btn .small { font-size: 0.82rem; }
+.compact .choice-btn svg { width: calc(var(--btn) * 0.32); height: calc(var(--btn) * 0.32); }
+.lay-side .side-left { align-self: end; }
+.lay-side .ctl { align-self: start; }
+/* Valgknapperne: ikonet ved siden af navnet og udfaldet */
+.choice-btn { display: grid; grid-template-columns: auto 1fr; column-gap: 8px; align-content: center; justify-items: start; text-align: left; }
+.choice-btn svg { grid-row: 1 / span 2; align-self: center; }
+.choice-btn .small:empty { display: none; }
+
+/* Overlays (pause) */
+.overlay {
+  position: absolute; inset: 0; z-index: 5;
+  display: flex; align-items: safe center; justify-content: safe center; overflow: hidden;
+  background: rgba(0, 0, 0, 0.62);
+}
+.overlay.soft { background: rgba(0, 0, 0, 0.42); }
+.overlay .panel { display: flex; flex-direction: column; align-items: center; gap: var(--gap); text-align: center; }
+.overlay .panel p { margin: 0; }
+
+/* ---------- Game over ---------- */
+.go-layout { display: flex; flex-wrap: wrap; gap: calc(var(--gap) * 1.4); align-items: center; justify-content: center; }
+.go-result { display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; }
+.go-head { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.go-actions { display: flex; flex-direction: column; align-items: center; gap: var(--gap); }
+.go-reason, .go-plates { margin: 0; font-size: 1.3rem; color: var(--muted); }
+.go-score { display: flex; align-items: baseline; gap: 12px; }
+#go-score { font-size: clamp(3rem, 10vmin, 5rem); font-weight: 800; color: var(--ui-text); text-shadow: 0 0 calc(18px * var(--glow)) var(--ui); }
+.go-unit { font-size: 1.4rem; color: var(--muted); }
+.go-rank { margin: 0; min-height: 1.4em; font-size: 1.3rem; color: var(--accent); font-weight: 700; }
+.go-records { min-width: min(500px, 90vw); }
+.records li .plates { font-weight: 400; color: var(--muted); }
+
+/* ---------- Indstillinger ---------- */
+#settings { justify-content: flex-start; padding-top: max(20px, 4vmin); }
+.tabs { margin-bottom: 4px; }
+.tab-panel { display: flex; flex-direction: column; gap: calc(var(--gap) * 0.8); align-items: stretch; width: min(1100px, 100%); }
+.setting { display: grid; grid-template-columns: 13em 1fr; align-items: center; gap: var(--gap); }
+@media (max-width: 900px) { .setting { grid-template-columns: 1fr; justify-items: center; text-align: center; } .setting .row { justify-content: center !important; } }
+.setting-label { font-size: 1.35rem; font-weight: 700; display: flex; flex-direction: column; text-shadow: 0 1px 4px #000; }
+.setting-label small { font-size: 0.95rem; font-weight: 400; color: var(--muted); margin-top: 4px; }
+.setting .row { justify-content: flex-start; }
+.value-box { min-width: 6em; text-align: center; font-size: 1.8rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.note { max-width: 44em; margin: 0 auto; color: var(--muted); line-height: 1.5; text-align: center; }
+.theme-btn .swatch {
+  width: 64px; height: 32px; border-radius: 6px;
+  background: linear-gradient(90deg, var(--a) 0 33%, var(--b) 33% 66%, var(--c) 66% 100%);
+  border: 2px solid rgba(255,255,255,.5);
+}
+
+/* ---------- Rekorder ---------- */
+#records { justify-content: flex-start; padding-top: max(20px, 3vmin); gap: calc(var(--gap) * 0.6); }
+.records-panel { min-width: min(560px, 92vw); }
+
+/* ---------- Om ---------- */
+#om { gap: calc(var(--gap) * 0.7); }
+.om-logo { height: clamp(84px, 15vh, 200px); }
+@media (max-height: 740px) { .om-logo { height: 84px; } .om-panel p { font-size: 1.15rem; line-height: 1.45; } }
+.om-panel { max-width: 46em; text-align: center; }
+.om-panel h2 { margin-bottom: 12px; }
+.om-panel p { margin: 10px 0 0; font-size: 1.25rem; line-height: 1.55; }
+.link-btn { text-decoration: none; min-width: calc(var(--btn) * 2.4); }
+.link-btn .small { font-size: 0.95rem; }
+
+/* ---------- Sider (kun når der ikke er plads til det hele) ---------- */
+.trin-skjult { display: none !important; }
+.trin-nav { display: contents; }
+.trin-nav[hidden] { display: none; }
+.trin-label { align-self: center; min-width: 6.5em; text-align: center; font-size: 1.1rem; font-weight: 700; color: var(--muted); text-shadow: 0 1px 4px #000; }
+.trin-nav .btn .icon { font-size: 2rem; }
+.tight .opt { display: none; }
+
+/* ---------- Små skærme (korteste side under 560 px) ----------
+ * Knapperne er mindst 84 px (sat i js/app.js), og der zoomes ikke.
+ * Brede knapper må gerne blive smallere, så flere kan stå på én række. */
+.fl-lille .btn { padding: 6px 12px; gap: 2px; }
+.fl-lille .btn .big { font-size: 1.2rem; }
+.fl-lille .btn.primary .big { font-size: 1.45rem; }
+.fl-lille .btn .icon { font-size: 1.3rem; }
+.fl-lille .btn .small { font-size: 0.9rem; }
+.fl-lille .btn.wide { min-width: calc(var(--btn) * 1.6); }
+/* Sideknapperne viser kun pilen på små skærme (teksten står i aria-label) */
+.fl-lille .trin-nav .btn .big { display: none; }
+.fl-lille .trin-nav .btn .icon { font-size: 2.4rem; }
+.fl-lille .trin-label { min-width: 0; font-size: 1rem; }
+/* Startmenu på højkant: de fire små knapper i to kolonner */
+.fl-lille:not(.fl-tvaers) #menu .more-row { display: grid; grid-template-columns: 1fr 1fr; width: min(100%, 26em); }
+/* Spillet på højkant: logoet gør plads til en stor pauseknap */
+.fl-lille .lay-below .side-logo { display: none; }
+.fl-lille .link-btn { min-width: calc(var(--btn) * 1.6); }
+.fl-lille .screen { padding: 12px; }
+.fl-lille .panel { padding: 14px 18px; }
+.fl-lille .overlay .panel { gap: 12px; }
+.fl-lille .records li { padding-top: 3px; padding-bottom: 3px; }
+.fl-lille #settings, .fl-lille #records { padding-top: 12px; }
+.fl-lille .setting-label { font-size: 1.2rem; }
+.fl-lille .setting .row { gap: 12px; }
+.fl-lille .theme-btn .swatch { width: 48px; height: 26px; }
+.fl-lille .overlay .panel { max-width: calc(100% - 16px); }
+.fl-lille #menu.hall-inflow .hall-btn { min-height: var(--btn); }
+
+/* Game over: knapperne på én række, der må ombrydes */
+.fl-lille .go-actions { flex-direction: row; flex-wrap: wrap; justify-content: center; }
+.fl-lille .go-actions > .row { display: contents; }
+.fl-lille .go-head { gap: 6px; }
+.fl-lille #go-score { font-size: clamp(2.4rem, 9vmin, 4rem); }
+.go-split .go-records { display: none; }
+.go-split.go-vis-rekorder .go-records { display: block; }
+.go-split.go-vis-rekorder .go-head { display: none; }
+
+/* Mobil på tværs: startmenuen som et gitter med tre rækker knapper */
+.fl-tvaers #menu {
+  display: grid; justify-content: safe center; align-content: safe center; justify-items: center; align-items: center;
+  grid-template-columns: auto auto auto;
+  grid-template-areas: "hall title title" "sizes sizes start" "more more more";
+  column-gap: var(--gap); row-gap: calc(var(--gap) * 0.6);
+}
+.fl-tvaers #menu .hall-btn { grid-area: hall; position: static; justify-self: start; }
+.fl-tvaers #menu .title-block { grid-area: title; justify-self: start; }
+.fl-tvaers #menu .title-row .arkade-logo { height: calc(var(--btn) * 0.8); }
+.fl-tvaers #menu .neon-title { font-size: clamp(2rem, 11vh, 3.4rem); }
+.fl-tvaers #menu .lead { display: none; }
+.fl-tvaers #menu .menu-group { grid-area: sizes; }
+.fl-tvaers #menu .group-label { margin: 0 0 4px; }
+.fl-tvaers #menu .start-row { grid-area: start; align-self: end; }
+.fl-tvaers #menu .more-row { grid-area: more; }
+
+/* Mobil på tværs: indstillinger med teksten ved siden af knapperne */
+.fl-tvaers .setting { grid-template-columns: minmax(6em, 10em) auto; column-gap: 16px; justify-items: start; justify-content: center; text-align: left; }
+.fl-tvaers .setting .row { justify-content: flex-start !important; }
+.fl-tvaers #settings .tab-panel { gap: 10px; }
+.fl-tvaers .om-logo { height: 84px; }
+.fl-tvaers .om-panel p { font-size: 1.1rem; line-height: 1.45; }
+.fl-tvaers .go-layout { flex-wrap: nowrap; align-items: center; }
+.fl-lille #menu.tight .title-row .arkade-logo { height: 72px; }
+/* Game over på tværs: rekordlisten i fuld bredde (to spalter) over knapperne */
+.fl-tvaers .go-split.go-vis-rekorder .go-layout { flex-direction: column; flex-wrap: nowrap; gap: 12px; }
+.fl-tvaers .go-split.go-vis-rekorder .go-records { order: -1; width: min(820px, 100%); padding-top: 8px; padding-bottom: 8px; }
+.fl-tvaers .go-split.go-vis-rekorder .go-records .group-label { margin: 0 0 4px; }
+/* Indstillinger på små skærme: tætte faner; på højkant to faner pr. række */
+.fl-lille #settings .tabs { gap: 10px; }
+.fl-lille:not(.fl-tvaers) #settings .tabs { display: grid; grid-template-columns: 1fr 1fr; width: min(100%, 24em); }
+.fl-lille #settings .trin-bund { gap: 10px; margin-top: auto; }
+.fl-lille .value-box { min-width: 4.2em; font-size: 1.5rem; }
+
+/* Rekordlister: point og linjer på én linje, så listen ikke bliver dobbelt så høj */
+ol.records .score { white-space: nowrap; }
+.fl-tvaers ol.records .plates, .fl-lille ol.records .plates { font-size: .85em; }
+/* Flipper: knapteksterne må ikke knække midt i "Lad være" */
+.choice-btn .big { white-space: nowrap; }
+.compact .choice-btn .big { font-size: clamp(1.05rem, calc(var(--btn) * 0.2), 1.6rem); }
+/* Rekordlisterne på små skærme: kun point og dato */
+.fl-lille #go-records .plates { display: none; }
+/* Panelerne toner roligt frem, når fasen skifter (intet blink) */
+.ctl-panel:not([hidden]) { animation: fl-ind 260ms ease-out; }
+@keyframes fl-ind { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .ctl-panel:not([hidden]) { animation-duration: 180ms; } }
+/* Mobil på højkant: point med punktum fylder mere – lidt mindre tekst i listen */
+.fl-lille:not(.fl-tvaers) ol.records li { font-size: 0.95rem; column-gap: 10px; }
+.fl-lille:not(.fl-tvaers) .records-panel, .fl-lille:not(.fl-tvaers) .go-records { min-width: 0; width: 100%; }

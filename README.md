@@ -115,6 +115,25 @@ Når man vælger en lampe, skifter den og de fire lamper ved siden af: tændte s
 - **Rolig visning:** der er ingen blink og ingen hvide lysglimt. Er animation slået fra, eller er computeren sat til mindre bevægelse, skifter lamperne uden overgang.
 - **Test:** `node lys-ud/test/spillogik.test.js` tjekker tryk og kanter, at alle løsbare plader findes, at den korteste løsning er korrekt (sammenlignet med at prøve alle), generatoren, fortryd, forfra, tip, point, baneskift og den automatiske standardplade. `python3 lys-ud/test/responsiv_test.py` (Playwright og Chrome) tjekker alle skærme ved 8 opløsninger, standardpladen ud fra skærmen, at en valgt størrelse huskes, markeringen ved blik, klik, fortryd, tip, tastatur, Bane klaret, bekræftelsen ved Afslut (knapstørrelse, afstand, Esc = Nej og dwell-sikkerhed) og rekorden.
 
+### Flipper
+Et roligt flipperspil til øjenstyring. Der er ingen tidspres: spillet fryser, hver gang kuglen er på vej ned mod flipperne, og venter, til man har valgt.
+Man har tre kugler og får ekstra kugler ved høje point.
+
+- **Afskydning:** vælg kraft 1–5 med store knapper, og tryk **Skyd**. En svag stiplet linje viser, hvor kuglen vil gå (kan slås fra).
+- **Fryst øjeblik:** når kuglen kommer ned i zonen over flipperne, toner bordet roligt ned, kuglen får en ring, og man vælger mellem fire store knapper: **Venstre**, **Højre**, **Begge** og **Lad være**. Den valgte flipper slår selv på det rigtige tidspunkt, så timing er ikke nødvendig. Hvert valg viser en svag sigtelinje og et kort udfald (fx »Slår kuglen op · +400« eller »Kuglen går tabt«). Linjerne regnes med præcis samme fysik som spillet, så de passer altid. De kan slås fra under Indstillinger.
+- **Sigte:** hvor kuglen rammer flipperen, og hvor hurtigt den kommer, bestemmer retningen. Tæt på spidsen sendes den skråt, tæt på leddet mere lige op.
+- **Ingen kugle tabes uden et valg:** spillet fryser også, hvis kuglen ligger stille eller ruller langsomt mod afløbet. Ligger den stille ude på bordet, får den et lille puf. Det fryser kun, når en flipper faktisk kan nå kuglen, eller når den ellers går tabt.
+- **Bordet:** tre bumpere (100 point), to slynger (10), fem lysmål (250, og 50 når de allerede er tændt) og en sløjfe i hver side (500). Når alle fem lys er tændt, gives 2000 point, lysene starter forfra, og **Bonus** stiger fra ×1 op til ×5. Bonussen ganger alle point og nulstilles, når kuglen er tabt.
+- **Kugler:** 3 kugler og en ekstra kugle ved 40 000 og ved 100 000 point.
+- **Fart:** **Rolig**, **Normal** eller **Hurtig** vælges på startskærmen. Farten styrer kun, hvor hurtigt kuglen ruller på skærmen, ikke fysikken. Der er en top 10 for hver fart.
+- **Tastatur:** ← eller A er venstre, → eller L er højre, ↑ eller B er begge, og ↓, N, mellemrum eller Enter er lad være. Ved afskydning vælger 1–5 eller piletasterne kraften, og mellemrum eller Enter skyder. Esc eller P giver pause.
+- **Dwell (valgfrit, slået fra som standard):** hver knap vælges én gang, og der gentages aldrig, mens blikket bliver på den.
+- **Fysik:** et fast tidsskridt på 1/120 sekund med 4 delskridt og kollision med kapsler, så kuglen ikke smutter gennem væggene, selv ved topfart. Alt er deterministisk.
+- **Alle skærme:** man skal aldrig rulle. Bordet står på højkant og skaleres til skærmen. På brede skærme står knapperne ved siden af bordet, og på smalle skærme står de under det. Knapperne er mindst ca. 3 cm, når der er plads, og ellers mindst ca. 80 px.
+- **Lyd:** lyde fra arkadens fælles lyd ved bumpere, mål, flipper, frysning og tabt kugle, og der er musik. Effekter og musik slås til og fra hver for sig.
+- **Rolig visning:** der er ingen blink og ingen hvide lysglimt. Er animation slået fra, eller er computeren sat til mindre bevægelse, tegnes kuglens bane som et tydeligt spor, og lys og effekter er dæmpede.
+- **Test:** `node flipper/test/spillogik.test.js` tjekker frysezonen, at den valgte flipper slår kuglen op, at »Lad være« taber kuglen, at sigtelinjerne passer præcist med kuglens bane, point for bumper, mål, alle lys, bonus og sløjfe, tabt kugle, game over, ekstra kugle, afskydning, frysning ved stille kugle, at farten ikke ændrer fysikken, at kuglen ikke smutter gennem væggene, og at en kugle aldrig tabes uden et valg (hele spil). `python3 flipper/test/responsiv_test.py` (Playwright og Chrome) tjekker alle skærme ved 8 opløsninger.
+
 ## Sådan spiller og tester du
 
 1. Hent eller pak mappen `hojt-arkade` ud.
@@ -150,6 +169,7 @@ minestryger/      spillet Minestryger (index.html, css/, js/)
 bomberne/         spillet Bomberne (index.html, css/, js/, test/)
 froeen/           spillet Frøen (index.html, css/, js/, test/)
 lys-ud/           spillet Lys ud (index.html, css/, js/, test/)
+flipper/          spillet Flipper (index.html, css/, js/, test/)
 LICENSE           MIT-licens
 ```
 
