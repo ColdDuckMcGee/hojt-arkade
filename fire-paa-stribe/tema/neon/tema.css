@@ -1,0 +1,122 @@
+/* Fire på stribe – tema "neon": al grafik for spillet.
+ * Farver, glød, skygger, kanter, hjørner, streger, brikker, bræt og ikonernes stil.
+ * Mål og layout står i ../../css/fire-paa-stribe.css og må ikke afhænge af temaet.
+ * Glød: alle glødeffekter ganges med var(--glow) og slås fra med data-gloed="fra" på <html>
+ * (indstillingen Glød under Udseende). Spillet kan aflæses fuldt uden glød: brikkerne
+ * kendes på formen (ring / rombe), og markeringer er streger, ikke skær. */
+
+/* ---------- Glød til og fra ---------- */
+html[data-gloed="fra"] { --glow: 0; }
+html[data-gloed="fra"] .neon-title, html[data-gloed="fra"] .neon-sub { text-shadow: 0 1px 4px #000; }
+html[data-gloed="fra"] .btn, html[data-gloed="fra"] .btn:hover, html[data-gloed="fra"] .btn.arkade-dwelling { box-shadow: none; }
+html[data-gloed="fra"] .arkade-logo { filter: none; }
+
+/* ---------- Farvefelter i temavalget ---------- */
+.theme-btn[data-value="neon"] .swatch { --a: #ff2fd2; --b: #22eaff; --c: #1a0b2a; }
+.theme-btn[data-value="solnedgang"] .swatch { --a: #ff8a1f; --b: #22eaff; --c: #2a0b3d; }
+.theme-btn[data-value="cyberpunk"] .swatch { --a: #39ff6a; --b: #2a8dff; --c: #000; }
+.theme-btn[data-value="kontrast"] .swatch { --a: #ffff00; --b: #00ffff; --c: #000; }
+
+/* ---------- Ikoner (navne fra tema/neon/grafik.js) ---------- */
+.ico-fill { fill: var(--ui); }
+.ico-hall { fill: none; stroke: var(--muted); stroke-width: 7; stroke-linejoin: round; }
+
+/* ---------- Farver ----------
+ * Din brik: pink skive med en ring indeni. Computerens brik: gul skive med en
+ * rombe i midten. Forskellen ses altså på formen og ikke kun på farven. */
+:root, [data-theme] { --fp-board: rgba(10, 18, 70, 0.92); --fp-board2: rgba(4, 6, 30, 0.95); --fp-frame: #2a8dff; --fp-hole: rgba(2, 2, 14, 0.92); --fp-hole-ring: rgba(120, 160, 255, 0.35); --fp-p1: #ff2fd2; --fp-p1-core: #ff9bea; --fp-p2: #ffd23a; --fp-p2-core: #fff1b8; --fp-tip: #39ff6a; --fp-cursor: #22eaff; --fp-win: #ffffff; --fp-ok: #39ff6a; --fp-lost: #ff8a8a; }
+[data-theme="solnedgang"] { --fp-frame: #c77dff; --fp-board: rgba(48, 12, 70, 0.92); --fp-p1: #ff8a1f; --fp-p1-core: #ffd2a0; --fp-p2: #22eaff; --fp-p2-core: #c8f9ff; --fp-cursor: #ffd23a; }
+[data-theme="cyberpunk"] { --fp-frame: #2a9dff; --fp-board: rgba(0, 20, 30, 0.94); --fp-board2: rgba(0, 6, 8, 0.96); --fp-hole-ring: rgba(57, 255, 106, 0.3); --fp-p1: #39ff6a; --fp-p1-core: #c9ffd6; --fp-p2: #ff3fd8; --fp-p2-core: #ffc4f3; --fp-tip: #ffd23a; --fp-cursor: #2a9dff; }
+[data-theme="kontrast"] { --fp-board: #000000; --fp-board2: #000000; --fp-frame: #ffffff; --fp-hole: #000000; --fp-hole-ring: #ffffff; --fp-p1: #ffff00; --fp-p1-core: #ffff00; --fp-p2: #00ffff; --fp-p2-core: #00ffff; --fp-tip: #00ff00; --fp-cursor: #ff00ff; --fp-win: #ff00ff; --fp-ok: #00ff00; --fp-lost: #ffffff; }
+/* ---------- Startmenu ---------- */
+.lead { text-shadow: 0 1px 6px #000, 0 0 2px #000; color: var(--muted); }
+/* Tilbage til hallen: fast i hjørnet, roligere stil end de andre knapper */
+.hall-btn { border-width: 2px; border-color: color-mix(in srgb, var(--muted) 70%, transparent); background: rgba(0, 0, 0, 0.45); box-shadow: none; color: var(--muted); }
+.hall-ico { fill: none; stroke: var(--muted); stroke-width: 7; stroke-linejoin: round; }
+.hall-btn:hover, .hall-btn.arkade-dwelling { color: var(--ui-text); border-color: var(--muted); background: rgba(255, 255, 255, 0.08); box-shadow: none; }
+/* ---------- Spilleskærm ----------
+ * js/app.js vælger det layout, der giver de største felter, og sætter
+ * --btn, --cell, --board-px m.fl. på #game:
+ *  lay-wide:  status til venstre, brættet i midten, knapper til højre
+ *  lay-side:  brættet til venstre; status, knapper til højre (lav skærm)
+ *  lay-below: status øverst, brættet i midten, knapper under (højkant) */
+.hud { background: var(--panel); border-radius: 14px; border: 1px solid var(--ui-soft); }
+.hud-label { color: var(--muted); }
+.hud-value { color: var(--ui-text); }
+.points-note { color: var(--accent); text-shadow: 0 1px 4px #000; }
+.pause-btn svg { fill: var(--ui); }
+/* Brættet: syv kolonner, hver kolonne er én stor knap (klik, tryk eller dwell) */
+.board { background: linear-gradient(180deg, var(--fp-board), var(--fp-board2)); border: 3px solid var(--fp-frame); border-radius: 16px; box-shadow: 0 0 calc(22px * var(--glow)) color-mix(in srgb, var(--fp-frame) 50%, transparent), inset 0 0 calc(14px * var(--glow)) color-mix(in srgb, var(--fp-frame) 35%, transparent); }
+.col { background: transparent; border-radius: 10px; color: inherit; }
+.col:focus-visible { outline: 4px solid var(--accent); outline-offset: -4px; }
+.col.focus { background: color-mix(in srgb, var(--fp-cursor) 9%, transparent); box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--fp-cursor) 45%, transparent); }
+.col.cur { box-shadow: inset 0 0 0 4px var(--fp-cursor); }
+.col.tip { box-shadow: inset 0 0 0 4px var(--fp-tip); }
+.col-num { color: color-mix(in srgb, var(--fp-hole-ring) 100%, transparent); }
+.col.cur .col-num, .pick-on .col-num { color: var(--muted); }
+/* Hullet i brættet */
+.slot::before { content: ""; position: absolute; inset: 9%; border-radius: 50%; background: var(--fp-hole); box-shadow: inset 0 3px 6px rgba(0,0,0,.7), 0 0 0 2px var(--fp-hole-ring); }
+.disc { border-radius: 50%; }
+.slot.p1 .disc, .slot.p2 .disc, .slot.ghost .disc, .slot.tipslot .disc { display: block; }
+/* Din brik: fyldt skive med en ring indeni */
+.slot.p1 .disc { background: radial-gradient(circle at 50% 42%, var(--fp-p1-core) 0 18%, var(--fp-p1) 50%, color-mix(in srgb, var(--fp-p1) 55%, #000) 100%); box-shadow: 0 0 calc(14px * var(--glow)) color-mix(in srgb, var(--fp-p1) 60%, transparent), inset 0 0 0 calc(var(--cell, 100px) * .09) color-mix(in srgb, var(--fp-p1) 80%, #000), inset 0 0 0 calc(var(--cell, 100px) * .13) var(--fp-p1-core); }
+/* Computerens brik: fyldt skive med en rombe i midten */
+.slot.p2 .disc { background: radial-gradient(circle at 50% 42%, var(--fp-p2-core) 0 18%, var(--fp-p2) 50%, color-mix(in srgb, var(--fp-p2) 55%, #000) 100%); box-shadow: 0 0 calc(14px * var(--glow)) color-mix(in srgb, var(--fp-p2) 60%, transparent); }
+.slot.p2 .disc::after { content: ""; position: absolute; left: 50%; top: 50%; width: 30%; height: 30%; transform: translate(-50%, -50%) rotate(45deg); border-radius: 3px; background: color-mix(in srgb, var(--fp-p2) 45%, #000); }
+[data-theme="kontrast"] .slot.p1 .disc { background: var(--fp-p1); box-shadow: inset 0 0 0 calc(var(--cell, 100px) * .1) #000, inset 0 0 0 calc(var(--cell, 100px) * .15) var(--fp-p1); }
+[data-theme="kontrast"] .slot.p2 .disc { background: var(--fp-p2); box-shadow: none; }
+[data-theme="kontrast"] .slot.p2 .disc::after { background: #000; }
+/* Ghost-brik: hvor din brik lander */
+.slot.ghost .disc { background: color-mix(in srgb, var(--fp-p1) 28%, transparent); border: 3px dashed var(--fp-p1); box-shadow: none; }
+.slot.tipslot .disc { background: color-mix(in srgb, var(--fp-tip) 25%, transparent); border: 4px solid var(--fp-tip); box-shadow: 0 0 calc(12px * var(--glow)) color-mix(in srgb, var(--fp-tip) 60%, transparent); }
+.slot.tipslot .disc::after { content: "TIP"; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); color: var(--fp-tip); font-weight: 800; letter-spacing: .06em; font-size: clamp(.7rem, calc(var(--cell, 100px) * .2), 1.4rem); }
+/* Seneste brik: en tynd ring, så man kan se, hvad computeren lige gjorde */
+.slot.last .disc { outline: 3px solid color-mix(in srgb, var(--fp-cursor) 85%, transparent); outline-offset: 2px; }
+/* Vindende fire: tydelig hvid ring og de andre brikker dæmpet – stillestående, intet blink */
+.board.ended .slot:not(.win) .disc { opacity: .38; }
+.slot.win .disc { outline: calc(3px + var(--cell, 100px) * .04) solid var(--fp-win); outline-offset: 1px; box-shadow: 0 0 calc(20px * var(--glow)) var(--fp-win); }
+/* Faldet: brikken glider roligt ned gennem kolonnen */
+.col:hover:not([aria-disabled="true"]), .col.arkade-dwelling { background: color-mix(in srgb, var(--fp-cursor) 9%, transparent); }
+@media (hover: none) {
+  .col:hover { background: transparent; }
+}
+/* Små brikker i tekst og forklaring */
+.mini-disc { display: inline-block; width: 1em; height: 1em; border-radius: 50%; vertical-align: -0.15em; margin-right: .45em; flex: none; }
+.mini-disc.p1, .lg-disc.p1 { background: var(--fp-p1); box-shadow: inset 0 0 0 .16em color-mix(in srgb, var(--fp-p1) 60%, #000), inset 0 0 0 .24em var(--fp-p1-core); }
+.mini-disc.p2, .lg-disc.p2 { background: var(--fp-p2); position: relative; }
+.legend { color: var(--ui-text); text-shadow: 0 1px 4px #000; }
+.lg-disc { width: 1.3em; height: 1.3em; border-radius: 50%; display: inline-block; }
+.hint { color: var(--ui-text); text-shadow: 0 1px 4px #000; }
+.hint.ok { color: var(--fp-ok); }
+.hint.lost { color: var(--fp-lost); }
+.hint.cpu { color: var(--muted); }
+/* Ved siden af brættet: ikon til venstre, tekst og undertekst stablet – samme højde uanset tekst */
+.ico-line { fill: none; stroke: var(--accent); stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; }
+.tip-btn .ico-line { stroke: var(--fp-tip); }
+.act-btn:disabled svg { opacity: .7; }
+/* Kompakt: lay-side og lay-below */
+.compact .hud { border-radius: 10px; }
+/* Overlays (pause og klaret bane) */
+.overlay { background: rgba(0, 0, 0, 0.62); }
+.overlay.soft { background: rgba(0, 0, 0, 0.42); }
+/* ---------- Game over ---------- */
+.go-reason, .go-plates { color: var(--muted); }
+#go-score { color: var(--ui-text); text-shadow: 0 0 calc(18px * var(--glow)) var(--ui); }
+.go-unit { color: var(--muted); }
+.go-rank { color: var(--accent); }
+.records li .plates { color: var(--muted); }
+/* ---------- Indstillinger ---------- */
+.setting-label { text-shadow: 0 1px 4px #000; }
+.setting-label small { color: var(--muted); }
+.note { color: var(--muted); }
+.theme-btn .swatch { width: 64px; height: 32px; border-radius: 6px; background: linear-gradient(90deg, var(--a) 0 33%, var(--b) 33% 66%, var(--c) 66% 100%); border: 2px solid rgba(255,255,255,.5); }
+/* ---------- Sider (kun når der ikke er plads til det hele) ---------- */
+.trin-label { color: var(--muted); text-shadow: 0 1px 4px #000; }
+/* Spillet på højkant: logoet gør plads til en stor pauseknap */
+.fp-lille .theme-btn .swatch { width: 48px; height: 26px; }
+/* Vælgeren: ◀ Slip ▶ (kun når kolonnerne er smallere end ca. 80 px) */
+.drop-btn { border-color: var(--fp-p1); }
+.next-btn .ico-line { stroke: var(--fp-ok); fill: color-mix(in srgb, var(--fp-ok) 25%, transparent); }
+.hint .mini-disc { width: .95em; height: .95em; }
+/* Knapper deaktiveret med aria-disabled (så dwell-låsen holder) */
+.act-btn[aria-disabled="true"] svg, .pick-btn[aria-disabled="true"] svg { opacity: .7; }

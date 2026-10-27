@@ -20,8 +20,8 @@
     dwell: false, dwellTime: 1.2, theme: 'neon', background: 'mork',
     animation: true, sound: true, music: true
   });
-  // level: computerens niveau. ghost: vis svagt, hvor brikken lander.
-  var gset = ArkadeSettings.create('firepaastribe', { level: G.DEFAULT_LEVEL, ghost: true });
+  // level: computerens niveau. ghost: vis svagt, hvor brikken lander. gloed: temaets glød (kan slås fra).
+  var gset = ArkadeSettings.create('firepaastribe', { level: G.DEFAULT_LEVEL, ghost: true, gloed: true });
   var records = ArkadeHighscores.create('firepaastribe', { max: 10 });
 
   var THEMES = ['neon', 'solnedgang', 'cyberpunk', 'kontrast'];
@@ -118,7 +118,12 @@
     if (key === 'music') { audio.unlock(); audio.setMusic(value); }
     syncSettingsUi();
   });
-  gset.onChange(function (key) { if (key === 'ghost') { syncSettingsUi(); renderBoard(); } });
+  // Glød er en temaeffekt: data-gloed="fra" på <html> slår den fra i temaets CSS
+  function applyGlow() { root.setAttribute('data-gloed', gset.get('gloed') ? 'til' : 'fra'); }
+  gset.onChange(function (key) {
+    if (key === 'ghost') { syncSettingsUi(); renderBoard(); }
+    if (key === 'gloed') { applyGlow(); syncSettingsUi(); }
+  });
 
   // ---------- Skærme ----------
   var current = 'menu';
@@ -176,27 +181,9 @@
   var falling = -1, fallingMs = 0;    // feltet med den brik, der falder lige nu
   var cpuTimer = 0, animTimer = 0, pendingCpu = false;
   var lastNote = '';
-  var boardEl = $('#board'), colEls = [], slotEls = [];
-
-  function buildBoard() {
-    boardEl.innerHTML = '';
-    colEls = []; slotEls = [];
-    for (var c = 0; c < COLS; c++) {
-      var b = document.createElement('button');
-      b.className = 'col turn-btn';
-      b.type = 'button';
-      b.dataset.c = c;
-      var h = '';
-      for (var r = 0; r < ROWS; r++) h += '<span class="slot" data-r="' + r + '"><span class="disc"></span></span>';
-      b.innerHTML = h + '<span class="col-num" aria-hidden="true">' + (c + 1) + '</span>';
-      boardEl.appendChild(b);
-      colEls.push(b);
-    }
-    for (var i = 0; i < G.N; i++) {
-      var rr = Math.floor(i / COLS), cc = i % COLS;
-      slotEls.push(colEls[cc].children[rr]);
-    }
-  }
+  var boardEl = $('#board');
+  var tegn = FirePaaStribeTegn.create(boardEl);   // tegnelaget: al grafik kommer fra temaet
+  function buildBoard() { tegn.build(); }
   boardEl.addEventListener('click', function (e) {
     var c = e.target.closest('.col');
     if (!c || swallowed(c)) return;
@@ -321,47 +308,24 @@
   $('#btn-drop').addEventListener('click', function () { if (!swallowed(this)) { if (curCol < 0) curCol = pickStart(); dropCol(curCol); } });
 
   // ---------- Tegning ----------
+  // Visningen: hvad der skal vises ud fra spillets tilstand. Tegnelaget (js/tegn.js) tegner den.
   function renderBoard() {
-    if (!run || !colEls.length) return;
+    if (!run || !tegn.ready) return;
     var s = run.state, b = s.board;
     var play = canPlay();
     var focus = play ? (hoverCol >= 0 ? hoverCol : curCol) : -1;
-    var ghost = -1, ghostTip = false;
+    var ghost = -1;
     if (focus >= 0 && gset.get('ghost')) { var gr = G.landingRow(b, focus); if (gr >= 0) ghost = G.idx(gr, focus); }
     var tipIdx = -1;
     if (play && s.hintCol >= 0) { var tr = G.landingRow(b, s.hintCol); if (tr >= 0) tipIdx = G.idx(tr, s.hintCol); }
-    if (tipIdx >= 0 && tipIdx === ghost) ghostTip = true;
     var win = {}; (s.winCells || []).forEach(function (i) { win[i] = 1; });
-    var ended = !!s.result;
-    boardEl.classList.toggle('ended', ended && s.result !== 'draw');
-    for (var i = 0; i < slotEls.length; i++) {
-      var sl = slotEls[i], v = b[i], cl = sl.classList;
-      cl.toggle('p1', v === YOU);
-      cl.toggle('p2', v === CPU);
-      cl.toggle('win', !!win[i]);
-      cl.toggle('last', !!(s.lastMove && !ended && G.idx(s.lastMove.row, s.lastMove.col) === i));
-      cl.toggle('ghost', i === ghost && !v);
-      cl.toggle('tipslot', i === tipIdx && !v);
-      var d = sl.firstChild;
-      if (i === falling) {
-        if (!d.classList.contains('fall')) {
-          d.style.setProperty('--rows', String(Math.floor(i / COLS) + 1));
-          d.style.setProperty('--dur', fallingMs + 'ms');
-          d.classList.add('fall');
-        }
-      } else if (d.classList.contains('fall')) d.classList.remove('fall');
-    }
-    for (var c = 0; c < colEls.length; c++) {
-      var el = colEls[c], full = !G.canDrop(b, c), ccl = el.classList;
-      ccl.toggle('focus', c === focus);
-      ccl.toggle('cur', c === curCol && play);
-      ccl.toggle('tip', c === s.hintCol && play);
-      ccl.toggle('full', full);
-      var off = !play || full;
-      if ((el.getAttribute('aria-disabled') === 'true') !== off) el.setAttribute('aria-disabled', String(off));
-      var label = 'Kolonne ' + (c + 1) + (full ? ', fuld' : '') + (c === s.hintCol && play ? ', tip: vælg denne' : '');
-      if (el.getAttribute('aria-label') !== label) el.setAttribute('aria-label', label);
-    }
+    tegn.render({
+      board: b, focus: focus, cur: curCol, tipCol: s.hintCol, play: play,
+      ghost: ghost, tipIdx: tipIdx, win: win,
+      last: s.lastMove && !s.result ? G.idx(s.lastMove.row, s.lastMove.col) : -1,
+      ended: !!s.result && s.result !== 'draw',
+      falling: falling, fallingMs: fallingMs
+    });
     // Vælgerens knapper
     var pd = !play;
     setAria($('#btn-left'), pd || curCol === 0);
@@ -369,7 +333,7 @@
     setAria($('#btn-drop'), pd || (curCol >= 0 && !G.canDrop(b, curCol)));
   }
   function setAria(el, off) { if ((el.getAttribute('aria-disabled') === 'true') !== off) el.setAttribute('aria-disabled', String(off)); }
-  function discHtml(p) { return '<span class="mini-disc p' + p + '" aria-hidden="true"></span>'; }
+  function discHtml(p) { return FirePaaStribeTegn.miniBrik(p); }
 
   function refresh() {
     if (!run) return;
@@ -947,6 +911,8 @@
   });
 
   // ---------- Start ----------
+  FirePaaStribeTegn.ikoner(document);   // temaets ikoner i knapperne
+  applyGlow();
   syncSmall();
   applyTheme();
   applyBackground();

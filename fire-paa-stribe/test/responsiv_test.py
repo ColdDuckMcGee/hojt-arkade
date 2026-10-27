@@ -4,7 +4,7 @@
 # vises som kolonne=..px; er de under 80 px, skal vælgeren ◀ Slip ▶ være der) og ingen
 # fejl i konsollen.
 #
-# Desuden: ghost-brik, slip med mus og tastatur, computerens svar, Fortryd, Tip,
+# Desuden: glød slået fra (temaindstilling), ghost-brik, slip med mus og tastatur, computerens svar, Fortryd, Tip,
 # vundet parti (fire markeret), næste parti, tabt parti -> resultat, rekord gemt,
 # bekræftelse ved Afslut (Esc = Nej, dwell-sikker).
 #
@@ -169,6 +169,13 @@ with sync_playwright() as p:
         if slots(pg, 'ghost') != [4 * 7 + 4]: fails.append('%s ghost %s, ventede %s' % (tag, slots(pg, 'ghost'), [32]))
         check(pg,'spil i gang (ghost)','#game',w,h, tag+'-spil.png')
         if SHOT and (w, h) == (1920, 1080): pg.screenshot(path=SHOT + 'spil-i-gang.png')
+        # Temaets glød kan slås fra, og spillet kan stadig aflæses (brikkerne kendes på formen)
+        pg.evaluate("FirePaaStribe.gameSettings.set('gloed', false)"); pg.wait_for_timeout(60)
+        g = pg.evaluate("[document.documentElement.dataset.gloed, getComputedStyle(document.documentElement).getPropertyValue('--glow').trim()]")
+        if g != ['fra', '0']: fails.append('%s glød blev ikke slået fra %s' % (tag, g))
+        check(pg,'spil i gang uden glød','#game',w,h, tag+'-uden-gloed.png')
+        if SHOT and (w, h) == (1920, 1080): pg.screenshot(path=SHOT + 'spil-uden-gloed.png')
+        pg.evaluate("FirePaaStribe.gameSettings.set('gloed', true)"); pg.wait_for_timeout(40)
         # Klik: din brik lander, computeren svarer
         n0 = st(pg, "s.history.length")
         pg.mouse.click(x, y); idle(pg)
