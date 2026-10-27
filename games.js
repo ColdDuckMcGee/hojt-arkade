@@ -20,7 +20,7 @@ window.HOJT_SPIL = [
   { navn: 'Minestryger',    sti: 'minestryger/',    farve: 'blå',    status: 'aktiv', tekst: 'Find alle de sikre felter ved hjælp af tallene, og undgå minerne.', skaerm: 'hal/skaerme/minestryger.svg' },
   { navn: 'Juveler',        sti: 'juveler/',        farve: 'rød',    status: 'snart', tekst: 'Byt om på to juveler, og lav rækker med tre ens.' },
   { navn: 'Rørlægger',      sti: 'rorlaegger/',     farve: 'cyan',   status: 'snart', tekst: 'Drej rørene, så vandet kan løbe hele vejen igennem.' },
-  { navn: 'Kasser',         sti: 'kasser/',         farve: 'orange', status: 'snart', tekst: 'Skub kasserne hen på de markerede felter.' },
+  { navn: 'Kasser',         sti: 'kasser/',         farve: 'orange', status: 'aktiv', tekst: 'Skub kasserne hen på de markerede felter.', skaerm: 'hal/skaerme/kasser.svg' },
   { navn: 'Pixelgåder',     sti: 'pixelgaader/',    farve: 'pink',   status: 'snart', tekst: 'Brug tallene til at finde ud af, hvilke felter der skal farves.' },
   { navn: 'Lys ud',         sti: 'lys-ud/',         farve: 'gul',    status: 'aktiv', tekst: 'Tryk på lamperne, og sluk dem alle sammen.', skaerm: 'hal/skaerme/lys-ud.svg' },
   { navn: 'Fire på stribe', sti: 'fire-paa-stribe/', farve: 'blå',   status: 'snart', tekst: 'Slip brikkerne ned, og få fire i træk før computeren.' },
