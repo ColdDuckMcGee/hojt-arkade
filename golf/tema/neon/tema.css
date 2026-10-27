@@ -1,0 +1,149 @@
+/* Golf – tema "neon" (synthwave, neon på glas).
+ *
+ * Al grafik i spillet kommer herfra og fra grafik.js i samme mappe: farver, glød,
+ * skygger, konturer, stregtykkelser og hjørner. Spillets egen CSS (css/golf.css)
+ * og JS bruger kun variablerne nedenfor, så et nyt tema (fx tema/tegneserie/)
+ * skal levere de samme variabler og de samme navngivne tegnefunktioner og ikoner.
+ *
+ * Banen tegnes på et canvas. js/tegn.js læser alle --golf-<navn>, som
+ * grafik.js nævner i GolfTema.farver og GolfTema.tal, og giver dem videre.
+ * Tal uden enhed er i banens enheder (banen er 1000 × 600) eller i px for
+ * glød og skygger.
+ *
+ * Farvesættene følger Hojt Arkades fælles indstilling data-theme
+ * (neon, solnedgang, cyberpunk, kontrast). Glød slås fra med
+ * data-golf-gloed="fra" på <html> (Indstillinger → Udseende → Glød). */
+
+/* ---------- Farver på banen ---------- */
+:root, [data-theme] {
+  --golf-flade: #120726;
+  --golf-flade-2: #1d0a35;
+  --golf-flade-moenster: rgba(255, 63, 216, 0.10);
+  --golf-kant: #22eaff;
+  --golf-kant-inde: rgba(34, 234, 255, 0.35);
+  --golf-bande: #3a1450;
+  --golf-bande-kerne: #ff3fd8;
+  --golf-kontur: #000000;
+  --golf-sand: #5a3b16;
+  --golf-sand-moenster: rgba(255, 210, 58, 0.55);
+  --golf-vand: #0a3a6a;
+  --golf-vand-boelge: #22eaff;
+  --golf-skraaning: rgba(167, 139, 255, 0.16);
+  --golf-skraaning-pil: rgba(199, 180, 255, 0.75);
+  --golf-tee: rgba(57, 255, 106, 0.10);
+  --golf-tee-kant: rgba(57, 255, 106, 0.7);
+  --golf-hul: #000000;
+  --golf-hul-kant: #22eaff;
+  --golf-flag: #ff3fd8;
+  --golf-flagstang: #f6ecff;
+  --golf-bold: #ffffff;
+  --golf-bold-kant: #b9a7ff;
+  --golf-sigte: #ffe14d;
+  --golf-sigte-pil: #ffe14d;
+  --golf-spor: rgba(246, 236, 255, 0.35);
+  --golf-slutpunkt: #ffe14d;
+  --golf-gloed-farve: #ff3fd8;
+  --golf-skygge-farve: transparent;
+
+  /* Flader uden for banen (status, bokse, knapper) */
+  --golf-board-bg: rgba(8, 3, 18, 0.9);
+  --golf-frame: #22eaff;
+  --golf-ok: #39ff6a;
+  --golf-fejl: #ff7a3c;
+  --golf-vand-tekst: #22eaff;
+  --golf-shadow: #000000;
+  --golf-overlay-bg: rgba(0, 0, 0, 0.62);
+  --golf-overlay-soft: rgba(0, 0, 0, 0.4);
+  --golf-hall-bg: rgba(0, 0, 0, 0.45);
+  --golf-hall-bg-hover: rgba(255, 255, 255, 0.08);
+  --golf-swatch-border: rgba(255, 255, 255, 0.5);
+  --golf-hud-bg: var(--panel);
+  --golf-hud-border: var(--ui-soft);
+  --golf-meter: #ffe14d;
+  --golf-meter-tom: rgba(206, 190, 232, 0.5);
+}
+[data-theme="solnedgang"] {
+  --golf-flade: #1c0820; --golf-flade-2: #2e0c35; --golf-flade-moenster: rgba(255, 138, 31, 0.10);
+  --golf-kant: #ff8a1f; --golf-kant-inde: rgba(255, 138, 31, 0.35); --golf-bande: #3d1530; --golf-bande-kerne: #c77dff;
+  --golf-hul-kant: #ff8a1f; --golf-flag: #c77dff; --golf-gloed-farve: #ff8a1f; --golf-frame: #ff8a1f;
+}
+[data-theme="cyberpunk"] {
+  --golf-flade: #00100c; --golf-flade-2: #021a14; --golf-flade-moenster: rgba(57, 255, 106, 0.09);
+  --golf-kant: #2a9dff; --golf-kant-inde: rgba(42, 157, 255, 0.35); --golf-bande: #062a22; --golf-bande-kerne: #39ff6a;
+  --golf-vand: #06305a; --golf-hul-kant: #39ff6a; --golf-flag: #2a9dff; --golf-gloed-farve: #39ff6a; --golf-frame: #2a9dff;
+  --golf-sigte: #39ff6a; --golf-sigte-pil: #39ff6a; --golf-slutpunkt: #39ff6a; --golf-meter: #39ff6a;
+}
+[data-theme="kontrast"] {
+  --golf-flade: #000000; --golf-flade-2: #000000; --golf-flade-moenster: rgba(255, 255, 255, 0.12);
+  --golf-kant: #ffffff; --golf-kant-inde: #ffffff; --golf-bande: #ffffff; --golf-bande-kerne: #ffffff;
+  --golf-sand: #7a5a00; --golf-sand-moenster: #ffff00; --golf-vand: #0040ff; --golf-vand-boelge: #00ffff;
+  --golf-skraaning: #2a2a2a; --golf-skraaning-pil: #ffffff;
+  --golf-tee: #000000; --golf-tee-kant: #00ff00; --golf-hul: #000000; --golf-hul-kant: #ffff00;
+  --golf-flag: #ff00ff; --golf-flagstang: #ffffff; --golf-bold: #ffffff; --golf-bold-kant: #000000;
+  --golf-sigte: #ffff00; --golf-sigte-pil: #ffff00; --golf-spor: #888888; --golf-slutpunkt: #ffff00;
+  --golf-board-bg: #000000; --golf-frame: #ffffff; --golf-ok: #00ff00; --golf-fejl: #ff6600; --golf-vand-tekst: #00ffff;
+  --golf-meter: #ffff00; --golf-meter-tom: #888888;
+}
+
+/* ---------- Streger, prikker og hjørner ----------
+ * Tal uden enhed er i banens enheder (1000 × 600), undtagen glød og skygger (px). */
+:root {
+  --golf-kant-w: 8;
+  --golf-kant-inde-w: 2;
+  --golf-kontur-w: 0;              /* sorte konturer (fx ligne claire) – 0 i neon */
+  --golf-bande-kerne-w: 4;
+  --golf-moenster-w: 1;
+  --golf-moenster-afstand: 50;     /* gitteret på græsset; 0 = intet mønster */
+  --golf-boelge-w: 2.5;
+  --golf-pil-w: 3;
+  --golf-tee-kant-w: 2.5;
+  --golf-hul-kant-w: 3;
+  --golf-bold-kant-w: 2;
+  --golf-sigte-w: 5;
+  --golf-sigte-prik: 4.5;
+  --golf-sigte-afstand: 22;
+  --golf-spor-w: 3;
+  --golf-flag-w: 3;
+  --golf-radius-felt: 18;
+  --golf-gloed: 1;                 /* 0, når glød er slået fra */
+  --golf-gloed-blur: 14;           /* px */
+  --golf-skygge-x: 0;              /* blød skygge (fx papirklip, ler) – ingen i neon */
+  --golf-skygge-y: 0;
+  --golf-skygge-blur: 0;
+
+  /* Flader uden for banen */
+  --golf-frame-w: 3px;
+  --golf-block-w: 2px;
+  --golf-cursor-w: 4px;
+  --golf-stroke-ico: 9;
+  --golf-stroke-hall: 7;
+  --golf-hall-border-w: 2px;
+  --golf-radius-board: 14px;
+  --golf-radius-hud: 14px;
+  --golf-radius-hud-small: 10px;
+  --golf-radius-swatch: 6px;
+  --golf-radius-meter: 4px;
+}
+[data-theme="kontrast"] { --golf-gloed: 0; --golf-bande-kerne-w: 0; }
+
+/* ---------- Glød og skygger ----------
+ * --glow kommer fra arkade.css (0 i Høj kontrast). Uden glød tegnes alt fladt,
+ * og banen kan aflæses lige så godt (vægge, sand og vand adskilles af farve og mønster). */
+:root, [data-theme] {
+  --golf-text-shadow: 0 1px 4px var(--golf-shadow);
+  --golf-text-shadow-strong: 0 1px 6px var(--golf-shadow), 0 0 2px var(--golf-shadow);
+  --golf-board-glow: 0 0 calc(20px * var(--glow)) color-mix(in srgb, var(--golf-frame) 45%, transparent);
+  --golf-score-glow: 0 0 calc(18px * var(--glow)) var(--ui);
+  --golf-points-glow: 0 0 calc(12px * var(--glow)) color-mix(in srgb, var(--golf-ok) 50%, transparent);
+}
+html[data-golf-gloed="fra"], html[data-golf-gloed="fra"] [data-theme] {
+  --glow: 0;
+  --golf-gloed: 0;
+  --golf-board-glow: none; --golf-score-glow: none; --golf-points-glow: none;
+}
+
+/* ---------- Prøver på farvesættene i Indstillinger ---------- */
+.swatch[data-farver="neon"] { --a: #ff2fd2; --b: #22eaff; --c: #1a0b2a; }
+.swatch[data-farver="solnedgang"] { --a: #ff8a1f; --b: #c77dff; --c: #2a0b3d; }
+.swatch[data-farver="cyberpunk"] { --a: #39ff6a; --b: #2a8dff; --c: #000000; }
+.swatch[data-farver="kontrast"] { --a: #ffff00; --b: #00ffff; --c: #000000; }

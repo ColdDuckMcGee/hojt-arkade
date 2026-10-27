@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 220">
+  <!-- Stillbillede af Golf til maskinens skærm: et minigolfhul set oppefra. Bolden (hvid) ligger på tee'en til venstre, den prikkede gule forhåndslinje går mod en pink bande og hopper videre mod hullet med det pink flag. Sand (gult mønster) og vand (blåt med bølger) ligger på banen, og cyan bander omkranser den. Tegnet i SVG, ingen billeder og ingen skrifttyper. -->
+  <defs>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <pattern id="sand" width="8" height="8" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1" fill="#ffd166" fill-opacity=".55"/><circle cx="6" cy="6" r="1" fill="#ffd166" fill-opacity=".4"/></pattern>
+  </defs>
+  <rect width="240" height="220" fill="#0a0414"/>
+  <!-- banen -->
+  <rect x="16" y="40" width="208" height="140" rx="8" fill="#140a26"/>
+  <g stroke="#7888ff" stroke-opacity=".12" stroke-width="1">
+    <path d="M16 75H224M16 110H224M16 145H224M58 40V180M100 40V180M142 40V180M184 40V180"/>
+  </g>
+  <!-- sand og vand -->
+  <rect x="128" y="132" width="44" height="34" rx="6" fill="#3a2c10" stroke="#ffd166" stroke-opacity=".6" stroke-width="1.5"/>
+  <rect x="128" y="132" width="44" height="34" rx="6" fill="url(#sand)"/>
+  <rect x="66" y="52" width="40" height="34" rx="6" fill="#0b2c4a" stroke="#3fa9ff" stroke-width="1.5"/>
+  <path d="M72 64 q4 -4 8 0 t8 0 t8 0 M72 75 q4 -4 8 0 t8 0 t8 0" fill="none" stroke="#7fd0ff" stroke-width="1.5" stroke-linecap="round"/>
+  <!-- tee -->
+  <rect x="26" y="132" width="26" height="26" rx="5" fill="#0e3322" stroke="#39e58c" stroke-width="1.5"/>
+  <!-- bander -->
+  <g filter="url(#glow)" stroke-linecap="round">
+    <path d="M118 40V112" stroke="#ff4fd8" stroke-width="7"/>
+    <path d="M118 40V112" stroke="#ffd0f4" stroke-width="2.5"/>
+    <rect x="16" y="40" width="208" height="140" rx="8" fill="none" stroke="#22eaff" stroke-width="4"/>
+  </g>
+  <!-- forhåndslinje: til banden nederst og videre op mod hullet -->
+  <g fill="#ffe14d" filter="url(#glow)">
+    <circle cx="50" cy="141" r="2.2"/><circle cx="61" cy="146" r="2.2"/><circle cx="72" cy="151" r="2.2"/><circle cx="83" cy="156" r="2.2"/>
+    <circle cx="94" cy="161" r="2.2"/><circle cx="105" cy="166" r="2.2"/><circle cx="116" cy="171" r="2.2"/>
+    <circle cx="127" cy="168" r="2" fill-opacity=".85"/><circle cx="138" cy="160" r="1.9" fill-opacity=".7"/><circle cx="149" cy="152" r="1.8" fill-opacity=".55"/><circle cx="160" cy="144" r="1.7" fill-opacity=".4"/>
+  </g>
+  <!-- hul og flag -->
+  <g filter="url(#glow)">
+    <circle cx="190" cy="86" r="7" fill="#05020a" stroke="#22eaff" stroke-width="2"/>
+    <path d="M190 86V58" stroke="#e8e0ff" stroke-width="2"/>
+    <path d="M190 58L206 64L190 70Z" fill="#ff4fd8"/>
+  </g>
+  <!-- bolden -->
+  <circle cx="39" cy="145" r="5.5" fill="#ffffff" stroke="#cfd8ff" stroke-width="1" filter="url(#glow)"/>
+</svg>
