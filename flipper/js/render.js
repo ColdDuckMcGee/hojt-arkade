@@ -3,6 +3,9 @@
  * Farverne kommer fra CSS-variablerne --fl-* (se css/flipper.css), så temaerne
  * virker. Intet blinker: lys tændes og slukkes med en rolig fade, og der bruges
  * aldrig hvide lysglimt.
+ * Hvert bord har sin egen farvepalet (def.palette), som lægges oven på temaet –
+ * undtagen i temaet Høj kontrast, hvor kontrastfarverne altid bruges.
+ * Alt tegnes ud fra bordets data (run.table), så nye borde tegnes automatisk.
  */
 (function (global) {
   'use strict';
@@ -10,15 +13,27 @@
 
   function create(canvas) {
     var ctx = canvas.getContext('2d');
-    var col = {}, cssW = 0, cssH = 0, scale = 1, dpr = 1;
+    var col = {}, base = {}, cssW = 0, cssH = 0, scale = 1, dpr = 1, T = null, colFor = null;
+    var KEYS = ['board0', 'board1', 'wall', 'bumper', 'sling', 'target', 'flipper', 'zone', 'loop',
+      'ball0', 'ball1', 'ball2', 'left', 'right', 'both', 'none', 'upper', 'launch', 'lost'];
+    // Farver bordets palet må ændre (valgfarverne og frysezonen er altid temaets)
+    var TABLE_KEYS = ['board0', 'board1', 'wall', 'bumper', 'sling', 'target', 'flipper', 'loop', 'ramp', 'spinner', 'hole', 'lane', 'drop'];
 
     function readColors() {
       var cs = getComputedStyle(document.documentElement);
-      ['board0', 'board1', 'wall', 'bumper', 'sling', 'target', 'flipper', 'zone', 'loop',
-       'ball0', 'ball1', 'ball2', 'left', 'right', 'both', 'none', 'launch', 'lost'].forEach(function (k) {
-        col[k] = cs.getPropertyValue('--fl-' + k).trim() || '#ff3fd8';
-      });
-      col.glow = parseFloat(cs.getPropertyValue('--glow')) || 1;
+      KEYS.forEach(function (k) { base[k] = cs.getPropertyValue('--fl-' + k).trim() || '#ff3fd8'; });
+      base.glow = parseFloat(cs.getPropertyValue('--glow')) || 1;
+      base.kontrast = document.documentElement.getAttribute('data-theme') === 'kontrast';
+      colFor = null;
+    }
+    function useTable(t) {
+      if (T === t && colFor === t.id) return;
+      T = t; colFor = t.id;
+      col = Object.assign({}, base);
+      // Afledte farver til de nye dele
+      col.ramp = base.loop; col.spinner = base.target; col.hole = base.bumper; col.lane = base.target; col.drop = base.sling;
+      var pal = t.def.palette;
+      if (pal && !base.kontrast) TABLE_KEYS.forEach(function (k) { if (pal[k]) col[k] = pal[k]; });
     }
     function resize(w, h) {
       dpr = Math.min(2.5, global.devicePixelRatio || 1);
@@ -39,7 +54,7 @@
 
     // ---------- Bordet ----------
     function drawTable(state, o) {
-      var W = G.W, H = G.H;
+      var W = G.W, H = G.H, F = T.flippers;
       var g = ctx.createLinearGradient(0, 0, 0, H);
       g.addColorStop(0, col.board0); g.addColorStop(1, col.board1);
       ctx.fillStyle = g;
@@ -48,6 +63,7 @@
       ctx.strokeStyle = alpha(col.wall, 0.07); ctx.lineWidth = 1.5;
       for (var y = 260; y < H; y += 60) line(20, y, G.LANE_X, y);
       for (var x = 80; x < G.LANE_X; x += 80) line(x, 230, x, H);
+      drawDecor();
       // Frysezonen
       var zk = o.freezeK || 0;
       ctx.fillStyle = alpha(col.zone, 0.05 + 0.05 * zk);
@@ -57,10 +73,10 @@
       ctx.setLineDash([]);
       // Afløbet i midten
       ctx.fillStyle = alpha(col.lost, 0.12);
-      ctx.fillRect(G.FLIPPERS.left.x + 40, H - 14, G.FLIPPERS.right.x - G.FLIPPERS.left.x - 80, 14);
+      ctx.fillRect(F.left.x + 40, H - 14, F.right.x - F.left.x - 80, 14);
 
       // Sløjfernes pile
-      G.LOOPS.forEach(function (lp) {
+      T.loops.forEach(function (lp) {
         var on = o.flash['loop-' + lp.side] || 0, cx = (lp.x0 + lp.x1) / 2;
         ctx.strokeStyle = alpha(col.loop, 0.35 + 0.6 * on); ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
         if (on > 0.05) glow(col.loop, 12 * on);
@@ -75,7 +91,7 @@
       ctx.fillRect(G.LANE_X, 230, 580 - G.LANE_X, H - 230);
 
       // Slynger
-      G.SLINGS.forEach(function (sl) {
+      T.slings.forEach(function (sl) {
         var on = o.flash['sling-' + sl.side] || 0, p = sl.pts;
         ctx.beginPath(); ctx.moveTo(p[0][0], p[0][1]); ctx.lineTo(p[1][0], p[1][1]); ctx.lineTo(p[2][0], p[2][1]); ctx.closePath();
         ctx.fillStyle = alpha(col.sling, 0.18 + 0.3 * on); ctx.fill();
@@ -84,16 +100,18 @@
       });
       // Vægge
       ctx.lineCap = 'round';
-      G.WALLS.forEach(function (w) {
-        if (w.kind === 'target' || w.kind === 'sling') return;
-        ctx.strokeStyle = w.kind === 'gate' ? alpha(col.launch, 0.8) : col.wall;
+      drawSpinners(o);
+      drawRollovers(state, o);
+      T.walls.forEach(function (w) {
+        if (w.kind === 'target' || w.kind === 'sling' || w.kind === 'drop') return;
+        ctx.strokeStyle = w.kind === 'gate' ? alpha(col.launch, 0.8) : w.kind === 'ramp' ? col.ramp : col.wall;
         ctx.lineWidth = w.kind === 'gate' ? 4 : Math.max(5, w.r * 2);
         glow(ctx.strokeStyle, 8);
         line(w.ax, w.ay, w.bx, w.by);
       });
       noGlow();
       // Lysmål
-      G.TARGETS.forEach(function (t, i) {
+      T.targets.forEach(function (t, i) {
         var lit = state.lights[i], on = o.flash['target-' + i] || 0;
         var x = t.ax - 4, y = t.ay - 8, w = t.bx - t.ax + 8, h = 16;
         ctx.beginPath(); roundRect(x, y, w, h, 6);
@@ -103,7 +121,9 @@
         ctx.lineWidth = 3; ctx.strokeStyle = col.target; ctx.stroke();
       });
       // Bumpere
-      G.BUMPERS.forEach(function (bp, i) {
+      drawDrops(state, o);
+      drawHoles(state, o);
+      T.bumpers.forEach(function (bp, i) {
         var on = o.flash['bumper-' + i] || 0;
         var rg = ctx.createRadialGradient(bp.x - 8, bp.y - 10, 4, bp.x, bp.y, bp.r);
         rg.addColorStop(0, alpha(col.bumper, 0.55 + 0.35 * on)); rg.addColorStop(1, alpha(col.bumper, 0.12 + 0.25 * on));
@@ -114,6 +134,132 @@
         ctx.lineWidth = 3; ctx.strokeStyle = alpha(col.bumper, 0.7); ctx.stroke();
       });
     }
+    // ---------- Pynt (påvirker ikke kuglen) ----------
+    function rng(seed) { var s = seed || 1; return function () { s = (s * 16807) % 2147483647; return s / 2147483647; }; }
+    function drawDecor() {
+      (T.def.decor || []).forEach(function (d) {
+        var r = rng(d.seed || 5), i;
+        ctx.save();
+        if (d.type === 'skyline') {
+          // Bygninger i silhuet med enkelte tændte vinduer
+          ctx.fillStyle = alpha(col.wall, 0.07); ctx.strokeStyle = alpha(col.wall, 0.22); ctx.lineWidth = 2;
+          for (var x = d.x0; x < d.x1;) {
+            var bw = 22 + Math.floor(r() * 26), bh = 40 + Math.floor(r() * 110);
+            bw = Math.min(bw, d.x1 - x);
+            ctx.fillRect(x, d.y - bh, bw - 4, bh); ctx.strokeRect(x, d.y - bh, bw - 4, bh);
+            ctx.fillStyle = alpha(col.target, 0.22);
+            for (var wy = d.y - bh + 10; wy < d.y - 10; wy += 16) for (var wx = x + 5; wx < x + bw - 12; wx += 10) if (r() < 0.3) ctx.fillRect(wx, wy, 4, 6);
+            ctx.fillStyle = alpha(col.wall, 0.07);
+            x += bw;
+          }
+        } else if (d.type === 'stars') {
+          ctx.fillStyle = alpha(col.wall, 0.35);
+          for (i = 0; i < d.n; i++) { var sx = 30 + r() * 500, sy = 40 + r() * 760, sr = 0.8 + r() * 1.8; ctx.beginPath(); ctx.arc(sx, sy, sr, 0, Math.PI * 2); ctx.fill(); }
+        } else if (d.type === 'planet') {
+          ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
+          ctx.fillStyle = alpha(col.bumper, 0.08); ctx.fill();
+          ctx.strokeStyle = alpha(col.bumper, 0.25); ctx.lineWidth = 3; ctx.stroke();
+          ctx.beginPath(); ctx.ellipse(d.x, d.y, d.r * 1.7, d.r * 0.35, -0.3, 0, Math.PI * 2);
+          ctx.strokeStyle = alpha(col.target, 0.22); ctx.stroke();
+        } else if (d.type === 'bubbles') {
+          ctx.strokeStyle = alpha(col.wall, 0.25); ctx.lineWidth = 2;
+          for (i = 0; i < d.n; i++) { var bx = 30 + r() * 500, by = 60 + r() * 740, br = 2 + r() * 7; ctx.beginPath(); ctx.arc(bx, by, br, 0, Math.PI * 2); ctx.stroke(); }
+        } else if (d.type === 'kelp') {
+          ctx.strokeStyle = alpha(col.ramp, 0.2); ctx.lineWidth = 6; ctx.lineCap = 'round';
+          (d.xs || [d.x]).forEach(function (kx) {
+            ctx.beginPath(); ctx.moveTo(kx, d.y);
+            for (var ky = d.y; ky > d.y - (d.h || 260); ky -= 20) ctx.quadraticCurveTo(kx + (((d.y - ky) / 20) % 2 ? 14 : -14), ky - 10, kx, ky - 20);
+            ctx.stroke();
+          });
+        }
+        ctx.restore();
+      });
+    }
+    // ---------- Bordets dele ----------
+    function label(text, x, y, size, c, a) {
+      ctx.save();
+      ctx.font = '700 ' + size + 'px "Segoe UI", system-ui, sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = alpha(c, a == null ? 0.85 : a);
+      ctx.fillText(text, x, y);
+      ctx.restore();
+    }
+    function drawRamps(state, o) {
+      T.ramps.forEach(function (rp, i) {
+        var on = o.flash['ramp-' + rp.id] || 0, pts = rp.rail;
+        ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        // Rampen er et gennemsigtigt rør hævet over bordet
+        ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+        for (var k = 1; k < pts.length; k++) ctx.lineTo(pts[k][0], pts[k][1]);
+        ctx.strokeStyle = alpha(col.ramp, 0.13 + 0.12 * on); ctx.lineWidth = 34; ctx.stroke();
+        ctx.strokeStyle = alpha(col.ramp, 0.55 + 0.3 * on); ctx.lineWidth = 3; ctx.setLineDash([16, 12]); ctx.stroke();
+        ctx.restore();
+        // Pile i indgangen
+        var sn = rp.sensor, cx = (sn.x0 + sn.x1) / 2;
+        ctx.strokeStyle = alpha(col.ramp, 0.45 + 0.5 * on); ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        if (on > 0.05) glow(col.ramp, 12 * on);
+        for (var a = 0; a < 2; a++) {
+          var yy = sn.y + 70 - a * 30;
+          ctx.beginPath(); ctx.moveTo(cx - 13, yy + 10); ctx.lineTo(cx, yy - 4); ctx.lineTo(cx + 13, yy + 10); ctx.stroke();
+        }
+        noGlow();
+      });
+    }
+    function drawSpinners(o) {
+      T.spinners.forEach(function (sp, i) {
+        var on = o.flash['spinner-' + i] || 0, cx = (sp.x0 + sp.x1) / 2, hw = (sp.x1 - sp.x0) / 2 - 6;
+        ctx.strokeStyle = alpha(col.spinner, 0.5 + 0.45 * on); ctx.lineWidth = 3;
+        line(sp.x0 + 4, sp.y, sp.x1 - 4, sp.y);
+        // Bladet: tegnes smallere, mens det drejer (roligt, uden blink)
+        ctx.fillStyle = alpha(col.spinner, 0.35 + 0.4 * on);
+        var h = 10 * (1 - 0.7 * on);
+        ctx.beginPath(); roundRect(cx - hw, sp.y - h / 2, hw * 2, Math.max(2, h), 3); ctx.fill();
+      });
+    }
+    function drawRollovers(state, o) {
+      if (!T.rollovers.length) return;
+      T.rollovers.forEach(function (ro, i) {
+        var lit = state.lights[i], on = o.flash['rollover-' + i] || 0, lbl = T.bank.labels && T.bank.labels[i];
+        ctx.beginPath(); roundRect(ro.x - 13, ro.y - 17, 26, 34, 8);
+        ctx.fillStyle = lit ? alpha(col.lane, 0.9) : alpha(col.lane, 0.1 + 0.3 * on);
+        if (lit) glow(col.lane, 12);
+        ctx.fill(); noGlow();
+        ctx.lineWidth = 3; ctx.strokeStyle = col.lane; ctx.stroke();
+        if (lbl) label(lbl, ro.x, ro.y + 1, 19, lit ? col.board1 : col.lane, lit ? 1 : 0.8);
+      });
+    }
+    function drawDrops(state, o) {
+      T.drops.forEach(function (bank, bi) {
+        bank.targets.forEach(function (w, i) {
+          var down = state.drops[bi][i];
+          ctx.lineCap = 'round';
+          if (down) {
+            ctx.strokeStyle = alpha(col.drop, 0.25); ctx.lineWidth = 3; ctx.setLineDash([6, 6]);
+            line(w.ax, w.ay, w.bx, w.by); ctx.setLineDash([]);
+          } else {
+            ctx.strokeStyle = col.drop; ctx.lineWidth = w.r * 2 + 4; glow(col.drop, 10);
+            line(w.ax, w.ay, w.bx, w.by); noGlow();
+            ctx.strokeStyle = alpha('#000000', 0.35); ctx.lineWidth = 3;
+            line(w.ax, w.ay, w.bx, w.by);
+          }
+        });
+      });
+    }
+    function drawHoles(state, o) {
+      var ms = T.missions, jack = ms && ms.jackpot && state.mission.jackpot;
+      T.holes.forEach(function (ho, i) {
+        var on = o.flash['hole-' + i] || 0, isJack = jack && ms.jackpot.event === 'hole' && (ms.jackpot.id == null || ms.jackpot.id === ho.id);
+        ctx.beginPath(); ctx.arc(ho.x, ho.y, ho.r + 6, 0, Math.PI * 2);
+        ctx.fillStyle = '#000'; ctx.fill();
+        ctx.lineWidth = 4; ctx.strokeStyle = alpha(col.hole, 0.7 + 0.3 * on);
+        glow(col.hole, isJack ? 18 : 8 + 10 * on); ctx.stroke(); noGlow();
+        if (isJack) {
+          ctx.beginPath(); ctx.arc(ho.x, ho.y, ho.r + 16, 0, Math.PI * 2);
+          ctx.lineWidth = 3; ctx.strokeStyle = alpha(col.hole, 0.8); ctx.stroke();
+          label('JACKPOT', ho.x, ho.y - ho.r - 30, 18, col.hole, 0.95);
+        }
+      });
+    }
     function roundRect(x, y, w, h, r) {
       ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y); ctx.arcTo(x + w, y, x + w, y + r, r);
       ctx.lineTo(x + w, y + h - r); ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
@@ -121,9 +267,9 @@
       ctx.lineTo(x, y + r); ctx.arcTo(x, y, x + r, y, r);
     }
     function drawFlippers(run, o) {
-      ['left', 'right'].forEach(function (side) {
+      T.sides.forEach(function (side) {
         var s = run.flipperSegment(side), armed = (run.state.armed && run.state.armed[side]) || (o.mark && o.mark[side]);
-        var c = side === 'left' ? col.left : col.right;
+        var c = col[side] || col.both;
         ctx.lineCap = 'round';
         ctx.strokeStyle = col.flipper; ctx.lineWidth = G.FLIP_R * 2;
         glow(armed ? c : col.flipper, armed ? 18 : 10);
@@ -211,6 +357,8 @@
       o = o || {};
       o.flash = o.flash || {};
       var state = run.state;
+      if (!colFor) readColors();
+      useTable(run.table);
       ctx.setTransform(dpr * scale, 0, 0, dpr * scale, 0, 0);
       ctx.clearRect(0, 0, G.W, G.H);
       ctx.save();
@@ -219,6 +367,7 @@
       drawTable(state, o);
       drawPlunger(state, o);
       drawFlippers(run, o);
+      drawRamps(state, o);
       var k = o.freezeK || 0;
       // Frys: bordet dæmpes roligt, kuglen og sigtelinjerne står klart frem
       if (k > 0) { ctx.fillStyle = 'rgba(0,0,0,' + (0.42 * k) + ')'; ctx.fillRect(0, 0, G.W, G.H); }
@@ -226,7 +375,7 @@
         drawPath(o.launchPreview.path, col.launch, 5, 0.6, true);
       }
       drawPreviews(o);
-      if (state.phase !== 'lost' && state.phase !== 'over') {
+      if (state.phase !== 'lost' && state.phase !== 'over' && !o.noBall) {
         if (k > 0) {
           ctx.beginPath(); ctx.arc(state.ball.x, state.ball.y, G.R + 12, 0, Math.PI * 2);
           ctx.strokeStyle = alpha(col.zone, 0.85 * k); ctx.lineWidth = 3; ctx.stroke();

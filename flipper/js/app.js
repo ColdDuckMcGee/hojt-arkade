@@ -23,14 +23,37 @@
     dwell: false, dwellTime: 1.2, theme: 'neon', background: 'mork',
     animation: true, sound: true, music: true
   });
-  var fset = ArkadeSettings.create('flipper', { speed: 'normal', aim: true });
+  var fset = ArkadeSettings.create('flipper', { speed: 'normal', aim: true, table: G.TABLE_IDS[0] });
   var records = ArkadeHighscores.create('flipper', { max: 10 });
+  // Rekorderne gemmes pr. bord og fart ("neonbyen:normal"). Rekorder fra før der var
+  // flere borde (kun fart som kategori) flyttes én gang over til det første bord.
+  (function migrateRecords() {
+    try {
+      var key = records.storageKey, raw = localStorage.getItem(key);
+      if (!raw) return;
+      var data = JSON.parse(raw), moved = false;
+      if (!data || typeof data !== 'object') return;
+      Object.keys(data).forEach(function (k) {
+        if (k.indexOf(':') >= 0 || !G.SPEEDS[k] || !Array.isArray(data[k])) return;
+        var to = G.TABLE_IDS[0] + ':' + k;
+        var merged = (Array.isArray(data[to]) ? data[to] : []).concat(data[k]);
+        merged.sort(function (a, b) { return (b.score - a.score) || (a.date < b.date ? -1 : a.date > b.date ? 1 : 0); });
+        data[to] = merged.slice(0, records.max);
+        delete data[k];
+        moved = true;
+      });
+      if (moved) localStorage.setItem(key, JSON.stringify(data));
+    } catch (e) { /* ingen lokal lagring – intet at flytte */ }
+  })();
+  function recCat(tableId, speedId) { return tableId + ':' + speedId; }
+  function tableDef(id) { return G.TABLES[id]; }
 
   var THEMES = ['neon', 'solnedgang', 'cyberpunk', 'kontrast'];
   var BACKGROUNDS = ['mork', 'solnedgang', 'neonby'];
   if (THEMES.indexOf(arkade.get('theme')) < 0) arkade.set('theme', 'neon');
   if (BACKGROUNDS.indexOf(arkade.get('background')) < 0) arkade.set('background', 'mork');
   if (!G.SPEEDS[fset.get('speed')]) fset.set('speed', 'normal');
+  if (!G.TABLES[fset.get('table')]) fset.set('table', G.TABLE_IDS[0]);
 
   var reducedMotionMq = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
 
@@ -59,6 +82,8 @@
   var SFX = {
     flipper: 'move', bumper: 'eat', sling: 'click', target: 'bonusSpawn', targetLit: 'click', lights: 'bonus',
     loop: 'bonus', drain: 'crash', extra: 'record', freeze: 'pause', launch: 'move', record: 'record',
+    ramp: 'bonus', spinner: 'click', hole: 'bonusSpawn', drop: 'eat', dropBank: 'bonus',
+    rollover: 'bonusSpawn', rolloverLit: 'click', mission: 'record', jackpot: 'record',
     click: 'click', pause: 'pause', over: 'bonusGone'
   };
   var lastSfx = {};
@@ -87,6 +112,7 @@
     });
     renderer.readColors();
     draw();
+    drawThumbs(true);
   }
   function applyBackground() { bg.setMode(arkade.get('background')); }
   function applyAnimation() {
@@ -119,6 +145,7 @@
     dwell.reset();
     if (id === 'menu') syncMenu();
     if (id === 'game') layoutGame(); else fitScreen($('#' + id), true);
+    if (id === 'menu') drawThumbs(true);
     var first = $('#' + id + ' [data-autofocus]');
     if (first) first.focus({ preventScroll: true });
   }
@@ -130,9 +157,44 @@
   function speedName(id) { return G.SPEEDS[id].name; }
 
   // ---------- Startmenu ----------
+  // Bordkortene bygges ud fra bordenes data (navn, sværhed, tema og et lille billede)
+  var thumbs = [];
+  G.TABLE_IDS.forEach(function (id) {
+    var d = tableDef(id);
+    var b = document.createElement('button');
+    b.className = 'btn option table-card';
+    b.dataset.table = id;
+    b.innerHTML = '<canvas class="table-thumb opt" aria-hidden="true"></canvas>' +
+      '<span class="table-info"><span class="big"></span><span class="small table-level"></span><span class="small table-theme opt"></span></span>';
+    b.querySelector('.big').textContent = d.hyph || d.name;
+    b.querySelector('.table-level').innerHTML = '<span class="lvl-n"></span>';
+    b.querySelector('.lvl-n').textContent = 'Bord ' + d.level + ' · ';
+    b.querySelector('.table-level').appendChild(document.createTextNode(d.difficulty));
+    b.querySelector('.table-theme').textContent = d.theme;
+    b.setAttribute('aria-label', d.name + ', bord ' + d.level + ', ' + d.difficulty + '. ' + d.theme + '. ' + d.desc);
+    b.title = d.desc;
+    b.addEventListener('click', function () { fset.set('table', id); syncMenu(); sfx('click'); });
+    $('#table-cards').appendChild(b);
+    thumbs.push({ id: id, canvas: b.querySelector('canvas'), r: null, w: 0, h: 0 });
+  });
+  // Små billeder af bordene (tegnes med samme kode som spillet, uden kugle)
+  function drawThumbs(force) {
+    thumbs.forEach(function (t) {
+      var rect = t.canvas.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      if (!force && t.w === rect.width && t.h === rect.height) return;
+      t.w = rect.width; t.h = rect.height;
+      if (!t.r) t.r = FlipperRender.create(t.canvas);
+      t.r.resize(rect.width, rect.height);
+      if (t.r.readColors) t.r.readColors();
+      t.r.draw(G.createRun({ table: t.id }), { noBall: true, calm: true, flash: {}, trail: [] });
+    });
+  }
   function syncMenu() {
-    var sp = fset.get('speed');
+    var sp = fset.get('speed'), tb = fset.get('table');
     $$('#menu [data-speed]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.speed === sp)); });
+    $$('#menu [data-table]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.table === tb)); });
+    $('#btn-start-sub').textContent = tableDef(tb).name + ' · ' + speedName(sp);
     if (current === 'menu') fitScreen($('#menu'));
   }
   $$('#menu [data-speed]').forEach(function (b) {
@@ -140,7 +202,7 @@
   });
   $('#btn-start').addEventListener('click', function () { sfx('click'); startGame(); });
   $('#btn-settings').addEventListener('click', function () { sfx('click'); openSettings('menu'); });
-  $('#btn-records').addEventListener('click', function () { sfx('click'); openRecords(fset.get('speed')); });
+  $('#btn-records').addEventListener('click', function () { sfx('click'); openRecords(fset.get('table'), fset.get('speed')); });
   // Tilbage til hallen: stop musikken og skriv indstillingerne, før siden skifter.
   function goToHall() {
     sfx('click');
@@ -189,7 +251,8 @@
   var freezeK = 0, flash = {}, trail = [], acc = 0, lastT = 0, note = '', noteT = 0;
 
   function startGame() {
-    run = G.createRun({ speedId: fset.get('speed') });
+    run = G.createRun({ table: fset.get('table'), speedId: fset.get('speed') });
+    setupHud();
     paused = false; finished = false;
     shownPhase = ''; previews = null; launchPreview = null; pick = null; hoverKey = null; focusKey = null;
     freezeK = 0; flash = {}; trail = []; acc = 0; note = '';
@@ -211,7 +274,7 @@
     if (!run) return;
     var s = run.state, ph = s.phase;
     // Sigtelinjerne hører til netop dette frosne øjeblik (kuglens plads og fart)
-    var frozenKey = ph === 'decision' ? [s.ball.x, s.ball.y, s.ball.vx, s.ball.vy].join(',') : '';
+    var frozenKey = ph === 'decision' ? [s.ctx, s.ball.x, s.ball.y, s.ball.vx, s.ball.vy].join(',') : '';
     var newMoment = ph !== 'decision' || frozenKey !== previewsFor;
     if (ph === shownPhase && !force && !(ph === 'decision' && newMoment)) return;
     var changed = ph !== shownPhase || (ph === 'decision' && newMoment);
@@ -221,6 +284,7 @@
     $$('#game [data-ctl]').forEach(function (p) { p.hidden = p.dataset.ctl !== panel; });
     var title = TITLES[ph] || '';
     if (ph === 'decision' && s.reason === 'stille') title = 'Kuglen ligger stille – vælg';
+    if (ph === 'decision' && s.ctx === 'upper') title = s.reason === 'stille' ? 'Kuglen ligger stille – øvre flipper' : 'Den øvre flipper – vælg';
     if (panel === 'timing') title = PICK_NAMES[pick] + ': tidligt eller sent?';
     $('#ctl-title').textContent = title;
     if (newMoment) previews = null;
@@ -232,8 +296,9 @@
       if (!previews) {
         // Alle syv valg regnes med samme fysik som spillet (det, man ser, er det, der sker)
         previews = {};
-        G.CHOICES.forEach(function (c) { previews[c] = run.preview(c); });
-        G.FLIPPER_OPTIONS.forEach(function (o) { reach[o] = !!previews[o + '-early'].fired; });
+        reach = {};
+        run.choices().forEach(function (c) { previews[c] = run.preview(c); });
+        run.flipperOptions().forEach(function (o) { reach[o] = !!previews[o + '-early'].fired; });
       }
       syncDecision();
       if (changed) { dwell.reset(); sfx('freeze'); }
@@ -261,7 +326,9 @@
     if (!live() || run.state.phase !== 'launch') return;
     if (run.shoot()) { trail = []; handleEvents(); syncPhase(); }
   }
-  var PICK_NAMES = { left: 'Venstre flipper', right: 'Højre flipper', both: 'Begge flippere' };
+  var PICK_NAMES = { left: 'Venstre flipper', right: 'Højre flipper', both: 'Begge flippere', upper: 'Øvre flipper' };
+  var ALL_FLIPPER_OPTIONS = ['left', 'right', 'both', 'upper'];
+  function markFor(o) { return o === 'both' ? { left: true, right: true } : (function (m) { m[o] = true; return m; })({}); }
   function outcomeText(p, timing) {
     if (p.drained) return { t: 'Kuglen går tabt', bad: true };
     var pts = p.points > 0 ? ' · +' + fmt(p.points) : '';
@@ -277,7 +344,10 @@
   // Knapperne i det frosne øjeblik: tekst, udfald, og om flipperen kan nå kuglen
   function syncDecision() {
     if (!previews) return;
-    G.FLIPPER_OPTIONS.forEach(function (o) {
+    var opts = run.flipperOptions(), ctx = run.state.ctx;
+    $('#game [data-ctl="decision"]').dataset.ctx = ctx;
+    ALL_FLIPPER_OPTIONS.forEach(function (o) { $('#game [data-choice="' + o + '"]').hidden = opts.indexOf(o) < 0; });
+    opts.forEach(function (o) {
       var b = $('#game [data-choice="' + o + '"]'), ok = reach[o];
       b.classList.toggle('cant', !ok);
       if (ok) b.removeAttribute('aria-disabled'); else b.setAttribute('aria-disabled', 'true');
@@ -302,7 +372,7 @@
     dwell.reset();
     syncPhase(true);
     if (viaKeyboard) {
-      var first = p ? panel.querySelector('[data-timing="early"]') : panel.querySelector('[data-choice="' + (reach.left ? 'left' : reach.right ? 'right' : 'none') + '"]');
+      var first = p ? panel.querySelector('[data-timing="early"]') : panel.querySelector('[data-choice="' + (reach.upper ? 'upper' : reach.left ? 'left' : reach.right ? 'right' : 'none') + '"]');
       if (first) first.focus({ preventScroll: true });
     }
   }
@@ -376,20 +446,27 @@
     if (!key || key === 'back') return null;
     if (!pick) {
       if (key === 'none') return { preview: previews.none, color: 'none' };
-      if (G.FLIPPER_OPTIONS.indexOf(key) >= 0 && reach[key]) return { mark: { left: key !== 'right', right: key !== 'left' } };
+      if (reach[key]) return { mark: markFor(key) };
       return null;
     }
     if (G.TIMINGS.indexOf(key) < 0) return null;
     var p = previews[pick + '-' + key];
-    return { preview: p, color: p.fired || pick, mark: { left: pick !== 'right', right: pick !== 'left' } };
+    if (!p) return null;
+    return { preview: p, color: p.fired || pick, mark: markFor(pick) };
   }
   $('#btn-next').addEventListener('click', function () { if (!swallowed(this)) nextBall(); });
 
   // ---------- Hændelser fra spillet: point, lys og lyd ----------
   var NOTES = {
-    lights: function (e) { return 'Alle lys tændt! Bonus ×' + e.mult; },
+    lights: function (e) { return (run.table.bank && run.table.bank.kind === 'rollovers' ? 'Alle baner tændt' : 'Alle lys tændt') + '! Bonus ×' + e.mult; },
     loop: function (e) { return 'Sløjfe! +' + fmt(e.points); },
     extra: function () { return 'Ekstra kugle!'; },
+    ramp: function (e) { return partName('ramps', e.index, 'Rampe') + '! +' + fmt(e.points); },
+    spinner: function (e) { return partName('spinners', e.index, 'Spinner') + ': ' + e.spins + ' omgange +' + fmt(e.points); },
+    hole: function (e) { return partName('holes', e.index, 'Hul') + '! +' + fmt(e.points); },
+    dropBank: function (e) { return 'Alle ' + (run.table.drops[e.bank] ? run.table.drops[e.bank].name.toLowerCase() : 'mål') + ' nede! +' + fmt(e.points); },
+    mission: function (e) { return 'Mission klaret: ' + e.text + '! +' + fmt(e.points) + (e.jackpotLit ? ' – jackpot tændt' : ''); },
+    jackpot: function (e) { return 'JACKPOT! +' + fmt(e.points); },
     return: function () { return 'Kuglen kom tilbage – skyd igen'; }
   };
   function handleEvents() {
@@ -399,12 +476,45 @@
       if (e.type === 'sling') flash['sling-' + e.side] = 1;
       if (e.type === 'target' || e.type === 'targetLit') flash['target-' + e.index] = 1;
       if (e.type === 'loop') flash['loop-' + e.side] = 1;
+      if (e.type === 'ramp') flash['ramp-' + e.id] = 1;
+      if (e.type === 'spinner') flash['spinner-' + e.index] = 1;
+      if (e.type === 'hole') flash['hole-' + e.index] = 1;
+      if (e.type === 'rollover' || e.type === 'rolloverLit') flash['rollover-' + e.index] = 1;
       if (NOTES[e.type]) { note = NOTES[e.type](e); noteT = performance.now(); }
       if (SFX[e.type]) sfx(e.type);
     });
     refreshHud();
   }
+  function partName(kind, i, fallback) { var a = run && run.table[kind]; return (a && a[i] && a[i].name) || fallback; }
   var hudCache = {};
+  // Status til venstre: bordets navn, lysbanken (antal lys efter bordet) og missionen
+  function setupHud() {
+    var T = run.table, n = T.bank ? T.bank.n : 0, box = $('#hud-lights');
+    hudCache = {};
+    box.innerHTML = '';
+    for (var i = 0; i < n; i++) {
+      var el = document.createElement('i');
+      if (T.bank.labels) { el.textContent = T.bank.labels[i]; el.className = 'lbl'; }
+      box.appendChild(el);
+    }
+    box.hidden = !n;
+    $('#hud-table').textContent = T.def.name;
+  }
+  // [lang tekst, kort tekst]. Den korte bruges, når status står i en smal række.
+  function missionText(s) {
+    var m = G.missionStatus(s);
+    if (m && m.jackpot) return [m.text + ' (' + fmt(m.value) + ')', m.short + ' lyser'];
+    if (m) {
+      var n = m.n, c = m.count, cur = G.table(s.tableId).missions.list[m.step - 1];
+      // Én bank muslinger: vis, hvor mange der ligger ned (fx 2/3) i stedet for 0/1
+      if (cur.event === 'dropBank' && c === 1 && s.drops && s.drops[0]) { n = s.drops[0].filter(Boolean).length; c = s.drops[0].length; }
+      return [(m.steps > 1 ? 'Mission ' + m.step + '/' + m.steps + ': ' : '') + m.text + ' ' + n + '/' + c, m.short + ' ' + n + '/' + c];
+    }
+    var T = run.table;
+    if (!T.bank) return ['', ''];
+    var t = (T.bank.kind === 'rollovers' ? 'Baner ' : 'Lys ') + s.lights.filter(Boolean).length + '/' + T.bank.n;
+    return [T.bank.kind === 'rollovers' ? 'Tænd alle baner: ' + t.slice(6) : 'Tænd alle lys: ' + t.slice(4), t];
+  }
   function setText(id, t) { if (hudCache[id] !== t) { hudCache[id] = t; $(id).textContent = t; } }
   function refreshHud() {
     if (!run) return;
@@ -413,14 +523,16 @@
     var total = s.ballNo + Math.max(0, s.ballsLeft - (s.phase === 'lost' || s.phase === 'over' ? 0 : 1));
     setText('#hud-ball', s.ballNo + '/' + total);
     setText('#hud-mult', '×' + s.mult);
-    var best = records.best(s.speedId);
-    setText('#hud-best', fmt(Math.max(best ? best.score : 0, s.score)));
+    setText('#hud-best', fmt(Math.max(records.best(recCat(s.tableId, s.speedId)) || 0, s.score)));
     var lit = s.lights.filter(Boolean).length, key = s.lights.join();
     if (hudCache.lights !== key) {
       hudCache.lights = key;
-      $$('#hud-lights i').forEach(function (i, k) { i.classList.toggle('on', s.lights[k]); });
-      $('#hud-lights').setAttribute('aria-label', 'Lys tændt: ' + lit + ' af 5');
+      $$('#hud-lights i').forEach(function (i, k) { i.classList.toggle('on', !!s.lights[k]); });
+      $('#hud-lights').setAttribute('aria-label', (run.table.bank && run.table.bank.kind === 'rollovers' ? 'Baner tændt: ' : 'Lys tændt: ') + lit + ' af ' + s.lights.length);
     }
+    var mt = missionText(s);
+    setText('#hud-mission-text', mt[0]);
+    setText('#hud-mission-short', mt[1]);
     if (note && performance.now() - noteT > 4000) note = '';
     setText('#points-note', note);
   }
@@ -495,11 +607,11 @@
   function gameOver() {
     if (finished || !run) return;
     finished = true;
-    var s = run.state, cat = s.speedId, rankText = '';
+    var s = run.state, cat = recCat(s.tableId, s.speedId), rankText = '';
     lastEntryId = null;
     sfx('over');
     if (s.score > 0) {
-      var res = records.add(cat, s.score, { mult: s.stats.bestMult, lights: s.stats.allLights });
+      var res = records.add(cat, s.score, { mult: s.stats.bestMult, lights: s.stats.allLights, missions: s.stats.missions || 0, jackpots: s.stats.jackpots || 0 });
       if (res.rank === 1) { rankText = 'Ny rekord!'; sfx('record'); }
       else if (res.rank > 0) rankText = 'Du kom ind som nr. ' + res.rank + ' på listen';
       else rankText = 'Ikke på top 10 denne gang';
@@ -507,16 +619,27 @@
     } else rankText = 'Ingen point denne gang';
     $('#go-reason').textContent = 'Alle kugler er brugt.';
     $('#go-score').textContent = fmt(s.score);
-    var parts = [];
-    parts.push((s.stats.allLights === 1 ? 'Alle lys tændt 1 gang' : 'Alle lys tændt ' + s.stats.allLights + ' gange'));
-    if (s.stats.loops) parts.push(s.stats.loops === 1 ? '1 sløjfe' : s.stats.loops + ' sløjfer');
-    if (s.stats.bestMult > 1) parts.push('bonus op til ×' + s.stats.bestMult);
-    $('#go-levels').textContent = parts.join(' · ');
+    $('#go-levels').textContent = statsText(s).join(' · ');
     $('#go-rank').textContent = rankText;
-    $('#go-again-sub').textContent = speedName(cat);
-    $('#go-records-title').textContent = 'Rekorder – ' + speedName(cat);
+    $('#go-again-sub').textContent = run.table.def.name + ' · ' + speedName(s.speedId);
+    $('#go-records-title').textContent = 'Rekorder – ' + run.table.def.name + ', ' + speedName(s.speedId);
     renderRecordList($('#go-records'), cat, lastEntryId);
     show('gameover');
+  }
+  // Højst fire tal under resultatet – de vigtigste for netop dette bord
+  function statsText(s) {
+    var st = s.stats, T = run.table, out = [];
+    function n(v, one, many) { return v === 1 ? '1 ' + one : v + ' ' + many; }
+    if (T.missions && T.missions.jackpot) out.push(n(st.jackpots, 'jackpot', 'jackpots'));
+    if (T.missions) out.push(n(st.missions, 'mission klaret', 'missioner klaret'));
+    if (T.ramps.length && st.ramps) out.push(n(st.ramps, 'rampe', 'ramper'));
+    if (T.drops.length && st.dropBanks) out.push(n(st.dropBanks, 'gang alle ' + T.drops[0].name.toLowerCase() + ' nede', 'gange alle ' + T.drops[0].name.toLowerCase() + ' nede'));
+    if (T.bank) out.push((T.bank.kind === 'rollovers' ? 'Alle baner tændt ' : 'Alle lys tændt ') + (st.allLights === 1 ? '1 gang' : st.allLights + ' gange'));
+    if (T.holes.length && st.holes) out.push(n(st.holes, 'gang i ' + T.holes[0].name.toLowerCase(), 'gange i ' + T.holes[0].name.toLowerCase()));
+    if (st.loops) out.push(n(st.loops, 'sløjfe', 'sløjfer'));
+    if (st.bestMult > 1) out.push('bonus op til ×' + st.bestMult);
+    if (out.length && out[0].charAt(0) !== out[0].charAt(0).toUpperCase()) out[0] = out[0].charAt(0).toUpperCase() + out[0].slice(1);
+    return out.slice(0, 4);
   }
   $('#btn-again').addEventListener('click', function () { sfx('click'); startGame(); });
   $('#btn-go-menu').addEventListener('click', function () { sfx('click'); quitToMenu(); });
@@ -546,12 +669,21 @@
   }
 
   // ---------- Rekorder ----------
-  var recSpeed = 'normal';
-  function openRecords(sp) { recSpeed = sp; syncRecords(); show('records'); }
+  var recSpeed = 'normal', recTable = G.TABLE_IDS[0];
+  G.TABLE_IDS.forEach(function (id) {
+    var b = document.createElement('button');
+    b.className = 'btn option'; b.dataset.recTable = id;
+    b.innerHTML = '<span class="big"></span>';
+    b.querySelector('.big').textContent = tableDef(id).hyph || tableDef(id).name;
+    b.addEventListener('click', function () { sfx('click'); recTable = id; syncRecords(); });
+    $('#rec-tables').appendChild(b);
+  });
+  function openRecords(tb, sp) { recTable = tb; recSpeed = sp; syncRecords(); show('records'); }
   function syncRecords() {
     $$('#records [data-rec-speed]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.recSpeed === recSpeed)); });
-    $('#rec-title').textContent = 'Rekorder – ' + speedName(recSpeed);
-    renderRecordList($('#rec-list'), recSpeed, null);
+    $$('#records [data-rec-table]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.recTable === recTable)); });
+    $('#rec-title').textContent = 'Rekorder – ' + tableDef(recTable).name + ', ' + speedName(recSpeed);
+    renderRecordList($('#rec-list'), recCat(recTable, recSpeed), null);
     if (current === 'records') fitScreen($('#records'));
   }
   $$('#records [data-rec-speed]').forEach(function (b) {
@@ -627,6 +759,16 @@
       else if (k === 'ArrowDown' || k === 'Backspace' || k === 'z') backToFlippers(null, true);
       else handled = false;
       if (handled) { e.preventDefault(); return; }
+    } else if (ph === 'decision' && run.state.ctx === 'upper') {
+      // Den øvre flipper: pil op (eller u) vælger den, pil ned (eller n) er Lad være
+      if (k === 'ArrowUp' || k === 'u' || k === 'ArrowLeft' || k === 'ArrowRight') selectFlipper('upper', null, true);
+      else if (k === ' ' || k === 'Enter') {
+        var fu = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.choice : null;
+        if (fu === 'upper') selectFlipper('upper', null, true); else choose('none');
+      }
+      else if (k === 'ArrowDown' || k === 'n') choose('none');
+      else handled = false;
+      if (handled && pick) { e.preventDefault(); return; }
     } else if (ph === 'decision') {
       if (k === 'ArrowLeft' || k === 'a') selectFlipper('left', null, true);
       else if (k === 'ArrowRight' || k === 'l') selectFlipper('right', null, true);
@@ -674,7 +816,7 @@
     var res = { p: p, g: g, ig: ig, titleH: titleH, ctlW: ctlW, ctlH: ctlH, pauseS: pauseS };
     // wide: status | bord | valg
     var sideW = Math.min(320, Math.max(220, b * 2));
-    var hudColH = 90 + 170 + 34 + 64 + b + 4 * 12;
+    var hudColH = 90 + 170 + 34 + 76 + 64 + b + 5 * 12; // logo, tal, lys, mission, note, pause
     res.sideW = sideW;
     res.wide = (hudColH <= H - 2 * p && ctlH <= H - 2 * p) ? Math.min(H - 2 * p, (W - 2 * p - sideW - ctlW - 2 * g) / ASPECT) : 0;
     // side: bord | (status over valg)
@@ -907,6 +1049,7 @@
   }
   function fitCurrent() {
     if (current === 'game') layoutGame(); else fitScreen($('#' + current));
+    if (current === 'menu') drawThumbs();
   }
   var resizeTimer = 0;
   window.addEventListener('resize', function () {
@@ -932,7 +1075,7 @@
     get pick() { return pick; }, get reach() { return reach; }, get shown() { return shownChoice(); },
     selectFlipper: function (o) { selectFlipper(o, null, false); }, back: function () { backToFlippers(null, false); },
     settings: arkade, gameSettings: fset, records: records, dwell: dwell, audio: audio,
-    start: startGame, show: show, choose: choose, shoot: shoot, setPower: setPower, nextBall: nextBall,
+    start: startGame, show: show, setTable: function (id) { fset.set('table', id); syncMenu(); }, drawThumbs: drawThumbs, choose: choose, shoot: shoot, setPower: setPower, nextBall: nextBall,
     gameOver: gameOver, layout: layoutGame, draw: draw,
     // Spol frem til næste frysning eller tabt kugle (uden at vente i realtid)
     fastForward: function (maxSteps) {

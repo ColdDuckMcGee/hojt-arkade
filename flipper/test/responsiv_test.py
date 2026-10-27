@@ -31,7 +31,7 @@ CHECK = """(sel) => {
   const bs = [...scr.querySelectorAll('button, a.btn')].filter(vis).filter(e => !e.classList.contains('cell'));
   const bd = document.getElementById('board').getBoundingClientRect();
   out.cellPx = Math.round(bd.width) + 'x' + Math.round(bd.height);
-  const name = e => e.id || e.dataset.choice || e.dataset.timing || e.dataset.power || e.dataset.tab || e.dataset.speed || e.dataset.recSpeed || e.getAttribute('aria-label') || e.textContent.trim().replace(/\\s+/g,' ').slice(0,16);
+  const name = e => e.id || e.dataset.choice || e.dataset.timing || e.dataset.power || e.dataset.tab || e.dataset.speed || e.dataset.recSpeed || e.dataset.table || e.dataset.recTable || e.getAttribute('aria-label') || e.textContent.trim().replace(/\\s+/g,' ').slice(0,16);
   for (let i = 0; i < bs.length; i++) for (let j = i + 1; j < bs.length; j++) { const a = bs[i].getBoundingClientRect(), b = bs[j].getBoundingClientRect();
      if (a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1 && !bs[i].contains(bs[j]) && !bs[j].contains(bs[i]) && bs[i].closest('.overlay') === bs[j].closest('.overlay')) out.overlap.push(name(bs[i]) + '/' + name(bs[j])); }
   // Hvis et overlay er åbent, tæller kun dets knapper (resten ligger bag det)
@@ -178,7 +178,7 @@ with sync_playwright() as p:
         if pg.evaluate("Flipper.phase") != 'lost': fails.append(tag + ' kuglen blev ikke tabt')
         check(pg,'spil: kuglen er tabt','#game',w,h, tag+'-tabt.png')
         # game over med rekorder
-        pg.evaluate("() => { const s = Flipper.run.state; for (let i = 0; i < 3; i++) Flipper.records.add(s.speedId, 12000 + i * 1500, {mult: 2}); s.score = 23450; s.stats.allLights = 3; s.stats.loops = 2; s.stats.bestMult = 3; Flipper.gameOver(); }")
+        pg.evaluate("() => { const s = Flipper.run.state; for (let i = 0; i < 3; i++) Flipper.records.add(s.tableId + ':' + s.speedId, 12000 + i * 1500, {mult: 2}); s.score = 23450; s.stats.allLights = 3; s.stats.loops = 2; s.stats.bestMult = 3; Flipper.gameOver(); }")
         pg.wait_for_timeout(150)
         split = pg.evaluate("!document.getElementById('btn-go-rec').hidden")
         check(pg,'game over' + (' (resultat)' if split else ''),'#gameover',w,h, tag+'-gameover.png')
@@ -186,6 +186,70 @@ with sync_playwright() as p:
             pg.click('#btn-go-rec'); pg.wait_for_timeout(80)
             check(pg,'game over (rekorder)','#gameover',w,h, tag+'-gameover-trin2.png')
             pg.click('#btn-go-rec'); pg.wait_for_timeout(60)
+        # ---------- De andre borde (v1.2) ----------
+        for tb in ['rumstationen', 'dybhavet']:
+            pg.evaluate("Flipper.show('menu')"); pg.wait_for_timeout(80)
+            pg.click('#menu [data-table="%s"]' % tb); pg.wait_for_timeout(60)
+            if pg.evaluate("t => document.querySelector('#menu [data-table=\"' + t + '\"]').getAttribute('aria-pressed')", tb) != 'true': fails.append('%s bordkortet %s blev ikke valgt' % (tag, tb))
+            check(pg, 'start (%s valgt)' % tb, '#menu', w, h, small and '%s-start-%s.png' % (tag, tb))
+            pg.click('#btn-start'); pg.wait_for_timeout(200)
+            if pg.evaluate("Flipper.run.state.tableId") != tb: fails.append('%s spillet startede ikke på %s' % (tag, tb))
+            check(pg, 'spil %s: afskydning' % tb, '#game', w, h, '%s-%s-skyd.png' % (tag, tb))
+            pg.click('#btn-shoot'); pg.wait_for_timeout(250)
+            check(pg, 'spil %s: kuglen ruller' % tb, '#game', w, h)
+            pg.evaluate("() => { Flipper.run._place(200, 700, 0, 250); Flipper.fastForward(); }"); pg.wait_for_timeout(100)
+            st = pg.evaluate("() => ({ ph: Flipper.phase, ctx: Flipper.run.state.ctx, reach: Flipper.reach, up: document.querySelector('#game [data-choice=\"upper\"]').hidden })")
+            if not (st['ph'] == 'decision' and st['ctx'] == 'lower' and st['reach'].get('left') and st['up']): fails.append('%s %s nederste frysning: %s' % (tag, tb, st))
+            pg.hover('#game [data-choice="left"]'); pg.wait_for_timeout(300)
+            check(pg, 'spil %s: frosset, trin 1' % tb, '#game', w, h, '%s-%s-fryst-trin1.png' % (tag, tb))
+            pg.click('#game [data-choice="left"]'); pg.wait_for_timeout(60)
+            pg.evaluate("() => { window.__fp = Flipper.previews['left-early']; }")
+            pg.click('#game [data-timing="early"]'); pg.wait_for_timeout(30)
+            got = pg.evaluate("""() => { const r = Flipper.run, p = window.__fp, b = r.state.ball;
+                const i = p.path.findIndex(q => q.x === b.x && q.y === b.y); if (i < 0) return 'kuglen er ikke på den viste bane';
+                for (let k = 1; k <= 60 && i + k < p.path.length; k++) { r.step(); if (r.state.ball.x !== p.path[i + k].x || r.state.ball.y !== p.path[i + k].y) return 'afviger ved skridt ' + (i + k); }
+                return 'ok'; }""")
+            if got != 'ok': fails.append('%s %s banen passer ikke med sigtelinjen: %s' % (tag, tb, got))
+            if tb == 'dybhavet':
+                # Den øvre flipper: spillet fryser også her, med to knapper (Øvre flipper og Lad være)
+                pg.evaluate("() => { Flipper.run._place(470, 420, 0, 150); Flipper.fastForward(); }"); pg.wait_for_timeout(100)
+                st = pg.evaluate("""() => ({ ph: Flipper.phase, ctx: Flipper.run.state.ctx, reach: Flipper.reach,
+                    vis: [...document.querySelectorAll('#game [data-ctl="decision"] [data-choice]')].filter(b => !b.hidden).map(b => b.dataset.choice) })""")
+                if not (st['ph'] == 'decision' and st['ctx'] == 'upper' and st['reach'].get('upper') and st['vis'] == ['upper', 'none']):
+                    fails.append('%s øvre frysning: %s' % (tag, st))
+                pg.hover('#game [data-choice="upper"]'); pg.wait_for_timeout(300)
+                check(pg, 'spil dybhavet: øvre flipper, trin 1', '#game', w, h, '%s-dybhavet-oevre.png' % tag)
+                pg.click('#game [data-choice="upper"]'); pg.wait_for_timeout(60)
+                pg.hover('#game [data-timing="early"]'); pg.wait_for_timeout(200)
+                same = pg.evaluate("() => { const s = Flipper.shown; return !!s && s.preview === Flipper.previews['upper-early'] && !!s.mark.upper; }")
+                if not same: fails.append('%s øvre flipper: sigtelinjen vises ikke' % tag)
+                check(pg, 'spil dybhavet: øvre flipper, trin 2', '#game', w, h, small and '%s-dybhavet-oevre-trin2.png' % tag)
+                pg.evaluate("() => { window.__fp = Flipper.previews['upper-early']; }")
+                pg.click('#game [data-timing="early"]'); pg.wait_for_timeout(30)
+                got = pg.evaluate("""() => { const r = Flipper.run, p = window.__fp, b = r.state.ball;
+                    if (r.state.timing !== 'early') return 'timing ' + r.state.timing;
+                    const i = p.path.findIndex(q => q.x === b.x && q.y === b.y); if (i < 0) return 'kuglen er ikke på den viste bane';
+                    for (let k = 1; k <= 60 && i + k < p.path.length; k++) { r.step(); if (r.state.ball.x !== p.path[i + k].x || r.state.ball.y !== p.path[i + k].y) return 'afviger ved skridt ' + (i + k); }
+                    return 'ok'; }""")
+                if got != 'ok': fails.append('%s øvre flipper: banen passer ikke: %s' % (tag, got))
+                # Tastatur ved den øvre flipper: pil op vælger den
+                pg.evaluate("() => { Flipper.run._place(470, 420, 0, 150); Flipper.fastForward(); }"); pg.wait_for_timeout(60)
+                pg.mouse.move(2, 2)
+                pg.keyboard.press('ArrowUp'); pg.wait_for_timeout(40)
+                kk = pg.evaluate("[Flipper.pick, document.activeElement.dataset.timing]")
+                pg.keyboard.press('Enter'); pg.wait_for_timeout(40)
+                if kk != ['upper', 'early'] or pg.evaluate("Flipper.run.state.timing") != 'early': fails.append('%s øvre flipper tastatur %s' % (tag, kk))
+            # Game over for bordet
+            pg.evaluate("() => { const s = Flipper.run.state; s.score = 34560; s.stats.missions = 2; s.stats.jackpots = 1; s.stats.ramps = 5; s.stats.bestMult = 2; Flipper.gameOver(); }")
+            pg.wait_for_timeout(150)
+            check(pg, 'game over %s' % tb, '#gameover', w, h, small and '%s-%s-gameover.png' % (tag, tb))
+            if pg.evaluate("Flipper.records.list('%s:normal').length" % tb) < 1: fails.append('%s rekord for %s blev ikke gemt' % (tag, tb))
+        # Rekorder: bord- og fartknapper
+        pg.evaluate("Flipper.show('records')"); pg.wait_for_timeout(80)
+        pg.click('#records [data-rec-table="dybhavet"]'); pg.wait_for_timeout(60)
+        rt = pg.evaluate("[document.getElementById('rec-title').textContent, document.querySelectorAll('#rec-list li .score:not(.muted)').length]")
+        if rt[0] != 'Rekorder – Dybhavet, Normal' or rt[1] < 1: fails.append('%s rekorder pr. bord: %s' % (tag, rt))
+        check(pg, 'rekorder (Dybhavet)', '#records', w, h, small and tag + '-rekorder-dybhavet.png')
         ctx.close()
     b.close()
 print()

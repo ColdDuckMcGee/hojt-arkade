@@ -5,6 +5,7 @@
 'use strict';
 var assert = require('assert');
 require('../js/game.js');
+require('../js/borde/neonbyen.js');
 var G = globalThis.FlipperGame;
 
 var tests = [];

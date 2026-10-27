@@ -14,7 +14,7 @@
   --fl-zone: #22eaff;          /* frysezonen */
   --fl-loop: #39ff6a;          /* sløjferne */
   --fl-ball0: #f2eefa; --fl-ball1: #8a80a8; --fl-ball2: #2a2438;
-  --fl-left: #22eaff; --fl-right: #ff3fd8; --fl-both: #ffd23a; --fl-none: #b9a6ff;
+  --fl-left: #22eaff; --fl-right: #ff3fd8; --fl-both: #ffd23a; --fl-none: #b9a6ff; --fl-upper: #ff9a3c;
   --fl-launch: #39ff6a;
   --fl-lost: #ff5a6a;
 }
@@ -24,7 +24,7 @@
   --fl-board0: #000; --fl-board1: #000; --fl-wall: #ffffff; --fl-bumper: #ff00ff; --fl-sling: #00ffff;
   --fl-target: #ffff00; --fl-flipper: #ffff00; --fl-zone: #00ffff; --fl-loop: #00ff00;
   --fl-ball0: #ffffff; --fl-ball1: #c0c0c0; --fl-ball2: #606060;
-  --fl-left: #00ffff; --fl-right: #ff00ff; --fl-both: #ffff00; --fl-none: #ffffff; --fl-launch: #00ff00; --fl-lost: #ff4040;
+  --fl-left: #00ffff; --fl-right: #ff00ff; --fl-both: #ffff00; --fl-none: #ffffff; --fl-upper: #00ff00; --fl-launch: #00ff00; --fl-lost: #ff4040;
 }
 
 /* ---------- Startmenu ---------- */
@@ -314,3 +314,64 @@ ol.records .score { white-space: nowrap; }
 .choice-btn.cant { border-style: dashed; opacity: 0.55; cursor: not-allowed; }
 .choice-btn.cant:hover, .choice-btn.cant.arkade-dwelling { background: rgba(0, 0, 0, 0.45); box-shadow: none; }
 .choice-btn.cant .ico-flip, .choice-btn.cant .ico-dot { stroke: var(--muted); fill: var(--muted); }
+
+/* ---------- v1.2: flere borde ---------- */
+/* Bordkort på startskærmen: lille billede, navn, sværhed og tema */
+.table-row { gap: calc(var(--gap) * 0.6); align-items: stretch; }
+.table-card { flex-direction: row; justify-content: flex-start; gap: 14px; padding: 8px 16px 8px 8px; min-width: calc(var(--btn) * 2.3); text-align: left; }
+.table-thumb { flex: none; width: calc(var(--btn) * 0.72); height: calc(var(--btn) * 1.2); border-radius: 8px; background: rgba(0, 0, 0, 0.5); }
+.table-info { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; }
+.table-card .big { hyphens: manual; }
+.table-theme { max-width: 11em; font-size: 0.92rem !important; line-height: 1.3; }
+.fl-lille .table-row { flex-wrap: nowrap; gap: 8px; }
+.fl-lille .table-card { flex-direction: column; justify-content: center; gap: 4px; padding: 6px 6px; min-width: var(--btn); flex: 1 1 0; text-align: center; }
+.fl-lille .table-info { align-items: center; }
+.fl-lille .table-card .big { font-size: 1.05rem; }
+.fl-lille .table-theme { display: none; }
+.fl-lille .table-thumb { width: calc(var(--btn) * 0.6); height: var(--btn); }
+.fl-lille:not(.fl-tvaers) #menu .tables-group { width: 100%; }
+.fl-tvaers #menu .tables-group { grid-area: tables; }
+.fl-tvaers #menu .table-thumb { display: none; }
+.fl-tvaers #menu .table-card { min-height: var(--btn); padding: 6px 12px; }
+.fl-tvaers #menu {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: "hall title start" "tables tables sizes" "more more more";
+}
+.fl-tvaers #menu .start-row { align-self: center; justify-self: end; }
+.fl-tvaers #menu .tables-group { justify-self: stretch; }
+.fl-lille .lvl-n { display: none; }
+.fl-lille #menu .menu-group .row { flex-wrap: nowrap; gap: 10px; }
+.fl-lille #menu.tight .tables-group .group-label { display: none; }
+
+/* Mission og bordets navn i statuskolonnen (roligt, ingen blink) */
+.mission { padding: 6px 10px; text-align: center; background: var(--panel); border-radius: 14px; border: 1px solid var(--ui-soft); }
+.mission-name { font-size: 0.95rem; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
+.mission-text { font-size: 1.1rem; font-weight: 700; line-height: 1.3; min-height: 2.6em; color: var(--ui-text); display: flex; align-items: center; justify-content: center; }
+.mission-short { display: none; }
+.lights i.lbl { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; font-style: normal; font-weight: 800; font-size: 0.95rem; color: var(--fl-target); }
+.lights i.lbl.on { color: var(--bg); }
+.compact .side-left { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "hud pause" "mis pause"; column-gap: 8px; row-gap: 4px; }
+.compact .hud-grid { grid-area: hud; }
+.compact .pause-btn { grid-area: pause; }
+.compact .mission { grid-area: mis; padding: 1px 6px; border-radius: 10px; min-width: 0; }
+.compact .mission-name, .compact .mission-text { display: none; }
+.compact .mission-short { display: block; font-size: 0.9rem; font-weight: 700; line-height: 1.3; color: var(--ui-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Den øvre flipper: én stor knap over Lad være */
+.choice-btn[data-choice="upper"] { --c: var(--fl-upper); }
+.choice-grid[data-ctx="upper"] .choice-btn { grid-column: 1 / -1; }
+.choice-btn[hidden] { display: none !important; }
+
+/* Rekorder: knapper for bordene og farterne i samme række */
+.rec-tables { display: contents; }
+.fl-tvaers #menu .title-row { flex-wrap: nowrap; gap: 12px; }
+.fl-tvaers #menu .neon-title { font-size: clamp(1.8rem, 9vh, 2.8rem); }
+.fl-lille #menu .btn.option::after { top: 1px; right: 5px; font-size: 1rem; }
+.fl-lille .table-card { padding-top: 10px; }
+.fl-tvaers #records .tabs { flex-wrap: nowrap; gap: 10px; }
+.fl-tvaers #records .tabs .btn { padding-left: 10px; padding-right: 10px; }
+#records [data-rec-table] .big { hyphens: manual; text-align: center; }
+.fl-tvaers #records { padding-top: 10px; padding-bottom: 10px; gap: 10px; }
+.fl-tvaers #records .records-panel { padding-top: 8px; padding-bottom: 8px; }
+.fl-tvaers #records .records li { padding-top: 1px; padding-bottom: 1px; }
+.fl-tvaers #records .records-panel { max-width: 100%; box-sizing: border-box; min-width: 0; width: min(820px, 100%); }
