@@ -50,7 +50,7 @@
   function swallowed(el) { if (suppress === el) { suppress = null; return true; } return false; }
   var audio = ArkadeAudio.create({ sfx: arkade.get('sound'), music: arkade.get('music') });
   var SFX = {
-    side: 'move', hop: 'move', dyk: 'move', bliv: 'click', coin: 'eat', hit: 'crash',
+    side: 'move', up: 'bonusSpawn', down: 'move', hop: 'move', dyk: 'move', bliv: 'click', coin: 'eat', hit: 'crash',
     lifeLost: 'bonusGone', record: 'record', click: 'click', pause: 'pause', over: 'obstacle'
   };
   function sfx(name) { audio.play(SFX[name] || name); }
@@ -68,7 +68,8 @@
       ground: v('ground'), road: v('road'), laneHi: v('lane-hi'), grid: v('grid'), edge: v('edge'), laneLine: v('lane-line'),
       city: v('city'), cityWin: v('city-win'), tower: v('tower'), towerEdge1: v('tower-edge1'), towerEdge2: v('tower-edge2'),
       towerWin: v('tower-win'), gate: v('gate'), low: v('low'), lowFill: v('low-fill'), high: v('high'), highFill: v('high-fill'),
-      train: v('train'), trainFill: v('train-fill'), trainSide: v('train-side'), glass: v('glass'), lights: v('lights'),
+      block: v('block'), blockFill: v('block-fill'), blockSide: v('block-side'), blockTop: v('block-top'), rampFill: v('ramp-fill'),
+      wall: v('wall'), wallFill: v('wall-fill'),
       coin: v('coin'), coinFill: v('coin-fill'), runner: v('runner'), runnerFill: v('runner-fill'),
       ok: v('ok'), warn: v('warn'), ghost: v('ghost'), ghostAlpha: parseFloat(v('ghost-alpha')) || 0.85, danger: v('danger'),
       sky0: cssVar('--p-sky0'), sky1: cssVar('--p-sky1'), sky2: cssVar('--p-sky2'), sun0: cssVar('--p-sun0'), sun1: cssVar('--p-sun1'),
@@ -182,9 +183,15 @@
   var boardCanvas = $('#board');
   var anim = null, raf = 0, fadeT0 = 0, hitGlow = 0, previewAct = null;
   var ACT_NAMES = { venstre: 'Venstre', hoejre: 'Højre', hop: 'Hop', dyk: 'Dyk', bliv: 'Bliv i banen' };
-  var OBST_NAMES = { fri: 'fri', lav: 'lav barriere', hoej: 'høj bjælke', tog: 'tog' };
-  var HIT_LABEL = { lav: 'Rammer barrieren', hoej: 'Rammer bjælken', tog: 'Rammer toget' };
-  var CAUSES = { lav: 'Du løb ind i den lave barriere.', hoej: 'Du ramte den høje bjælke.', tog: 'Du løb ind i toget.' };
+  var OBST_NAMES = {
+    fri: 'fri', lav: 'lav laserbarriere', hoej: 'høj lysbjælke', mur: 'firewall',
+    rampe: 'datablok med rampe', blok: 'datablok uden rampe', 'blok-lav': 'datablok med laser ovenpå', 'blok-hoej': 'datablok med lysbjælke ovenpå'
+  };
+  var HIT_LABEL = { lav: 'Rammer laseren', hoej: 'Rammer lysbjælken', mur: 'Rammer firewallen', blok: 'Blokken er en mur' };
+  var CAUSES = {
+    lav: 'Du løb ind i den lave laserbarriere.', hoej: 'Du ramte den høje lysbjælke.', mur: 'Du løb ind i en firewall.',
+    blok: 'Du løb ind i en datablok uden rampe. Den kan kun nås oppefra.'
+  };
   var LANE_NAMES = ['venstre bane', 'midterbanen', 'højre bane'];
 
   function startGame() {
@@ -203,11 +210,14 @@
     var mode = bset.get('preview');
     if (!a || mode === 'fra' || !playable() || !run.possible(a)) return null;
     var g = { action: a, verdict: 'neutral', label: '' };
+    var oc = run.outcome(a); g.h = oc.ok ? oc.h : run.state.h;
     if (mode === 'sted') return g;
     if (!run.safe(a)) { g.verdict = 'hit'; g.label = '✗ ' + HIT_LABEL[run.cause(a)]; return g; }
     var seg = run.next(), t = G.target(run.state.lane, a);
     if (mode === 'fuld' && run.deadEnd(a)) { g.verdict = 'dead'; g.label = '⚠ Blindgyde forude'; return g; }
-    g.verdict = 'safe'; g.label = '✓ Sikkert' + (seg.coins && seg.coins[t] ? ' + mønt' : '');
+    var o = oc, h0 = run.state.h;
+    g.verdict = 'safe';
+    g.label = '✓ Sikkert' + (o.h > h0 ? ' · op på blokken' : o.h < h0 ? ' · ned' : o.h ? ' · oppe' : '') + (seg.coins && seg.coins[t] ? ' + mønt' : '');
     return g;
   }
   function drawBoard() {
@@ -215,7 +225,7 @@
     var now = performance.now();
     var fade = fadeT0 ? Math.max(0, 1 - (now - fadeT0) / 320) : 0;
     LoeberenRender.draw(boardCanvas, run, colors, {
-      anim: anim, preview: anim ? null : ghostFor(previewAct), fadeIn: fade, hitGlow: hitGlow
+      anim: anim, preview: anim ? null : ghostFor(previewAct), fadeIn: fade, hitGlow: hitGlow, level: run.levelNum()
     });
     return fade > 0;
   }
@@ -261,7 +271,7 @@
   function boardLabel() {
     var s = run.state, seg = run.next();
     var parts = seg.lanes.map(function (o, l) { return LANE_NAMES[l] + ': ' + OBST_NAMES[o] + (seg.coins && seg.coins[l] ? ' med mønt' : ''); });
-    return 'Banen. ' + fmt(s.meters) + ' meter. Du er i ' + LANE_NAMES[s.lane] + '. Næste stop – ' + parts.join(', ') + '.';
+    return 'Banen. ' + fmt(s.meters) + ' meter, niveau ' + run.levelNum() + '. Du er i ' + LANE_NAMES[s.lane] + (s.h ? ' oppe på en datablok' : ' nede på nettet') + '. Næste stop – ' + parts.join(', ') + '.';
   }
   function announce() {
     var t = boardLabel();
@@ -271,15 +281,15 @@
   // Ét valg = ét stop. Banen ruller frem, og spillet fryser foran næste forhindring.
   function act(a) {
     if (!playable() || !run.possible(a)) return;
-    var old = run.state.segs.slice();
+    var old = run.state.segs.slice(), oldPrev = run.state.prev;
     var res = run.act(a);
     if (res.ignored) return;
     previewAct = null;
-    if (res.safe) sfx(a === 'venstre' || a === 'hoejre' ? 'side' : a);
+    if (res.safe) sfx(res.toH > res.fromH ? 'up' : res.toH < res.fromH ? 'down' : a === 'venstre' || a === 'hoejre' ? 'side' : a);
     var segs = res.safe ? old.concat([run.state.segs[run.state.segs.length - 1]]) : old;
     if (animationOn()) {
       busy = true;
-      anim = { t: 0, t0: performance.now(), dur: SPEEDS[bset.get('speed')], res: res, segs: segs, from: res.from, to: res.to };
+      anim = { t: 0, t0: performance.now(), dur: SPEEDS[bset.get('speed')], res: res, segs: segs, prev: oldPrev, from: res.from, to: res.to };
       // lyd for mønt og sammenstød, når løberen når forhindringen
       setTimeout(function () {
         if (res.coin) sfx('coin');
@@ -382,7 +392,7 @@
     } else rankText = 'Ingen point denne gang';
     $('#go-reason').textContent = (CAUSES[s.lastCause] || '').replace(/\.$/, '') + ' efter ' + fmt(s.meters) + ' meter.';
     $('#go-score').textContent = fmt(s.score);
-    $('#go-stats').textContent = fmt(s.meters) + ' meter · ' + (s.coins === 1 ? '1 mønt' : s.coins + ' mønter') + ' · ' + diffName(cat);
+    $('#go-stats').textContent = fmt(s.meters) + ' meter · ' + (s.coins === 1 ? '1 mønt' : s.coins + ' mønter') + ' · niveau ' + s.maxLevel + ' · ' + diffName(cat);
     $('#go-rank').textContent = rankText;
     $('#go-again-sub').textContent = diffName(cat);
     $('#go-records-title').textContent = 'Rekorder – ' + diffName(cat).toLowerCase();

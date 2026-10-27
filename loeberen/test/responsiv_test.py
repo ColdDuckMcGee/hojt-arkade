@@ -156,6 +156,16 @@ with sync_playwright() as p:
         pg.evaluate("() => Loeberen.preview(Loeberen.run.safeActions()[0])"); pg.wait_for_timeout(60)
         check(pg, 'spil', '#game', w, h, tag + '.png')
         if big: SHOT and pg.screenshot(path=SHOT + 'spil.png')
+        if big:
+            # løberen oppe på en datablok: fast opstilling, så billedet viser højden tydeligt
+            pg.evaluate("""() => { const s = Loeberen.run.state; let n = 900; const mk = (l, c) => ({id: n++, lanes: l, coins: c || [false, false, false]});
+                s.lane = 1; s.h = 1; s.prev = mk(['fri', 'rampe', 'lav']);
+                s.segs[0] = mk(['mur', 'blok', 'hoej'], [false, true, false]); s.segs[1] = mk(['rampe', 'blok-lav', 'fri']);
+                s.segs[2] = mk(['blok', 'blok', 'mur'], [true, false, false]); s.segs[3] = mk(['blok', 'fri', 'lav']);
+                s.segs[4] = mk(['fri', 'hoej', 'rampe']); s.segs[5] = mk(['lav', 'fri', 'blok']);
+                Loeberen.preview('bliv'); }"""); pg.wait_for_timeout(60)
+            check(pg, 'spil oppe på blok', '#game', w, h, 'spil-oppe.png')
+            pg.evaluate("() => Loeberen.preview(null)")
         # forhåndsvisning af et forkert valg (hvis der er et)
         bad = pg.evaluate("() => ['bliv','hop','dyk','venstre','hoejre'].find(a => Loeberen.run.possible(a) && !Loeberen.run.safe(a)) || null")
         if bad and big:
@@ -170,7 +180,7 @@ with sync_playwright() as p:
             check(pg, 'mistet liv', '#game', w, h, big and 'mistet-liv.png')
             pg.click('#btn-continue'); pg.wait_for_timeout(100)
         # game over med rekorder
-        pg.evaluate("() => { const s = Loeberen.run.state; for (let i = 0; i < 3; i++) Loeberen.records.add('normal', 300 + i * 40, {meters: 280 + i * 30, coins: 2}); s.meters = 1230; s.coins = 14; s.score = 1370; s.lives = 0; s.over = true; s.lastCause = 'tog'; Loeberen.gameOver(); }")
+        pg.evaluate("() => { const s = Loeberen.run.state; for (let i = 0; i < 3; i++) Loeberen.records.add('normal', 300 + i * 40, {meters: 280 + i * 30, coins: 2}); s.meters = 1230; s.coins = 14; s.score = 1370; s.lives = 0; s.over = true; s.lastCause = 'mur'; Loeberen.gameOver(); }")
         pg.wait_for_timeout(150)
         split = pg.evaluate("!document.getElementById('btn-go-rec').hidden")
         check(pg,'game over' + (' (resultat)' if split else ''),'#gameover',w,h, big and 'game-over.png')

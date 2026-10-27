@@ -41,7 +41,7 @@
       <img class="arkade-logo" src="../arkade/logo.svg" alt="Hojt Arkade">
       <h1 id="titel" class="neon-title">LØBEREN</h1>
     </div>
-    <p class="lead opt">Løb gennem neonbyen i tre baner. Foran hver forhindring står alt stille, til du har valgt: skift bane, hop over den lave barriere, dyk under den høje bjælke, eller løb lige ud. Saml mønter, og se, hvor langt du kommer. Der er ingen tid – tænk dig om.</p>
+    <p class="lead opt">Løb gennem et digitalt datanet i tre baner. Foran hver forhindring står alt stille, til du har valgt: hop over laseren, dyk under lysbjælken, skift bane ved en firewall – eller løb op ad en rampe og videre oven på datablokkene. Der er ingen tid – tænk dig om.</p>
   </header>
   <section class="menu-group" aria-labelledby="diff-label">
     <h2 id="diff-label" class="group-label">Sværhedsgrad</h2>
@@ -68,7 +68,7 @@
   <section class="panel om-panel">
     <h2 id="om-title" class="neon-sub">Om Hojt Arkade</h2>
     <p data-trin>Hojt Arkade er udviklet af Jon Leismann Engsager, Hojt Design. Jon er IT- og IKT-konsulent i det specialiserede område og laver blandt andet gratis spil til voksne, der bruger øjenstyring.</p>
-    <p data-trin>Løberen: 1 point pr. meter og 10 point pr. mønt. Hop over lave barrierer, dyk under høje bjælker, og skift bane, når et tog spærrer. Et forkert valg koster et liv – du har tre.</p>
+    <p data-trin>Løberen: 1 point pr. meter og 10 point pr. mønt. Hop over lave laserbarrierer, dyk under høje lysbjælker, og skift bane, når en firewall spærrer. Løb op ad en rampe for at komme op på datablokkene og løbe ovenpå – en blok uden rampe er en mur nedefra. Jo længere du når, jo sværere bliver det. Et forkert valg koster et liv – du har tre.</p>
     <p data-trin>Koden er åben og frit tilgængelig under MIT-licensen, så alle kan bruge den og bygge videre på den.</p>
   </section>
   <div class="row" data-trin>
@@ -131,7 +131,7 @@
   <div class="overlay soft" id="death-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="death-title">
     <div class="panel">
       <h2 id="death-title" class="neon-sub">Du mistede et liv</h2>
-      <p class="muted" id="death-reason">Du løb ind i toget.</p>
+      <p class="muted" id="death-reason">Du løb ind i en firewall.</p>
       <div class="row">
         <button class="btn primary wide" id="btn-continue"><span class="big" id="btn-continue-label">Løb videre</span><span class="small" id="btn-continue-sub">Vejen forude er ryddet</span></button>
       </div>
@@ -145,7 +145,7 @@
     <section class="go-result">
       <div class="go-head">
         <h2 id="go-title" class="neon-sub">Spillet er slut</h2>
-        <p class="go-reason" id="go-reason">Du løb ind i toget.</p>
+        <p class="go-reason" id="go-reason">Du løb ind i en firewall.</p>
         <div class="go-score"><span id="go-score">0</span><span class="go-unit">point</span></div>
         <p class="go-plates" id="go-stats">0 meter · 0 mønter</p>
         <p class="go-rank" id="go-rank"></p>

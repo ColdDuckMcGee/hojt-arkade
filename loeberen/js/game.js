@@ -1,30 +1,40 @@
 /*
- * Løberen – spillogik (ingen DOM). Turbaseret løbespil i tre baner.
+ * Løberen – spillogik (ingen DOM). Turbaseret løbespil i tre baner gennem et
+ * digitalt neonnet (datanet). Ingen ure og ingen tidsgrænser: spillet fryser
+ * foran hvert stop, til spilleren har valgt én handling.
  *
- * Verden består af segmenter. Hvert segment er ét stop: spillet fryser foran
- * det, og spilleren vælger én handling. Intet sker, før der er valgt, og der er
- * ingen ure eller tidsgrænser.
+ * Spilleren har en bane (0 = venstre, 1 = midten, 2 = højre) og en højde
+ * (0 = nede på nettet, 1 = oppe på en datablok).
  *
- * Hvert segment har én ting pr. bane (0 = venstre, 1 = midten, 2 = højre):
- *   'fri'   ingenting – alle handlinger, der ender her, er sikre
- *   'lav'   lav barriere – kun Hop er sikkert
- *   'hoej'  høj bjælke – kun Dyk er sikkert
- *   'tog'   tog/mur – banen er spærret, intet er sikkert her
- * og evt. en mønt pr. bane (samles, når man passerer banen uden at blive ramt).
+ * Hvert segment (stop) har én celle pr. bane:
+ *   Nede på nettet
+ *     'fri'        intet – alt, der ender her, er sikkert
+ *     'lav'        lav laserbarriere – kun Hop
+ *     'hoej'       høj lysbjælke/port – kun Dyk
+ *     'mur'        firewall – spærrer banen i alle højder
+ *   Datablokke (man står oppe på dem)
+ *     'rampe'      blokkens start med rampe – man løber op ad den (alt er sikkert)
+ *     'blok'       bloktag uden noget – sikkert oppefra; nedefra er det en mur
+ *     'blok-lav'   laserbarriere på taget – kun Hop (oppefra)
+ *     'blok-hoej'  lavthængende bjælke over taget – kun Dyk (oppefra)
+ * og evt. en mønt pr. bane.
  *
- * Handlinger: venstre, hoejre (skift én bane – sikkert kun ind i en fri bane),
- * hop (bliv i banen og hop), dyk (bliv i banen og glid), bliv (løb lige ud).
- * Venstre i venstre bane og højre i højre bane er umulige (slået fra).
+ * Handlinger: venstre, hoejre (skift én bane i samme højde), hop, dyk, bliv.
+ *  - Nede: en blok kan kun nås ad en rampe ('rampe'). En blok uden rampe er en mur.
+ *  - Oppe: man kan blive oppe, skifte til en blok ved siden af i samme højde,
+ *    eller hoppe ned i en side (skift bane ned i en fri bane). Slutter blokken,
+ *    lander man nede på nettet (her gælder de almindelige regler: fri = alt,
+ *    lav = Hop, høj = Dyk).
+ *  - Skift af bane er kun sikkert ind i en fri celle ('fri', 'rampe', 'blok').
  *
- * Forkert valg koster et liv. Ved 0 liv er spillet slut.
- * Point = meter + mønter × 10. Hvert segment er 10 meter.
+ * Forkert valg koster et liv og giver 0 m. Ved 0 liv er spillet slut.
+ * Point = meter + mønter × 10. Hvert sikkert stop er 10 meter.
  *
- * Generatoren holder styr på, hvilke baner man kan nå uden at blive ramt
- * (R). Hvert nyt segment skal kunne passeres sikkert fra mindst én af de
- * baner, så der altid findes en sikker vej. På Normal og Svær kan nogle baner
- * føre ind i en blindgyde (fx to spærrede baner), så man skal planlægge et par
- * stop frem. På Rolig findes der aldrig blindgyder: fra alle baner er der
- * altid mindst ét sikkert valg.
+ * Generatoren holder styr på de tilstande (bane, højde), man kan nå uden at
+ * blive ramt. Hvert nyt segment skal kunne passeres sikkert, og alle
+ * tilstande, der indtil nu så ud til at føre et sted hen, skal stadig gøre
+ * det – så en blindgyde altid kan ses i tide. På Rolig er der altid et sikkert
+ * valg fra alle baner og højder (ingen blindgyder).
  */
 (function (global) {
   'use strict';
@@ -34,15 +44,19 @@
   var METERS = 10;            // meter pr. segment
   var COIN_POINTS = 10;
   var START_LIVES = 3;
+  var LEVELS = 10;            // niveau 1-10 vises i spillet
   var ACTIONS = ['venstre', 'hoejre', 'hop', 'dyk', 'bliv'];
-  var OBST = ['fri', 'lav', 'hoej', 'tog'];
+  var GROUND = ['fri', 'lav', 'hoej', 'mur'];
+  var BLOCKS = ['rampe', 'blok', 'blok-lav', 'blok-hoej'];
+  var OBST = GROUND.concat(BLOCKS);
 
   var DIFFS = {
-    rolig:  { id: 'rolig',  name: 'Rolig',  traps: false, ramp: 3000, base: 0.0,  coins: 0.26 },
-    normal: { id: 'normal', name: 'Normal', traps: true,  ramp: 1600, base: 0.1,  coins: 0.235 },
-    svaer:  { id: 'svaer',  name: 'Svær',   traps: true,  ramp: 800,  base: 0.35, coins: 0.22 }
+    rolig:  { id: 'rolig',  name: 'Rolig',  traps: false, ramp: 3000, base: 0.0,  coins: 0.26,  noRampMax: 0,    maxP: 0.5 },
+    normal: { id: 'normal', name: 'Normal', traps: true,  ramp: 1500, base: 0.08, coins: 0.235, noRampMax: 0.45, maxP: 1 },
+    svaer:  { id: 'svaer',  name: 'Svær',   traps: true,  ramp: 750,  base: 0.3,  coins: 0.22,  noRampMax: 0.6,  maxP: 1 }
   };
 
+  function isBlock(c) { return BLOCKS.indexOf(c) >= 0; }
   function target(lane, action) {
     if (action === 'venstre') return lane - 1;
     if (action === 'hoejre') return lane + 1;
@@ -53,37 +67,50 @@
     var t = target(lane, action);
     return t >= 0 && t < LANES;
   }
-  // Er handlingen sikker i dette segment fra denne bane?
-  function safe(seg, lane, action) {
-    if (!possible(lane, action)) return false;
-    var o = seg.lanes[target(lane, action)];
-    if (o === 'tog') return false;
-    if (o === 'fri') return true;
-    if (o === 'lav') return action === 'hop';
-    if (o === 'hoej') return action === 'dyk';
-    return false;
+  // Resultatet af en handling: { ok, lane, h, cause }
+  function outcome(seg, lane, h, action) {
+    if (!possible(lane, action)) return null;
+    var t = target(lane, action), c = seg.lanes[t], side = t !== lane;
+    var r = { ok: false, lane: t, h: 0, cause: c };
+    if (isBlock(c)) {
+      if (h === 0 && c !== 'rampe') { r.cause = 'blok'; return r; }   // blok uden rampe = mur
+      r.h = 1;
+      if (c === 'rampe' || c === 'blok') r.ok = true;
+      else if (c === 'blok-lav') r.ok = !side && action === 'hop';
+      else if (c === 'blok-hoej') r.ok = !side && action === 'dyk';
+    } else {
+      r.h = 0;
+      if (c === 'fri') r.ok = true;
+      else if (c === 'lav') r.ok = !side && action === 'hop';
+      else if (c === 'hoej') r.ok = !side && action === 'dyk';
+      else r.ok = false;   // mur
+    }
+    if (r.ok) r.cause = null;
+    return r;
   }
-  // Hvad rammer man? (null = sikkert)
-  function cause(seg, lane, action) {
-    if (safe(seg, lane, action)) return null;
-    return seg.lanes[target(lane, action)];
+  function safe(seg, lane, h, action) { var o = outcome(seg, lane, h, action); return !!(o && o.ok); }
+  function cause(seg, lane, h, action) { var o = outcome(seg, lane, h, action); return o && !o.ok ? o.cause : null; }
+  function safeActions(seg, lane, h) {
+    return ACTIONS.filter(function (a) { return safe(seg, lane, h, a); });
   }
-  function safeActions(seg, lane) {
-    return ACTIONS.filter(function (a) { return safe(seg, lane, a); });
-  }
-  function nextLanes(seg, lane) {
-    var out = [];
-    safeActions(seg, lane).forEach(function (a) { var t = target(lane, a); if (out.indexOf(t) < 0) out.push(t); });
+  // Tilstande kodes som tal: bane + 3 × højde
+  function code(lane, h) { return lane + 3 * h; }
+  function nextStates(seg, st) {
+    var out = [], lane = st % 3, h = st >= 3 ? 1 : 0;
+    ACTIONS.forEach(function (a) {
+      var o = outcome(seg, lane, h, a);
+      if (o && o.ok) { var k = code(o.lane, o.h); if (out.indexOf(k) < 0) out.push(k); }
+    });
     return out;
   }
   function reach(seg, from) {
     var out = [];
-    from.forEach(function (l) { nextLanes(seg, l).forEach(function (t) { if (out.indexOf(t) < 0) out.push(t); }); });
+    from.forEach(function (s) { nextStates(seg, s).forEach(function (t) { if (out.indexOf(t) < 0) out.push(t); }); });
     return out.sort();
   }
-  // Kan man komme sikkert igennem alle segmenterne segs[start..] fra banen?
-  function survivable(segs, start, lane) {
-    var cur = [lane];
+  // Kan man komme sikkert igennem alle segmenterne segs[start..] fra tilstanden?
+  function survivable(segs, start, st) {
+    var cur = [st];
     for (var i = start; i < segs.length; i++) {
       cur = reach(segs[i], cur);
       if (!cur.length) return false;
@@ -93,76 +120,68 @@
 
   // ---------- Generator ----------
   function makeGenerator(diff, rng) {
-    var R = [1];
-    var startLane = 1;
-    var hist = [];               // segmenter siden sidste nulstilling
-    var rhist = [];              // R efter hvert af dem
-    var trains = [0, 0, 0];      // resterende segmenter med tog pr. bane
-    var divider = 0;             // midterbanen er spærret (vejen deler sig)
+    var R = [code(1, 0)], startState = R[0];
+    var hist = [], rhist = [];
+    var blocks = [0, 0, 0];      // resterende celler i en datablok pr. bane
     var coinRun = { lane: -1, left: 0 };
-    var sinceNarrow = 9;
     var count = 0;
 
     function pick(arr) { return arr[Math.floor(rng() * arr.length) % arr.length]; }
+    function level(meters) { return Math.min(diff.maxP, diff.base + meters / diff.ramp); }
 
-    function level(meters) { return Math.min(1, diff.base + meters / diff.ramp); }
-
-    function candidate(p) {
-      var lanes = ['fri', 'fri', 'fri'];
-      var newTrains = trains.slice(), newDivider = divider, narrow = false;
-      // fortsæt tog og skillevæg
-      for (var l = 0; l < LANES; l++) if (newTrains[l] > 0) { lanes[l] = 'tog'; newTrains[l]--; }
-      if (newDivider > 0) { lanes[1] = 'tog'; newDivider--; }
-      var free = [0, 1, 2].filter(function (x) { return lanes[x] === 'fri'; });
-      // nye ting
-      var r = rng();
-      if (free.length === 3) {
-        if (diff.traps && p > 0.25 && sinceNarrow >= 3 && r < 0.12 + 0.12 * p) {
-          // to spærrede baner: kun én er åben (planlæg frem)
-          var open = pick([0, 1, 2]);
-          [0, 1, 2].forEach(function (x) { if (x !== open) lanes[x] = 'tog'; });
-          lanes[open] = rng() < p * 0.5 ? pick(['lav', 'hoej']) : 'fri';
-          narrow = true;
-        } else if (p > 0.15 && r < 0.12 + 0.08 * p) {
-          // vejen deler sig: midterbanen spærres i 2-4 stop
-          lanes[1] = 'tog';
-          newDivider = Math.floor(rng() * (1 + Math.round(2.4 * p)));
-          if (rng() < 0.3 + 0.5 * p) lanes[pick([0, 2])] = pick(['lav', 'hoej']);
-        } else if (r < 0.45) {
-          // et tog i én bane i flere stop
-          var tl = pick([0, 1, 2]);
-          lanes[tl] = 'tog';
-          newTrains[tl] = Math.floor(rng() * (1 + Math.round(2.6 * p)));
-          var others = [0, 1, 2].filter(function (x) { return x !== tl; });
-          others.forEach(function (x) { if (rng() < 0.15 + 0.55 * p) lanes[x] = pick(['lav', 'hoej']); });
-        } else {
-          // barrierer og bjælker
-          var n = 1 + (rng() < 0.2 + 0.6 * p ? 1 : 0) + (rng() < 0.6 * p ? 1 : 0);
-          var order = [0, 1, 2].sort(function () { return rng() - 0.5; });
-          for (var k = 0; k < n; k++) lanes[order[k]] = pick(['lav', 'hoej', p > 0.3 && rng() < 0.3 ? 'tog' : 'lav']);
-        }
-      } else {
-        free.forEach(function (x) { if (rng() < 0.2 + 0.5 * p) lanes[x] = pick(['lav', 'hoej']); });
+    function candidate(p, easy) {
+      var lanes = ['fri', 'fri', 'fri'], nb = blocks.slice();
+      if (easy) {
+        nb = [0, 0, 0];
+        lanes[pick([0, 1, 2])] = pick(['lav', 'hoej']);
+        return { lanes: lanes, blocks: nb };
       }
-      return { lanes: lanes, trains: newTrains, divider: newDivider, narrow: narrow };
+      // fortsæt datablokke (oppe på taget kan der være forhindringer)
+      for (var l = 0; l < LANES; l++) {
+        if (nb[l] > 0) {
+          nb[l]--;
+          lanes[l] = p > 0.15 && rng() < 0.12 + 0.4 * p ? pick(['blok-lav', 'blok-hoej']) : 'blok';
+        }
+      }
+      var free = [0, 1, 2].filter(function (x) { return blocks[x] === 0; });
+      // nye datablokke: flere og længere, jo længere man er nået
+      free.forEach(function (x) {
+        if (rng() < 0.08 + 0.12 * p) {
+          var len = 2 + Math.floor(rng() * (1 + Math.round(3 * p)));
+          lanes[x] = rng() < diff.noRampMax * p ? 'blok' : 'rampe';
+          nb[x] = len - 1;
+        }
+      });
+      // forhindringer nede på nettet: flere og hårdere med distancen
+      var ground = free.filter(function (x) { return lanes[x] === 'fri'; });
+      ground.forEach(function (x) {
+        if (rng() < 0.22 + 0.45 * p) {
+          var r = rng();
+          lanes[x] = r < 0.1 + 0.3 * p ? 'mur' : r < 0.55 + 0.15 * p ? 'lav' : 'hoej';
+        }
+      });
+      // altid mindst én ting at tage stilling til
+      if (lanes.every(function (c) { return c === 'fri'; })) lanes[pick([0, 1, 2])] = pick(['lav', 'hoej']);
+      return { lanes: lanes, blocks: nb };
     }
 
-    // Baner, hvor spilleren kan stå, når det nye segment først bliver synligt,
-    // og som indtil da ser ud til at føre et sted hen. De skal stadig føre et
-    // sted hen med det nye segment, så en blindgyde altid kan ses i tide.
     function mustSurvive() {
       var n = hist.length, start = Math.max(0, n - VIEW + 1);
-      var from = start === 0 ? [startLane] : rhist[start - 1];
+      var from = start === 0 ? [startState] : rhist[start - 1];
       var seen = hist.slice(start);
-      return { seen: seen, lanes: from.filter(function (l) { return survivable(seen, 0, l); }) };
+      return { seen: seen, states: from.filter(function (s) { return survivable(seen, 0, s); }) };
     }
     function valid(seg) {
-      if (seg.lanes.every(function (o) { return o === 'fri'; })) return false;
       if (!reach(seg, R).length) return false;
       var m = mustSurvive(), seen = m.seen.concat([seg]);
-      for (var i = 0; i < m.lanes.length; i++) if (!survivable(seen, 0, m.lanes[i])) return false;
+      for (var i = 0; i < m.states.length; i++) if (!survivable(seen, 0, m.states[i])) return false;
       if (!diff.traps) {
-        for (var l = 0; l < LANES; l++) if (!nextLanes(seg, l).length) return false;
+        // Rolig: fra alle baner (i den højde, man kan stå i dér) er der et sikkert valg
+        var prev = hist[hist.length - 1];
+        for (var l = 0; l < LANES; l++) {
+          var h = prev && isBlock(prev.lanes[l]) ? 1 : 0;
+          if (!nextStates(seg, code(l, h)).length) return false;
+        }
       }
       return true;
     }
@@ -175,9 +194,8 @@
       if (coinRun.left > 0) {
         coinRun.left--;
         var l = coinRun.lane;
-        if (seg.lanes[l] === 'tog') {
-          // flyt mønterne til en nabobane, der ikke er spærret
-          var alt = [l - 1, l + 1].filter(function (x) { return x >= 0 && x < 3 && seg.lanes[x] !== 'tog'; });
+        if (seg.lanes[l] === 'mur') {
+          var alt = [l - 1, l + 1].filter(function (x) { return x >= 0 && x < 3 && seg.lanes[x] !== 'mur'; });
           if (alt.length) { l = alt[0]; coinRun.lane = l; } else l = -1;
         }
         if (l >= 0) seg.coins[l] = true;
@@ -186,32 +204,31 @@
 
     return {
       level: level,
-      reset: function (lane) {
-        R = [lane]; startLane = lane; hist = []; rhist = []; trains = [0, 0, 0]; divider = 0; sinceNarrow = 0; coinRun = { lane: -1, left: 0 };
+      reset: function (lane, h) {
+        startState = code(lane, h || 0); R = [startState]; hist = []; rhist = [];
+        blocks = [0, 0, 0]; coinRun = { lane: -1, left: 0 };
       },
       get R() { return R.slice(); },
       next: function (meters, easy) {
         var p = easy ? 0 : level(meters);
         var seg = null, c = null;
-        for (var tries = 0; tries < 60; tries++) {
-          c = candidate(p);
+        for (var tries = 0; tries < 80; tries++) {
+          c = candidate(p, easy);
           var s = { lanes: c.lanes };
           if (valid(s)) { seg = s; break; }
-          // ugyldigt: drop fortsatte tog og prøv igen
-          if (tries > 20) { trains = [0, 0, 0]; divider = 0; }
+          if (tries > 30) blocks = [0, 0, 0];   // drop blokkene og prøv igen
         }
         if (!seg) {
-          // nødløsning: én lav barriere i en tilfældig bane – altid sikker fra alle baner
-          var b = Math.floor(rng() * 3) % 3;
-          seg = { lanes: ['fri', 'fri', 'fri'] }; seg.lanes[b] = 'lav';
-          c = { trains: [0, 0, 0], divider: 0, narrow: false };
+          // nødløsning: alt frit – sikkert fra alle baner og højder
+          seg = { lanes: ['fri', 'fri', 'fri'] };
+          c = { blocks: [0, 0, 0] };
         }
-        trains = c.trains; divider = c.divider;
-        sinceNarrow = c.narrow ? 0 : sinceNarrow + 1;
+        blocks = c.blocks;
         R = reach(seg, R);
         hist.push(seg); rhist.push(R.slice());
         if (hist.length > 4 * VIEW) { hist.splice(0, VIEW); rhist.splice(0, VIEW); }
         addCoins(seg);
+        seg.level = p;
         seg.id = ++count;
         return seg;
       }
@@ -225,18 +242,20 @@
     var rng = opts.rng || Math.random;
     var gen = makeGenerator(diff, rng);
     var state = {
-      diff: diff.id, lane: 1, lives: START_LIVES, meters: 0, coins: 0, score: 0,
-      segs: [], over: false, hits: 0, turns: 0, lastCause: null
+      diff: diff.id, lane: 1, h: 0, lives: START_LIVES, meters: 0, coins: 0, score: 0,
+      segs: [], over: false, hits: 0, turns: 0, lastCause: null, ups: 0, maxLevel: 1,
+      prev: null   // stoppet man lige har passeret (tegnes under løberen, fx en blok man står på)
     };
     function fill(easyFirst) {
       while (state.segs.length < VIEW) {
         state.segs.push(gen.next(state.meters + state.segs.length * METERS, easyFirst && state.segs.length === 0));
       }
     }
-    gen.reset(state.lane);
+    gen.reset(state.lane, 0);
     fill(true);
 
     function score() { state.score = state.meters + state.coins * COIN_POINTS; }
+    function levelNum() { return 1 + Math.min(LEVELS - 1, Math.floor(gen.level(state.meters) * LEVELS)); }
 
     var api = {
       state: state,
@@ -244,40 +263,48 @@
       get gen() { return gen; },
       next: function () { return state.segs[0]; },
       possible: function (a) { return !state.over && possible(state.lane, a); },
-      safe: function (a) { return !state.over && safe(state.segs[0], state.lane, a); },
-      cause: function (a) { return cause(state.segs[0], state.lane, a); },
-      safeActions: function () { return safeActions(state.segs[0], state.lane); },
+      outcome: function (a) { return outcome(state.segs[0], state.lane, state.h, a); },
+      safe: function (a) { return !state.over && safe(state.segs[0], state.lane, state.h, a); },
+      cause: function (a) { return cause(state.segs[0], state.lane, state.h, a); },
+      safeActions: function () { return safeActions(state.segs[0], state.lane, state.h); },
       // Fører handlingen til en blindgyde i de segmenter, man kan se?
       deadEnd: function (a) {
-        if (!api.safe(a)) return false;
-        return !survivable(state.segs, 1, target(state.lane, a));
+        var o = api.outcome(a);
+        if (!o || !o.ok) return false;
+        return !survivable(state.segs, 1, code(o.lane, o.h));
       },
       level: function () { return gen.level(state.meters); },
+      levelNum: levelNum,
       act: function (a) {
         if (state.over || !possible(state.lane, a)) return { ignored: true };
-        var seg = state.segs[0], from = state.lane, t = target(from, a);
-        var ok = safe(seg, from, a);
-        var res = { action: a, from: from, to: t, seg: seg, safe: ok, coin: false, cause: null, over: false };
-        state.lane = t;
+        var seg = state.segs[0], from = state.lane, fromH = state.h;
+        var o = outcome(seg, from, fromH, a);
+        var res = { action: a, from: from, to: o.lane, fromH: fromH, toH: o.ok ? o.h : 0, seg: seg, safe: o.ok, coin: false, cause: null, over: false };
+        state.lane = o.lane;
         state.turns++;
-        if (ok) {
+        if (o.ok) {
           state.meters += METERS;   // kun et sikkert valg giver meter
-          if (seg.coins && seg.coins[t]) { state.coins++; res.coin = true; }
+          state.h = o.h;
+          if (o.h > fromH) state.ups++;
+          if (seg.coins && seg.coins[o.lane]) { state.coins++; res.coin = true; }
         } else {
+          state.h = 0;              // man falder ned på nettet
           state.lives--; state.hits++;
-          res.cause = state.lastCause = seg.lanes[t];
+          res.cause = state.lastCause = o.cause;
           if (state.lives <= 0) { state.lives = 0; state.over = true; res.over = true; }
         }
+        state.prev = o.ok ? seg : null;
         state.segs.shift();
-        if (!ok && !state.over) {
+        if (!o.ok && !state.over) {
           // Mistet liv: vejen forude laves igen fra den bane, man står i,
           // og første stop er let, så man ikke er fanget i en blindgyde.
           state.segs = [];
-          gen.reset(t);
+          gen.reset(state.lane, 0);
           fill(true);
         } else {
           fill(false);
         }
+        state.maxLevel = Math.max(state.maxLevel, levelNum());
         score();
         return res;
       }
@@ -286,10 +313,10 @@
   }
 
   global.LoeberenGame = {
-    LANES: LANES, VIEW: VIEW, METERS: METERS, COIN_POINTS: COIN_POINTS, START_LIVES: START_LIVES,
-    ACTIONS: ACTIONS, OBST: OBST, DIFFS: DIFFS,
-    target: target, possible: possible, safe: safe, cause: cause, safeActions: safeActions,
-    nextLanes: nextLanes, reach: reach, survivable: survivable,
+    LANES: LANES, VIEW: VIEW, METERS: METERS, COIN_POINTS: COIN_POINTS, START_LIVES: START_LIVES, LEVELS: LEVELS,
+    ACTIONS: ACTIONS, OBST: OBST, GROUND: GROUND, BLOCKS: BLOCKS, DIFFS: DIFFS,
+    isBlock: isBlock, target: target, possible: possible, outcome: outcome, safe: safe, cause: cause,
+    safeActions: safeActions, code: code, nextStates: nextStates, reach: reach, survivable: survivable,
     makeGenerator: makeGenerator, createRun: createRun
   };
 })(typeof window !== 'undefined' ? window : globalThis);

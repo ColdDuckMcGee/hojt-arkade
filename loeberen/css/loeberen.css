@@ -20,11 +20,13 @@
   --lb-low-fill: #2a1404;
   --lb-high: #22eaff;
   --lb-high-fill: #052a33;
-  --lb-train: #ff2fd2;
-  --lb-train-fill: #24082e;
-  --lb-train-side: #3a0f48;
-  --lb-glass: rgba(34, 234, 255, 0.22);
-  --lb-lights: #ffe27a;
+  --lb-block: #b07bff;
+  --lb-block-fill: #1a0b33;
+  --lb-block-side: #2a1450;
+  --lb-block-top: rgba(176, 123, 255, 0.22);
+  --lb-ramp-fill: rgba(57, 255, 106, 0.16);
+  --lb-wall: #ff5a2d;
+  --lb-wall-fill: rgba(255, 70, 40, 0.16);
   --lb-coin: #ffd23a;
   --lb-coin-fill: #3a2a00;
   --lb-runner: #39ff6a;
@@ -38,12 +40,12 @@
 [data-theme="solnedgang"] {
   --lb-frame: #c77dff; --lb-edge: #ff8a1f; --lb-grid: rgba(255, 138, 31, 0.45);
   --lb-lane-line: rgba(199, 125, 255, 0.8); --lb-tower-edge1: #ff8a1f; --lb-tower-edge2: #c77dff;
-  --lb-train: #ff4f6d; --lb-gate: #22eaff;
+  --lb-block: #ff6fb0; --lb-block-fill: #2a0a22; --lb-block-side: #3d1030; --lb-block-top: rgba(255, 111, 176, 0.2); --lb-gate: #22eaff;
 }
 [data-theme="cyberpunk"] {
   --lb-frame: #2a9dff; --lb-road: #000a0c; --lb-ground: #000304; --lb-edge: #2a9dff; --lb-grid: rgba(42, 157, 255, 0.45);
   --lb-lane-line: rgba(57, 255, 106, 0.7); --lb-tower-edge1: #39ff6a; --lb-tower-edge2: #2a9dff;
-  --lb-city: #021612; --lb-city-win: rgba(57, 255, 106, 0.4); --lb-train: #c06bff; --lb-train-fill: #160828; --lb-train-side: #24103d;
+  --lb-city: #021612; --lb-city-win: rgba(57, 255, 106, 0.4); --lb-block: #c06bff; --lb-block-fill: #160828; --lb-block-side: #24103d; --lb-block-top: rgba(192, 107, 255, 0.2);
   --lb-runner: #ffd23a; --lb-runner-fill: #2a2000; --lb-lane-hi: rgba(42, 157, 255, 0.12);
 }
 [data-theme="kontrast"] {
@@ -52,7 +54,8 @@
   --lb-city: #1a1a1a; --lb-city-win: rgba(255, 255, 255, 0.4);
   --lb-tower: #000000; --lb-tower-edge1: #ffffff; --lb-tower-edge2: #ffffff; --lb-tower-win: rgba(255, 255, 255, 0.4); --lb-gate: #888888;
   --lb-low: #ffff00; --lb-low-fill: #000000; --lb-high: #00ffff; --lb-high-fill: #000000;
-  --lb-train: #ff00ff; --lb-train-fill: #000000; --lb-train-side: #330033; --lb-glass: rgba(255, 255, 255, 0.3); --lb-lights: #ffff00;
+  --lb-block: #ff00ff; --lb-block-fill: #000000; --lb-block-side: #330033; --lb-block-top: rgba(255, 0, 255, 0.25);
+  --lb-ramp-fill: rgba(0, 255, 0, 0.25); --lb-wall: #ff8800; --lb-wall-fill: rgba(255, 136, 0, 0.22);
   --lb-coin: #ffff00; --lb-coin-fill: #000000; --lb-runner: #00ff00; --lb-runner-fill: #000000;
   --lb-ok: #00ff00; --lb-warn: #ffff00; --lb-ghost: #ffffff; --lb-ghost-alpha: 1; --lb-danger: #ff3030;
 }

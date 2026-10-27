@@ -1,41 +1,53 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 220">
-  <!-- Stillbillede af Løberen til maskinens skærm. Tegnet i SVG, ingen billeder og ingen skrifttyper. -->
+  <!-- Stillbillede af Løberen til maskinens skærm: løberen oppe på en datablok i datanettet. Tegnet i SVG, ingen billeder og ingen skrifttyper. -->
   <defs>
     <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.8" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
     <clipPath id="braet"><rect x="10" y="10" width="220" height="200" rx="4"/></clipPath>
     <linearGradient id="himmel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0d0322"/><stop offset="1" stop-color="#3a0a4a"/></linearGradient>
     <linearGradient id="sol" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd23a"/><stop offset="1" stop-color="#ff3fd8"/></linearGradient>
+    <pattern id="hex" width="8" height="7" patternUnits="userSpaceOnUse"><path d="M2 0H6L8 3.5L6 7H2L0 3.5Z" fill="none" stroke="#ff5a2d" stroke-width=".7" stroke-opacity=".7"/></pattern>
   </defs>
   <rect width="240" height="220" fill="#0a0414"/>
   <g clip-path="url(#braet)">
     <rect x="10" y="10" width="220" height="72" fill="url(#himmel)"/>
     <path d="M90 78a30 30 0 0 1 60 0z" fill="url(#sol)"/>
     <path d="M90 66H150M90 71H150M90 75H150" stroke="#2a0838" stroke-width="2"/>
-    <path d="M10 82V44h14v-8h12v46M44 82V52h10v-12h10v42M176 82V40h12v10h10v32M206 82V48h12v-6h12v40" fill="#120626" stroke="#b07bff" stroke-opacity=".6" stroke-width="1"/>
+    <!-- trådnet-bjerge og datastrømme i horisonten -->
+    <path d="M10 80L24 58L38 70L54 50L70 66L84 60L96 76M144 76L158 56L172 68L188 46L204 64L218 54L230 66" fill="none" stroke="#b07bff" stroke-opacity=".7" stroke-width="1"/>
+    <path d="M24 58L30 80M54 50L60 80M158 56L154 80M188 46L182 80M218 54L212 80" stroke="#b07bff" stroke-opacity=".35" stroke-width=".8"/>
+    <path d="M20 14V40M46 18V34M196 12V44M222 20V36" stroke="#22eaff" stroke-opacity=".45" stroke-width="2" stroke-dasharray="2 4"/>
     <rect x="10" y="80" width="220" height="130" fill="#0b0618"/>
     <path d="M120 80L10 210H230Z" fill="#170a2e"/>
     <path d="M120 80L83 210H157Z" fill="#22103c"/>
     <path d="M96 108H144M84 126H156M70 148H170M50 178H190" stroke="#22eaff" stroke-opacity=".25" stroke-width="1"/>
-    <g filter="url(#glow)" fill="none" stroke-linecap="round">
+    <g filter="url(#glow)" fill="none" stroke-linecap="round" stroke-linejoin="round">
       <path d="M120 80L10 210M120 80L230 210" stroke="#ff3fd8" stroke-width="2"/>
       <path d="M120 80L83 210M120 80L157 210" stroke="#22eaff" stroke-width="1.4" stroke-opacity=".8"/>
-      <!-- tog i venstre bane -->
-      <rect x="66" y="104" width="30" height="34" rx="3" fill="#2a0a2e" stroke="#ff3fd8" stroke-width="1.8"/>
-      <rect x="71" y="109" width="20" height="11" rx="1.5" stroke="#22eaff" stroke-width="1.2"/>
-      <circle cx="73" cy="131" r="2" fill="#ffd23a" stroke="none"/><circle cx="89" cy="131" r="2" fill="#ffd23a" stroke="none"/>
-      <!-- høj bjælke i højre bane -->
-      <path d="M140 96V122M162 96V122" stroke="#22eaff" stroke-width="1.6"/>
-      <rect x="138" y="96" width="26" height="7" rx="2" fill="#062a33" stroke="#22eaff" stroke-width="1.6"/>
-      <!-- lav barriere i midten længere fremme -->
-      <rect x="108" y="92" width="24" height="5" rx="1.5" fill="#3a1a06" stroke="#ff8a1f" stroke-width="1.4"/>
-      <!-- mønter -->
-      <circle cx="120" cy="112" r="3.2" stroke="#ffd23a" stroke-width="1.6"/>
-      <circle cx="120" cy="128" r="4" stroke="#ffd23a" stroke-width="1.8"/>
-      <circle cx="120" cy="148" r="5" stroke="#ffd23a" stroke-width="2"/>
-      <!-- stoplinje -->
-      <path d="M44 170H196" stroke="#ffd23a" stroke-width="1.6" stroke-dasharray="7 5" stroke-opacity=".8"/>
-      <!-- løberen -->
-      <g stroke="#39ff6a" stroke-width="3">
+      <!-- lav laserbarriere i midten længst fremme -->
+      <path d="M113 105V100M127 105V100" stroke="#ffb03a" stroke-width="1.4"/>
+      <path d="M113 102H127M113 104H127" stroke="#ffb03a" stroke-width="1"/>
+      <!-- datablok med rampe i venstre bane -->
+      <path d="M108.7 120V110.5L114.4 95.3V100Z" fill="#2a1450" stroke="#b07bff" stroke-width="1"/>
+      <path d="M86.2 110.5H108.7L114.4 95.3H103.1Z" fill="#2a1a4a" stroke="#b07bff" stroke-width="1.3"/>
+      <rect x="86.2" y="110.5" width="22.5" height="9.5" fill="#1a0b33" stroke="#b07bff" stroke-width="1.3"/>
+      <path d="M79.4 128H106.5L108.7 110.5H86.2Z" fill="#0f2a1a" fill-opacity=".8" stroke="#b07bff" stroke-width="1"/>
+      <path d="M89 124L93.5 120L98 124M90 118L94 114.5L98 118" stroke="#39ff6a" stroke-width="1.2"/>
+      <circle cx="108" cy="99" r="2.4" stroke="#ffd23a" stroke-width="1.4"/>
+      <!-- firewall i højre bane -->
+      <rect x="134.1" y="88" width="28.2" height="42" fill="#ff4628" fill-opacity=".16" stroke="#ff5a2d" stroke-width="1.8"/>
+      <rect x="135" y="89" width="26.4" height="40" fill="url(#hex)" stroke="none"/>
+      <!-- høj lysbjælke i venstre bane tæt på -->
+      <path d="M31 185V117M90 185V117" stroke="#22eaff" stroke-width="2"/>
+      <rect x="31" y="132" width="59" height="16" fill="#052a33" stroke="#22eaff" stroke-width="2"/>
+      <!-- datablokken, løberen står på (midterbanen) -->
+      <path d="M100.2 133.4H139.8L156.7 180H83.3Z" fill="#2a1a4a" fill-opacity=".9" stroke="#b07bff" stroke-width="1.8"/>
+      <path d="M95 148H145M90 163H150M86 176H154" stroke="#b07bff" stroke-opacity=".5" stroke-width=".8"/>
+      <path d="M83.3 180L79 210M156.7 180L161 210" stroke="#b07bff" stroke-width="1.8"/>
+      <!-- mønt oppe på blokken -->
+      <circle cx="120" cy="128" r="3.6" stroke="#ffd23a" stroke-width="1.7"/>
+      <!-- løberen oppe på blokken -->
+      <ellipse cx="120" cy="163" rx="12" ry="2.5" fill="#000" fill-opacity=".45" stroke="none"/>
+      <g stroke="#39ff6a" stroke-width="3" transform="translate(0 -45)">
         <circle cx="120" cy="160" r="6" fill="#03140a"/>
         <path d="M120 166L118 186M118 186L110 197L106 207M118 186L126 196L130 205M119 171L108 180L104 172M119 171L131 178L134 170"/>
       </g>
