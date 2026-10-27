@@ -23,7 +23,7 @@ window.HOJT_SPIL = [
   { navn: 'Kasser',         sti: 'kasser/',         farve: 'orange', status: 'aktiv', tekst: 'Skub kasserne hen på de markerede felter.', skaerm: 'hal/skaerme/kasser.svg' },
   { navn: 'Pixelgåder',     sti: 'pixelgaader/',    farve: 'pink',   status: 'snart', tekst: 'Brug tallene til at finde ud af, hvilke felter der skal farves.' },
   { navn: 'Lys ud',         sti: 'lys-ud/',         farve: 'gul',    status: 'aktiv', tekst: 'Tryk på lamperne, og sluk dem alle sammen.', skaerm: 'hal/skaerme/lys-ud.svg' },
-  { navn: 'Fire på stribe', sti: 'fire-paa-stribe/', farve: 'blå',   status: 'snart', tekst: 'Slip brikkerne ned, og få fire i træk før computeren.' },
+  { navn: 'Fire på stribe', sti: 'fire-paa-stribe/', farve: 'blå',   status: 'aktiv', tekst: 'Slip brikkerne ned, og få fire i træk før computeren.', skaerm: 'hal/skaerme/fire-paa-stribe.svg' },
   { navn: 'Bomberne',      sti: 'bomberne/',      farve: 'rød',   status: 'aktiv', tekst: 'Læg bomber i labyrinten, og spræng fjenderne. Alt flytter sig kun, når du gør.', skaerm: 'hal/skaerme/bomberne.svg' },
   { navn: 'Kaperen',       sti: 'kaperen/',       farve: 'cyan',  status: 'snart', tekst: 'Sejl mellem havnene, handl med varer, og vælg, om du vil skyde, borde eller flygte.' },
   { navn: 'Kanonen',       sti: 'kanonen/',       farve: 'orange', status: 'aktiv', tekst: 'Indstil vinkel og krudt, og ram modstanderen på skift i et landskab, der kan sprænges.', skaerm: 'hal/skaerme/kanonen.svg' },
