@@ -1,0 +1,111 @@
+/* Pixelgåder – tema "neon" (synthwave, neon på glas).
+ *
+ * Al grafik i spillet kommer herfra og fra grafik.js i samme mappe: farver, glød,
+ * skygger, stregtykkelser og hjørner. Spillets egen CSS (css/pixelgaader.css) og
+ * JS bruger kun variablerne nedenfor, så et nyt tema (fx tema/tegneserie/) skal
+ * levere de samme variabler og de samme navngivne ikoner.
+ *
+ * Farvesættene (Pink og cyan, Orange og lilla, Grøn og blå, Høj kontrast) følger
+ * Hojt Arkades fælles indstilling data-theme. Glød kan slås fra med
+ * data-pg-gloed="fra" på <html> (indstillingen Glød under Udseende). */
+
+/* ---------- Farver ----------
+ * Farvet felt: fyldt, lysende firkant. Kryds: et X. Fejl: et X i orange
+ * med en stiplet ramme (formen er anderledes, ikke kun farven). */
+:root, [data-theme] {
+  --pg-board: rgba(8, 3, 18, 0.9);
+  --pg-grid: rgba(150, 160, 255, 0.22);
+  --pg-block: rgba(190, 200, 255, 0.55);   /* tykke streger for hver 5. (4.) felt */
+  --pg-frame: #ff3fd8;
+  --pg-fill: #ff3fd8;                      /* farvede felter og pixelbilledernes farve */
+  --pg-fill-core: #ffb8f0;
+  --pg-cross: rgba(206, 190, 232, 0.75);
+  --pg-auto: rgba(206, 190, 232, 0.4);
+  --pg-err: #ff7a3c;
+  --pg-tip: #39ff6a;
+  --pg-tip-ring: #000000;
+  --pg-clue: #f4ecff;
+  --pg-clue-bg: rgba(20, 10, 40, 0.75);
+  --pg-clue-hl: #ffffff;
+  --pg-done: #39ff6a;
+  --pg-cursor: #22eaff;
+  --pg-line: #22eaff;                      /* rækken og kolonnen, hvor man kigger */
+  --pg-heart: #ff3fd8;
+  --pg-ok: #39ff6a;
+  --pg-shadow: #000000;
+  --pg-corner-bg: rgba(0, 0, 0, 0.35);
+  --pg-pic-bg: rgba(0, 0, 0, 0.55);
+  --pg-overlay-bg: rgba(0, 0, 0, 0.62);
+  --pg-overlay-soft: rgba(0, 0, 0, 0.42);
+  --pg-hall-bg: rgba(0, 0, 0, 0.45);
+  --pg-hall-bg-hover: rgba(255, 255, 255, 0.08);
+  --pg-swatch-border: rgba(255, 255, 255, 0.5);
+}
+[data-theme="solnedgang"] { --pg-frame: #ff8a1f; --pg-fill: #ff8a1f; --pg-fill-core: #ffd9a8; --pg-heart: #ff8a1f; --pg-line: #c77dff; --pg-cursor: #22eaff; }
+[data-theme="cyberpunk"] { --pg-frame: #2a9dff; --pg-board: rgba(0, 6, 8, 0.92); --pg-grid: rgba(57, 255, 106, 0.2); --pg-block: rgba(57, 255, 106, 0.5); --pg-fill: #39ff6a; --pg-fill-core: #c8ffd6; --pg-heart: #39ff6a; --pg-tip: #ff3fd8; --pg-done: #2a9dff; --pg-line: #2a9dff; --pg-cursor: #ff3fd8; }
+[data-theme="kontrast"] {
+  --pg-board: #000000; --pg-grid: rgba(255, 255, 255, 0.5); --pg-block: #ffffff; --pg-frame: #ffffff;
+  --pg-fill: #ffff00; --pg-fill-core: #ffff00; --pg-cross: #ffffff; --pg-auto: #bbbbbb; --pg-err: #ff6600;
+  --pg-tip: #00ff00; --pg-clue: #ffffff; --pg-clue-bg: #000000; --pg-done: #00ff00; --pg-cursor: #ff00ff;
+  --pg-line: #00ffff; --pg-heart: #ffff00; --pg-ok: #00ff00;
+}
+
+/* ---------- Afledte farver (samme opskrift i alle farvesæt) ---------- */
+:root, [data-theme] {
+  --pg-fill-bg: radial-gradient(circle at 40% 35%, var(--pg-fill-core) 0 10%, var(--pg-fill) 55%, color-mix(in srgb, var(--pg-fill) 70%, var(--pg-shadow)) 100%);
+  --pg-clue-hl-bg: color-mix(in srgb, var(--pg-line) 22%, var(--pg-clue-bg));
+  --pg-done-clue: color-mix(in srgb, var(--pg-done) 60%, transparent);
+  --pg-done-bg: color-mix(in srgb, var(--pg-done) 9%, var(--pg-clue-bg));
+  --pg-done-hl: color-mix(in srgb, var(--pg-done) 80%, var(--pg-clue-hl));
+  --pg-done-dim: 0.55;
+  --pg-line-bg: color-mix(in srgb, var(--pg-line) 7%, transparent);
+  --pg-hover-bg: color-mix(in srgb, var(--pg-line) 14%, transparent);
+  --pg-missed: color-mix(in srgb, var(--pg-fill) 60%, transparent);
+  --pg-heart-off: color-mix(in srgb, var(--muted) 70%, transparent);
+  --pg-heart-off-dash: 8 6;
+}
+[data-theme="kontrast"] { --pg-fill-bg: var(--pg-fill); --pg-clue-hl-bg: #003a3a; }
+
+/* ---------- Streger og hjørner ---------- */
+:root {
+  --pg-frame-w: 3px;        /* gitterets ramme (layoutet læser den) */
+  --pg-grid-w: 1px;
+  --pg-block-w: 2px;
+  --pg-cursor-w: 4px;
+  --pg-stroke-ico: 8;       /* ikoner tegnes i 100 × 100 */
+  --pg-stroke-heart: 6;
+  --pg-stroke-hall: 7;
+  --pg-stroke-pic: 0.12;    /* pixelbilleder tegnes i felt-enheder */
+  --pg-radius-board: 12px;
+  --pg-radius-hud: 14px;
+  --pg-radius-hud-small: 10px;
+  --pg-radius-mark: 10%;
+  --pg-radius-cross: 4px;
+  --pg-radius-swatch: 6px;
+  --pg-pic-rx: 0.4;         /* hjørne på pixelbilledernes baggrund */
+}
+
+/* ---------- Glød og skygger ----------
+ * --glow kommer fra arkade.css (0 i Høj kontrast). Glød slås helt fra med
+ * data-pg-gloed="fra": så tegnes alt fladt, og spillet kan stadig aflæses. */
+:root, [data-theme] {
+  --pg-text-shadow: 0 1px 4px var(--pg-shadow);
+  --pg-text-shadow-strong: 0 1px 6px var(--pg-shadow), 0 0 2px var(--pg-shadow);
+  --pg-board-glow: 0 0 calc(20px * var(--glow)) color-mix(in srgb, var(--pg-frame) 45%, transparent), inset 0 0 calc(10px * var(--glow)) color-mix(in srgb, var(--pg-frame) 30%, transparent);
+  --pg-fill-glow: 0 0 calc(12px * var(--glow)) color-mix(in srgb, var(--pg-fill) 65%, transparent);
+  --pg-heart-glow: drop-shadow(0 0 calc(4px * var(--glow)) var(--pg-heart));
+  --pg-score-glow: 0 0 calc(18px * var(--glow)) var(--ui);
+  --pg-points-glow: 0 0 calc(12px * var(--glow)) color-mix(in srgb, var(--pg-ok) 50%, transparent);
+}
+html[data-pg-gloed="fra"], html[data-pg-gloed="fra"] [data-theme] {
+  --glow: 0;
+  --pg-board-glow: none; --pg-fill-glow: none; --pg-heart-glow: none;
+  --pg-score-glow: none; --pg-points-glow: none;
+}
+/* arkade.css' neon-titel og knapper ganger deres lysskær med --glow, så de bliver også flade. */
+
+/* ---------- Prøver på farvesættene i Indstillinger ---------- */
+.swatch[data-farver="neon"] { --a: #ff2fd2; --b: #22eaff; --c: #1a0b2a; }
+.swatch[data-farver="solnedgang"] { --a: #ff8a1f; --b: #22eaff; --c: #2a0b3d; }
+.swatch[data-farver="cyberpunk"] { --a: #39ff6a; --b: #2a8dff; --c: #000000; }
+.swatch[data-farver="kontrast"] { --a: #ffff00; --b: #00ffff; --c: #000000; }
