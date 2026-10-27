@@ -1,0 +1,108 @@
+/* Sudoku – tema "neon" (synthwave, neon på glas).
+ *
+ * Al grafik i spillet kommer herfra og fra grafik.js i samme mappe: farver,
+ * glød, skygger, konturer, teksturer, skrifttyper, stregtykkelser og hjørner.
+ * Spillets egen CSS (css/sudoku.css) og JS bruger kun variablerne nedenfor,
+ * så et nyt tema (fx tema/tegneserie/) leverer de samme variabler og de samme
+ * navngivne ikoner.
+ *
+ * Farvesættene (Pink og cyan, Orange og lilla, Grøn og blå, Høj kontrast)
+ * følger Hojt Arkades fælles indstilling data-theme. Glød slås fra med
+ * data-su-gloed="fra" på <html> (Indstillinger → Udseende → Glød). */
+
+/* ---------- Farver ---------- */
+:root, [data-theme] {
+  --su-board: rgba(8, 3, 18, 0.9);
+  --su-texture: none;                      /* fx papir- eller lerstruktur i andre temaer */
+  --su-frame: #22eaff;
+  --su-grid: rgba(150, 160, 255, 0.24);
+  --su-block: rgba(200, 210, 255, 0.7);
+  --su-given: #f4ecff;                     /* tal, der stod fra starten */
+  --su-placed: #22eaff;                    /* dine tal */
+  --su-tip: #39ff6a;                       /* tal fra et tip */
+  --su-err: #ff7a3c;                       /* forkert tal (overstreget) */
+  --su-note: #c9b6ea;                      /* blyantsnoter */
+  --su-note-same: #ffffff;
+  --su-peer-bg: rgba(34, 234, 255, 0.09);  /* række, kolonne og boks for det valgte felt */
+  --su-same-bg: rgba(255, 63, 216, 0.26);  /* samme tal som i det valgte felt */
+  --su-same: #ffffff;
+  --su-sel-bg: rgba(34, 234, 255, 0.3);
+  --su-cursor: #ffd23a;                    /* ramme om det valgte felt */
+  --su-zoom: #ff3fd8;                      /* ramme om den valgte boks */
+  --su-zoom-bg: rgba(255, 63, 216, 0.07);
+  --su-dim: 0.55;                          /* felter uden for den valgte boks */
+  --su-box-hover-bg: rgba(34, 234, 255, 0.14);
+  --su-heart: #ff3fd8;
+  --su-heart-off: rgba(196, 176, 222, 0.6);
+  --su-ok: #39ff6a;
+  --su-shadow: #000000;
+  --su-overlay-bg: rgba(0, 0, 0, 0.62);
+  --su-overlay-soft: rgba(0, 0, 0, 0.42);
+  --su-hall-bg: rgba(0, 0, 0, 0.45);
+  --su-hall-bg-hover: rgba(255, 255, 255, 0.08);
+  --su-hall-border: rgba(196, 176, 222, 0.7);
+  --su-swatch-border: rgba(255, 255, 255, 0.5);
+  --su-digit-outline: transparent;         /* kontur om tallene (fx sort i ligne claire) */
+}
+[data-theme="solnedgang"] { --su-frame: #c77dff; --su-placed: #ffb15c; --su-zoom: #ff8a1f; --su-zoom-bg: rgba(255, 138, 31, 0.08); --su-heart: #ff8a1f; --su-cursor: #22eaff; --su-same-bg: rgba(199, 125, 255, 0.3); --su-peer-bg: rgba(255, 138, 31, 0.09); --su-sel-bg: rgba(255, 138, 31, 0.3); }
+[data-theme="cyberpunk"] { --su-frame: #2a9dff; --su-grid: rgba(57, 255, 106, 0.2); --su-block: rgba(57, 255, 106, 0.6); --su-placed: #39ff6a; --su-tip: #2a9dff; --su-zoom: #39ff6a; --su-zoom-bg: rgba(57, 255, 106, 0.07); --su-heart: #39ff6a; --su-cursor: #ff3fd8; --su-same-bg: rgba(42, 157, 255, 0.32); --su-peer-bg: rgba(57, 255, 106, 0.08); --su-sel-bg: rgba(57, 255, 106, 0.26); }
+[data-theme="kontrast"] {
+  --su-board: #000000; --su-frame: #ffffff; --su-grid: rgba(255, 255, 255, 0.55); --su-block: #ffffff;
+  --su-given: #ffffff; --su-placed: #00ffff; --su-tip: #00ff00; --su-err: #ff6600; --su-note: #ffffff; --su-note-same: #ffff00;
+  --su-peer-bg: #1a1a1a; --su-same-bg: #4d004d; --su-same: #ffff00; --su-sel-bg: #003a3a; --su-cursor: #ffff00;
+  --su-zoom: #ff00ff; --su-zoom-bg: #0d000d; --su-dim: 0.75; --su-heart: #ffff00; --su-ok: #00ff00;
+}
+
+/* ---------- Skrift ---------- */
+:root {
+  --su-font-digit: var(--font);
+  --su-weight-given: 800;
+  --su-weight-placed: 700;
+  --su-weight-note: 600;
+}
+
+/* ---------- Streger og hjørner ---------- */
+:root {
+  --su-frame-w: 3px;        /* pladens ramme (layoutet læser den) */
+  --su-grid-w: 1px;
+  --su-block-w: 3px;
+  --su-cursor-w: 4px;
+  --su-zoom-w: 4px;
+  --su-digit-outline-w: 0px;
+  --su-err-line-w: 0.08em;  /* overstregning af et forkert tal */
+  --su-stroke-ico: 8;       /* ikoner tegnes i 100 × 100 */
+  --su-stroke-heart: 6;
+  --su-stroke-hall: 7;
+  --su-hall-border-w: 2px;
+  --su-heart-off-dash: 8 6;
+  --su-radius-board: 12px;
+  --su-radius-hud: 14px;
+  --su-radius-hud-small: 10px;
+  --su-radius-swatch: 6px;
+  --su-radius-zoom: 6px;
+}
+
+/* ---------- Glød og skygger ----------
+ * --glow kommer fra arkade.css (0 i Høj kontrast). Glød slås helt fra med
+ * data-su-gloed="fra": så tegnes alt fladt, og spillet kan stadig aflæses. */
+:root, [data-theme] {
+  --su-text-shadow: 0 1px 4px var(--su-shadow);
+  --su-text-shadow-strong: 0 1px 6px var(--su-shadow), 0 0 2px var(--su-shadow);
+  --su-board-glow: 0 0 calc(20px * var(--glow)) color-mix(in srgb, var(--su-frame) 45%, transparent), inset 0 0 calc(10px * var(--glow)) color-mix(in srgb, var(--su-frame) 25%, transparent);
+  --su-zoom-glow: 0 0 calc(16px * var(--glow)) color-mix(in srgb, var(--su-zoom) 60%, transparent);
+  --su-digit-glow: 0 0 calc(10px * var(--glow)) color-mix(in srgb, var(--su-placed) 70%, transparent);
+  --su-heart-glow: drop-shadow(0 0 calc(4px * var(--glow)) var(--su-heart));
+  --su-score-glow: 0 0 calc(18px * var(--glow)) var(--ui);
+  --su-points-glow: 0 0 calc(12px * var(--glow)) color-mix(in srgb, var(--su-ok) 50%, transparent);
+}
+html[data-su-gloed="fra"], html[data-su-gloed="fra"] [data-theme] {
+  --glow: 0;
+  --su-board-glow: none; --su-zoom-glow: none; --su-digit-glow: none; --su-heart-glow: none;
+  --su-score-glow: none; --su-points-glow: none;
+}
+
+/* ---------- Prøver på farvesættene i Indstillinger ---------- */
+.swatch[data-farver="neon"] { --a: #ff2fd2; --b: #22eaff; --c: #1a0b2a; }
+.swatch[data-farver="solnedgang"] { --a: #ff8a1f; --b: #c77dff; --c: #2a0b3d; }
+.swatch[data-farver="cyberpunk"] { --a: #39ff6a; --b: #2a8dff; --c: #000000; }
+.swatch[data-farver="kontrast"] { --a: #ffff00; --b: #00ffff; --c: #000000; }
