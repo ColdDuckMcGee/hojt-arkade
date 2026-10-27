@@ -1,0 +1,153 @@
+/* Tårnene – tema "neon" (synthwave, neon på glas).
+ *
+ * Al grafik i spillet kommer herfra og fra grafik.js i samme mappe: farver, glød,
+ * skygger, konturer, stregtykkelser, mønstre og hjørner. Spillets egen CSS
+ * (css/taarnene.css) og JS bruger kun variablerne nedenfor, så et nyt tema
+ * (fx tema/tegneserie/) skal levere de samme variabler og de samme navngivne
+ * tårne, fjender og ikoner.
+ *
+ * Farvesættene følger Hojt Arkades fælles indstilling data-theme
+ * (neon, solnedgang, cyberpunk, kontrast). Glød slås fra med
+ * data-tt-gloed="fra" på <html> (Indstillinger → Udseende → Glød). */
+
+/* ---------- Farver ---------- */
+:root, [data-theme] {
+  /* Brættet */
+  --tt-board: rgba(8, 3, 18, 0.9);
+  --tt-frame: #39ff6a;
+  --tt-grid: rgba(150, 160, 255, 0.18);
+  --tt-felt: rgba(255, 255, 255, 0.03);
+  --tt-felt-hover: rgba(57, 255, 106, 0.14);
+  --tt-felt-valgt: rgba(255, 63, 216, 0.22);
+  /* Stien */
+  --tt-sti: #2a1c48;
+  --tt-sti-kant: #6b56b8;
+  --tt-sti-midte: rgba(196, 176, 255, 0.35);
+  --tt-indgang: #22eaff;
+  --tt-maal: #ff3fd8;
+  --tt-maal-fyld: rgba(255, 63, 216, 0.18);
+  /* Tårnene (fod, kontur og en farve pr. type) */
+  --tt-taarn-fod: #160c2a;
+  --tt-taarn-kant: #0a0414;
+  --tt-taarn-laser: #ff3fd8;
+  --tt-taarn-puls: #ffd23a;
+  --tt-taarn-frost: #22eaff;
+  --tt-taarn-kanon: #ff7a3c;
+  --tt-taarn-kerne: #ffffff;
+  --tt-niveau: #ffffff;
+  --tt-niveau-kant: #0a0414;
+  /* Fjenderne (formen skelner dem; farven hjælper) */
+  --tt-fjende-kugle: #b9a7ff;
+  --tt-fjende-pil: #39ff6a;
+  --tt-fjende-kasse: #ff9a3c;
+  --tt-fjende-kaempe: #ff3f6a;
+  --tt-fjende-kant: #0a0414;
+  --tt-fjende-detalje: rgba(10, 4, 20, 0.7);
+  --tt-saenket: #22eaff;
+  --tt-hp: #39ff6a;
+  --tt-hp-bund: rgba(0, 0, 0, 0.7);
+  /* Skud og rækkevidde */
+  --tt-skud-laser: #ff8ae8;
+  --tt-skud-puls: #ffd23a;
+  --tt-skud-frost: #22eaff;
+  --tt-skud-kanon: #ffb27a;
+  --tt-raekkevidde: rgba(255, 255, 255, 0.85);
+  --tt-raekkevidde-fyld: rgba(255, 255, 255, 0.07);
+  /* Markør, tilstande og flader */
+  --tt-cursor: #ff3fd8;
+  --tt-ok: #39ff6a;
+  --tt-fejl: #ff7a3c;
+  --tt-liv: #ff3f6a;
+  --tt-penge: #ffd23a;
+  --tt-shadow: #000000;
+  --tt-overlay-bg: rgba(0, 0, 0, 0.62);
+  --tt-overlay-soft: rgba(0, 0, 0, 0.35);
+  --tt-hall-bg: rgba(0, 0, 0, 0.45);
+  --tt-hall-bg-hover: rgba(255, 255, 255, 0.08);
+  --tt-swatch-border: rgba(255, 255, 255, 0.5);
+  --tt-hud-bg: var(--panel);
+  --tt-hud-border: var(--ui-soft);
+  --tt-menu-bg: var(--panel);
+}
+[data-theme="solnedgang"] { --tt-frame: #ff8a1f; --tt-cursor: #ff8a1f; --tt-felt-hover: rgba(255, 138, 31, 0.16); --tt-sti-kant: #b06ad8; }
+[data-theme="cyberpunk"] { --tt-frame: #2a9dff; --tt-board: rgba(0, 6, 8, 0.92); --tt-grid: rgba(57, 255, 106, 0.16); --tt-cursor: #2a9dff; --tt-sti: #062a20; --tt-sti-kant: #1f8a5a; --tt-felt-hover: rgba(42, 157, 255, 0.16); }
+[data-theme="kontrast"] {
+  --tt-board: #000000; --tt-frame: #ffffff; --tt-grid: rgba(255, 255, 255, 0.45); --tt-felt: #000000; --tt-felt-hover: #262626; --tt-felt-valgt: #333300;
+  --tt-sti: #3a3a3a; --tt-sti-kant: #ffffff; --tt-sti-midte: #888888; --tt-indgang: #00ffff; --tt-maal: #ffff00; --tt-maal-fyld: #000000;
+  --tt-taarn-fod: #000000; --tt-taarn-kant: #ffffff; --tt-taarn-laser: #ff00ff; --tt-taarn-puls: #ffff00; --tt-taarn-frost: #00ffff; --tt-taarn-kanon: #ff8800;
+  --tt-fjende-kugle: #ffffff; --tt-fjende-pil: #00ff00; --tt-fjende-kasse: #ff8800; --tt-fjende-kaempe: #ff0000; --tt-fjende-kant: #000000;
+  --tt-cursor: #ff00ff; --tt-raekkevidde: #ffffff; --tt-hp: #00ff00;
+}
+
+/* ---------- Streger, konturer og hjørner ----------
+ * Tårne, fjender og stien tegnes i felt-enheder (100 pr. felt); tallene uden enhed er i de enheder.
+ * Et tegneserietema kan fx give tykke sorte konturer med --tt-taarn-kant-w og --tt-fjende-kant-w. */
+:root {
+  --tt-frame-w: 3px;
+  --tt-grid-w: 1px;
+  --tt-cursor-w: 6px;
+  --tt-valgt-w: 6px;
+  --tt-sti-w: 64;
+  --tt-sti-kant-w: 74;
+  --tt-sti-midte-w: 4;
+  --tt-sti-midte-dash: 10 14;
+  --tt-sti-ende: butt;             /* stroke-linecap */
+  --tt-sti-hjoerne: round;         /* stroke-linejoin */
+  --tt-taarn-kant-w: 4;
+  --tt-taarn-detalje-w: 6;
+  --tt-fjende-kant-w: 5;
+  --tt-fjende-detalje-w: 6;
+  --tt-niveau-kant-w: 6;
+  --tt-skud-w: 6;
+  --tt-skud-kanon-w: 12;
+  --tt-skud-ring-w: 5;
+  --tt-skud-ring-dash: none;
+  --tt-raekkevidde-w: 4;
+  --tt-raekkevidde-dash: 14 10;
+  --tt-indgang-w: 0;
+  --tt-maal-w: 6;
+  --tt-stroke-ico: 9;
+  --tt-stroke-hall: 7;
+  --tt-hall-border-w: 2px;
+  --tt-block-w: 2px;
+  --tt-radius-board: 14px;
+  --tt-radius-felt: 10;            /* rx i 100 × 100-feltet */
+  --tt-radius-hud: 14px;
+  --tt-radius-hud-small: 10px;
+  --tt-radius-swatch: 6px;
+  --tt-radius-taarn-knap: 16px;
+  /* Teksturer og mønstre: et tema kan lægge et billede eller en gradient bag brættet og felterne */
+  --tt-board-tekstur: none;
+  --tt-felt-tekstur: none;
+}
+
+/* ---------- Glød og skygger ----------
+ * --glow kommer fra arkade.css (0 i Høj kontrast). Uden glød tegnes alt fladt, og
+ * spillet kan aflæses lige så godt (tårne og fjender adskilles af form og kontur). */
+:root, [data-theme] {
+  --tt-text-shadow: 0 1px 4px var(--tt-shadow);
+  --tt-text-shadow-strong: 0 1px 6px var(--tt-shadow), 0 0 2px var(--tt-shadow);
+  --tt-board-glow: 0 0 calc(20px * var(--glow)) color-mix(in srgb, var(--tt-frame) 40%, transparent), inset 0 0 calc(10px * var(--glow)) color-mix(in srgb, var(--tt-frame) 20%, transparent);
+  --tt-taarn-glow: drop-shadow(0 0 calc(5px * var(--glow)) color-mix(in srgb, var(--tt-s-taarn, #fff) 70%, transparent));
+  --tt-fjende-glow: drop-shadow(0 0 calc(4px * var(--glow)) color-mix(in srgb, var(--tt-s-fjende, #fff) 70%, transparent));
+  --tt-skud-glow: drop-shadow(0 0 calc(4px * var(--glow)) currentColor);
+  --tt-sti-glow: drop-shadow(0 0 calc(6px * var(--glow)) color-mix(in srgb, var(--tt-sti-kant) 60%, transparent));
+  --tt-maal-glow: drop-shadow(0 0 calc(6px * var(--glow)) var(--tt-maal));
+  --tt-score-glow: 0 0 calc(18px * var(--glow)) var(--ui);
+  --tt-points-glow: 0 0 calc(12px * var(--glow)) color-mix(in srgb, var(--tt-ok) 50%, transparent);
+  /* Skygger (ikke glød): bruges af fx papirklip og ler. Neon har ingen. */
+  --tt-taarn-skygge: none;
+  --tt-fjende-skygge: none;
+  --tt-knap-skygge: none;
+}
+html[data-tt-gloed="fra"], html[data-tt-gloed="fra"] [data-theme] {
+  --glow: 0;
+  --tt-board-glow: none; --tt-taarn-glow: none; --tt-fjende-glow: none; --tt-skud-glow: none;
+  --tt-sti-glow: none; --tt-maal-glow: none; --tt-score-glow: none; --tt-points-glow: none;
+}
+
+/* ---------- Prøver på farvesættene i Indstillinger ---------- */
+.swatch[data-farver="neon"] { --a: #ff2fd2; --b: #22eaff; --c: #1a0b2a; }
+.swatch[data-farver="solnedgang"] { --a: #ff8a1f; --b: #22eaff; --c: #2a0b3d; }
+.swatch[data-farver="cyberpunk"] { --a: #39ff6a; --b: #2a8dff; --c: #000000; }
+.swatch[data-farver="kontrast"] { --a: #ffff00; --b: #00ffff; --c: #000000; }

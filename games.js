@@ -29,7 +29,7 @@ window.HOJT_SPIL = [
   { navn: 'Kanonen',       sti: 'kanonen/',       farve: 'orange', status: 'aktiv', tekst: 'Indstil vinkel og krudt, og ram modstanderen på skift i et landskab, der kan sprænges.', skaerm: 'hal/skaerme/kanonen.svg' },
   { navn: 'Labyrinten',    sti: 'labyrinten/',    farve: 'gul',   status: 'aktiv', tekst: 'Spis alle prikkerne, og undgå vagterne. De flytter sig kun, når du gør.', skaerm: 'hal/skaerme/labyrinten.svg' },
   { navn: 'Kælderen',      sti: 'kaelderen/',     farve: 'lilla', status: 'snart', tekst: 'Gå ned gennem kældre, der laves automatisk, ét træk ad gangen, og se, hvor dybt du kommer.' },
-  { navn: 'Tårnene',       sti: 'taarnene/',      farve: 'grøn',  status: 'snart', tekst: 'Byg tårne i ro og mag, og stop bølgerne af fjender.' },
+  { navn: 'Tårnene',       sti: 'taarnene/',      farve: 'grøn',  status: 'aktiv', tekst: 'Byg tårne i ro og mag, og stop bølgerne af fjender.', skaerm: 'hal/skaerme/taarnene.svg' },
   { navn: 'Golf',          sti: 'golf/',          farve: 'pink',  status: 'aktiv', tekst: 'Sigt, vælg kraft, og få bolden i hul på retro minigolfbaner.', skaerm: 'hal/skaerme/golf.svg' },
   { navn: 'Billard',       sti: 'billard/',       farve: 'blå',   status: 'snart', tekst: 'Sigt, og stød kuglerne i hul mod computeren.' },
   { navn: 'Søslag',        sti: 'soeslag/',       farve: 'cyan',  status: 'aktiv', tekst: 'Find og sænk computerens skibe, før den finder dine.', skaerm: 'hal/skaerme/soeslag.svg' },
