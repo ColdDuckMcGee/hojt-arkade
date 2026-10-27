@@ -16,7 +16,11 @@
     dwell: false, dwellTime: 1.2, theme: 'neon', background: 'mork',
     animation: true, sound: true, music: true
   });
-  var ks = ArkadeSettings.create('kasser', { stuckWarning: true });
+  // dwellRepeat: false = ét dwell er ét skridt (blikket skal væk fra pilen og tilbage); true = gentag ved fortsat blik
+  // glow: neonglød til/fra (temaets glød-faktor --glow; se tema/neon/tema.css)
+  var ks = ArkadeSettings.create('kasser', { stuckWarning: true, dwellRepeat: false, glow: true });
+  // Det visuelle tema: grafik og tokens fra tema/<navn>/ (indtil videre kun neon)
+  var tema = KasserTema.hent('neon');
   var records = ArkadeHighscores.create('kasser', { max: 10 });
   var CATEGORY = 'runde';
   var progress = G.createProgress(window.localStorage);
@@ -43,19 +47,17 @@
 
   // ---------- Tema og baggrund ----------
   function cssVar(name) { return getComputedStyle(root).getPropertyValue(name).trim(); }
-  var colors = {};
+  var T = {};   // temaets tokens (farver, stregtykkelser, glød), læst fra CSS
   function readColors() {
-    colors = {
-      floor: cssVar('--ks-floor'), floorLine: cssVar('--ks-floor-line'),
-      wall: cssVar('--ks-wall'), wallFill: cssVar('--ks-wall-fill'), wallShine: cssVar('--ks-wall-shine'),
-      goal: cssVar('--ks-goal'), goalFill: cssVar('--ks-goal-fill'),
-      box: cssVar('--ks-box'), boxFill: cssVar('--ks-box-fill'),
-      boxDone: cssVar('--ks-box-done'), boxDoneFill: cssVar('--ks-box-done-fill'), check: cssVar('--ks-check'),
-      player: cssVar('--ks-player'), playerFill: cssVar('--ks-player-fill'),
-      preview: cssVar('--ks-preview'), stuck: cssVar('--ks-stuck'), stuckText: cssVar('--ks-stuck-text'),
-      font: getComputedStyle(document.body).fontFamily || 'sans-serif',
-      glow: cssVar('--glow') !== '0'
-    };
+    root.classList.toggle('ks-gloed-fra', !ks.get('glow'));
+    T = KasserRender.readTokens(tema, cssVar, getComputedStyle(document.body).fontFamily || 'sans-serif');
+  }
+  // Knappernes ikoner hentes fra temaet via navn (data-ikon="...")
+  $$('[data-ikon]').forEach(function (el) { el.innerHTML = tema.ikoner[el.getAttribute('data-ikon')] || ''; });
+  // Pilene: ét skridt pr. dwell, eller gentagelse ved fortsat blik (indstilling)
+  function syncDwellRepeat() {
+    $$('.arrow').forEach(function (a) { a.toggleAttribute('data-dwell-repeat', !!ks.get('dwellRepeat')); });
+    dwell.reset();
   }
   function animationOn() { return arkade.get('animation') && !reducedMotionMq.matches; }
   function applyTheme() {
@@ -251,7 +253,7 @@
     if (!run || anim) return;
     var extra = {};
     if (hoverDir && canPlay()) extra.preview = previewFor(hoverDir);
-    KasserRender.draw(boardCanvas, viewFromState(extra), colors);
+    KasserRender.draw(boardCanvas, viewFromState(extra), tema, T);
   }
   function refresh() {
     if (!run) return;
@@ -275,11 +277,29 @@
     note.hidden = stuck.length === 0;
     $('#btn-undo').classList.toggle('suggest', stuck.length > 0);
     if (stuck.length && !stuckShown) {
-      note.textContent = (stuck.length === 1 ? 'En kasse sidder fast' : stuck.length + ' kasser sidder fast') + ' – tryk på Fortryd';
+      $('#stuck-msg').textContent = (stuck.length === 1 ? 'En kasse sidder fast' : stuck.length + ' kasser sidder fast') + ' – tryk på Fortryd';
       sfx('stuck');
-      $('#board-status').textContent = note.textContent;
+      $('#board-status').textContent = $('#stuck-msg').textContent;
     }
     stuckShown = stuck.length > 0;
+    if (stuckShown) fitNote();
+  }
+  // Beskeden står i sin egen stribe under brættet (se layoutGame) og må ikke blive bredere
+  // end striben: skriften gøres lidt mindre, hvis det er nødvendigt.
+  function fitNote() {
+    var note = $('#stuck-note'), msg = $('#stuck-msg');
+    if (note.hidden) return;
+    msg.style.fontSize = '';
+    var fs = parseFloat(getComputedStyle(msg).fontSize);
+    while (fs > 10 && (msg.offsetWidth > note.clientWidth || msg.offsetHeight > note.clientHeight)) {
+      fs -= 1; msg.style.fontSize = fs + 'px';
+    }
+  }
+  // Højden på stribe til beskeden (0, hvis advarslen er slået fra)
+  function noteStrip() {
+    if (!ks.get('stuckWarning')) return { h: 0, gap: 0 };
+    var fs = parseFloat(getComputedStyle(root).fontSize) || 18;
+    return { h: Math.ceil(fs * 0.95 * 1.25 + fs * 0.95 * 0.6 + 6), gap: Math.max(6, Math.round(fs * 0.4)) };
   }
 
   // Et eller flere skridt (fra pil, tast eller tryk på et felt) – animeres ét felt ad gangen.
@@ -307,7 +327,7 @@
         if (st.pushed && i === st.box.from) { var q = run.xy(st.box.to); return { x: p.x + (q.x - p.x) * e, y: p.y + (q.y - p.y) * e, i: i, moving: true }; }
         return { x: p.x, y: p.y, i: i };
       });
-      KasserRender.draw(boardCanvas, v, colors);
+      KasserRender.draw(boardCanvas, v, tema, T);
       if (t >= 1) {
         stepSound(st);
         k++;
@@ -325,9 +345,9 @@
   function finishSteps(steps, soundsDone) {
     if (!soundsDone) stepSound(steps[steps.length - 1]);
     refresh();
-    dwell.reset();
     var last = steps[steps.length - 1];
-    if (run.state.solved) { solved(); return; }
+    // dwell nulstilles ikke her: uden gentagelse skal blikket forlade pilen før næste skridt
+    if (run.state.solved) { dwell.reset(); solved(); return; }
     var on = run.boxesOnGoal(), all = run.state.boxes.length;
     $('#board-status').textContent = run.state.moves + ' træk. ' + on + ' af ' + all + ' kasser er på plads.' + (last.pushed && last.box.onGoal ? ' Kassen er på et mål.' : '');
   }
@@ -424,6 +444,7 @@
     sfx('pause');
     if (p) {
       $('#pause-text').textContent = 'Banen venter på dig. Intet sker, før du vælger. ' + roundText() + '.';
+      $('#btn-pause-end-round').disabled = !progress.roundActive();
       fitScreen(); $('#btn-resume').focus({ preventScroll: true });
     }
     drawBoard();
@@ -433,6 +454,7 @@
   $('#btn-pause-levels').addEventListener('click', function () { sfx('click'); paused = false; $('#pause-overlay').hidden = true; openLevels('game'); });
   $('#btn-pause-settings').addEventListener('click', function () { sfx('click'); openSettings('game'); });
   $('#btn-quit').addEventListener('click', function () { sfx('click'); quitToMenu(); });
+  $('#btn-pause-end-round').addEventListener('click', function () { sfx('click'); endRound(); });
   function quitToMenu() { cancelAnim(); run = null; paused = false; hideOverlays(); show('menu'); }
 
   // ---------- Runden er slut ----------
@@ -510,7 +532,12 @@
     });
   });
   $$('#settings [data-ksset]').forEach(function (b) {
-    b.addEventListener('click', function () { ks.set(b.dataset.ksset, b.dataset.value === 'true'); sfx('click'); syncSettingsUi(); });
+    b.addEventListener('click', function () {
+      var key = b.dataset.ksset;
+      ks.set(key, b.dataset.value === 'true'); sfx('click'); syncSettingsUi();
+      if (key === 'glow') applyTheme();
+      if (key === 'dwellRepeat') syncDwellRepeat();
+    });
   });
   function stepDwell(delta) {
     var v = Math.round((arkade.get('dwellTime') + delta) * 100) / 100;
@@ -584,20 +611,21 @@
   //   rundt  – pilene står rundt om brættet, menu/bane/fortryd/genstart i hjørnerne
   //   siden  – et pilekryds ved siden af brættet og menu/bane/fortryd/genstart i en kolonne
   //   under  – menu/bane/fortryd/genstart i en række øverst, brættet og et pilekryds under det
-  function computeLayout(W, H, mw, mh, b) {
+  function computeLayout(W, H, mw, mh, b, nr) {
+    nr = nr || 0;   // plads til beskeden om fastlåst kasse under brættet
     var pad = Math.max(8, Math.min(W, H) * 0.015), g = Math.max(10, b * 0.18), out = [];
     var side = b * 1.2;
-    var cA = Math.floor(Math.min((W - 2 * pad - 2 * side - 2 * g) / mw, (H - 2 * pad - 2 * b - 2 * g) / mh));
+    var cA = Math.floor(Math.min((W - 2 * pad - 2 * side - 2 * g) / mw, (H - 2 * pad - 2 * b - 2 * g - nr) / mh));
     out.push({ name: 'rundt', cell: cA, score: cA * 1.15, b: b, g: g, side: side });
     var hw = b * 1.25, hh = Math.max(80, b * 0.85), padW = 3 * b + 2 * g;
     var colH = 4 * hh + 3 * g;
     if (colH <= H - 2 * pad && padW <= H - 2 * pad) {
-      var cB = Math.floor(Math.min((W - 2 * pad - hw - padW - 2 * g) / mw, (H - 2 * pad) / mh));
+      var cB = Math.floor(Math.min((W - 2 * pad - hw - padW - 2 * g) / mw, (H - 2 * pad - nr) / mh));
       out.push({ name: 'siden', cell: cB, score: cB, b: b, g: g, hw: hw, hh: hh, padW: padW });
     }
     var boxW = Math.min(b * 1.3, (W - 2 * pad - 3 * g) / 4);
     if (boxW >= b * 0.85 && padW <= W - 2 * pad) {
-      var cC = Math.floor(Math.min((W - 2 * pad) / mw, (H - 2 * pad - hh - padW - 2 * g) / mh));
+      var cC = Math.floor(Math.min((W - 2 * pad) / mw, (H - 2 * pad - hh - padW - 2 * g - nr) / mh));
       out.push({ name: 'under', cell: cC, score: cC, b: b, g: g, boxW: boxW, hh: hh, padW: padW });
     }
     return out.filter(function (l) { return l.cell >= 24; }).sort(function (a, c) { return c.score - a.score; })[0] || null;
@@ -612,8 +640,8 @@
     if (current !== 'game' || !run) return;
     var m = run.state;
     var W = window.innerWidth, H = window.innerHeight;
-    var b0 = baseSizes().btn, L = null;
-    for (var b = b0; b >= 36 && !L; b *= 0.95) L = computeLayout(W, H, m.w, m.h, b);
+    var b0 = baseSizes().btn, L = null, ns = noteStrip(), nr = ns.h + ns.gap;
+    for (var b = b0; b >= 36 && !L; b *= 0.95) L = computeLayout(W, H, m.w, m.h, b, nr);
     if (!L) L = { name: 'rundt', cell: 20, b: 36, g: 8, side: 43 };
     // Store felter er godt, men ikke enorme: højst ca. 3,4 cm pr. felt på en stor skærm
     L.cell = Math.min(L.cell, Math.round(Math.max(b0 * 1.3, 3.4 * CM)));
@@ -626,7 +654,7 @@
     $('#game').dataset.layout = L.name; $('#game').dataset.btn = Math.round(b);
     var E = {
       pause: $('#btn-pause'), hud: $('#hud-box'), undo: $('#btn-undo'), restart: $('#btn-restart'),
-      board: $('#board-wrap'), up: $('.arrow-up'), left: $('.arrow-left'), right: $('.arrow-right'), down: $('.arrow-down')
+      board: $('#board-wrap'), note: $('#stuck-note'), up: $('.arrow-up'), left: $('.arrow-left'), right: $('.arrow-right'), down: $('.arrow-down')
     };
     function crossPad(px, py) {
       place(E.up, px + b + g, py, b, b);
@@ -636,10 +664,11 @@
     }
     if (L.name === 'rundt') {
       var side = L.side, long = Math.max(b, Math.min(Math.min(bw, bh) * 0.75, b * 2.6));
-      var tw = side + g + bw + g + side, th = b + g + bh + g + b;
+      var tw = side + g + bw + g + side, th = b + g + bh + nr + g + b;
       var x0 = (W - tw) / 2, y0 = (H - th) / 2, bx = x0 + side + g, by = y0 + b + g, cx = bx + bw / 2, cy = by + bh / 2;
-      var rx = bx + bw + g, low = by + bh + g;
+      var rx = bx + bw + g, low = by + bh + nr + g;
       place(E.board, bx, by, bw, bh);
+      place(E.note, x0, by + bh + ns.gap, tw, ns.h);
       place(E.pause, x0 + side - b, y0, b, b);
       place(E.up, cx - long / 2, y0, long, b);
       place(E.hud, rx, y0, side, b);
@@ -652,25 +681,30 @@
       var tw2 = L.hw + g + bw + g + L.padW, x1 = (W - tw2) / 2;
       var colH = 4 * L.hh + 3 * g, cy0 = (H - colH) / 2;
       [E.pause, E.hud, E.undo, E.restart].forEach(function (el, k) { place(el, x1, cy0 + k * (L.hh + g), L.hw, L.hh); });
-      place(E.board, x1 + L.hw + g, (H - bh) / 2, bw, bh);
+      var by2 = (H - bh - nr) / 2;
+      place(E.board, x1 + L.hw + g, by2, bw, bh);
+      place(E.note, x1 + L.hw + g - g / 2, by2 + bh + ns.gap, bw + g, ns.h);
       crossPad(x1 + L.hw + g + bw + g, (H - L.padW) / 2);
     } else {
-      var th3 = L.hh + g + bh + g + L.padW, y3 = (H - th3) / 2;
+      var th3 = L.hh + g + bh + nr + g + L.padW, y3 = (H - th3) / 2;
       var rowW = 4 * L.boxW + 3 * g, rx3 = (W - rowW) / 2;
       [E.pause, E.hud, E.undo, E.restart].forEach(function (el, k) { place(el, rx3 + k * (L.boxW + g), y3, L.boxW, L.hh); });
       place(E.board, (W - bw) / 2, y3 + L.hh + g, bw, bh);
-      crossPad((W - L.padW) / 2, y3 + L.hh + g + bh + g);
+      place(E.note, 8, y3 + L.hh + g + bh + ns.gap, W - 16, ns.h);
+      crossPad((W - L.padW) / 2, y3 + L.hh + g + bh + nr + g);
     }
     E.hud.classList.toggle('slim', L.name === 'under' && L.hh < 80);
     var dpr = Math.min(2, window.devicePixelRatio || 1);
     boardCanvas.width = Math.round(bw * dpr);
     boardCanvas.height = Math.round(bh * dpr);
     drawBoard();
+    fitNote();
   }
   window.addEventListener('resize', function () { layoutGame(); fitScreen(); });
 
   // ---------- Start ----------
   applyTheme();
+  syncDwellRepeat();
   applyBackground();
   applyAnimation();
   syncFullscreen();
@@ -683,6 +717,7 @@
     settings: arkade, gameSettings: ks, records: records, progress: progress, dwell: dwell, audio: audio,
     start: startLevel, show: show, move: move, walkTo: walkTo, undo: undo, restart: restart, endRound: endRound,
     openLevels: openLevels, fit: fitScreen, refresh: refresh, category: CATEGORY,
-    hover: function (d) { hoverDir = d; drawBoard(); }
+    hover: function (d) { hoverDir = d; drawBoard(); },
+    syncDwellRepeat: syncDwellRepeat, tema: tema, tokens: function () { return T; }
   };
 })();

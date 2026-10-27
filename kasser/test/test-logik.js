@@ -215,5 +215,65 @@ section('fremskridt og runder');
   P.reset();
 })();
 
+// ---------- Temaet: grafik og farver uden for koden ----------
+section('tema (neon)');
+(function () {
+  var fs = require('fs');
+  require(path.join(ROD, 'tema/neon/grafik.js'));
+  require(path.join(ROD, 'js/render.js'));
+  var KT = globalThis.KasserTema, tema = KT && KT.hent('neon');
+  ok(tema && KT.navne().indexOf('neon') >= 0, 'tema "neon" er registreret');
+  KT.KRAEVET.tegn.forEach(function (n) { ok(typeof tema.tegn[n] === 'function', 'temaet tegner "' + n + '"'); });
+  KT.KRAEVET.ikoner.forEach(function (n) { ok(typeof tema.ikoner[n] === 'string' && /<(path|polyline|polygon|line|rect|circle)/.test(tema.ikoner[n]), 'temaet har ikonet "' + n + '"'); });
+  var css = fs.readFileSync(path.join(ROD, 'tema/neon/tema.css'), 'utf8');
+  Object.keys(tema.tokens).forEach(function (k) {
+    var v = tema.tokens[k];
+    ok(css.indexOf(v + ':') >= 0, 'token ' + k + ' (' + v + ') er defineret i tema.css');
+  });
+  // standardpaletten (:root) giver alle farve-tokens; de andre paletter overskriver nogle af dem
+  var rootBlock = (css.match(/:root,\s*\[data-theme\]\s*\{([^}]*)\}/) || [])[1] || '';
+  Object.keys(tema.tokens).forEach(function (k) {
+    var v = tema.tokens[k];
+    if (/^--ks-(floor|wall|goal|box|check|player|preview|stuck)/.test(v) && !/-w$/.test(v)) ok(rootBlock.indexOf(v + ':') >= 0 || css.match(new RegExp(':root\\s*\\{[^}]*' + v + ':')), 'standardpaletten sætter ' + v);
+  });
+  ['solnedgang', 'cyberpunk', 'kontrast'].forEach(function (p) {
+    var m = css.match(new RegExp('\\[data-theme="' + p + '"\\]\\s*\\{([^}]*)\\}'));
+    ok(!!m, 'tema.css har paletten ' + p);
+    if (m) ok(/--ks-[\w-]+:/.test(m[1]), p + ' sætter sine egne lagerfarver (resten arves fra neon)');
+  });
+  ok(/\.ks-gloed-fra\s*\{[^}]*--glow:\s*0/.test(css), 'tema.css: .ks-gloed-fra sætter --glow til 0');
+  // ingen hårdkodede farver, skygger eller glød i spillets kode og layout-CSS
+  function strip(t) { return t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1'); }
+  ['js/game.js', 'js/render.js', 'js/app.js', 'css/kasser.css'].forEach(function (f) {
+    var t = strip(fs.readFileSync(path.join(ROD, f), 'utf8'));
+    ok(!/#[0-9a-fA-F]{3,8}\b(?![-\w])/.test(t.replace(/#(?=[\w-]*[g-zG-Z_-])[\w-]+/g, '')) , f + ': ingen hex-farver');
+    ok(!/\b(rgba?|hsla?)\s*\(/.test(t), f + ': ingen rgb/hsl-farver');
+    ok(!/(box|text)-shadow\s*:[^;]*\d+px/.test(t), f + ': ingen faste skygger/glød');
+  });
+  ok(!/shadow|strokeStyle\s*=\s*['"]/.test(strip(fs.readFileSync(path.join(ROD, 'js/render.js'), 'utf8'))), 'render.js tegner kun via temaet');
+  // tegn hele lageret med en falsk canvas: glød følger T.glod (0 = ingen glød)
+  function fakeCanvas(log) {
+    var ctx = new Proxy({}, {
+      get: function (o, k) { if (k in o) return o[k]; return function () { return { addColorStop: function () {} }; }; },
+      set: function (o, k, v) { o[k] = v; if (k === 'shadowBlur') log.push(v); return true; }
+    });
+    return { width: 400, height: 400, clientWidth: 400, clientHeight: 400, getContext: function () { return ctx; }, getBoundingClientRect: function () { return { width: 400, height: 400 }; } };
+  }
+  var lvl0 = G.createLevel(1), st0 = lvl0.state;
+  var view = { w: st0.w, h: st0.h, cell: st0.cell, goal: st0.goal,
+    boxes: st0.boxes.map(function (i) { var p = lvl0.xy(i); return { x: p.x, y: p.y, i: i }; }),
+    player: { x: lvl0.xy(st0.player).x, y: lvl0.xy(st0.player).y, dir: 'down' }, stuck: [st0.boxes[0]],
+    preview: { x: 1, y: 1, ok: true, dir: 'up' } };
+  function tokens(glow) { var T = {}; Object.keys(tema.tokens).forEach(function (k) { T[k] = 0.1; }); T.stregMin = 1.5; T.glodBlur = 0.3; T.glod = glow; T.font = 'sans-serif'; return T; }
+  [1, 0].forEach(function (g) {
+    var log = [], err = null;
+    globalThis.devicePixelRatio = 1;
+    try { KasserRender.draw(fakeCanvas(log), view, tema, tokens(g)); } catch (e) { err = e; }
+    ok(!err, 'lageret kan tegnes med glød ' + (g ? 'til' : 'fra') + (err ? ': ' + err.message : ''));
+    if (g) ok(log.some(function (v) { return v > 0; }), 'med glød til lyser stregerne');
+    else ok(log.length > 0 && log.every(function (v) { return v === 0; }), 'med glød fra er al glød 0 (' + log.filter(function (v) { return v; }).length + ' fejl)');
+  });
+})();
+
 console.log('\n' + passed + ' tjek bestået, ' + failed + ' fejlede. Samlet par for alle baner: ' + sumPar + ' træk.');
 process.exit(failed ? 1 : 0);

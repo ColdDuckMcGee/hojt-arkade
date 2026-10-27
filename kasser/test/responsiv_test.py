@@ -110,17 +110,34 @@ def flow_test(b):
     # bane 2: '#    #','# $  #','#@ #.#' – gå op, skub til højre to gange, så kassen er ved (4,2)
     for k in ['ArrowUp', 'ArrowRight', 'ArrowRight']: pg.keyboard.press(k); pg.wait_for_timeout(330)
     res('bane 2: kassen skubbet', st()['b'] == [2*6+4], json.dumps(st()))
-    # dwell: blik på en pil giver præcis ét skridt pr. dwell-tid
+    # dwell: som standard ét skridt pr. dwell; blikket skal væk og tilbage. Med gentagelse: flere skridt
     pg.evaluate("() => { Kasser.settings.set('animation', false); Kasser.settings.set('dwell', true); Kasser.settings.set('dwellTime', 0.6); }")
     pg.keyboard.press('z'); pg.wait_for_timeout(100)
+    def gaze(sel, ms):
+        bb = pg.locator(sel).bounding_box()
+        pg.mouse.move(bb['x'] + bb['width'] / 2, bb['y'] + bb['height'] / 2, steps=4)
+        pg.wait_for_timeout(ms)
+    def away():
+        pg.mouse.move(5, 5, steps=2); pg.wait_for_timeout(150)
+    res('pilene gentager ikke som standard', pg.evaluate("[...document.querySelectorAll('.arrow')].every(a => !a.hasAttribute('data-dwell-repeat'))") and pg.evaluate("Kasser.gameSettings.get('dwellRepeat')") is False)
+    pg.keyboard.press('r'); pg.wait_for_timeout(100)   # spilleren på (1,3): to frie felter opad
     m0 = st()['m']
-    bb = pg.locator('.arrow-left').bounding_box()
-    pg.mouse.move(bb['x'] + bb['width'] / 2, bb['y'] + bb['height'] / 2, steps=4)
-    pg.wait_for_timeout(900)
+    gaze('.arrow-up', 2000)             # over tre dwell-tider på samme pil
     m1 = st()['m']
-    pg.mouse.move(5, 5); pg.wait_for_timeout(100)
-    res('dwell: ét skridt efter én dwell-tid', m1 == m0 + 1, '%d -> %d' % (m0, m1))
-    pg.evaluate("Kasser.settings.set('dwell', false)")
+    res('dwell: ét skridt, selv når blikket bliver på pilen', m1 == m0 + 1, '%d -> %d' % (m0, m1))
+    away(); gaze('.arrow-up', 900)
+    m2 = st()['m']
+    res('dwell: kig væk og tilbage giver næste skridt', m2 == m1 + 1, '%d -> %d' % (m1, m2))
+    away()
+    pg.evaluate("() => { Kasser.gameSettings.set('dwellRepeat', true); Kasser.syncDwellRepeat(); }")
+    res('"Gentag skridt ved fortsat blik" sætter gentagelse på pilene', pg.evaluate("[...document.querySelectorAll('.arrow')].every(a => a.hasAttribute('data-dwell-repeat'))"))
+    pg.keyboard.press('r'); pg.wait_for_timeout(100)
+    m0 = st()['m']
+    gaze('.arrow-up', 1500)             # ca. 2,5 dwell-tider: to skridt op
+    m1 = st()['m']
+    away()
+    res('gentag: flere skridt ved fortsat blik', m1 >= m0 + 2, '%d -> %d' % (m0, m1))
+    pg.evaluate("() => { Kasser.gameSettings.set('dwellRepeat', false); Kasser.syncDwellRepeat(); Kasser.settings.set('dwell', false); }")
     # fastlåst kasse: bane 2 – skub kassen op i hjørnet (2,1): gå (1,3)->... brug genstart og direkte træk
     pg.click('#btn-restart'); pg.wait_for_timeout(100)
     for k in ['ArrowRight', 'ArrowUp', 'ArrowRight', 'ArrowUp', 'ArrowLeft']:
@@ -129,7 +146,6 @@ def flow_test(b):
     res('kasse skubbet op i hjørnet', s['b'] == [1*6+1], json.dumps(s))
     res('rolig besked om fastlåst kasse vises', pg.evaluate("!document.getElementById('stuck-note').hidden"))
     res('Fortryd-knappen fremhæves', pg.evaluate("document.getElementById('btn-undo').classList.contains('suggest')"))
-    SHOT and pg.screenshot(path=SHOT + 'fastlaast.png')
     pg.evaluate("Kasser.gameSettings.set('stuckWarning', false); Kasser.refresh()")
     res('advarslen kan slås fra', pg.evaluate("document.getElementById('stuck-note').hidden"))
     pg.evaluate("Kasser.gameSettings.set('stuckWarning', true); Kasser.refresh()")
@@ -140,8 +156,12 @@ def flow_test(b):
     res('Esc giver pause', pg.evaluate("!document.getElementById('pause-overlay').hidden"))
     pg.click('#btn-pause-levels'); pg.wait_for_timeout(150)
     res('banevalg: bane 1 løst, 1–4 åbne, 5 låst', pg.evaluate("[...document.querySelectorAll('.level-btn')].map(b => (b.classList.contains('done') ? 'L' : b.disabled ? 'x' : 'o')).join('')") == 'Looo' + 'xxxx')
-    # afslut runde = game over -> top 10
-    pg.click('#btn-end-round'); pg.wait_for_timeout(200)
+    # afslut runde = game over -> top 10 (her fra pausemenuen; banevalget har samme knap)
+    res('banevalget har "Afslut runde"', pg.evaluate("!document.getElementById('btn-end-round').disabled"))
+    pg.evaluate("Kasser.start(1)"); pg.wait_for_timeout(100)
+    pg.keyboard.press('Escape'); pg.wait_for_timeout(150)
+    res('pausemenuen har "Afslut runde / Gem point"', pg.evaluate("!document.getElementById('pause-overlay').hidden && !document.getElementById('btn-pause-end-round').disabled"))
+    pg.click('#btn-pause-end-round'); pg.wait_for_timeout(200)
     res('Afslut runde viser "Runden er slut"', pg.evaluate("Kasser.screen") == 'gameover' and pg.evaluate("document.getElementById('go-score').textContent") == '100')
     rec = pg.evaluate("Kasser.records.list(Kasser.category)")
     res('runden er gemt i top 10', len(rec) == 1 and rec[0]['score'] == 100 and rec[0]['levels'] == 1, json.dumps(rec)[:100])
@@ -149,6 +169,15 @@ def flow_test(b):
     pg.reload(); pg.wait_for_timeout(200)
     res('rekord og fremskridt findes efter genindlæsning', len(pg.evaluate("Kasser.records.list(Kasser.category)")) == 1 and pg.evaluate("Kasser.progress.solvedCount()") == 1 and not pg.evaluate("Kasser.progress.roundActive()"))
     res('Fortsæt peger på bane 2', 'Bane 2' in pg.evaluate("document.getElementById('continue-sub').textContent"))
+    # Glød kan slås fra (temaets glød-faktor bliver 0), og spillet kan stadig tegnes
+    pg.evaluate("Kasser.show('settings')"); pg.click('[data-tab=udseende]'); pg.wait_for_timeout(80)
+    pg.click('[data-ksset=glow][data-value=false]'); pg.wait_for_timeout(80)
+    res('Glød fra: --glow er 0', pg.evaluate("getComputedStyle(document.documentElement).getPropertyValue('--glow').trim()") == '0' and pg.evaluate("document.documentElement.classList.contains('ks-gloed-fra')"))
+    pg.evaluate("Kasser.start(1)"); pg.wait_for_timeout(100)
+    res('Glød fra: lageret tegnes uden glød', pg.evaluate("Kasser.tokens().glod") == 0)
+    SHOT and pg.screenshot(path=SHOT + 'uden-gloed.png')
+    pg.evaluate("Kasser.gameSettings.set('glow', true); Kasser.show('menu')"); pg.reload(); pg.wait_for_timeout(200)
+    res('Glød til igen', pg.evaluate("Kasser.tokens().glod") == 1)
     # Tilbage til hallen
     pg.click('#btn-hall'); pg.wait_for_timeout(400)
     res('Tilbage til hallen åbner ../index.html', pg.url.endswith('/hojt-arkade/index.html'), pg.url)
@@ -185,11 +214,19 @@ with sync_playwright() as p:
         check(pg, 'spil (største bane)', '#game', w, h, tag + '.png')
         if big and SHOT: pg.screenshot(path=SHOT + 'spil.png')
         pg.evaluate("Kasser.hover(null)")
-        pg.keyboard.press('Escape'); pg.wait_for_timeout(100); check(pg,'pause','#game',w,h)
+        pg.keyboard.press('Escape'); pg.wait_for_timeout(100); check(pg,'pause','#game',w,h, (w, h) == (1920, 1080) and 'pause.png')
         pg.keyboard.press('Escape'); pg.wait_for_timeout(60)
         # fastlåst kasse (bane 2)
-        pg.evaluate("() => { Kasser.start(1); ['right','up','right','up','left'].forEach(d => Kasser.move(d)); }"); pg.wait_for_timeout(80)
-        check(pg, 'fastlåst kasse', '#game', w, h)
+        pg.evaluate("() => { Kasser.start(1); ['right','up','right','up','left'].forEach(d => Kasser.move(d)); document.activeElement && document.activeElement.blur(); }"); pg.wait_for_timeout(80)
+        check(pg, 'fastlåst kasse', '#game', w, h, (w, h) == (1920, 1080) and 'fastlaast.png')
+        ov = pg.evaluate("""(() => { const n = document.getElementById('stuck-msg').getBoundingClientRect(), s = document.getElementById('stuck-note');
+          const hit = (a, b) => a.left < b.right - 0.5 && b.left < a.right - 0.5 && a.top < b.bottom - 0.5 && b.top < a.bottom - 0.5;
+          const els = ['board-wrap', 'btn-pause', 'hud-box', 'btn-undo', 'btn-restart'].map(id => document.getElementById(id)).concat([...document.querySelectorAll('.arrow')]);
+          return { shown: !s.hidden && n.width > 0, inside: n.left >= 0 && n.top >= 0 && n.right <= innerWidth && n.bottom <= innerHeight,
+                   hits: els.filter(e => hit(n, e.getBoundingClientRect())).map(e => e.id || e.className) }; })()""")
+        line = '%s %dx%d %-28s %s' % ('OK  ' if ov['shown'] and ov['inside'] and not ov['hits'] else 'FEJL', w, h, 'besked uden overlap', json.dumps(ov))
+        print(line)
+        if not (ov['shown'] and ov['inside'] and not ov['hits']): fails.append(line)
         # løst bane
         pg.evaluate("() => { Kasser.start(0); ['right','right','right'].forEach(d => Kasser.move(d)); }"); pg.wait_for_timeout(120)
         check(pg, 'banen er løst', '#game', w, h, big and 'bane-loest.png')

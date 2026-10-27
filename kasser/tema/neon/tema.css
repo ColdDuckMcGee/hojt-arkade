@@ -1,0 +1,58 @@
+/*
+ * Kasser – temaet "neon": farver, glød, skygger, stregtykkelser og hjørneradier.
+ * Spillets CSS (css/kasser.css) og tegnefunktionerne (grafik.js) bruger kun disse variabler,
+ * så et nyt tema (fx tema/tegneserie/tema.css + grafik.js) kan levere de samme navne.
+ *
+ * Gløden styres af arkadens --glow (1 = til, 0 = fra). Den er 0 i høj kontrast og når
+ * "Glød" er slået fra (klassen ks-gloed-fra på <html>, sat af js/app.js). Uden glød kan
+ * alt stadig aflæses på form og farve.
+ */
+
+/* ---------- Mål og streger (fælles for farvetemaerne) ---------- */
+:root {
+  /* canvas: brøkdele af et felt */
+  --ks-line: 0.045; --ks-line-min: 1.5; --ks-glow-blur: 0.3;
+  --ks-floor-line-w: 0.02; --ks-wall-shine-w: 0.025;
+  --ks-radius-box: 0.1; --ks-radius-preview: 0.16; --ks-dash: 0.12;
+  /* brugerflade */
+  --ks-text-shadow: 0 1px 4px #000;
+  --ks-text-shadow-lead: 0 1px 6px #000, 0 0 2px #000;
+  --ks-scrim: rgba(0, 0, 0, 0.62); --ks-scrim-soft: rgba(0, 0, 0, 0.45);
+  --ks-hall-bg: rgba(0, 0, 0, 0.45); --ks-hall-bg-hover: rgba(255, 255, 255, 0.08);
+  --ks-hall-border: color-mix(in srgb, var(--muted) 70%, transparent);
+  --ks-border-w: 2px; --ks-hall-stroke: 7; --ks-arrow-stroke: 5;
+  --ks-radius-note: 12px; --ks-radius-hud: 12; --ks-radius-swatch: 6px;
+  --ks-outline-w: 3px; --ks-swatch-border: rgba(255, 255, 255, 0.5);
+  --ks-suggest-glow: calc(18px * var(--glow)); --ks-score-glow: calc(18px * var(--glow));
+}
+/* Glød fra: arkadens glød-faktor sættes til 0, og knappernes indre skær fjernes */
+html.ks-gloed-fra { --glow: 0; }
+.ks-gloed-fra .btn:hover, .ks-gloed-fra .btn.arkade-dwelling { box-shadow: none; }
+
+/* ---------- Farver pr. farvetema (Indstillinger → Udseende → Tema) ---------- */
+:root, [data-theme] {
+  --ks-floor: rgba(10, 4, 22, 0.92); --ks-floor-line: rgba(176, 77, 255, 0.16);
+  --ks-wall: #b04dff; --ks-wall-fill: rgba(36, 10, 62, 0.92); --ks-wall-shine: rgba(176, 77, 255, 0.14);
+  --ks-goal: #22eaff; --ks-goal-fill: rgba(34, 234, 255, 0.12);
+  --ks-box: #ff9a2e; --ks-box-fill: rgba(70, 28, 6, 0.92);
+  --ks-box-done: #39ff9a; --ks-box-done-fill: rgba(6, 60, 34, 0.92); --ks-check: #d8ffe9;
+  --ks-player: #ff3fd8; --ks-player-fill: rgba(60, 6, 50, 0.95);
+  --ks-preview: #22eaff; --ks-stuck: #ff5470; --ks-stuck-text: #1a0008;
+}
+[data-theme="solnedgang"] { --ks-wall: #ff6a2a; --ks-wall-fill: rgba(64, 14, 34, 0.92); --ks-wall-shine: rgba(255, 106, 42, 0.14); --ks-floor-line: rgba(255, 106, 42, 0.16); --ks-goal: #c77dff; --ks-goal-fill: rgba(199, 125, 255, 0.14); --ks-preview: #c77dff; --ks-box: #ffd23a; --ks-box-fill: rgba(70, 50, 6, 0.92); --ks-player: #ff8a1f; --ks-player-fill: rgba(70, 24, 4, 0.95); }
+[data-theme="cyberpunk"] { --ks-wall: #2a9dff; --ks-wall-fill: rgba(4, 26, 54, 0.92); --ks-wall-shine: rgba(42, 157, 255, 0.14); --ks-floor: rgba(0, 8, 10, 0.92); --ks-floor-line: rgba(42, 157, 255, 0.16); --ks-goal: #39ff6a; --ks-goal-fill: rgba(57, 255, 106, 0.12); --ks-preview: #39ff6a; --ks-box-done: #22eaff; --ks-box-done-fill: rgba(4, 50, 60, 0.92); --ks-player: #e6ff3a; --ks-player-fill: rgba(40, 50, 4, 0.95); }
+[data-theme="kontrast"] {
+  --ks-floor: #000000; --ks-floor-line: #3a3a3a;
+  --ks-wall: #ffffff; --ks-wall-fill: #3a3a3a; --ks-wall-shine: rgba(255, 255, 255, 0);
+  --ks-goal: #00ffff; --ks-goal-fill: rgba(0, 255, 255, 0.25);
+  --ks-box: #ff8800; --ks-box-fill: #000000;
+  --ks-box-done: #00ff00; --ks-box-done-fill: #003300; --ks-check: #ffffff;
+  --ks-player: #ffff00; --ks-player-fill: #000000;
+  --ks-preview: #ffffff; --ks-stuck: #ff2020; --ks-stuck-text: #ffffff;
+}
+
+/* Farveprøverne på knapperne under Tema */
+.theme-btn[data-value="neon"] .swatch { --a: #ff2fd2; --b: #22eaff; --c: #1a0b2a; }
+.theme-btn[data-value="solnedgang"] .swatch { --a: #ff8a1f; --b: #22eaff; --c: #2a0b3d; }
+.theme-btn[data-value="cyberpunk"] .swatch { --a: #39ff6a; --b: #2a8dff; --c: #000000; }
+.theme-btn[data-value="kontrast"] .swatch { --a: #ffff00; --b: #00ffff; --c: #000000; }
