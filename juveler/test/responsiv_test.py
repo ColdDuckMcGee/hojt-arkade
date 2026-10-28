@@ -128,18 +128,28 @@ def gameplay(pg, w, h, tag):
     if st(pg, "[Juveler.run.state.moves, Juveler.run.state.swaps, Juveler.run.state.grid.join('')]") != before: fails.append(tag + ' ugyldigt byt kostede noget')
     pg.keyboard.press('Escape'); pg.wait_for_timeout(40)
     if st(pg, "Juveler.selected") != -1 or not st(pg, "document.getElementById('pause-overlay').hidden"): fails.append(tag + ' Esc fortrød ikke valget (eller åbnede pause)')
-    # Tip: to juveler markeres, intet koster
+    # Tip: to juveler markeres; koster 20 point og intet træk (knappen siger prisen)
+    lbl = st(pg, "[...document.querySelectorAll('#btn-tip .small')].filter(e => getComputedStyle(e).display !== 'none').map(e => e.textContent).join(' ')")
+    if '20 point' not in lbl: fails.append('%s tip-knappen viser ikke prisen (%s)' % (tag, lbl))
+    pg.evaluate("() => { const r = Juveler.run; r._load(r.state.grid, undefined, 100); Juveler.refresh(); }")
     pg.click('#btn-tip'); pg.wait_for_timeout(40)
     tp = st(pg, "Juveler.tip")
     if not tp or sorted(cls(pg, 'tip')) != sorted(tp) or st(pg, "Juveler.run.state.moves") != before[0]: fails.append('%s tip gav %s / %s' % (tag, tp, cls(pg, 'tip')))
+    r = st(pg, "[Juveler.run.state.score, document.getElementById('hud-score').textContent, document.getElementById('hint').textContent]")
+    if r[0] != 80 or r[1] != '80' or '20 point' not in r[2]: fails.append('%s tip-pris gav %s' % (tag, r))
+    pg.click('#btn-tip'); pg.wait_for_timeout(40)
+    if st(pg, "Juveler.run.state.score") != 80: fails.append(tag + ' samme tip kostede igen')
     # Gyldigt byt med musen: ét træk (plus optjente), point, ingen striber bagefter
     click_cell(pg, tp[0]); click_cell(pg, tp[1])
     pg.wait_for_timeout(120)
     if not st(pg, "Juveler.busy"): fails.append(tag + ' byttet blev ikke animeret')
     wait_idle(pg)
     s = st(pg, "[Juveler.run.state.swaps, Juveler.run.state.score, JuvelerGame.hasRun(Juveler.run.state.grid, Juveler.run.n), Juveler.run.state.moves, Juveler.run.state.earnedTotal, document.getElementById('hud-score').textContent]")
-    if s[0] != 1 or s[1] < 30 or s[2] or s[3] != before[0] - 1 + s[4] or s[5] != str(s[1]): fails.append('%s byt gav %s' % (tag, s))
+    if s[0] != 1 or s[1] < 110 or s[2] or s[3] != before[0] - 1 + s[4] or s[5] != str(s[1]): fails.append('%s byt gav %s' % (tag, s))
     if cls(pg, 'vaek') or st(pg, "document.querySelectorAll('#board .cell.glid, #board .cell.fra-oven, #board .cell.lander').length"): fails.append(tag + ' bevægelsesklasser blev hængende')
+    # Sluttede byttet spillet (ingen flere byt – sjældent), startes et nyt til resten af testen
+    if st(pg, "Juveler.run.state.over"):
+        pg.wait_for_timeout(2500); pg.evaluate("Juveler.start()"); pg.wait_for_timeout(150)
     # Tastatur: pil viser markøren i midten, Enter vælger, pil + Enter bytter eller vælger
     pg.mouse.move(1, 1); pg.keyboard.press('ArrowRight'); pg.wait_for_timeout(40)
     n = st(pg, "Juveler.run.n"); mid = (n // 2) * n + n // 2
@@ -158,9 +168,12 @@ def gameplay(pg, w, h, tag):
             if c == i: return
             cx, cy, ix, iy = c % n, c // n, i % n, i // n
             pg.keyboard.press('ArrowRight' if ix > cx else 'ArrowLeft' if ix < cx else 'ArrowDown' if iy > cy else 'ArrowUp')
+    sw0 = st(pg, "Juveler.run.state.swaps")
     goto(km[0]); pg.keyboard.press('Enter'); goto(km[1]); pg.keyboard.press('Enter'); pg.wait_for_timeout(60)
     wait_idle(pg)
-    if st(pg, "Juveler.run.state.swaps") != 2: fails.append(tag + ' byt med tastaturet virkede ikke')
+    if st(pg, "Juveler.run.state.swaps") != sw0 + 1: fails.append(tag + ' byt med tastaturet virkede ikke')
+    if st(pg, "Juveler.run.state.over"):
+        pg.wait_for_timeout(2500); pg.evaluate("Juveler.start()"); pg.wait_for_timeout(150)
 
 def dwell_check(pg, w, h, tag):
     """Ét dwell = én handling: valget bliver stående, selv om blikket bliver."""
@@ -261,12 +274,22 @@ with sync_playwright() as p:
             split = st(pg, "!document.getElementById('btn-go-rec').hidden")
             check(pg,'game over' + (' (resultat)' if split else ''),'#gameover',w,h, tag + '-gameover.png')
             if main: shot(pg, 'game-over.png')
+            want = {'traek': 'Trækkene er brugt.', 'ingen-byt': 'Ingen flere mulige byt'}[st(pg, "Juveler.run.state.overReason")]
+            if want not in st(pg, "document.getElementById('go-reason').textContent"): fails.append(tag + ' game over forklarer ikke årsagen')
             if split:
                 pg.click('#btn-go-rec'); pg.wait_for_timeout(80)
                 check(pg,'game over (rekorder)','#gameover',w,h)
                 pg.click('#btn-go-rec'); pg.wait_for_timeout(60)
         else:
             print('     %dx%d sidste træk gav ekstra træk – game over ikke nået' % (w, h))
+        # Game over fordi der ikke er flere mulige byt: skærmen forklarer det roligt
+        # (selve reglen testes i spillogik.test.js)
+        pg.evaluate("Juveler.start()"); pg.wait_for_timeout(120)
+        pg.evaluate("() => { const r = Juveler.run; r.state.over = true; r.state.overReason = 'ingen-byt'; r.state.score = 420; r.state.swaps = 17; Juveler.finish('over'); }")
+        pg.wait_for_timeout(150)
+        if 'Ingen flere mulige byt' not in st(pg, "document.getElementById('go-reason').textContent"): fails.append(tag + ' ingen-byt forklares ikke')
+        check(pg, 'game over (ingen byt)', '#gameover', w, h, tag + '-gameover-ingen-byt.png')
+        if main: shot(pg, 'game-over-ingen-byt.png')
         dwell_check(pg, w, h, tag)
         # Hallen med Juveler aktiv
         if main:

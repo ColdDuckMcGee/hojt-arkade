@@ -14,8 +14,9 @@
  *  - Hvert byt koster ét træk. Store kombinationer giver træk tilbage:
  *    en gruppe på 4 giver +1 træk, en gruppe på 5 eller flere (også L og T) +2,
  *    og hvert led i en kæde fra det tredje +1 (en kæde på tre led giver +1, fire led +2 …).
- *  - Er der ingen mulige byt tilbage, blandes brættet gratis.
- *  - Spillet slutter, når der ikke er flere træk.
+ *  - "Vis et tip" koster 20 point (scoren bliver aldrig negativ).
+ *  - Spillet slutter, når trækkene er brugt, eller når brættet ikke har flere
+ *    mulige byt. Et nyt bræt har aldrig striber og altid mindst ét muligt byt.
  */
 (function (global) {
   'use strict';
@@ -37,7 +38,8 @@
     pointsPerJewel: 10,    // ganges med kædens led (1, 2, 3 …)
     chainFrom: 3,
     bonus4: 20,
-    bonus5: 50
+    bonus5: 50,
+    tipCost: 20            // "Vis et tip" koster point (scoren bliver aldrig negativ)
   };
 
   // ---------- Tilfældighed (kan sås, så testene kan gentages) ----------
@@ -209,16 +211,6 @@
     }
     throw new Error('Kunne ikke lave et bræt');
   }
-  // Bland de juveler, der er (samme antal af hver type), til der ingen striber er og mindst ét byt.
-  function shuffle(g, n, k, r) {
-    for (var tries = 0; tries < 300; tries++) {
-      var h = g.slice();
-      for (var i = h.length - 1; i > 0; i--) { var j = randInt(r, i + 1), t = h[i]; h[i] = h[j]; h[j] = t; }
-      if (!hasRun(h, n) && hasMove(h, n)) return h;
-    }
-    return freshBoard(n, k, r);
-  }
-
   // ---------- Et spil ----------
   function createRun(sizeId, opts) {
     opts = opts || {};
@@ -229,8 +221,8 @@
       size: size.id, n: n, k: k,
       grid: freshBoard(n, k, r),
       moves: RULES.startMoves, score: 0, swaps: 0,
-      bestChain: 0, earnedTotal: 0, shuffles: 0,
-      over: false, ended: false
+      bestChain: 0, earnedTotal: 0, tips: 0, tipPoints: 0,
+      over: false, overReason: null, ended: false
     };
     function swap(a, b) {
       if (state.over || state.ended) return { ok: false, reason: 'slut' };
@@ -245,20 +237,30 @@
       state.moves += res.earned - RULES.moveCost;
       state.earnedTotal += res.earned;
       state.bestChain = Math.max(state.bestChain, res.steps.length);
-      var shuffled = false;
-      if (!hasMove(state.grid, n)) { state.grid = shuffle(state.grid, n, k, r); state.shuffles++; shuffled = true; }
-      if (state.moves <= 0) { state.moves = 0; state.over = true; }
-      return { ok: true, a: a, b: b, before: before, steps: res.steps, points: res.points, earned: res.earned, chain: res.steps.length, shuffled: shuffled, grid: state.grid.slice(), over: state.over };
+      // Game over: trækkene er brugt, eller brættet har ikke flere mulige byt
+      if (state.moves <= 0) { state.moves = 0; state.over = true; state.overReason = 'traek'; }
+      else if (!hasMove(state.grid, n)) { state.over = true; state.overReason = 'ingen-byt'; }
+      return { ok: true, a: a, b: b, before: before, steps: res.steps, points: res.points, earned: res.earned, chain: res.steps.length, grid: state.grid.slice(), over: state.over, overReason: state.overReason };
     }
     return {
       state: state, n: n, k: k,
       swap: swap,
       targets: function (a) { return state.over ? [] : validTargets(state.grid, n, a); },
       canSwap: function (a, b) { return wouldMatch(state.grid, n, a, b); },
+      // Et muligt byt uden at betale (til test og intern brug)
       hint: function () { var m = allMoves(state.grid, n); return m.length ? m[randInt(r, m.length)] : null; },
+      // "Vis et tip": et muligt byt for RULES.tipCost point (aldrig under 0 point)
+      tip: function () {
+        if (state.over || state.ended) return null;
+        var m = allMoves(state.grid, n);
+        if (!m.length) return null;
+        var paid = Math.min(RULES.tipCost, state.score);
+        state.score -= paid; state.tips++; state.tipPoints += paid;
+        return { move: m[randInt(r, m.length)], cost: paid };
+      },
       end: function () { state.ended = true; return { score: state.score, swaps: state.swaps }; },
       // Kun til test: læg et bestemt bræt ind
-      _load: function (g, moves) { state.grid = g.slice(); if (moves !== undefined) state.moves = moves; state.over = false; }
+      _load: function (g, moves, score) { state.grid = g.slice(); if (moves !== undefined) state.moves = moves; if (score !== undefined) state.score = score; state.over = false; state.overReason = null; }
     };
   }
 
@@ -267,7 +269,7 @@
     rng: rng, adjacent: adjacent, neighbours: neighbours, fromRows: fromRows,
     findRuns: findRuns, findGroups: findGroups, hasRun: hasRun, wouldMatch: wouldMatch,
     allMoves: allMoves, hasMove: hasMove, validTargets: validTargets,
-    collapse: collapse, resolve: resolve, freshBoard: freshBoard, shuffle: shuffle,
+    collapse: collapse, resolve: resolve, freshBoard: freshBoard,
     createRun: createRun
   };
 })(typeof window !== 'undefined' ? window : globalThis);

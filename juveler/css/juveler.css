@@ -346,6 +346,9 @@ ol.records .score { white-space: nowrap; }
 .jv-lille:not(.jv-tvaers) .confirm-btn { width: min(100%, 16em); }
 .hud-traek.lav .hud-value { color: var(--jv-traek-lav); }
 .hud-traek.lav .hud-label::after { content: " – få"; }
-/* Små skærme: kun ikon og hovedord på Tip og Fortryd */
+/* Tip-knappens pris: lang tekst på store skærme, kort på små */
+.tip-btn .small.kort { display: none; }
+/* Små skærme: kun ikon og hovedord på Fortryd; Tip viser kort pris */
 .jv-lille .act-btn .small { display: none; }
+.jv-lille .tip-btn .small.kort { display: block; font-size: 0.85rem; }
 .jv-lille .act-btn .big { font-size: 1.05rem; }

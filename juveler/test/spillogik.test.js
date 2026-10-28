@@ -139,13 +139,6 @@ test('nyt bræt har aldrig striber fra start og altid et muligt byt', function (
     }
   });
 });
-test('blanding beholder juvelerne og giver et spilbart bræt', function () {
-  var g = G.fromRows(['0123', '1230', '2301', '3012']);
-  var h = G.shuffle(g, 4, 4, G.rng(3));
-  assert.deepStrictEqual(h.slice().sort(), g.slice().sort());
-  assert.ok(!G.hasRun(h, 4)); assert.ok(G.hasMove(h, 4));
-});
-
 // ---------- Et spil ----------
 test('ugyldigt byt koster intet', function () {
   var run = G.createRun('6x6', { seed: 5 });
@@ -170,7 +163,7 @@ test('gyldigt byt koster ét træk og giver point', function () {
   assert.strictEqual(run.state.moves, G.RULES.startMoves - 1 + r.earned);
   assert.strictEqual(run.state.swaps, 1);
   assert.strictEqual(G.hasRun(run.state.grid, 7), false);
-  assert.ok(G.hasMove(run.state.grid, 7), 'der er altid et træk bagefter');
+  assert.strictEqual(G.hasMove(run.state.grid, 7), !run.state.over || run.state.overReason === 'traek');
 });
 test('game over når trækkene er brugt', function () {
   var run = G.createRun('6x6', { seed: 2 });
@@ -182,20 +175,66 @@ test('game over når trækkene er brugt', function () {
     assert.deepStrictEqual(run.targets(0), []);
   } else assert.ok(!r.over);
 });
-test('ingen mulige byt: brættet blandes gratis, spillet går videre', function () {
-  var run = G.createRun('6x6', { seed: 4 });
-  var shuffles = 0, games = 0;
-  for (var seed = 1; seed <= 30; seed++) {
+test('game over når brættet ikke har flere mulige byt', function () {
+  // Spil med rigeligt træk, til et bræt løber tør for mulige byt
+  var run, found = false;
+  for (var seed = 1; seed <= 400 && !found; seed++) {
     run = G.createRun('6x6', { seed: seed });
     while (!run.state.over) {
-      var m = run.hint(); assert.ok(m, 'der skal altid være et byt');
-      var r = run.swap(m[0], m[1]);
-      if (r.shuffled) { shuffles++; assert.ok(G.hasMove(r.grid, 6)); }
+      run._load(run.state.grid, 50);            // nok træk, så kun manglende byt kan slutte spillet
+      var m = run.hint(), r = run.swap(m[0], m[1]);
+      if (r.over) {
+        assert.strictEqual(r.overReason, 'ingen-byt');
+        assert.strictEqual(run.state.overReason, 'ingen-byt');
+        assert.strictEqual(G.hasMove(run.state.grid, 6), false, 'brættet har ingen byt');
+        assert.strictEqual(G.hasRun(run.state.grid, 6), false);
+        assert.ok(run.state.moves > 0, 'der var træk tilbage');
+        assert.strictEqual(run.swap(0, 1).reason, 'slut');
+        assert.strictEqual(run.tip(), null);
+        found = true;
+      }
+      if (run.state.swaps > 3000) break;
     }
-    games++;
   }
-  assert.strictEqual(games, 30);
-  assert.ok(shuffles >= 0);
+  assert.ok(found, 'fandt et spil, der sluttede på manglende byt');
+});
+test('trækkene brugt giver årsagen "traek"', function () {
+  for (var seed = 1; seed <= 50; seed++) {
+    var run = G.createRun('7x7', { seed: seed });
+    run._load(run.state.grid, 1);
+    var m = run.hint(), r = run.swap(m[0], m[1]);
+    if (r.earned === 0) { assert.strictEqual(r.overReason, 'traek'); return; }
+  }
+  assert.fail('ingen frø gav et byt uden ekstra træk');
+});
+test('der blandes aldrig: brættet efter et byt er det opløste bræt', function () {
+  assert.strictEqual(G.shuffle, undefined);
+  var run = G.createRun('6x6', { seed: 8 });
+  for (var i = 0; i < 30 && !run.state.over; i++) {
+    var m = run.hint(), r = run.swap(m[0], m[1]);
+    assert.deepStrictEqual(r.grid, r.steps[r.steps.length - 1].grid);
+  }
+});
+test('Vis et tip koster 20 point og intet træk', function () {
+  var run = G.createRun('7x7', { seed: 12 });
+  run._load(run.state.grid, 25, 100);
+  var t = run.tip();
+  assert.ok(t && t.move && G.wouldMatch(run.state.grid, 7, t.move[0], t.move[1]), 'tippet er et muligt byt');
+  assert.strictEqual(G.RULES.tipCost, 20);
+  assert.strictEqual(t.cost, 20);
+  assert.strictEqual(run.state.score, 80);
+  assert.strictEqual(run.state.moves, 25);
+  assert.strictEqual(run.state.tips, 1);
+  assert.strictEqual(run.state.tipPoints, 20);
+});
+test('tip gør aldrig scoren negativ', function () {
+  var run = G.createRun('6x6', { seed: 13 });
+  run._load(run.state.grid, 25, 15);
+  var t = run.tip();
+  assert.strictEqual(t.cost, 15); assert.strictEqual(run.state.score, 0);
+  t = run.tip();
+  assert.ok(t.move); assert.strictEqual(t.cost, 0); assert.strictEqual(run.state.score, 0);
+  assert.strictEqual(run.state.tips, 2); assert.strictEqual(run.state.tipPoints, 15);
 });
 test('spillet slutter altid (tilfældig spiller)', function () {
   G.SIZE_ORDER.forEach(function (id) {

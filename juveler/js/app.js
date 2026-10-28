@@ -81,7 +81,7 @@
   // Lydene kommer fra det fælles lydmodul (alle rolige). Juveler bruger disse navne:
   var SFX = {
     select: 'click', swap: 'move', match: 'eat', chain: 'bonus', earn: 'bonusSpawn', invalid: 'obstacle',
-    shuffle: 'bonusGone', tip: 'bonusSpawn', over: 'crash', record: 'record', click: 'click', pause: 'pause'
+    tip: 'bonusSpawn', over: 'crash', record: 'record', click: 'click', pause: 'pause'
   };
   function sfx(name) { audio.play(SFX[name] || name); }
   function unlockAudio() { audio.unlock(); }
@@ -295,11 +295,13 @@
 
   function showTip() {
     if (!live() || busy) return;
-    var m = run.hint();
-    if (!m) return;
-    tipPair = m; invalid = null;
+    // Et tip, der allerede vises, koster ikke igen (fx ved dwell eller dobbeltklik)
+    if (tipPair) { setNote('Tip: byt de to juveler med ✓', 'tipnote'); refresh(); return; }
+    var t = run.tip();
+    if (!t) return;
+    tipPair = t.move; invalid = null;
     sfx('tip');
-    setNote('Tip: byt de to juveler med ✓', 'tipnote');
+    setNote('Tip: byt de to juveler med ✓ (−' + pointsText(t.cost) + ')', 'tipnote');
     refresh();
   }
   $('#btn-tip').classList.add('turn-btn');
@@ -352,15 +354,14 @@
       if (res.chain >= 2) parts.push('kæde på ' + res.chain);
       var txt = parts.join(' · ');
       if (res.earned) sfx('earn');
-      if (res.shuffled) { txt += '. Der var ingen mulige byt, så brættet er blandet.'; sfx('shuffle'); }
       setNote(txt, res.earned ? 'ok' : '');
       refresh();
       if (res.over) {
         sfx('over');
-        setNote('Der er ikke flere træk.', 'warn');
+        setNote(overText(res.overReason), 'warn');
         refresh();
         clearTimeout(overTimer);
-        overTimer = setTimeout(function () { finish('over'); }, 1400);
+        overTimer = setTimeout(function () { finish('over'); }, res.overReason === 'ingen-byt' ? 2200 : 1400);
       }
     });
   }
@@ -437,6 +438,11 @@
   function quitToMenu() { animToken++; run = null; paused = false; busy = false; shownHud = null; clearTimeout(overTimer); hideOverlays(); show('menu'); }
 
   // ---------- Slut ----------
+  function overText(reason) {
+    return reason === 'ingen-byt'
+      ? 'Ingen flere mulige byt på brættet.'
+      : 'Trækkene er brugt.';
+  }
   // Rekorder pr. brætstørrelse: point og antal byt.
   var lastEntryId = null;
   function saveRecord() {
@@ -459,7 +465,7 @@
     } else rankText = 'Ingen point denne gang';
     paused = false; hideOverlays();
     $('#go-title').textContent = 'Spillet er slut';
-    $('#go-reason').textContent = why === 'over' ? 'Der er ikke flere træk.' : 'Du afsluttede spillet.';
+    $('#go-reason').textContent = why === 'over' ? overText(s.overReason) : 'Du afsluttede spillet.';
     var pic = '';
     for (var t = 0; t < run.k; t++) pic += '<span class="jv" data-type="' + G.TYPES[t] + '">' + JuvelerTegn.juvelSvg(t) + '</span>';
     $('#go-pic').innerHTML = pic;
@@ -467,6 +473,7 @@
     var bits = [swapsText(s.swaps)];
     if (s.bestChain > 1) bits.push('bedste kæde ' + s.bestChain);
     if (s.earnedTotal) bits.push(movesText(s.earnedTotal) + ' optjent');
+    if (s.tips) bits.push((s.tips === 1 ? '1 tip' : s.tips + ' tip') + ' (−' + pointsText(s.tipPoints) + ')');
     $('#go-levels').textContent = bits.join(' · ');
     $('#go-rank').textContent = rankText;
     $('#go-again-sub').textContent = sizeLabel(s.size);

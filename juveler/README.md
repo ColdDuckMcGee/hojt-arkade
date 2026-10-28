@@ -11,11 +11,12 @@ nye juveler nye striber, fortsætter det som en kædereaktion. Spillet er endel�
 
 - **Regel (træk-budget):** man starter med **25 træk**. Hvert gyldigt byt koster ét træk.
   Store kombinationer giver træk tilbage: **4 på stribe +1**, **5 på stribe, L eller T +2**,
-  og i en **kæde på 3 led eller mere giver hvert led fra det tredje +1**. Spillet slutter, når
-  trækkene er brugt. Godt spil holder altså spillet i gang længe.
-- **Ingen mulige byt:** er der intet muligt byt på brættet, blandes juvelerne af sig selv, og det
-  koster intet (man taber ikke på uheld). Et nyt bræt har aldrig striber fra start og altid
-  mindst ét muligt byt.
+  og i en **kæde på 3 led eller mere giver hvert led fra det tredje +1**. Godt spil holder
+  altså spillet i gang længe.
+- **Game over:** spillet slutter, når **trækkene er brugt**, eller når der **ikke er flere mulige
+  byt** på brættet (intet byt kan give tre på stribe). Brættet blandes aldrig. Game over-skærmen
+  siger roligt hvorfor: "Trækkene er brugt." eller "Ingen flere mulige byt på brættet." Et nyt bræt har
+  aldrig striber fra start og altid mindst ét muligt byt.
 - **Point:** 10 point pr. juvel. 4 på stribe giver 20 ekstra, 5/L/T 50 ekstra. I en kæde ganges
   pointene med leddets nummer (led 2 tæller dobbelt, led 3 tredobbelt osv.).
 - **Styring (to trin, uden træk og slip):** 1) vælg en juvel (klik, tryk, dwell eller tastatur).
@@ -25,7 +26,10 @@ nye juveler nye striber, fortsætter det som en kædereaktion. Spillet er endel�
 - **Ugyldigt byt:** vælger man en nabo, der ikke giver tre på stribe, sker der intet byt. De to
   felter får en stiplet orange ramme og et ✕, og teksten forklarer roligt hvorfor. Der er intet
   blink, og det koster intet træk. Valget bliver stående, så man kan vælge en anden nabo.
-- **Vis et tip:** viser et muligt byt med ✓. Tip er gratis.
+- **Vis et tip:** viser et muligt byt med ✓. Et tip **koster 20 point** (intet træk), og det står
+  på knappen ("koster 20 point", på små skærme "−20 point"). Scoren bliver aldrig negativ: har man
+  under 20 point, koster tippet det, man har. Trykker man igen, mens tippet vises, koster det
+  ikke en gang til. Game over-skærmen viser, hvor mange tip man har brugt.
 - **Tastatur:** piletasterne flytter markøren, Enter eller mellemrum vælger/bytter, Esc eller
   Delete fortryder valget (Esc uden valg giver pause), T viser et tip, P giver pause.
 - **Dwell (valgfrit, slået fra som standard):** fremdriftsring på feltet; hvert felt og hver knap
@@ -38,7 +42,7 @@ nye juveler nye striber, fortsætter det som en kædereaktion. Spillet er endel�
 - **Alle skærme:** man skal aldrig rulle. Knapperne er mindst ca. 80 px.
 - **Rekorder:** lokal top 10 (`arkade/highscores.js`) for hver brætstørrelse med point, antal byt og dato.
 - **Lyd:** arkadens fælles lyde (`arkade/audio.js`) ved valg, byt, rydning, kæde, optjent træk,
-  ugyldigt byt, blanding og game over; musik og effekter slås til og fra hver for sig.
+  ugyldigt byt, tip og game over; musik og effekter slås til og fra hver for sig.
 - **Rolig visning:** juvelerne glider, forsvinder og falder roligt. Ingen blink. Er animation slået
   fra, eller er computeren sat til mindre bevægelse (`prefers-reduced-motion`), skifter brættet
   uden bevægelse, og de ryddede juveler vises kort med en grøn ring.
@@ -47,7 +51,7 @@ nye juveler nye striber, fortsætter det som en kædereaktion. Spillet er endel�
 
 ### Opbygning
 - `js/game.js` – spillogikken (`window.JuvelerGame`): striber, L/T-grupper, fald og opfyldning,
-  kæder, point, træk, nyt bræt, blanding, mulige byt. Ingen DOM.
+  kæder, point, træk, tip-pris, nyt bræt, mulige byt og game over (med årsag). Ingen DOM.
 - `js/tegn.js` – tegnelaget (`window.JuvelerTegn`): læser kun tilstand og tegner brættet med
   temaets grafik. Ingen farver i JS.
 - `js/app.js` – skærme, indstillinger, input, layout og animationernes rækkefølge.
@@ -80,9 +84,10 @@ Lav en mappe `tema/<navn>/` med to filer, og skift de to linjer i `index.html`:
 
 ### Test
 - `node juveler/test/spillogik.test.js` – striber, 4/5, L og T, fald og opfyldning, kæder og
-  kædepoint, optjente træk, intet startmatch, altid et muligt byt, blanding, ugyldigt byt koster
-  intet, game over, og at spillet altid slutter.
+  kædepoint, optjente træk, intet startmatch, altid et muligt byt på et nyt bræt, ugyldigt byt
+  koster intet, game over når trækkene er brugt og når der ikke er flere byt (ingen blanding),
+  tip koster 20 point og intet træk, scoren bliver aldrig negativ, og at spillet altid slutter.
 - `python3 juveler/test/responsiv_test.py` (Playwright og Chrome) – alle skærme ved 8 opløsninger:
   ingen rulning, intet klippet, ingen overlap, knapper ≥ 80 px, ingen konsolfejl; spillet med mus,
-  tastatur og dwell, ugyldigt byt uden blink, tip, glød fra, alle fire farvesæt, pause, bekræft
-  afslut, game over og rekorder. `JUVELER_SKAERMBILLEDER=/mappe` gemmer skærmbilleder.
+  tastatur og dwell, ugyldigt byt uden blink, tip og tip-pris, glød fra, alle fire farvesæt, pause, bekræft
+  afslut, game over (begge årsager) og rekorder. `JUVELER_SKAERMBILLEDER=/mappe` gemmer skærmbilleder.

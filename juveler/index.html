@@ -58,7 +58,7 @@
   <section class="panel om-panel">
     <h2 id="om-title" class="neon-sub">Om Hojt Arkade</h2>
     <p data-trin>Hojt Arkade er udviklet af Jon Leismann Engsager, Hojt Design. Jon er IT- og IKT-konsulent i det specialiserede område og laver blandt andet gratis spil til voksne, der bruger øjenstyring.</p>
-    <p data-trin>Juveler: vælg en juvel, og vælg så en af dens naboer for at bytte dem. Naboer, der giver tre på stribe, lyser op. Et byt koster et træk. Fire på stribe giver et træk tilbage, fem eller et L eller T giver to, og en kæde på tre led eller mere giver et ekstra træk for hvert led. Spillet slutter, når trækkene er brugt.</p>
+    <p data-trin>Juveler: vælg en juvel, og vælg så en af dens naboer for at bytte dem. Naboer, der giver tre på stribe, lyser op. Et byt koster et træk. Fire på stribe giver et træk tilbage, fem eller et L eller T giver to, og en kæde på tre led eller mere giver et ekstra træk for hvert led. Vis et tip koster 20 point. Spillet slutter, når trækkene er brugt, eller når der ikke er flere mulige byt på brættet.</p>
     <p data-trin>Koden er åben og frit tilgængelig under MIT-licensen, så alle kan bruge den og bygge videre på den.</p>
   </section>
   <div class="row" data-trin>
@@ -95,8 +95,8 @@
     <aside class="side side-right" id="side-right" aria-label="Hjælp">
       <p class="hint" id="hint" aria-live="polite">Vælg en juvel</p>
       <div class="tools" id="tools" role="group" aria-label="Hjælp">
-        <button class="btn act-btn tip-btn" id="btn-tip" aria-label="Vis et tip: et muligt byt">
-          <svg aria-hidden="true"><use href="#jv-ikon-tip"/></svg><span class="big">Vis et tip</span><span class="small">gratis</span>
+        <button class="btn act-btn tip-btn" id="btn-tip" aria-label="Vis et tip: et muligt byt. Koster 20 point">
+          <svg aria-hidden="true"><use href="#jv-ikon-tip"/></svg><span class="big">Vis et tip</span><span class="small lang">koster 20 point</span><span class="small kort">−20 point</span>
         </button>
         <button class="btn act-btn undo-btn" id="btn-undo" aria-label="Fortryd valget af juvel">
           <svg aria-hidden="true"><use href="#jv-ikon-fortryd"/></svg><span class="big">Fortryd valg</span><span class="small">vælg en anden</span>
@@ -141,7 +141,7 @@
       <div class="go-head">
         <h2 id="go-title" class="neon-sub">Spillet er slut</h2>
         <div class="go-pic" id="go-pic" aria-hidden="true"></div>
-        <p class="go-reason" id="go-reason">Der er ikke flere træk.</p>
+        <p class="go-reason" id="go-reason">Trækkene er brugt.</p>
         <div class="go-score"><span id="go-score">0</span><span class="go-unit">point</span></div>
         <p class="go-plates" id="go-levels">0 byt</p>
         <p class="go-rank" id="go-rank"></p>
