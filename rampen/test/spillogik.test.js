@@ -115,8 +115,30 @@ test('spillet fryser på toppen, når der er boost tilbage', function () {
   var g = L.createGame(null);
   g.setAngle(45); g.setPower(10);
   var r = g.launch();
-  assert.ok(r.event === 'top' || r.event === 'land', r.event);
+  assert.strictEqual(r.event, 'top');
   assert.ok(r.frames.length > 2);
+});
+test('kun ét beslutningspunkt pr. hop: toppen (aldrig før landing)', function () {
+  var p = L.newProgress(1); Object.assign(p.upg, { motor: 6, daek: 4, raket: 3, braendstof: 3, vinger: 2, aero: 3, karrosseri: 3 });
+  [false, true].forEach(function (boost) {
+    var g = L.createGame(p); g.setAngle(35); g.setPower(10);
+    var r = g.launch(), k = 0, tops = [];
+    while (r.event !== 'end' && k++ < 200) {
+      assert.strictEqual(r.event, 'top');
+      var f = g.flight; assert.ok(f.vy <= 0 && f.y >= 3, 'ikke på toppen: y=' + f.y + ' vy=' + f.vy);
+      tops.push(f.x); r = g.decide(boost);
+    }
+    // Mellem to beslutninger skal bilen have landet/hoppet eller boostet (ny bue)
+    assert.ok(tops.length >= 1);
+  });
+});
+test('et boost giver en ny bue med et nyt beslutningspunkt på toppen', function () {
+  var p = L.newProgress(1); Object.assign(p.upg, { motor: 3, daek: 2, raket: 2, braendstof: 2 });
+  var g = L.createGame(p); g.setAngle(35); g.setPower(10);
+  var r = g.launch(); assert.strictEqual(r.event, 'top');
+  var x1 = g.flight.x, l1 = g.flight.landings;
+  r = g.decide(true); assert.strictEqual(r.event, 'top');
+  assert.ok(g.flight.x > x1 && g.flight.landings === l1, 'ny top uden landing ventet');
 });
 test('uden boost og uden vinger fryser spillet aldrig', function () {
   var st = L.stats(nulOpg()); st.boosts = 0;
@@ -147,6 +169,16 @@ test('vinger giver næsevalg, der ændrer landingen', function () {
   g.setNose('op'); var op = g.options().uden.x;
   g.setNose('ned'); var ned = g.options().uden.x;
   assert.ok(op > ned, op + ' <= ' + ned);
+});
+test('næse op lander hårdere end lige (ulempen ved op)', function () {
+  var p = L.newProgress(1); p.upg.vinger = 3; p.upg.motor = 6;
+  var g = L.createGame(p); g.setAngle(45); g.setPower(10);
+  g.launch();
+  g.setNose('op'); var op = g.options().uden;
+  g.setNose('lige'); var lige = g.options().uden;
+  g.setNose('ned'); var ned = g.options().uden;
+  assert.ok(op.hp < lige.hp, 'op ' + op.hp + ' vs lige ' + lige.hp);
+  assert.ok(ned.hp >= lige.hp, 'ned ' + ned.hp + ' vs lige ' + lige.hp);
 });
 test('en hel tur ender altid (stop eller smadret)', function () {
   var g = L.createGame(null);

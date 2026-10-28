@@ -96,8 +96,17 @@
     aim: 'move', launch: 'bonusSpawn', freeze: 'pause', boost: 'bonus', coin: 'eat', bonus: 'bonus',
     hit: 'obstacle', crash: 'crash', stop: 'click', buy: 'bonus', record: 'record', click: 'click', pause: 'pause', blocked: 'click'
   };
-  function sfx(name) { audio.play(SFX[name] || name); }
-  function unlockAudio() { audio.unlock(); }
+  // Spillets egne lyde (js/lyd.js, Web Audio). Et tema kan give dem andre klange (RampenTema.lyde).
+  var lyd = RampenLyd.create({ sfx: arkade.get('sound'), volume: volumeSetting(), lyde: RampenTema.lyde });
+  var LYD = { motor: 'motor', launch: 'opsendelse', boost: 'boost', coin: 'moent', hop: 'hop', landing: 'landing', buy: 'koeb' };
+  // Fælles lydstyrke, hvis arkaden får en (0–1 eller 0–100). Ellers fuld styrke (systemets lydstyrke gælder).
+  function volumeSetting() {
+    var v = arkade.all().volume;
+    if (typeof v !== 'number' || isNaN(v)) return 1;
+    return v > 1 ? v / 100 : v;
+  }
+  function sfx(name, n) { if (LYD[name]) lyd.play(LYD[name], n); else audio.play(SFX[name] || name); }
+  function unlockAudio() { audio.unlock(); lyd.unlock(); }
   document.addEventListener('pointerdown', unlockAudio, true);
   document.addEventListener('keydown', unlockAudio, true);
   document.addEventListener('touchstart', unlockAudio, { capture: true, passive: true });
@@ -130,7 +139,8 @@
     if (key === 'animation') applyAnimation();
     if (key === 'dwell') dwell.setEnabled(value);
     if (key === 'dwellTime') dwell.setTime(value * 1000);
-    if (key === 'sound') audio.setSfx(value);
+    if (key === 'sound') { audio.setSfx(value); lyd.setSfx(value); }
+    if (key === 'volume') lyd.setVolume(volumeSetting());
     if (key === 'music') { audio.unlock(); audio.setMusic(value); }
     syncSettingsUi();
   });
@@ -234,6 +244,7 @@
     hideOverlays();
     show('game');
     refresh();
+    sfx('motor');
   }
   var OVERLAYS = ['#pause-overlay', '#result-overlay'];
   function hideOverlays() { OVERLAYS.forEach(function (o) { $(o).hidden = true; }); releaseGuard(); }
@@ -267,18 +278,28 @@
   onAct($('#btn-launch'), launch);
 
   // Afspil et stykke af turen. Uden animation vises slutningen med det samme.
-  var lastCoins = 0, lastHp = 0, curSeg = null;
+  var lastCoins = 0, lastHp = 0, lastHops = 0, lastLand = 0, lastDmg = 0, curSeg = null;
+  // Lyde for det, der skete fra det forrige billede til dette
+  function frameSounds(c) {
+    if (c.coins > lastCoins) sfx(c.coins - lastCoins >= 10 ? 'bonus' : 'coin');
+    if (c.hops > lastHops) sfx('hop');
+    var dmg = c.dmg - lastDmg;
+    if (c.landings > lastLand) sfx('landing', Math.min(1, dmg / 25));
+    else if (dmg > 0.5) sfx('hit');
+    lastCoins = c.coins; lastHops = c.hops; lastLand = c.landings; lastDmg = c.dmg; lastHp = c.hp;
+  }
   function play(seg) {
     curSeg = seg;
     phase = 'fly'; playing = true; opts = null; freezeEv = null;
     setNote('', '');
     var fr = seg.frames, first = fr[0];
-    lastCoins = first.coins; lastHp = first.hp;
+    lastCoins = first.coins; lastHp = first.hp; lastHops = first.hops; lastLand = first.landings; lastDmg = first.dmg;
     var done = function () {
       playing = false;
       var lf = fr[fr.length - 1];
       addTrail(fr, fr.length - 1);
       lastCar = lf;
+      frameSounds(lf);
       onSegmentEnd(seg.event);
     };
     refresh();
@@ -290,8 +311,7 @@
       onFrame: function (c, frames, i) {
         lastCar = c;
         if (i > ti) { addTrail(frames, i, ti); ti = i; }
-        if (c.coins > lastCoins) { sfx(c.coins - lastCoins >= 10 ? 'bonus' : 'coin'); lastCoins = c.coins; }
-        if (c.hp < lastHp - 0.5) { sfx('hit'); lastHp = c.hp; }
+        frameSounds(c);
         hud(c);
       },
       onDone: done
@@ -503,24 +523,29 @@
     }
     if (on && phase === 'fly') $('#btn-skip').disabled = !playing;
     // Besked
-    var txt = noteText, cls = noteCls;
+    var txt = noteText, cls = noteCls, fuld = '';
     if (!txt) {
       if (phase === 'launch') txt = game.p.trips ? 'Tur ' + (game.p.trips + 1) + '. Vælg vinkel og kraft, og send bilen afsted.' : 'Vælg vinkel og kraft, og send bilen afsted.';
       else if (phase === 'fly') txt = 'Bilen kører …';
       else if (phase === 'freeze' && opts) {
-        var w = freezeEv === 'top' ? 'Bilen er på toppen. ' : 'Bilen er ved at lande. ';
-        if (opts.med) txt = w + 'Vent: ' + landTxt(opts.uden) + '. Boost: ' + landTxt(opts.med) + '.';
-        else txt = w + 'Næse op svæver længere, ned lander blødt. Lander ved ' + landTxt(opts.uden) + '.';
+        // Kort på skærmen (landingerne står på banen); hele forklaringen med skade læses op via banen
+        var lande = 'Vent: ' + landTxt(opts.uden) + '.' + (opts.med ? ' Boost: ' + landTxt(opts.med) + '.' : '');
+        var naese = 'Op: længere, men hårdere landing. Ned: blød landing.';
+        txt = game.st.vinger ? naese : 'Bilen er på toppen. ' + lande;
+        fuld = 'Bilen er på toppen. ' + lande + (game.st.vinger ? ' ' + naese : '');
       } else if (phase === 'done') txt = 'Turen er slut.';
     }
     var hint = $('#hint');
     hint.textContent = txt;
     hint.className = 'hint' + (cls ? ' ' + cls : '');
-    courseEl.setAttribute('aria-label', 'Banen. ' + txt);
+    courseEl.setAttribute('aria-label', 'Banen. ' + (fuld || txt));
     renderCourse();
     if (current === 'game' && !relayouting && (overflows(gameEl) || overflows(root))) { relayouting = true; layoutGame(); relayouting = false; }
   }
-  function landTxt(p) { return p.end === 'smadret' ? 'bilen smadrer ved ' + m(p.x) : (p.landed ? 'lander ved ' : 'holder ved ') + m(p.x); }
+  function landTxt(p) { return p.end === 'smadret' ? 'bilen smadrer ved ' + m(p.x) : (p.landed ? 'lander ved ' : 'holder ved ') + m(p.x) + skadeTxt(p, ' (skade ', ')'); }
+  // Hvor meget skade bilen får frem til landingen (i % af bilen)
+  function skade(p) { var f = game.flight, st = game.st; return f && st ? Math.max(0, Math.round(100 * (f.hp - p.hp) / st.maxHp)) : 0; }
+  function skadeTxt(p, pre, post) { var d = skade(p); return d >= 1 ? pre + d + ' %' + post : ''; }
   var relayouting = false;
 
   // ---------- Værkstedet ----------
@@ -974,7 +999,7 @@
   window.Rampen = {
     get game() { return game; }, get phase() { return phase; }, get playing() { return playing; }, get paused() { return paused; },
     get guard() { return gazeGuard ? gazeGuard.id : null; }, get tegn() { return tegn; }, get options() { return opts; },
-    settings: arkade, gameSettings: gset, records: records, dwell: dwell, audio: audio, logik: L,
+    settings: arkade, gameSettings: gset, records: records, dwell: dwell, audio: audio, lyd: lyd, logik: L,
     start: startTrip, show: show, launch: launch, angle: changeAngle, power: changePower, decide: decide, nose: setNose,
     skip: skipAhead, skipToEnd: skipToEnd, buy: buy, setPaused: setPaused, layout: layoutGame, refresh: refresh,
     // Til test: giv mønter / læg et fremskridt ind

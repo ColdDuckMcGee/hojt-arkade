@@ -4,7 +4,7 @@
 #
 # Desuden spillet i browseren: vinkel og kraft med knapper og tastatur, Send afsted,
 # beslutningspunktet "Boost nu?" (spillet står stille, indtil der er valgt), næse
-# op/ned med vinger, Vent/Boost med tastatur, turens resultat og rekord, værkstedet
+# op/ned med vinger (og at op lander hårdere), Vent/Boost med tastatur, egne lyde, turens resultat og rekord, værkstedet
 # (køb), Ny bil med bekræftelse, pause, glød fra, dwell (ét dwell på Send afsted =
 # én tur) og straks slutresultat ved prefers-reduced-motion. Til sidst hallen.
 #
@@ -115,6 +115,7 @@ def gameplay(pg, w, h, tag, shots):
     pg.click('#controls [data-nose="op"]'); up = st(pg, "Rampen.options.uden.x")
     pg.click('#controls [data-nose="ned"]'); dn = st(pg, "Rampen.options.uden.x")
     if not up > dn: fails.append('%s næse op/ned ændrede ikke landingen (%s / %s)' % (tag, up, dn))
+    if 'hårdere landing' not in st(pg, "document.getElementById('hint').textContent"): fails.append(tag + ' ulempen ved næse op forklares ikke')
     pg.mouse.move(1, 1); pg.keyboard.press('ArrowUp'); pg.keyboard.press('ArrowUp')
     if st(pg, "Rampen.game.flight.nose") != 'op': fails.append(tag + ' pil op satte ikke næsen op')
     check(pg, 'beslutningspunkt', '#game', w, h, tag + '-beslutning.png')
@@ -125,6 +126,8 @@ def gameplay(pg, w, h, tag, shots):
     if used != 1: fails.append('%s J gav ikke boost (%s brugt, %s før)' % (tag, used, b0))
     k = 0
     while st(pg, "Rampen.phase") == 'freeze' and k < 40:
+        top = st(pg, "[Rampen.game.flight.vy <= 0, Rampen.game.flight.y >= 3]")
+        if top != [True, True]: fails.append('%s beslutningspunkt uden for toppen af et hop (%s)' % (tag, top))
         pg.keyboard.press('v'); idle(pg); k += 1
     if st(pg, "Rampen.phase") != 'done' or st(pg, "document.getElementById('result-overlay').hidden"): fails.append(tag + ' turens resultat blev ikke vist'); return
     d = st(pg, "Rampen.game.lastResult.dist")
@@ -162,6 +165,32 @@ def gameplay(pg, w, h, tag, shots):
     if gl[0] != 'fra' or gl[1] != '0' or gl[2] < 20: fails.append('%s glød fra gav %s' % (tag, gl))
     check(pg, 'uden glød', '#game', w, h, tag + '-uden-gloed.png')
     pg.evaluate("Rampen.gameSettings.set('gloed', true)")
+
+def sound_check(pg, w, h, tag):
+    """Egne lyde: alle navne findes, de følger den fælles lydindstilling, og en tur giver lyde."""
+    r = st(pg, """(() => { const l = Rampen.lyd, want = ['motor', 'opsendelse', 'boost', 'moent', 'hop', 'landing', 'koeb'];
+      const missing = want.filter(n => !l.has(n));
+      Rampen.settings.set('sound', true); const on = want.map(n => l.play(n, 0.5));
+      Rampen.settings.set('sound', false); const off = want.map(n => l.play(n));
+      Rampen.settings.set('sound', true);
+      return [missing, on.filter(Boolean).length, off.filter(Boolean).length]; })()""")
+    if r[0] or r[1] < 5 or r[2] != 0: fails.append('%s lyde: mangler %s, spillede %s med lyd til og %s med lyd fra' % (tag, r[0], r[1], r[2]))
+    # En hel tur (uden animation) med optagelse af lydene
+    pg.evaluate(RIG); pg.evaluate("""Rampen.settings.set('animation', false); window.__lyde = []; const l = Rampen.lyd;
+      if (!l.__wrapped) { const p = l.play; l.play = function (n, x) { window.__lyde.push(n); return p.call(l, n, x); }; l.__wrapped = true; }
+      Rampen.start(); Rampen.game.setAngle(40); Rampen.refresh()""")
+    pg.wait_for_timeout(60)
+    pg.evaluate("Rampen.launch()"); idle(pg)
+    k = 0
+    while st(pg, "Rampen.phase") == 'freeze' and k < 40:
+        pg.evaluate("Rampen.decide(Rampen.game.flight.boosts > 0)"); idle(pg); k += 1
+    heard = st(pg, "[...new Set(window.__lyde)]")
+    for n in ['motor', 'opsendelse', 'boost', 'landing']:
+        if n not in heard: fails.append('%s lyden %s blev ikke spillet på en tur (%s)' % (tag, n, heard))
+    pg.click('#btn-res-shop'); pg.wait_for_timeout(80)
+    pg.evaluate("Rampen.game.p.coins = 999; window.__lyde = []"); pg.click('#upg-grid [data-upg="daek"]'); pg.wait_for_timeout(40)
+    if 'koeb' not in st(pg, "window.__lyde"): fails.append(tag + ' køb gav ikke lyden koeb')
+    print('OK   %dx%d lyde %s' % (w, h, sorted(heard)) if not [f for f in fails if f.startswith(tag) and 'lyd' in f] else 'FEJL %dx%d lyde' % (w, h))
 
 def flying_shot(pg, w, h, tag, shots):
     """Bilen i luften (animation til), midt i en tur."""
@@ -218,6 +247,7 @@ with sync_playwright() as p:
         flying_shot(pg, w, h, tag, big)
         gameplay(pg, w, h, tag, big)
         dwell_check(pg, w, h, tag)
+        if big or small: sound_check(pg, w, h, tag)
         # Hovedbilledet for opløsningen: beslutningspunktet med vinger
         pg.evaluate(RIG); pg.evaluate("Rampen.settings.set('animation', false); Rampen.start(); Rampen.game.setAngle(40); Rampen.refresh()"); pg.wait_for_timeout(80)
         pg.evaluate("Rampen.launch()"); idle(pg); pg.mouse.move(1, 1)

@@ -356,5 +356,9 @@
     'faldskaerm': '<path class="ico-fill" d="M10 46 Q50 0 90 46 Z"/><path class="ico-line" d="M12 46 L46 84 M50 46 V84 M88 46 L54 84"/><rect class="ico-fill" x="42" y="80" width="16" height="12" rx="2"/>'
   };
 
-  global.RampenTema = { navn: 'neon', zoner: ZONER, biler: BILER, farver: FARVER, tal: TAL, tegn: tegn, ikoner: ikoner };
+  // Lyde: neon bruger spillets egne standardlyde (js/lyd.js). Et andet tema kan give
+  // enkelte lyde en anden klang: lyde: { landing: function (t, n, v) { v.tone(…); } }.
+  var lyde = {};
+
+  global.RampenTema = { navn: 'neon', zoner: ZONER, biler: BILER, farver: FARVER, tal: TAL, tegn: tegn, ikoner: ikoner, lyde: lyde };
 })(typeof window !== 'undefined' ? window : globalThis);

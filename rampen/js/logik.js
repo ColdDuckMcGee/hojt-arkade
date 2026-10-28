@@ -10,7 +10,7 @@
  * samme bil, samme bane og samme valg giver altid samme tur.
  *
  * Turen afspilles i stykker. advance() kører, til bilen enten holder stille,
- * eller til et beslutningspunkt (toppen af et hop eller lige før landing), hvor
+ * eller til et beslutningspunkt (toppen af et hop – ét pr. hop), hvor
  * spilleren vælger "Boost nu?" (Ja/Vent) og evt. næsens stilling (med vinger).
  * Ingen hurtige reaktioner: intet sker, før der er valgt.
  *
@@ -164,22 +164,26 @@
       t: 0, x: 0, y: RAMPE.h, vx: v0 * Math.cos(a), vy: v0 * Math.sin(a),
       ground: false, hp: st.maxHp, boosts: st.boosts, boostT: 0, nose: 'lige',
       taken: {}, coins: 0, picked: 0, tramps: 0, balloons: 0, boostsUsed: 0, dmg: 0,
-      airStart: 0, longestAir: 0, apex: RAMPE.h, topFrozen: false, landFrozen: false, chuteT: 0,
+      airStart: 0, longestAir: 0, apex: RAMPE.h, topFrozen: false, chuteT: 0, hops: 0, landings: 0,
       done: false, end: null, lastHit: null
     };
   }
   function clone(f) { var c = {}; for (var k in f) c[k] = f[k]; c.taken = {}; for (var t in f.taken) c.taken[t] = f.taken[t]; return c; }
-  // Næsen (kun med vinger): op = svæver længere, men lander hårdere;
+  // Næsen (kun med vinger): op = svæver længere, men lander hårdere (mere skade);
   // ned = kortere hop, men blød landing, der bevarer farten.
   var NOSE = { lige: { lift: 1, drag: 1, land: 1 }, op: { lift: 2, drag: 1.08, land: 1.1 }, ned: { lift: 0.2, drag: 0.85, land: 0.6 } };
 
-  // Et tidsskridt. Returnerer 'top' / 'land' (beslutningspunkt), 'end' eller null.
+  // Et tidsskridt. Returnerer 'top' (beslutningspunkt), 'end' eller null.
   // freezes = false: ingen beslutningspunkter (forhåndslinjer).
   function step(f, st, crs, freezes) {
     var zone = zoneAt(f.x), g = G * zone.tyngde;
     var prevVy = f.vy, wasGround = f.ground;
     var thrust = 0;
-    if (f.boostT > 0) { thrust = st.thrust; f.boostT = Math.max(0, f.boostT - DT); }
+    if (f.boostT > 0) {
+      thrust = st.thrust; f.boostT = Math.max(0, f.boostT - DT);
+      // Et boost giver en ny bue: dens top er et nyt beslutningspunkt
+      if (f.boostT === 0) f.topFrozen = false;
+    }
     var ca = 0.906, sa = 0.423;                 // boostet skubber 25° op fra vandret
     if (f.ground) {
       var oil = onOil(f, crs);
@@ -200,15 +204,13 @@
     f.t += DT;
     collide(f, st, crs);
     if (f.hp <= 0 && !f.done) { f.hp = 0; f.done = true; f.end = 'smadret'; f.vx = 0; f.vy = 0; f.y = Math.max(0, f.y); f.ground = f.y <= 0; }
-    if (!f.ground && wasGround) { f.airStart = f.x; f.apex = f.y; f.topFrozen = false; f.landFrozen = false; }
+    if (!f.ground && wasGround) { f.airStart = f.x; f.apex = f.y; f.topFrozen = false; }
     if (f.done) return 'end';
     if (!freezes || f.ground || f.boostT > 0) return null;
     var canDecide = f.boosts > 0 || st.vinger;
     if (!canDecide) return null;
     // Toppen af et hop (mindst 3 m oppe)
     if (!f.topFrozen && prevVy > 0 && f.vy <= 0 && f.y >= 3) { f.topFrozen = true; return 'top'; }
-    // Lige før landing (kun med boost tilbage, og kun efter et rigtigt hop)
-    if (!f.landFrozen && f.boosts > 0 && f.vy < 0 && f.apex >= 3 && f.y > 1.5 && f.y / -f.vy < 0.6) { f.landFrozen = true; f.topFrozen = true; return 'land'; }
     return null;
   }
   function onOil(f, crs) {
@@ -225,19 +227,20 @@
     for (var i = 0; i < l.length; i++) {
       var o = l[i];
       if (o.type === 'trampolin' && f.x >= o.x && f.x <= o.x + o.w) {
-        f.vy = Math.max(-f.vy * 0.9, 12); f.tramps++; f.lastHit = 'trampolin';
-        f.apex = 0; f.airStart = f.x; f.topFrozen = false; f.landFrozen = false;
+        f.vy = Math.max(-f.vy * 0.9, 12); f.tramps++; f.hops++; f.lastHit = 'trampolin';
+        f.apex = 0; f.airStart = f.x; f.topFrozen = false;
         return;
       }
     }
     var nz = st.vinger ? NOSE[f.nose] : NOSE.lige;
     var impact = -f.vy * (1 - st.skaerm) * nz.land;
+    f.landings++;
     if (st.skaerm > 0 && impact > 9) f.chuteT = f.t;
     if (impact > 9) { var d = (impact - 9) * 3.2 * st.panser; f.hp -= d; f.dmg += d; f.lastHit = 'landing'; }
     var oil = onOil(f, crs);
     if (impact > 3) {
       f.vy = impact * st.hop; f.vx *= oil ? 1 : Math.min(1, st.behold + (nz.land < 1 ? 0.15 : 0));
-      f.apex = 0; f.airStart = f.x; f.topFrozen = false; f.landFrozen = false;
+      f.apex = 0; f.airStart = f.x; f.topFrozen = false;
       if (f.vy < 1.5) { f.vy = 0; f.ground = true; }
     } else { f.vy = 0; f.ground = true; }
   }
@@ -263,17 +266,17 @@
         case 'rampe':
           var s = Math.max(8, Math.hypot(f.vx, f.vy));
           f.vx = s * 0.866; f.vy = s * 0.5 + 3; f.y = Math.max(f.y, 0.01); f.ground = false; resetJump(f); f.airStart = f.x; break;
-        case 'sten': hurt(f, 14 * st.panser); f.vx *= 0.55; if (f.ground && f.vx > 2) { f.vy = 3; f.ground = false; resetJump(f); } break;
+        case 'sten': hurt(f, 14 * st.panser); f.vx *= 0.55; if (f.ground && f.vx > 2) { f.vy = 3; f.ground = false; f.apex = f.y; f.topFrozen = false; } break;
         case 'kaktus': hurt(f, 8 * st.panser); f.vx *= 0.75; break;
         case 'kegle': hurt(f, 2 * st.panser); f.vx *= 0.88; break;
       }
     }
   }
-  function resetJump(f) { f.apex = f.y; f.topFrozen = false; f.landFrozen = false; }
+  function resetJump(f) { f.apex = f.y; f.topFrozen = false; }
   function hurt(f, d) { f.hp -= d; f.dmg += d; }
 
   // Et billede til animationen
-  function frame(f, st) { return { t: f.t, x: f.x, y: f.y, vx: f.vx, vy: f.vy, hp: f.hp, coins: f.coins, boost: f.boostT > 0, ground: f.ground, nose: f.nose, boosts: f.boosts,
+  function frame(f, st) { return { t: f.t, x: f.x, y: f.y, vx: f.vx, vy: f.vy, hp: f.hp, coins: f.coins, boost: f.boostT > 0, ground: f.ground, nose: f.nose, boosts: f.boosts, hops: f.hops, landings: f.landings, dmg: f.dmg,
     chute: st.skaerm > 0 && !f.ground && f.vy < -9 && f.y < 30 }; }
 
   // Kør, til der skal vælges, eller til bilen holder stille
