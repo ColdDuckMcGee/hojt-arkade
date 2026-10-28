@@ -62,7 +62,18 @@
   var BREDDE = 24, HOEJDE = 15;  // havets felter
   var SYN = 2;                   // synsvidde i felter uden kikkert
   var STORM_CHANCE = 0.025;      // pr. dag til søs
-  var BEROEMMELSE_FAKTOR = 50;   // point = formue + 50 × berømmelse (valgt ved simulering, se test/simulering.js)
+  var BEROEMMELSE_FAKTOR = 75;   // point = formue + 75 × berømmelse (valgt ved simulering, se test/simulering.js)
+  // Sørøveri: mere bytte, men også større risiko (valgt ved simulering, se test/simulering.js)
+  var BYTTE = { guld: 8, last: 3 };                    // kapring giver 8 × skibets guld og 3 × dets last (så meget, der er plads til)
+  var BEROEMMELSE_FOR = { handel: 3, pirat: 5, marine: 12 };  // + skibets niveau for sørøvere og marinen
+  var JAGT = {
+    vaegt: 10, vaegtPrBer: 2, vaegtMax: 44,         // sørøvere på havet: flere, jo mere berømt du er
+    syn: 3, synPrBer: 1 / 4, synMax: 8,               // hvor langt væk de opdager og jager dig
+    folkPrBer: 1 / 2, kanonPrBer: 1 / 5, skrogPrBer: 2, // stærkere sørøvere, jo mere berømt du er
+    bordForhold: 0.8,                                 // sørøvere entrer selv, når de har 80 % af dine folk
+    plyndring: { guld: 0.6, last: 0.6 },             // tabt bordkamp mod sørøvere: 60 % af guldet og af hver vare
+    entre: 0.3, entrePrBer: 0.03                      // chance for, at sørøveren lægger sig langs siden (+ fartforskel)
+  };
   var RETNINGER = [[0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1]];
 
   // ---------- Tilfældighed (mulberry32, tilstanden gemmes) ----------
@@ -123,7 +134,7 @@
         proviant: START.proviant, sejl: 0, lastrum: 0, kikkert: 0, investeret: START.kanoner * KANON_PRIS,
         last: tomLast(), betalt: tomLast(), beroemmelse: 0, priser: {}, besoeg: {},
         moede: null, over: null, kurs: null, skibe: [], naesteId: 1,
-        tal: { rejser: 0, kapret: 0, sænket: 0, flygtet: 0, handel: 0, felter: 0 }
+        tal: { rejser: 0, kapret: 0, sænket: 0, flygtet: 0, handel: 0, felter: 0, angrebet: 0, plyndret: 0 }
       };
       HAVNE.forEach(function (h) { st.priser[h.id] = nyePriser(h); });
       st.besoeg[st.havn] = 1;
@@ -441,7 +452,7 @@
       if (!h) {
         var naer = null;
         st.skibe.forEach(function (s) { if (cheb(s.x, s.y, st.pos[0], st.pos[1]) <= 1 && !naer) naer = s; });
-        if (naer) r.moede = startMoede(naer);
+        if (naer) r.moede = startMoede(naer, true);
         else if (rng(st) < STORM_CHANCE) { st.moede = { slags: 'storm', slut: null }; st.kurs = null; r.moede = st.moede; }
       }
       r.nyeSkibe = synligeIds().filter(function (id) { return foer.indexOf(id) < 0; });
@@ -484,8 +495,8 @@
       var d = cheb(s.x, s.y, st.pos[0], st.pos[1]);
       if (d > 14) return false;
       var maal, vaek = false, p;
-      if (erFjendeTilSoes(s) && d <= 5 && !st.havn) {
-        p = clamp(0.45 + 0.15 * (s.fart - fart()), 0.2, 0.9); maal = st.pos;
+      if (erFjendeTilSoes(s) && d <= (s.slags === 'pirat' ? jagtSyn() : 5) && !st.havn) {
+        p = clamp(0.45 + 0.15 * (s.fart - fart()) + (s.slags === 'pirat' ? 0.01 * st.beroemmelse : 0), 0.2, 0.9); maal = st.pos;
       } else if (s.slags === 'handel' && d <= 2 && !st.havn) {
         p = clamp(0.3 + 0.1 * (s.fart - fart()), 0.1, 0.8); maal = st.pos; vaek = true;
       } else {
@@ -506,6 +517,9 @@
       if (bedst && (vaek ? -bedstV > nu - 0.001 : bedstV < nu + 0.5)) { s.x = bedst[0]; s.y = bedst[1]; }
       return true;
     }
+    // Sørøvere jager dig: de ser dig længere væk, jo mere berømt du er.
+    function jagtSyn() { return Math.min(JAGT.synMax, JAGT.syn + Math.floor(st.beroemmelse * JAGT.synPrBer)); }
+    function piratVaegt() { return Math.min(JAGT.vaegtMax, JAGT.vaegt + st.beroemmelse * JAGT.vaegtPrBer); }
     function afst(x, y, m) { return Math.sqrt(Math.pow(x - m[0], 2) + Math.pow(y - m[1], 2)); }
     function nyeSkibe() {
       var r = synsvidde();
@@ -524,7 +538,7 @@
     function naerHavn(id, d) { var p = st.havnePos[id]; return p && cheb(p[0], p[1], st.pos[0], st.pos[1]) <= d; }
     function nytSoeSkib(x, y) {
       var skjul = naerHavn('ravnsoe', 7), flaade = naerHavn('kongshavn', 7);
-      var w = { handel: 35, pirat: 28 + (skjul ? 22 : 0), marine: 6 + st.beroemmelse * 0.6 + (flaade ? 15 : 0) };
+      var w = { handel: 35, pirat: piratVaegt() + (skjul ? 22 : 0), marine: 6 + st.beroemmelse * 0.6 + (flaade ? 15 : 0) };
       var slags = vaegtet(st, w), lv = niveau();
       return {
         id: st.naesteId++, slags: slags, x: x, y: y, maal: null,
@@ -532,10 +546,13 @@
         skibstype: slags === 'marine' ? 'fregat' : slags === 'handel' ? (lv >= 3 ? 'brig' : 'slup') : (lv >= 2 ? 'brig' : 'slup')
       };
     }
-    function startMoede(s) {
+    // overfald = det andet skib kom selv hen til dig. En sørøver, der overfalder,
+    // lægger sig helt tæt på (afstand 1) og prøver at entre dig.
+    function startMoede(s, overfald) {
       var m = nytSkib(s.slags);
       st.tal.moeder = (st.tal.moeder || 0) + 1;
       m.skibId = s.id; m.afstand = 2; m.skibstype = s.skibstype; m.fart = s.fart;
+      if (overfald && s.slags === 'pirat') { m.afstand = 1; m.overfald = true; st.tal.angrebet = (st.tal.angrebet || 0) + 1; }
       st.moede = m; st.kurs = null;
       return m;
     }
@@ -572,6 +589,23 @@
       var vej = [];
       for (var c = mi; c !== k0; c = fra[c]) vej.unshift([c % BREDDE, Math.floor(c / BREDDE)]);
       return vej;
+    }
+    // Søkortets havneliste: kendte havne undtagen den, man ligger i, nærmeste først
+    // (efter dage ad kendt vej; havne uden kendt vej bagerst efter luftlinje).
+    function kortHavne() {
+      var info = {};
+      var ids = kendteHavne().filter(function (id) { return id !== st.havn; });
+      ids.forEach(function (id) {
+        var v = sti(id), p = st.havnePos[id];
+        info[id] = v ? v.length : 1000 + (p ? Math.max(Math.abs(p[0] - st.pos[0]), Math.abs(p[1] - st.pos[1])) : 999);
+      });
+      return ids.sort(function (a, b) { return info[a] - info[b] || (a < b ? -1 : 1); });
+    }
+    // Den havn, søkortet foreslår: aldrig den, man ligger i eller lige har forladt.
+    // null = ingen anden kendt havn.
+    function forvalgtHavn() {
+      var ids = kortHavne().filter(function (id) { return id !== st.sidste; });
+      return ids.length ? ids[0] : null;
     }
     function kursInfo(til) {
       var v = sti(til);
@@ -612,7 +646,10 @@
         m = { skrog: 45 + 12 * lv, kanoner: rint(st, 0, 2) + Math.floor(lv / 2), mandskab: 6 + 2 * lv, fart: 3, guld: rint(st, 40, 150) * lv, navn: vaelg(st, SKIBSNAVNE), fjendtlig: false };
         m.last = lastTil(rint(st, 8, 18) * lv, rint(st, 1, 3));
       } else if (slags === 'pirat') {
-        m = { skrog: 40 + 15 * lv, kanoner: 2 + lv, mandskab: 8 + 4 * lv, fart: 4 + (lv > 2 ? 1 : 0), guld: rint(st, 80, 200) * lv, navn: vaelg(st, PIRATNAVNE), fjendtlig: true };
+        // Svagere ved lav berømmelse, stærkere jo mere berømt du er
+        var b = st.beroemmelse;
+        m = { skrog: 36 + 15 * lv + Math.round(b * JAGT.skrogPrBer), kanoner: 1 + lv + Math.floor(b * JAGT.kanonPrBer), mandskab: 6 + 4 * lv + Math.floor(b * JAGT.folkPrBer),
+          fart: 4 + (lv > 2 ? 1 : 0), guld: rint(st, 80, 200) * lv, navn: vaelg(st, PIRATNAVNE), fjendtlig: true };
         m.last = lastTil(rint(st, 0, 8) * lv, 1);
       } else {
         m = { skrog: 120 + 30 * lv, kanoner: 8 + 2 * lv, mandskab: 28 + 6 * lv, fart: 5, guld: 250 * lv, navn: vaelg(st, ['Kronborg', 'Dannebrog', 'Løven', 'Prins Frederik', 'Elefanten']), fjendtlig: st.beroemmelse >= 10 };
@@ -667,20 +704,20 @@
       return { vandt: vandt, tab: tab };
     }
     function berom(m, hvordan) {
-      var b = m.slags === 'marine' ? 10 + m.niveau : m.slags === 'pirat' ? 3 + m.niveau : 2;
+      var b = BEROEMMELSE_FOR[m.slags] + (m.slags === 'handel' ? 0 : m.niveau);
       if (hvordan === 'sænket') b = Math.max(1, Math.round(b * 0.7));
       st.beroemmelse += b;
       return b;
     }
     function kapr(m) {
-      var plads = fri(), fik = tomLast(), tabt = 0;
+      var plads = fri(), fik = tomLast(), tabt = 0, g = Math.round(m.guld * BYTTE.guld);
       VARER.forEach(function (v) {
-        var k = Math.min(m.last[v.id], plads);
-        st.last[v.id] += k; fik[v.id] = k; plads -= k; tabt += m.last[v.id] - k;
+        var n = Math.round(m.last[v.id] * BYTTE.last), k = Math.min(n, plads);
+        st.last[v.id] += k; fik[v.id] = k; plads -= k; tabt += n - k;
       });
-      st.guld += m.guld;
+      st.guld += g;
       st.tal.kapret++;
-      m.bytte = { guld: m.guld, last: fik, efterladt: tabt, beroemmelse: berom(m, 'kapret') };
+      m.bytte = { guld: g, last: fik, efterladt: tabt, beroemmelse: berom(m, 'kapret') };
       m.slut = 'kapret';
     }
     function saenk(m) {
@@ -692,8 +729,14 @@
     function tabtBordkamp(m, h) {
       if (m.slags === 'marine') { m.slut = 'taget'; slut('taget'); return; }
       if (m.slags === 'pirat') {
-        var tog = { guld: Math.round(st.guld * 0.5), last: JSON.parse(JSON.stringify(st.last)) };
-        st.guld -= tog.guld; st.last = tomLast(); st.betalt = tomLast();
+        var tog = { guld: Math.round(st.guld * JAGT.plyndring.guld), last: tomLast() };
+        st.guld -= tog.guld;
+        VARER.forEach(function (v) {
+          var n = st.last[v.id], k = Math.ceil(n * JAGT.plyndring.last);
+          if (!k) return;
+          tog.last[v.id] = k; st.betalt[v.id] = n - k > 0 ? Math.round(st.betalt[v.id] * (n - k) / n) : 0; st.last[v.id] = n - k;
+        });
+        st.tal.plyndret = (st.tal.plyndret || 0) + 1;
         h.plyndret = tog; m.slut = 'plyndret';
       } else { m.slut = 'afvist'; }
     }
@@ -743,7 +786,12 @@
         t = { type: 'flygter', ok: ok };
         if (m.afstand >= AFSTANDE) { m.slut = 'undsluppet'; return t; }
         if (m.kanoner > 0) { t.skud = skud(m.kanoner, m.afstand); st.skrog = Math.max(0, st.skrog - t.skud.skade); }
-      } else if (m.afstand === 0 && m.mandskab >= st.mandskab * 1.1) {
+      } else if (m.slags === 'pirat' && m.afstand === 1 && m.mandskab >= st.mandskab * JAGT.bordForhold &&
+                 rng(st) < entreChance(m)) {
+        // Sørøveren kaster entrehager og lægger sig langs siden: næste gang entrer de
+        m.afstand = 0; t = { type: 'entrehager' };
+        t.skud = skud(m.kanoner, 0); st.skrog = Math.max(0, st.skrog - t.skud.skade);
+      } else if (m.afstand === 0 && m.mandskab >= st.mandskab * (m.slags === 'pirat' ? JAGT.bordForhold : 1.1)) {
         var b = bordkamp(m, 'fjende');
         t = { type: 'bord', vandt: !b.vandt, tab: b.tab };   // vandt = fjenden vandt
         if (b.vandt) {
@@ -761,6 +809,7 @@
       if (st.skrog <= 0) { m.slut = 'sunket'; slut('sunket'); }
       return t;
     }
+    function entreChance(m) { return clamp(JAGT.entre + JAGT.entrePrBer * st.beroemmelse + 0.15 * (m.fart - fart()), 0.15, 0.9); }
     function storm(valg) {
       var m = st.moede;
       if (!m || m.slags !== 'storm' || m.slut || st.over) return null;
@@ -807,11 +856,11 @@
       hyrePris: hyrePris, hyr: hyr, proviantPris: proviantPris, proviant: proviant, rygte: rygte,
       rygtePris: rygtePris, rygteHavn: rygteHavn,
       felt: felt, sett: sett, iSyn: iSyn, synsvidde: synsvidde, havnVed: havnVed, havnePos: havnePos,
-      kendteHavne: kendteHavne, andelOpdaget: andelOpdaget, synligeSkibe: synligeSkibe, kanSejle: kanSejle,
+      jagtSyn: jagtSyn, piratVaegt: piratVaegt, kendteHavne: kendteHavne, kortHavne: kortHavne, forvalgtHavn: forvalgtHavn, andelOpdaget: andelOpdaget, synligeSkibe: synligeSkibe, kanSejle: kanSejle,
       flyt: flyt, vent: vent, sti: sti, kursInfo: kursInfo, saetKurs: saetKurs, stopKurs: stopKurs, autoTrin: autoTrin,
       efterMoede: efterMoede,
       handling: handling, storm: storm, erFjendtlig: erFjendtlig,
-      traefChance: traefChance, flugtChance: flugtChance, naermereChance: naermereChance, bordChance: bordChance,
+      traefChance: traefChance, flugtChance: flugtChance, naermereChance: naermereChance, bordChance: bordChance, entreChance: entreChance,
       lastVaerdi: lastVaerdi, formue: formue, point: point, gaaILand: gaaILand, slut: slut,
       save: function () { return JSON.parse(JSON.stringify(st)); },
       _rng: function () { return rng(st); },
@@ -823,6 +872,6 @@
     createGame: createGame, VARER: VARER, HAVNE: HAVNE, SKIBE: SKIBE, havnById: havnById, vareById: vareById,
     skibById: skibById, AFSTANDE: AFSTANDE, PROVIANT_MAX: PROVIANT_MAX, KANON_PRIS: KANON_PRIS,
     REPARATION: REPARATION, TRAEF: TRAEF, START: START, BREDDE: BREDDE, HOEJDE: HOEJDE, SYN: SYN,
-    KIKKERT_PRIS: KIKKERT_PRIS, RYGTE_PRIS: RYGTE_PRIS, BEROEMMELSE_FAKTOR: BEROEMMELSE_FAKTOR, RETNINGER: RETNINGER
+    KIKKERT_PRIS: KIKKERT_PRIS, RYGTE_PRIS: RYGTE_PRIS, BEROEMMELSE_FAKTOR: BEROEMMELSE_FAKTOR, BYTTE: BYTTE, BEROEMMELSE_FOR: BEROEMMELSE_FOR, JAGT: JAGT, RETNINGER: RETNINGER
   };
 })(typeof window !== 'undefined' ? window : globalThis);

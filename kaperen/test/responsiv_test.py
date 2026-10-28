@@ -168,7 +168,9 @@ def gameplay(pg, w, h, tag, big):
         if st(pg, "Kaperen.view") == 'moede' and st(pg, "Kaperen.game.state.pos.join()") == p0: afslut_moede(pg)
         else:
             if st(pg, "Kaperen.view") == 'moede': afslut_moede(pg)
-            if st(pg, "Kaperen.game.state.dag") != d0 + 1 and not st(pg, "!!Kaperen.game.state.over"): fails.append(tag + ' kompasset sejlede ikke ét felt (én dag)')
+            # Én dag for feltet (en storm, hvor man søger læ, kan koste to dage mere)
+            if not st(pg, "!!Kaperen.game.state.over") and (st(pg, "Kaperen.game.state.dag") < d0 + 1 or st(pg, "Kaperen.game.state.pos.join()") == p0):
+                fails.append(tag + ' kompasset sejlede ikke ét felt (én dag)')
     # Nabofelt med musen og tastaturet
     if st(pg, "Kaperen.view") == 'hav':
         fb = st(pg, "[...document.querySelectorAll('.felt-btn')].filter(b => !b.disabled).map(b => b.dataset.ret)")
@@ -199,6 +201,10 @@ def gameplay(pg, w, h, tag, big):
     pg.evaluate("Kaperen.aabnKort()"); pg.wait_for_timeout(100)
     if st(pg, "Kaperen.view") != 'kort': fails.append(tag + ' K/Kort åbnede ikke søkortet')
     v0 = st(pg, "Kaperen.valgtHavn")
+    fv = st(pg, "[Kaperen.game.state.havn, Kaperen.game.state.sidste, Kaperen.game.forvalgtHavn()]")
+    if v0 is not None and v0 in fv[:2]: fails.append('%s søkortet forvalgte havnen, man ligger i/har forladt: %s' % (tag, v0))
+    if v0 != fv[2]: fails.append('%s søkortet forvalgte %s, ikke nærmeste anden havn %s' % (tag, v0, fv[2]))
+    if v0 is None and not st(pg, "document.getElementById('kort-titel').textContent.startsWith('Ingen ny havn')"): fails.append(tag + ' ingen pæn besked uden anden havn')
     check(pg, 'søkort (delvist)', '#game', w, h, tag + '-kort-delvist.png')
     if big and SHOT: pg.screenshot(path=SHOT + 'kort-delvist.png')
     pg.mouse.move(1, 1); pg.evaluate("document.activeElement && document.activeElement.blur()")

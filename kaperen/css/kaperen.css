@@ -299,6 +299,7 @@ ol.records .score { white-space: nowrap; }
 .lay-hoej .v-hav { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(var(--kort-min, 272px), 1fr) auto; }
 .hav-boks, .kort-boks { position: relative; min-height: var(--kort-min, 272px); min-width: 0; border-radius: var(--kap-radius-kort); overflow: hidden; box-shadow: var(--kap-kort-gloed); border: var(--kap-frame-w) solid var(--ui-soft); background: var(--kap-verdens-kant); }
 .kort-svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.lav .kort-boks { min-height: 0; }
 .felt-lag { position: absolute; inset: 0; pointer-events: none; }
 .felt-btn { position: absolute; pointer-events: auto; padding: 0; margin: 0; background: transparent; border: var(--kap-block-w) solid transparent; border-radius: 10px; cursor: pointer; }
 .felt-btn:hover, .felt-btn:focus-visible, .felt-btn.arkade-dwelling { background: var(--kap-felt-valg); border-color: var(--kap-felt-valg-kant); }
@@ -316,8 +317,14 @@ ol.records .score { white-space: nowrap; }
 .lav .hav-panel, .lay-hoej .hav-panel { flex-direction: row; justify-content: center; }
 .hav-ekstra { flex: none; }
 .lav .hav-ekstra { height: auto; width: calc(var(--btn) * 1.15); }
-.lay-hoej .hav-panel { flex-direction: column; align-items: center; }
-.lay-hoej .hav-ekstra { width: 100%; flex-direction: row; gap: 10px; }
+/* Højformat: et mindre kompas (dog mindst 84 px pr. knap) med "Vent/Gå i havn" ved siden af,
+   så havudsnittet over det får mest muligt af højden. */
+.lay-hoej .hav-panel { --kbtn: max(84px, calc(var(--btn) * 0.62)); flex-direction: row; align-items: stretch; justify-content: center; }
+.lay-hoej .kompas-gitter { grid-template-columns: repeat(3, var(--kbtn)); grid-template-rows: repeat(3, var(--kbtn)); flex: none; }
+.lay-hoej .ret-btn svg { width: calc(var(--kbtn) * 0.4); height: calc(var(--kbtn) * 0.4); }
+.lay-hoej .ret-btn .big { font-size: clamp(1rem, calc(var(--kbtn) * 0.2), 1.3rem); }
+.lay-hoej .hav-ekstra { height: auto; flex: 0 1 calc(var(--kbtn) * 1.9); min-width: 84px; flex-direction: column; gap: 4px; }
+.lay-hoej .hav-ekstra svg { width: calc(var(--kbtn) * 0.4); height: calc(var(--kbtn) * 0.4); }
 
 /* Søkortet */
 .v-kort { display: grid; gap: var(--ig, 10px); grid-template-columns: minmax(0, 1fr) var(--kpanel-w, 320px); grid-template-rows: minmax(0, 1fr); }

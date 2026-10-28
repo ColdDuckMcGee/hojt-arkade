@@ -2,7 +2,7 @@
 
 Et roligt, turbaseret sørøver- og handelsspil til Højt Arkade. Der er intet tidspres. Du starter med en slup og 300 guld i Tågeskær på et nyt, tilfældigt hav, der ligger i tåge. Du sejler ud felt for felt og opdager øer, 7 andre havne og andre skibe. Du køber billigt og sælger dyrt, og du kan kæmpe, flygte eller borde, når du møder andre skibe til søs. Spillet kører, til du synker, bliver taget af marinen, sulter, mister mandskabet eller selv vælger at **gå i land**.
 
-**Point = formue (guld + lastens værdi + skibets værdi) + 50 × berømmelse.** Faktoren er valgt ved simulering (se nedenfor), så pirateri giver flere point pr. guld end handel. Top 10 gemmes i arkadens fælles highscores (`hojtArkade.kaperen.*`).
+**Point = formue (guld + lastens værdi + skibets værdi) + 75 × berømmelse.** Faktoren er valgt ved simulering (se nedenfor), så en dygtig sørøver i snit slår handel, men oftere taber. Top 10 gemmes i arkadens fælles highscores (`hojtArkade.kaperen.*`).
 
 Spillet kører offline, også direkte fra `file://`. Det bruger ingen CDN og intet framework.
 
@@ -15,29 +15,27 @@ Spillet kører offline, også direkte fra `file://`. Det bruger ingen CDN og int
   * **Til søs:** viser havet omkring skibet.
 * **Havet** ses fra skibet: det, du kan se lige nu (synsvidden), er klart; det, du har set før, er dunkelt; resten ligger i tåge. Ét felt = én dag = én proviant pr. dag. Du sejler med de 8 kompasknapper eller ved at vælge et nabofelt på kortet. Midt i kompasset åbner **Kort** søkortet. Den store knap er **Vent en dag** til søs og **Gå i havn**, når du ligger ved en havn. Uden proviant mister du folk hver dag.
 * **Søkortet** viser det, du har opdaget, og de havne, du kender. Vælg en havn, se dage, proviant og priser, og **sæt kurs**: skibet sejler selv over kendt hav, ét felt ad gangen, og stopper, hvis et skib kommer i sigte, proviantet slipper op, eller der sker noget. Du kan altid stoppe kursen.
-* **Andre skibe** ses inden for synsvidden. Sørøvere jager dig, når de er tæt på, handelsskibe holder afstand, og marinen jager dig fra **berømmelse 10**. Et skib, der kommer helt hen til dig (eller som du sejler ind i), giver et møde.
+* **Andre skibe** ses inden for synsvidden. Handelsskibe holder afstand, og marinen jager dig fra **berømmelse 10**. Et skib, der kommer helt hen til dig (eller som du sejler ind i), giver et møde.
+* **Sørøvere angriber aktivt**, også når du handler fredeligt. De jager dig, når de ser dig, og når en sørøver selv når hen til dig, er det et **overfald**: den ligger lige ved siden af, kaster entrehager og **entrer selv**, når den har mindst 80 % så mange folk som dig. Taber du kampen om bord, mister du folk, **60 % af guldet og 60 % af hver vare**. Jo mere berømt du er, des flere og stærkere sørøvere er der (flere folk, kanoner og skrog), og des længere væk ser de dig. Ved berømmelse 0 er de få og svage.
 * **Møder til søs** er turbaserede, og hver handling viser sin chance på knappen:
   * **Handelsskib:** angrib, eller lad det sejle videre.
   * **Sørøvere og marinen:** skyd, sejl nærmere, bord eller flygt.
   * **Storm** (kan ske på enhver dag til søs): rid stormen af (skroget tager skade), eller søg læ ved en ø (2 dage og 2 proviant mere).
-  * Kapring og sejre giver bytte og berømmelse. Ved berømmelse 10 og derover bliver marinen fjendtlig.
+  * Kapring giver stort bytte: **8 × skibets guld og 3 × dets last** (så meget, der er plads til) og berømmelse (handelsskib 3, sørøver 5 + niveau, marinen 12 + niveau). Et sænket skib giver 30 % af guldet og lidt mindre berømmelse. Ved berømmelse 10 og derover bliver marinen fjendtlig.
 * **Gå i land** (via menuen eller pausen, med bekræftelse, kun i en havn) afslutter rejsen og gemmer pointene.
 * Et spil i gang gemmes automatisk med alt, hvad du har opdaget, og du kan fortsætte det fra startskærmen. Et gemt spil fra version 1 (det faste kort) indlæses med skib, guld og last i den samme havn på et nyt hav i tåge.
 
-### Berømmelsesfaktoren (simulering)
+### Balancen og berømmelsesfaktoren (simulering)
 
-`node test/simulering.js 1000 150` spiller 1000 tilfældige have × 3 robotkaptajner i op til 150 dage: en **handelsmand** (handler og flygter), en **kaper** (handler, men kaprer handelsskibe, når lasten er tom) og en **pirat** (jager kun skibe). Median-point ved forskellige faktorer F:
+`node test/simulering.js 1000 150` spiller 1000 tilfældige have × 3 robotkaptajner i op til 150 dage: en **handelsmand** (handler og flygter), en **kaper** (handler, men kaprer handelsskibe, når han er stærkest og lasten er tom) og en **pirat** (jager kun skibe, sælger byttet, når lastrummet er halvt fuldt, og går i land ved berømmelse 15, når marinen og de andre sørøvere for alvor jager ham). Tabte spil er sunket (også i storm), taget af marinen eller sultet:
 
-| F | handel | pirat | kaper |
-|---|---|---|---|
-| 10 | 648 | 465 | 2074 |
-| 25 | 649 | 551 | 2088 |
-| 40 | 649 | 629 | 2118 |
-| 45 | 649 | 657 | 2128 |
-| **50** | **649** | **683** | **2138** |
-| 60 | 649 | 726 | 2160 |
+| Stil | Median point (F = 75) | Tabt i alt | Sunket | Taget | Sultet |
+|---|---|---|---|---|---|
+| handel | 4423 | 19 % | 1 % | 0 % | 19 % |
+| kaper | 5757 | 24 % | 9 % | 0 % | 15 % |
+| pirat | 5645 | 33 % | 19 % | 1 % | 13 % |
 
-Ved F ≈ 45 får en ren pirat lige så mange point som en ren handelsmand (to halvdele af simuleringen gav 40 og 62). Med F = 50 betaler pirateri sig lidt bedre end handel, og blandingen (kaperen) er klart bedst. Dem, der overlever og går i land, ender med medianformuer på 4947 (handel), 5395 (kaper) og 1550 (pirat) point ved F = 50.
+Median-point ved andre faktorer F: F = 25: handel 4399, pirat 4884 · F = 50: handel 4399, pirat 5260 · **F = 75: handel 4423, pirat 5645** · F = 100: handel 4433, pirat 6019. Med F = 75 slår sørøveren handel i snit (pirat bedst i 58 % af spillene), men taber næsten dobbelt så tit, og han synker langt oftere. Mest giver blandingen (kaperen).
 
 ## Styring
 

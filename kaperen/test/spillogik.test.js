@@ -63,13 +63,13 @@ test('5 varer, 8 havne med navne, 4 skibe i stigende størrelse', function () {
   for (var i = 1; i < L.SKIBE.length; i++) ['last', 'skrog', 'kanoner', 'mandskab', 'pris'].forEach(function (k) { assert.ok(L.SKIBE[i][k] > L.SKIBE[i - 1][k], k); });
 });
 
-test('ny rejse: slup i Tågeskær med 300 guld; point = formue + 50 × berømmelse', function () {
+test('ny rejse: slup i Tågeskær med 300 guld; point = formue + 75 × berømmelse', function () {
   var g = nyt(), st = g.state;
   assert.strictEqual(st.skib, 'slup'); assert.strictEqual(st.guld, 300); assert.strictEqual(L.START.guld, 300);
   assert.strictEqual(st.havn, 'taageskaer'); assert.strictEqual(st.over, null); assert.strictEqual(st.version, 2);
   assert.deepStrictEqual(st.pos, g.havnePos('taageskaer'));
-  assert.strictEqual(L.BEROEMMELSE_FAKTOR, 50);
-  st.beroemmelse = 3; assert.strictEqual(g.point(), g.formue() + 150);
+  assert.strictEqual(L.BEROEMMELSE_FAKTOR, 75);
+  st.beroemmelse = 3; assert.strictEqual(g.point(), g.formue() + 225);
 });
 
 test('tilfældigt hav for hvert spil: 24 × 15 felter, alle havne kan nås over vand', function () {
@@ -319,20 +319,25 @@ test('skibe til søs: synlige inden for synsvidden, og at sejle ind i et starter
   assert.ok(!g.synligeSkibe().some(function (s) { return s.id === fjern.id; }));
 });
 
-test('sørøvere jager dig, når de er tæt på', function () {
-  var naermere = 0, i;
-  for (var s = 1; s < 60; s++) {
-    var g = tilSoes(s), st = g.state, x, y, sk = null;
-    for (y = 0; y < L.HOEJDE && !sk; y++) for (x = 0; x < L.BREDDE && !sk; x++) {
-      if (g.felt(x, y) === 'hav' && Math.max(Math.abs(x - st.pos[0]), Math.abs(y - st.pos[1])) === 4) sk = g._nytSkib('pirat', x, y);
+test('sørøvere jager dig, når de ser dig – og berømte kaptajner ser de længere væk', function () {
+  function jagter(afst, ber) {
+    var naermere = 0, i;
+    for (var s = 1; s < 60; s++) {
+      var g = tilSoes(s, ber), st = g.state, x, y, sk = null;
+      for (y = 0; y < L.HOEJDE && !sk; y++) for (x = 0; x < L.BREDDE && !sk; x++) {
+        if (g.felt(x, y) === 'hav' && Math.max(Math.abs(x - st.pos[0]), Math.abs(y - st.pos[1])) === afst) sk = g._nytSkib('pirat', x, y);
+      }
+      if (!sk) continue;
+      sk.maal = [sk.x, sk.y];
+      for (i = 0; i < 3 && !st.moede; i++) { st.proviant = 40; g.vent(); }
+      var still = st.skibe.filter(function (q) { return q.id === sk.id; })[0];
+      if (st.moede || (still && Math.max(Math.abs(still.x - st.pos[0]), Math.abs(still.y - st.pos[1])) < afst)) naermere++;
     }
-    if (!sk) continue;
-    var d0 = Math.max(Math.abs(sk.x - st.pos[0]), Math.abs(sk.y - st.pos[1]));
-    for (i = 0; i < 3 && !st.moede; i++) g.vent();
-    var still = st.skibe.filter(function (q) { return q.id === sk.id; })[0];
-    if (st.moede || (still && Math.max(Math.abs(still.x - st.pos[0]), Math.abs(still.y - st.pos[1])) < d0)) naermere++;
+    return naermere;
   }
-  assert.ok(naermere > 30, String(naermere));
+  assert.ok(jagter(3, 0) > 30, 'tæt på jager de også fredelige: ' + jagter(3, 0));
+  var fred = jagter(5, 0), berømt = jagter(5, 8);
+  assert.ok(berømt > fred + 15, fred + ' ' + berømt);
 });
 
 test('marinen jager dig først fra berømmelse 10', function () {
@@ -446,11 +451,11 @@ test('spillet slutter, når skibet synker eller marinen tager dig', function () 
   assert.ok(sunket, 'ingen sank'); assert.ok(taget, 'ingen blev taget');
 });
 
-test('gå i land: kun i havn, giver point = formue + 50 × berømmelse', function () {
+test('gå i land: kun i havn, giver point = formue + 75 × berømmelse', function () {
   var g = tilSoes(1); assert.strictEqual(g.gaaILand(), null, 'ikke til søs');
   g = nyt(); var st = g.state; st.beroemmelse = 4; g.koeb('rom', 3);
   var f = g.formue(); var o = g.gaaILand();
-  assert.strictEqual(o.grund, 'land'); assert.strictEqual(o.formue, f); assert.strictEqual(o.point, f + 200);
+  assert.strictEqual(o.grund, 'land'); assert.strictEqual(o.formue, f); assert.strictEqual(o.point, f + 300);
   assert.strictEqual(o.skib, 'slup'); assert.strictEqual(o.dage, st.dag);
   assert.strictEqual(g.flyt(1, 0).ok, false, 'intet efter game over');
 });
@@ -484,6 +489,178 @@ test('simulering: handel tjener penge, pirateri giver flere point pr. formue, og
   assert.ok(sim.median(land) > 3 * L.START.guld, 'handel skal kunne betale sig for dem, der går i land');
   var pirB = res.pirat.reduce(function (s, r) { return s + r.beroemmelse; }, 0), hanB = res.handel.reduce(function (s, r) { return s + r.beroemmelse; }, 0);
   assert.ok(pirB > hanB, 'pirater bliver mere berømte');
+});
+
+test('søkortet foreslår aldrig havnen, man ligger i eller lige har forladt', function () {
+  // I havn med kun starthavnen kendt: intet forslag
+  var g = nyt(3), st = g.state, fra = st.havn;
+  assert.strictEqual(g.forvalgtHavn(), null);
+  assert.deepStrictEqual(g.kortHavne(), []);
+  // Til søs lige efter afgang: starthavnen står på listen (man kan vælge den), men foreslås ikke
+  g = tilSoes(3); st = g.state; fra = st.sidste;
+  assert.strictEqual(st.havn, null); assert.ok(fra);
+  assert.deepStrictEqual(g.kortHavne(), [fra]);
+  assert.strictEqual(g.forvalgtHavn(), null, 'kun den forladte havn kendt: intet forslag');
+  // Alle havne kendt og hele havet opdaget: forslaget er den nærmeste anden havn
+  st.set = st.set.replace(/0/g, '1'); L.HAVNE.forEach(function (h) { st.kendt[h.id] = true; });
+  var f = g.forvalgtHavn();
+  assert.ok(f && f !== fra && f !== st.havn, 'en anden havn foreslås');
+  var dage = function (id) { return g.kursInfo(id).dage; };
+  L.HAVNE.forEach(function (h) { if (h.id !== fra) assert.ok(dage(f) <= dage(h.id), f + ' er nærmest (ikke ' + h.id + ')'); });
+  var liste = g.kortHavne();
+  assert.strictEqual(liste.length, L.HAVNE.length, 'den forladte havn kan stadig vælges');
+  for (var i = 1; i < liste.length; i++) assert.ok(dage(liste[i - 1]) <= dage(liste[i]), 'listen er sorteret efter afstand');
+});
+
+test('i havn foreslås nærmeste anden havn, også når den forladte havn er nærmest', function () {
+  var n = 0;
+  for (var s = 1; s < 60; s++) {
+    var g = nyt(s), st = g.state;
+    st.set = st.set.replace(/0/g, '1'); L.HAVNE.forEach(function (h) { st.kendt[h.id] = true; });
+    var start = st.havn, liste = g.kortHavne(), naer = liste[0];
+    // Sejl til den nærmeste havn; derfra må hverken den eller starthavnen foreslås
+    var r = sejlKurs(g, naer);
+    if (!r || st.havn !== naer) continue;
+    assert.strictEqual(st.sidste, naer);
+    assert.ok(g.kortHavne().indexOf(naer) < 0, 'havnen, man ligger i, er ikke på listen');
+    var f = g.forvalgtHavn();
+    assert.ok(f && f !== naer, 'forslaget er en anden havn');
+    assert.strictEqual(f, g.kortHavne()[0], 'forslaget er listens nærmeste');
+    // Til søs igen: den forladte havn (naer) foreslås ikke, selv om den ligger lige bagved
+    var nb = nabo(g, st.pos[0], st.pos[1]); if (!nb) continue;
+    var fl = g.flyt(R[nb[2]][0], R[nb[2]][1]);
+    if (!fl.ok || st.havn || fl.moede) continue;
+    assert.strictEqual(g.kortHavne()[0], naer, 'den forladte havn er nærmest');
+    assert.ok(g.forvalgtHavn() !== naer, 'men den foreslås ikke');
+    assert.ok(g.forvalgtHavn(), 'en anden kendt havn foreslås');
+    n++;
+  }
+  assert.ok(n >= 5, 'nok spil afprøvet (' + n + ')');
+});
+
+
+// ---------- Aktive sørøvere, fjendtlig bordning og tab ----------
+function piratMoede(seed, ber) {
+  var g = medMoede('pirat', seed, ber), m = g.state.moede;
+  m.skrog = m.maxSkrog = 100000;   // sørøveren flygter ikke og synker ikke i testen
+  return g;
+}
+
+test('sørøvere overfalder dig aktivt, også når du bare venter fredeligt til søs', function () {
+  var overfald = 0;
+  for (var s = 1; s < 40; s++) {
+    var g = tilSoes(s), st = g.state;
+    var nb = nabo(g, st.pos[0], st.pos[1]); if (!nb) continue;
+    g._nytSkib('pirat', nb[0], nb[1]);
+    var a0 = st.tal.angrebet, r = g.vent();
+    if (!r.moede || r.moede.slags !== 'pirat') continue;
+    overfald++;
+    assert.strictEqual(r.moede.overfald, true);
+    assert.strictEqual(r.moede.afstand, 1, 'overfaldet starter helt tæt på');
+    assert.strictEqual(st.tal.angrebet, a0 + 1);
+    assert.ok(g.erFjendtlig(r.moede));
+  }
+  assert.ok(overfald > 20, String(overfald));
+  // Sejler du selv ind i sørøveren, er det ikke et overfald
+  var m = medMoede('pirat').state.moede;
+  assert.ok(!m.overfald); assert.strictEqual(m.afstand, 2);
+});
+
+test('sørøveren kaster entrehager og entrer selv, når den har nok folk', function () {
+  var entret = 0, entrehager = 0;
+  for (var s = 1; s < 60; s++) {
+    var g = piratMoede(s), st = g.state, m = st.moede;
+    st.kanoner = 1; st.mandskab = 10; m.afstand = 1; m.mandskab = 10;
+    for (var i = 0; i < 12 && !m.slut && !st.over; i++) {
+      st.skrog = 1000;
+      var h = g.handling('skyd');
+      if (h.fjende && h.fjende.type === 'entrehager') { entrehager++; assert.strictEqual(m.afstand, 0); }
+      if (h.fjende && h.fjende.type === 'bord') { entret++; break; }
+    }
+  }
+  assert.ok(entrehager > 30 && entret > 30, entrehager + ' ' + entret);
+});
+
+test('en sørøver med for få folk entrer ikke, men bliver liggende og skyder', function () {
+  for (var s = 1; s < 30; s++) {
+    var g = piratMoede(s), st = g.state, m = st.moede;
+    st.kanoner = 1; st.mandskab = 20; m.afstand = 1; m.mandskab = 10;   // 50 % < 80 %
+    for (var i = 0; i < 10 && !m.slut; i++) {
+      st.skrog = 1000;
+      var h = g.handling('skyd');
+      assert.ok(!h.fjende || (h.fjende.type !== 'entrehager' && h.fjende.type !== 'bord'), JSON.stringify(h.fjende));
+      assert.strictEqual(m.afstand, 1);
+    }
+  }
+});
+
+test('taber du en bordkamp mod sørøvere, tager de folk, 60 % af guldet og 60 % af hver vare', function () {
+  var plyndret = 0;
+  for (var s = 1; s < 40; s++) {
+    var g = piratMoede(s), st = g.state, m = st.moede;
+    st.kanoner = 1; st.mandskab = 8; m.afstand = 0; m.mandskab = 80;
+    st.guld = 1000; st.last.rom = 5; st.betalt.rom = 100; st.last.silke = 1; st.betalt.silke = 50;
+    var h = g.handling('skyd');
+    if (!h.fjende || h.fjende.type !== 'bord' || m.slut !== 'plyndret') continue;
+    plyndret++;
+    assert.strictEqual(h.fjende.vandt, true);
+    assert.ok(st.mandskab < 8 && st.mandskab >= 1, 'mistede folk, men ikke alle');
+    assert.strictEqual(st.guld, 400); assert.deepStrictEqual(h.plyndret.guld, 600);
+    assert.strictEqual(st.last.rom, 2); assert.strictEqual(h.plyndret.last.rom, 3);
+    assert.strictEqual(st.last.silke, 0); assert.strictEqual(st.betalt.silke, 0);
+    assert.strictEqual(st.betalt.rom, 40, 'indkøbsprisen følger med den last, der er tilbage');
+    assert.strictEqual(st.tal.plyndret, 1);
+    assert.strictEqual(st.over, null, 'man overlever at blive plyndret');
+  }
+  assert.ok(plyndret > 30, String(plyndret));
+});
+
+test('berømmelse gør dig til mål: flere og stærkere sørøvere, der ser dig længere væk', function () {
+  var a = nyt(3), b = nyt(3);
+  b.state.beroemmelse = 20;
+  assert.ok(b.piratVaegt() > a.piratVaegt() * 3, a.piratVaegt() + ' ' + b.piratVaegt());
+  assert.ok(b.jagtSyn() > a.jagtSyn());
+  assert.strictEqual(a.jagtSyn(), L.JAGT.syn);
+  var svag = medMoede('pirat', 4, 0).state.moede, staerk = medMoede('pirat', 4, 14).state.moede;   // 14: samme niveau
+  assert.strictEqual(svag.niveau, staerk.niveau);
+  assert.strictEqual(staerk.mandskab, svag.mandskab + 7);
+  assert.strictEqual(staerk.kanoner, svag.kanoner + 2);
+  assert.strictEqual(staerk.maxSkrog, svag.maxSkrog + 28);
+  assert.ok(b.entreChance(staerk) > a.entreChance(staerk));
+});
+
+test('kapring giver stort bytte: 8 × skibets guld, 3 × dets last og berømmelse', function () {
+  var vundet = 0;
+  for (var s = 1; s < 200 && vundet < 5; s++) {
+    var g = medMoede('handel', s), st = g.state, m = st.moede;
+    st.mandskab = 60; st.kanoner = 2; m.afstand = 0;
+    var guld = m.guld, last = JSON.parse(JSON.stringify(m.last)), g0 = st.guld, b0 = st.beroemmelse;
+    for (var i = 0; i < 10 && !m.slut; i++) g.handling('bord');
+    if (m.slut !== 'kapret') continue;
+    vundet++;
+    assert.strictEqual(m.bytte.guld, Math.round(guld * L.BYTTE.guld)); assert.strictEqual(st.guld, g0 + m.bytte.guld);
+    var ialt = 0, fik = 0;
+    L.VARER.forEach(function (v) { ialt += Math.round(last[v.id] * L.BYTTE.last); fik += m.bytte.last[v.id]; });
+    assert.strictEqual(fik + m.bytte.efterladt, ialt);
+    assert.strictEqual(st.beroemmelse - b0, L.BEROEMMELSE_FOR.handel);
+  }
+  assert.ok(vundet >= 3, String(vundet));
+});
+
+test('simulering: en dygtig sørøver slår handel i point, men taber oftere; også handelsfolk bliver angrebet', function () {
+  var sim = require('./simulering.js');
+  var res = sim.koer(150, 150), med = {}, tabt = {};
+  ['handel', 'pirat'].forEach(function (b) {
+    med[b] = sim.median(res[b].map(function (r) { return r.formue + L.BEROEMMELSE_FAKTOR * r.beroemmelse; }));
+    tabt[b] = res[b].filter(function (r) { return r.over !== 'land'; }).length / res[b].length;
+  });
+  console.log('    median point – handel ' + med.handel + ', pirat ' + med.pirat + '; tabt – handel ' + Math.round(100 * tabt.handel) + ' %, pirat ' + Math.round(100 * tabt.pirat) + ' %');
+  assert.ok(med.pirat > med.handel, 'pirat skal give flere point');
+  assert.ok(tabt.pirat > tabt.handel * 1.3, 'pirat skal tabe oftere');
+  var angrebet = res.handel.filter(function (r) { return r.angrebet > 0; }).length;
+  var plyndret = res.handel.reduce(function (s, r) { return s + r.plyndret; }, 0);
+  assert.ok(angrebet > res.handel.length / 2, 'fredelige handelsfolk bliver også angrebet: ' + angrebet);
+  assert.ok(plyndret > 0);
 });
 
 console.log('\n' + n + ' tests bestået');

@@ -1,4 +1,4 @@
-// Simulering af to spillestile på det nye, ukendte hav: en handelsmand og en pirat.
+// Simulering af tre spillestile på det nye, ukendte hav: handel, kaper (handler og kaprer handelsskibe, når han er stærkest) og pirat.
 // Bruges til at vælge berømmelsesfaktoren i pointformlen (point = formue + F × berømmelse).
 //   node kaperen/test/simulering.js            (200 spil pr. stil, 150 dage)
 'use strict';
@@ -144,6 +144,8 @@ function spil(seed, stil, dage) {
   while (!st.over && skridt++ < 5000) {
     if (st.havn) {
       if (st.dag >= dage) { g.gaaILand(); break; }
+      // En dygtig sørøver ved, hvornår det er nok: med marinen i hælene går han i land
+      if (stil === 'pirat' && st.beroemmelse >= PIRAT_STOP) { g.gaaILand(); break; }
       maal = stil === 'handel' ? iHavnHandel(g) : stil === 'kaper' ? iHavnKaper(g) : iHavnPirat(g);
       if (maal && g.saetKurs(maal).ok) {
         while (st.kurs && !st.over) { var r = g.autoTrin(); if (r && r.moede) MOEDE[stil](g); }
@@ -154,7 +156,7 @@ function spil(seed, stil, dage) {
     var d = null;
     var fj = fjendtligNaer(g, stil);
     if (fj && !st.havn && st.proviant > havnAfstand(g) && Math.max(Math.abs(fj.x - st.pos[0]), Math.abs(fj.y - st.pos[1])) <= 4) d = undvig(g, fj);
-    var hjem = st.dag >= dage || st.proviant < havnAfstand(g) + 3 || st.skrog < g.maxSkrog() * 0.55 || (stil === 'pirat' && st.mandskab < g.maxMandskab() * 0.6) || (stil !== 'pirat' && g.lastIalt() > 0);
+    var hjem = st.dag >= dage || st.proviant < havnAfstand(g) + 3 || st.skrog < g.maxSkrog() * 0.55 || (stil === 'pirat' && (st.mandskab < g.maxMandskab() * 0.6 || g.lastIalt() > g.lastrum() * 0.5)) || (stil !== 'pirat' && g.lastIalt() > 0);
     if (!d && hjem) d = (maal && !st.havn && g.sti(maal)) ? tilHavn(g, maal) : naermesteHavn(g);
     if (!d && (stil === 'pirat' || (stil === 'kaper' && g.lastIalt() === 0)) && !hjem) {
       var bytte = g.synligeSkibe().filter(function (s) { return s.slags === 'handel'; })[0];
@@ -171,9 +173,10 @@ function spil(seed, stil, dage) {
   }
   if (!st.over) g.slut('tid');
   STAT.dage += st.dag; STAT.moeder += st.tal.moeder || 0;
-  return { formue: st.over.formue, beroemmelse: st.beroemmelse, over: st.over.grund, kapret: st.tal.kapret, sænket: st.tal.sænket };
+  return { formue: st.over.formue, beroemmelse: st.beroemmelse, over: st.over.grund, kapret: st.tal.kapret, sænket: st.tal.sænket, angrebet: st.tal.angrebet || 0, plyndret: st.tal.plyndret || 0, dage: st.dag };
 }
 var STAT = { dage: 0, moeder: 0 };
+var PIRAT_STOP = +(process.env.PIRAT_STOP || 15);   // den dygtige sørøver går i land, når marinen og de andre sørøvere for alvor jager ham
 function median(a) { a = a.slice().sort(function (x, y) { return x - y; }); return a[a.length >> 1]; }
 function koer(n, dage, fra) {
   fra = fra || 0;
@@ -196,13 +199,19 @@ if (require.main === module) {
       ', slut ' + JSON.stringify(over) + ', kapret i alt ' + a.reduce(function (s, r) { return s + r.kapret; }, 0));
   });
   console.log('møder pr. dag: ' + (STAT.moeder / STAT.dage).toFixed(3));
-  [10, 25, 40, 45, 50, 55, 60].forEach(function (F) {
+  [25, 50, 75, 100].forEach(function (F) {
     var h = median(res.handel.map(function (r) { return point(r, F); })), p = median(res.pirat.map(function (r) { return point(r, F); }));
     var vinder = 0; for (var i = 0; i < n; i++) if (point(res.pirat[i], F) > point(res.handel[i], F)) vinder++;
     var kk = median(res.kaper.map(function (r) { return point(r, F); }));
-    var lk = res.kaper.filter(function (r) { return r.over === 'land'; });
-    var lh = res.handel.filter(function (r) { return r.over === 'land'; }), lp = res.pirat.filter(function (r) { return r.over === 'land'; });
-    console.log('F=' + F + ': median point handel ' + h + ', pirat ' + p + ', kaper ' + kk + ', pirat bedst i ' + Math.round(100 * vinder / n) + ' %' +
-      ' | gik i land: handel ' + median(lh.map(function (r) { return point(r, F); })) + ' (' + lh.length + '), kaper ' + median(lk.map(function (r) { return point(r, F); })) + ', pirat ' + median(lp.map(function (r) { return point(r, F); })) + ' (' + lp.length + ')');
+    console.log('F=' + F + ': median point handel ' + h + ', kaper ' + kk + ', pirat ' + p + ', pirat bedst i ' + Math.round(100 * vinder / n) + ' % af spillene');
+  });
+  // Tabte spil: sunket (også i storm), taget af marinen, sultet (også mistet hele mandskabet)
+  console.log('\n| Stil | Median point (F=' + L.BEROEMMELSE_FAKTOR + ') | Tabt i alt | Sunket | Taget | Sultet |');
+  console.log('|---|---|---|---|---|---|');
+  ['handel', 'kaper', 'pirat'].forEach(function (k) {
+    var a = res[k], pct = function (f) { return Math.round(100 * a.filter(f).length / a.length) + ' %'; };
+    console.log('| ' + k + ' | ' + median(a.map(function (r) { return point(r, L.BEROEMMELSE_FAKTOR); })) + ' | ' + pct(function (r) { return r.over !== 'land' && r.over !== 'tid'; }) +
+      ' | ' + pct(function (r) { return r.over === 'sunket' || r.over === 'storm'; }) + ' | ' + pct(function (r) { return r.over === 'taget'; }) +
+      ' | ' + pct(function (r) { return r.over === 'sult' || r.over === 'mandskab'; }) + ' |');
   });
 }

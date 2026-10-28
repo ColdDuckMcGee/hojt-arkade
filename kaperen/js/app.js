@@ -623,17 +623,10 @@
 
   // ---------- Søkortet: det, du har opdaget ----------
   var valgtHavn = null;
-  function kortHavne() {
-    var st = game.state;
-    var ids = game.kendteHavne().filter(function (id) { return id !== st.havn; });
-    var info = {}; ids.forEach(function (id) { info[id] = game.kursInfo(id); });
-    ids.sort(function (a, b) { var A = info[a] ? info[a].dage : 999, B = info[b] ? info[b].dage : 999; return A - B; });
-    return ids;
-  }
+  function kortHavne() { return game.kortHavne(); }
   function aabnKort() {
-    var ids = kortHavne();
     kortFra = view === 'havn' ? 'havn' : 'hav';
-    valgtHavn = game.state.kurs ? game.state.kurs.til : (ids[0] || null);
+    valgtHavn = game.state.kurs && game.state.kendt[game.state.kurs.til] ? game.state.kurs.til : game.forvalgtHavn();
     setView('kort');
   }
   onAct($('#btn-hav-kort'), function () { if (!spilAktivt() || view !== 'hav' || kursAktiv()) return; sfx('click'); aabnKort(); });
@@ -691,13 +684,16 @@
   }
   function syncKort() {
     var st = game.state, ids = kortHavne();
-    if (valgtHavn && ids.indexOf(valgtHavn) < 0) valgtHavn = ids[0] || null;
+    if (valgtHavn && ids.indexOf(valgtHavn) < 0) valgtHavn = game.forvalgtHavn();
     var titel = $('#kort-titel'), info = $('#kort-info'), ki = valgtHavn ? game.kursInfo(valgtHavn) : null;
     $('#kort-chips').innerHTML = '<span class="scene-chip navn">Søkortet</span><span class="scene-chip">Opdaget ' + Math.round(game.andelOpdaget() * 100) + ' %</span>' +
       '<span class="scene-chip">Havne ' + game.kendteHavne().length + ' af ' + L.HAVNE.length + '</span>';
     if (!valgtHavn) {
-      titel.textContent = 'Ingen andre havne';
-      info.innerHTML = 'Du kender ingen andre havne endnu. Sejl ud i tågen, eller køb et rygte i værtshuset.';
+      var bag = !st.havn && st.sidste && ids.indexOf(st.sidste) >= 0;
+      titel.textContent = 'Ingen ny havn';
+      info.innerHTML = bag
+        ? 'Du kender kun ' + havnNavn(st.sidste) + ', som du lige har forladt. Sejl videre ud i tågen for at finde en ny havn, eller vælg ' + havnNavn(st.sidste) + ' med »Forrige havn« eller »Næste havn«, hvis du vil tilbage.'
+        : 'Du kender ingen andre havne endnu. Sejl ud i tågen, eller køb et rygte i værtshuset.';
     } else {
       var h = L.havnById(valgtHavn);
       titel.textContent = h.navn + (ki ? ' · ' + stk(ki.dage, 'dag', 'dage') : '');
@@ -708,8 +704,9 @@
       if (h.skjul) t += ' Sørøvernes skjul.';
       info.innerHTML = t;
     }
-    $('#btn-havn-forrige').disabled = ids.length < 2;
-    $('#btn-havn-naeste').disabled = ids.length < 2;
+    var kanSkifte = ids.length > 1 || (ids.length === 1 && valgtHavn !== ids[0]);
+    $('#btn-havn-forrige').disabled = !kanSkifte;
+    $('#btn-havn-naeste').disabled = !kanSkifte;
     $('#btn-kurs').disabled = !ki || !ki.dage;
     $('#btn-kurs .small').textContent = ki ? stk(ki.dage, 'dag', 'dage') : valgtHavn ? 'ingen kendt vej' : '';
     $('#btn-kort-tilbage .big').textContent = kortFra === 'havn' && st.havn ? 'Bliv i havnen' : 'Tilbage';
@@ -723,7 +720,9 @@
   function intro(m) {
     if (m.slags === 'storm') return 'En storm trækker op! Vil du ride den af (skroget tager skade) eller søge læ ved en ø (2 dage mere)?';
     if (m.slags === 'handel') return fjendeNavn(m) + ' er i sigte. Det er fredeligt – sejl videre, eller angrib det og tag lasten.';
-    if (m.slags === 'pirat') return 'Sørøvere! ' + m.navn + ' har set dig og sætter kurs mod dig.';
+    if (m.slags === 'pirat') return m.overfald
+      ? 'Overfald! Sørøveren ' + m.navn + ' har jaget dig og ligger lige ved siden af. De vil entre dig og tage dit guld og din last – kæmp, eller flygt.'
+      : 'Sørøvere! ' + m.navn + ' har set dig og sætter kurs mod dig.';
     return game.erFjendtlig(m) ? 'Marinen! ' + fjendeNavn(m) + ' har hørt om dig og vil tage dig til fange.' : fjendeNavn(m) + ' patruljerer. Det lader dig være, hvis du lader det være.';
   }
   function skudTekst(s, dig) {
@@ -742,6 +741,7 @@
     if (fj) {
       if (fj.type === 'flygter') t.push(fj.ok ? 'De sætter alle sejl og prøver at slippe væk.' : 'De prøver at flygte, men du hænger på.');
       if (fj.naermere) t.push('De kommer nærmere.');
+      if (fj.type === 'entrehager') t.push('De kaster entrehager og trækker sig langs siden af dig – næste gang entrer de!');
       if (fj.type === 'bord') t.push(fj.vandt ? 'De entrer dit skib og vinder kampen! Du mister ' + stk(fj.tab, 'mand', 'mand') + '.' : 'De entrer dit skib, men I slår dem tilbage og tager deres skib! Du mister ' + stk(fj.tab, 'mand', 'mand') + '.');
       if (fj.skud) t.push(skudTekst(fj.skud, false));
     }
@@ -767,7 +767,7 @@
     else if (sp.type === 'bord') { sfx('bordning'); d = 0.8; }
     else if (sp.type === 'flygt' || sp.type === 'naermere' || sp.type === 'videre') { sfx('boelger'); d = 0.5; }
     if (fj && fj.skud && fj.skud.kanoner) { sfx('kanon', d); sfx(fj.skud.traef ? 'traef' : 'plask', d + 0.35); }
-    if (fj && fj.type === 'bord') sfx('bordning', d);
+    if (fj && (fj.type === 'bord' || fj.type === 'entrehager')) sfx('bordning', d);
   }
   function handling(valg) {
     if (!spilAktivt() || view !== 'moede') return;
