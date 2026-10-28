@@ -7,10 +7,9 @@
  * Klasser på felterne (.cell):
  *   fast     kilde eller afløb (kan ikke drejes, er ikke en knap)
  *   forb     forbundet med kilden lige nu (kun når "Vis forbindelse" er slået til)
- *   vaad     vandet løber her (efter "Luk vandet på"); --d er skridt fra kilden
- *   tor      vandet nåede ikke hertil (vises kun ved et mislykket forsøg)
+ *   vaad     vandet løber her (når banen er løst); --d er skridt fra kilden
  *   cur      tastaturets markør
- * På brættet (.board): klaret, fejl, tabt.
+ * På brættet (.board): klaret, tabt.
  */
 (function (global) {
   'use strict';
@@ -20,7 +19,7 @@
   var NAVN = { lige: 'lige rør', knaek: 'knæk', t: 'T-rør', kryds: 'kryds', kilde: 'kilden', afloeb: 'afløbet' };
   var RETNING = ['nord', 'øst', 'syd', 'vest'];
 
-  // Temaets ikoner lægges ind som <symbol id="rl-ikon-<navn>">, så HTML kan bruge <use href="#rl-ikon-vand">
+  // Temaets ikoner lægges ind som <symbol id="rl-ikon-<navn>">, så HTML kan bruge <use href="#rl-ikon-fortryd">
   function installerIkoner(doc) {
     doc = doc || document;
     if (doc.getElementById('rl-ikoner')) return;
@@ -80,7 +79,6 @@
       if (!cellEls.length || builtFor !== b) return;
       var n = b.n, f = s.flow, w = s.water;
       boardEl.classList.toggle('klaret', !!s.solved);
-      boardEl.classList.toggle('fejl', !!w && !w.reached);
       boardEl.classList.toggle('tabt', !!s.over);
       for (var i = 0; i < cellEls.length; i++) {
         var el = cellEls[i], t = b.tiles[i], cl = el.classList;
@@ -93,7 +91,6 @@
         var dist = w ? w.dist[i] : -1;
         cl.toggle('forb', !!view.connected && f && f.dist[i] >= 0);
         cl.toggle('vaad', dist >= 0 || t.type === 'kilde');
-        cl.toggle('tor', !!w && !w.reached && dist < 0);
         if (dist >= 0) el.style.setProperty('--d', dist); else el.style.removeProperty('--d');
         cl.toggle('cur', i === view.cursor);
         var x = i % n, y = Math.floor(i / n);
@@ -103,14 +100,8 @@
       }
       shownWater = w;
     }
-    function lives(el, left, max) {
-      if (el.dataset.v === String(left)) return;
-      var html = '';
-      for (var i = 0; i < max; i++) html += ikon('liv', i < left ? 'on' : 'off');
-      el.innerHTML = html; el.dataset.v = left;
-    }
     return {
-      build: build, board: board, lives: lives,
+      build: build, board: board,
       get builtFor() { return builtFor; },
       get ready() { return cellEls.length > 0; }
     };

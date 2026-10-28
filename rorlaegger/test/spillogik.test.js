@@ -146,10 +146,24 @@ test('størrelse efter bane og skærm', function () {
   assert.strictEqual(L.sizeForLevel(20, 5), 5);
   assert.strictEqual(L.sizeForLevel(20, 4), 4);
 });
+// Drej banens sti på plads med rigtige drejninger (det sidste træk løser banen)
+function solveRun(run) {
+  var s = run.state, b = s.board, last = null;
+  b.path.forEach(function (i) {
+    var t = b.tiles[i]; if (t.fixed) return;
+    var k = L.turnsNeeded(t, b.need[i]);
+    for (var j = 0; j < k && !s.solved; j++) { last = run.rotate(i); assert.strictEqual(last.ok, true); }
+  });
+  return last;
+}
+// En brik uden for stien, som aldrig er en del af løsningen
+function filler(s) { return s.board.tiles.findIndex(function (t, i) { return !t.fixed && !s.board.need[i]; }); }
+
 test('drej, fortryd og drejninger', function () {
   var run = L.createRun({ seed: 5 }), s = run.state;
   assert.strictEqual(s.n, 4);
-  assert.strictEqual(s.budget, s.board.solTurns + L.RULES.buffer(1));
+  assert.strictEqual(s.budget, s.board.solTurns + L.RULES.buffer(1, 4));
+  assert.strictEqual(s.lives, undefined); // ingen liv
   var i = s.board.tiles.findIndex(function (t) { return !t.fixed; });
   var r0 = s.board.tiles[i].rot, left = s.turnsLeft;
   assert.strictEqual(run.rotate(i).ok, true);
@@ -162,80 +176,84 @@ test('drej, fortryd og drejninger', function () {
   // Kilde og afløb kan ikke drejes
   assert.strictEqual(run.rotate(s.board.source).result, 'kilde');
   assert.strictEqual(run.rotate(s.board.drain).result, 'afloeb');
-  // Ingen drejninger tilbage
-  s.turnsLeft = 0;
-  assert.strictEqual(run.rotate(i).result, 'ingen');
+  assert.strictEqual(typeof run.openWater, 'undefined'); // ingen Luk vandet på
 });
-test('luk vandet på: forkert koster et liv, rigtigt giver point', function () {
+test('bufferen: 8 → mindst 4, plus én pr. række over 4', function () {
+  assert.strictEqual(L.RULES.buffer(1, 4), 8);
+  assert.strictEqual(L.RULES.buffer(3, 4), 8);
+  assert.strictEqual(L.RULES.buffer(4, 5), 8);
+  assert.strictEqual(L.RULES.buffer(9, 6), 8);
+  assert.strictEqual(L.RULES.buffer(13, 4), 4);
+  assert.strictEqual(L.RULES.buffer(40, 6), 6);
+});
+test('vandet løber af sig selv, når drejningen løser banen', function () {
   var run = L.createRun({ seed: 11 }), s = run.state;
-  var res = run.openWater();
-  assert.strictEqual(res.reached, false);
-  assert.strictEqual(s.lives, 2);
-  assert.ok(s.water && s.water.wet >= 1);
-  // Læg løsningen med rigtige drejninger
-  var b = s.board;
-  b.path.forEach(function (i) { var t = b.tiles[i]; if (t.fixed) return; var k = L.turnsNeeded(t, b.need[i]); for (var j = 0; j < k; j++) run.rotate(i); });
-  assert.strictEqual(s.flow.reached, true);
-  var left = s.turnsLeft;
-  res = run.openWater();
-  assert.strictEqual(res.reached, true);
+  assert.strictEqual(s.flow.reached, false);
+  var b = s.board, pre = 0;
+  // Tæl drejningerne, der skal til, og læg dem: kun den sidste melder løst
+  b.path.forEach(function (i) { if (!b.tiles[i].fixed) pre += L.turnsNeeded(b.tiles[i], b.need[i]); });
+  var left0 = s.turnsLeft, solvedCount = 0;
+  b.path.forEach(function (i) {
+    var t = b.tiles[i]; if (t.fixed) return;
+    var k = L.turnsNeeded(t, b.need[i]);
+    for (var j = 0; j < k && !s.solved; j++) { var r = run.rotate(i); if (r.solved) solvedCount++; else assert.strictEqual(s.water, null); }
+  });
+  assert.strictEqual(solvedCount, 1);
   assert.strictEqual(s.solved, true);
-  var p = res.points;
-  assert.strictEqual(p.pipes, res.flow.wet * L.RULES.pointsPerPipe);
-  assert.strictEqual(p.spare, left * L.RULES.pointsPerSpare);
+  assert.ok(s.water && s.water.reached && s.water.dist[b.drain] >= 1);
+  assert.ok(left0 - s.turnsLeft <= pre);
+  var p = s.lastPoints;
+  assert.strictEqual(p.pipes, s.water.wet * L.RULES.pointsPerPipe);
+  assert.strictEqual(p.spare, s.turnsLeft * L.RULES.pointsPerSpare);
   assert.strictEqual(p.level, L.RULES.levelBonus);
   assert.strictEqual(s.score, p.total);
-  assert.strictEqual(run.rotate(0).ok, false); // banen er klaret
+  assert.strictEqual(run.rotate(filler(s)).ok, false); // banen er klaret
+  assert.strictEqual(run.undo().ok, false);
   assert.strictEqual(run.nextLevel(), true);
   assert.strictEqual(s.level, 2);
   assert.strictEqual(s.solved, false);
-  assert.strictEqual(s.lives, 2); // liv fyldes ikke op
   assert.strictEqual(s.cleared, 1);
+  assert.strictEqual(s.water, null);
 });
-test('fejlslagne forsøg giver ekstra drejninger og ender med game over', function () {
-  var run = L.createRun({ seed: 2 }), s = run.state;
-  s.turnsLeft = 0;
-  var r1 = run.openWater();
-  assert.strictEqual(r1.over, false);
-  assert.strictEqual(s.turnsLeft, L.RULES.buffer(1));
-  assert.strictEqual(r1.refill, L.RULES.buffer(1));
-  run.openWater();
-  var r3 = run.openWater();
-  assert.strictEqual(r3.over, true);
+test('løses banen med den sidste drejning, er den klaret (ikke game over)', function () {
+  var run = L.createRun({ seed: 21 }), s = run.state;
+  s.turnsLeft = s.board.solTurns; // præcis nok
+  var r = solveRun(run);
+  assert.strictEqual(r.solved, true);
+  assert.strictEqual(s.over, false);
+  assert.strictEqual(s.lastPoints.spare, s.turnsLeft * L.RULES.pointsPerSpare);
+});
+test('game over, når drejningerne er brugt, og banen ikke er løst', function () {
+  var run = L.createRun({ seed: 2 }), s = run.state, f = filler(s);
+  assert.ok(f >= 0);
+  var last;
+  while (s.turnsLeft > 0) { last = run.rotate(f); assert.strictEqual(last.ok, true); if (last.solved) break; }
+  assert.strictEqual(last.solved, false);
+  assert.strictEqual(last.over, true);
   assert.strictEqual(s.over, true);
-  assert.strictEqual(s.lives, 0);
-  assert.strictEqual(run.openWater().ok, false);
+  assert.strictEqual(s.turnsLeft, 0);
+  assert.strictEqual(run.rotate(f).ok, false);
+  assert.strictEqual(run.undo().ok, false); // fortryd kan ikke redde et tabt spil
+  assert.strictEqual(run.nextLevel(), false);
   assert.deepStrictEqual(run.end(), { score: 0, cleared: 0, level: 1 });
+});
+test('fortryd giver drejningen tilbage, før de er brugt', function () {
+  var run = L.createRun({ seed: 3 }), s = run.state, f = filler(s);
+  while (s.turnsLeft > 1) run.rotate(f);
+  assert.strictEqual(run.undo().ok, true);
+  assert.strictEqual(s.turnsLeft, 2);
+  assert.strictEqual(s.over, false);
 });
 test('mange baner i træk kan klares (60 baner)', function () {
   var run = L.createRun({ seed: 123, maxN: 6 }), s = run.state;
   for (var lv = 1; lv <= 60; lv++) {
-    var b = s.board;
-    b.path.forEach(function (i) { var t = b.tiles[i]; if (t.fixed) return; var k = L.turnsNeeded(t, b.need[i]); for (var j = 0; j < k; j++) assert.strictEqual(run.rotate(i).ok, true); });
-    assert.ok(s.turnsLeft >= L.RULES.buffer(lv));
-    assert.strictEqual(run.openWater().reached, true, 'bane ' + lv);
-    run.nextLevel();
+    var r = solveRun(run);
+    assert.strictEqual(r.solved, true, 'bane ' + lv);
+    assert.ok(s.turnsLeft >= L.RULES.buffer(lv, s.n));
+    assert.strictEqual(run.nextLevel(), true);
   }
   assert.strictEqual(s.n, 6);
   assert.strictEqual(s.cleared, 60);
-});
-
-test('et liv tilbage for hver ' + L.RULES.lifeEvery + '. klarede bane (højst ' + L.RULES.lives + ')', function () {
-  var run = L.createRun({ seed: 9, maxN: 4 }), s = run.state;
-  function solve() { var b = s.board; b.tiles.forEach(function (t, i) { if (!t.fixed && b.need[i]) { var k = L.turnsNeeded(t, b.need[i]); for (var j = 0; j < k; j++) run.rotate(i); } }); }
-  // Mist et liv i bane 1
-  if (!L.flow(s.board).reached) { var r = run.openWater(); assert.strictEqual(r.reached, false); }
-  assert.strictEqual(s.lives, L.RULES.lives - 1);
-  for (var lv = 1; lv <= L.RULES.lifeEvery; lv++) {
-    solve();
-    var res = run.openWater();
-    assert.strictEqual(res.reached, true);
-    assert.strictEqual(!!res.points.life, lv === L.RULES.lifeEvery, 'bane ' + lv);
-    run.nextLevel();
-  }
-  assert.strictEqual(s.lives, L.RULES.lives);
-  for (lv = 0; lv < L.RULES.lifeEvery; lv++) { solve(); assert.ok(!run.openWater().points.life); run.nextLevel(); }
-  assert.strictEqual(s.lives, L.RULES.lives);
 });
 
 var ok = 0;

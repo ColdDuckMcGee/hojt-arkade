@@ -66,6 +66,7 @@ html, body { height: 100%; height: 100dvh; }
 .side { width: var(--side-w, 300px); display: flex; flex-direction: column; align-items: stretch; gap: 10px; align-self: center; }
 .side-logo { height: clamp(56px, 9vh, 100px); align-self: center; }
 .hud-grid { display: grid; grid-template-columns: repeat(var(--hud-cols, 1), 1fr); gap: 10px; }
+.hud-grid > .hud:last-child { grid-column: span var(--hud-span, 1); }
 .hud { padding: 6px 10px; text-align: center; background: var(--rl-hud-bg); border-radius: var(--rl-radius-hud); border: var(--rl-grid-w) solid var(--rl-hud-border); height: var(--hud-h, 84px); display: flex; flex-direction: column; justify-content: center; min-width: 0; }
 .hud-label { font-size: 0.95rem; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; line-height: 1.1; }
 .hud-value { font-size: clamp(1.3rem, calc(var(--hud-h, 84px) * 0.42), 2.6rem); font-weight: 800; font-variant-numeric: tabular-nums; color: var(--ui-text); line-height: 1.1; }
@@ -73,11 +74,6 @@ html, body { height: 100%; height: 100dvh; }
 .lay-wide .hud { flex-direction: row; justify-content: space-between; align-items: center; text-align: left; padding: 6px 16px; gap: 10px; }
 .lay-wide .hud-sub { margin-left: auto; }
 .lay-wide .hud-label { min-width: 3.4em; }
-.lives { display: flex; flex: 1 1 auto; align-self: stretch; gap: 4px; justify-content: center; align-items: center; min-width: 0; max-width: 100%; }
-/* Hjerterne bliver mindre, hvis boksen er smal */
-.lives svg { flex: 1 1 0; min-width: 0; width: auto; height: auto; aspect-ratio: 1; max-width: min(44px, calc(var(--hud-h, 84px) * 0.42)); }
-.lives .on { fill: var(--rl-drop); filter: var(--rl-drop-glow); }
-.lives .off { fill: none; stroke: var(--rl-drop-off); stroke-width: var(--rl-stroke-drop-off); stroke-dasharray: var(--rl-drop-off-dash); }
 .points-note { margin: 0; min-height: 2.8em; font-size: 1.1rem; line-height: 1.4; color: var(--accent); text-align: center; font-weight: 700; text-shadow: var(--rl-text-shadow); }
 .pause-btn { align-self: center; width: var(--btn); height: var(--btn); padding: 6px; min-width: 0; min-height: 0; }
 .pause-btn svg { width: 46%; height: 46%; fill: var(--ui); }
@@ -134,8 +130,7 @@ html, body { height: 100%; height: 100dvh; }
   transition: stroke var(--rl-s-dur, .45s) ease-in calc(var(--rl-s-delay, 0ms) + 300ms);
 }
 /* Mislykket forsøg: felterne uden vand tones lidt ned, og rammen bliver orange (ingen blink) */
-.board.fejl { border-color: var(--rl-fejl); }
-.board.fejl .cell.tor .rl-drej { opacity: .55; }
+.board.tabt { border-color: var(--rl-fejl); }
 .board.klaret .cell { cursor: default; }
 /* Tastaturets markør */
 .cell.cur { box-shadow: inset 0 0 0 var(--rl-cursor-w) var(--rl-cursor); z-index: 1; }
@@ -170,8 +165,6 @@ html, body { height: 100%; height: 100dvh; }
 .act-btn { column-gap: 10px; padding: 6px 12px; }
 .ico-line { fill: none; stroke: var(--ico-line, var(--accent)); stroke-width: var(--rl-stroke-ico); stroke-linecap: round; stroke-linejoin: round; }
 .ico-fill { fill: var(--ico-fill, var(--accent)); }
-/* Ikonerne ligger i <use>, så farven gives videre med variabler */
-.water-btn { --ico-line: var(--rl-vand); --ico-fill: var(--rl-vand); }
 .act-btn:disabled svg { opacity: .7; }
 .tool-btn[aria-pressed="true"]::after { top: 2px; right: 8px; }
 

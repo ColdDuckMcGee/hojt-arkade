@@ -29,15 +29,16 @@
 
   // Regler (samlet ét sted, så de kan justeres og testes)
   var RULES = {
-    lives: 3,
-    lifeEvery: 5,                   // hver 5. klarede bane giver et liv tilbage (højst 3)
     sizes: [4, 5, 6],               // gitterstørrelser i stigende rækkefølge
     sizeFrom: { 4: 1, 5: 4, 6: 9 }, // fra hvilken bane størrelsen bruges
     pointsPerPipe: 10,              // pr. felt vandet løber igennem
     pointsPerSpare: 5,              // pr. sparet drejning
     levelBonus: 5,                  // pr. banenummer
-    // Ekstra drejninger ud over dem, banens egen løsning kræver: færre og færre
-    buffer: function (level) { return Math.max(2, 7 - Math.floor((level - 1) / 2)); },
+    // Ekstra drejninger ud over dem, banens egen løsning kræver. Der er ingen liv: er
+    // drejningerne brugt, før banen er løst, er spillet slut. Derfor en rummelig buffer:
+    // 8 i bane 1, én mindre for hver 3. bane, dog mindst 4, plus én pr. række ud over 4
+    // (større gitre har flere rør at prøve sig frem med).
+    buffer: function (level, n) { return Math.max(4, 8 - Math.floor((level - 1) / 3)) + Math.max(0, (n || 4) - 4); },
     // Ønsket længde på stien fra kilde til afløb (i felter, inkl. kilde og afløb)
     pathLength: function (n, level) { return Math.min(n * n - 2, n + 1 + Math.floor(level * 0.8)); }
   };
@@ -228,9 +229,9 @@
     var r = rng(opts.seed || (Date.now() ^ (Math.random() * 1e9)));
     var maxN = opts.maxN || 6;
     var state = {
-      level: 1, n: 0, board: null, budget: 0, turnsLeft: 0, turnsUsed: 0, lives: RULES.lives,
+      level: 1, n: 0, board: null, budget: 0, turnsLeft: 0, turnsUsed: 0,
       score: 0, cleared: 0, solved: false, over: false, ended: false, lastPoints: null,
-      flow: null, water: null, undo: [], attempts: 0, maxN: maxN
+      flow: null, water: null, undo: [], maxN: maxN
     };
     function loadLevel() {
       var n = sizeForLevel(state.level, state.maxN);
@@ -239,9 +240,9 @@
     }
     function setBoard(b) {
       state.n = b.n; state.board = b;
-      state.budget = b.solTurns + RULES.buffer(state.level);
+      state.budget = b.solTurns + RULES.buffer(state.level, b.n);
       state.turnsLeft = state.budget; state.turnsUsed = 0;
-      state.solved = false; state.lastPoints = null; state.water = null; state.undo = []; state.attempts = 0;
+      state.solved = false; state.lastPoints = null; state.water = null; state.undo = [];
       state.flow = flow(b);
     }
     loadLevel();
@@ -251,6 +252,8 @@
       get n() { return state.n; },
       live: function () { return !state.solved && !state.over && !state.ended; },
       // Drej brikken i felt i en kvart omgang med uret. Koster én drejning.
+      // Når drejningen forbinder kilde og afløb, løber vandet af sig selv: banen er klaret.
+      // Er drejningerne så brugt, uden at banen er løst, er spillet slut.
       rotate: function (i) {
         if (!api.live()) return { ok: false, result: 'slut' };
         var t = state.board.tiles[i];
@@ -260,11 +263,25 @@
         t.rot = (t.rot + 1) % 4;
         state.turnsLeft--; state.turnsUsed++;
         state.undo.push(i);
-        state.water = null;
-        state.flow = flow(state.board);
-        return { ok: true, result: 'drejet', connected: state.flow.reached };
+        var f = flow(state.board);
+        state.flow = f; state.water = null;
+        if (f.reached) {
+          var pts = {
+            pipes: f.wet * RULES.pointsPerPipe,
+            spare: state.turnsLeft * RULES.pointsPerSpare,
+            level: state.level * RULES.levelBonus
+          };
+          pts.total = pts.pipes + pts.spare + pts.level;
+          state.water = f; state.lastPoints = pts; state.score += pts.total; state.cleared++; state.solved = true;
+          return { ok: true, result: 'drejet', connected: true, solved: true, points: pts, flow: f };
+        }
+        if (state.turnsLeft <= 0) {
+          state.over = true;
+          return { ok: true, result: 'drejet', connected: false, solved: false, over: true, flow: f };
+        }
+        return { ok: true, result: 'drejet', connected: false, solved: false, over: false, flow: f };
       },
-      // Fortryd den seneste drejning (giver drejningen tilbage). Kun inden for samme forsøg.
+      // Fortryd den seneste drejning (giver drejningen tilbage).
       undo: function () {
         if (!api.live() || !state.undo.length) return { ok: false };
         var i = state.undo.pop(), t = state.board.tiles[i];
@@ -273,32 +290,6 @@
         state.water = null;
         state.flow = flow(state.board);
         return { ok: true, index: i };
-      },
-      // Luk vandet på. Når vandet afløbet, er banen klaret; ellers koster det et liv,
-      // og man får banens ekstra drejninger igen, hvis man har færre.
-      openWater: function () {
-        if (!api.live()) return { ok: false };
-        var f = flow(state.board);
-        state.flow = f; state.water = f; state.attempts++;
-        if (f.reached) {
-          var pts = {
-            pipes: f.wet * RULES.pointsPerPipe,
-            spare: state.turnsLeft * RULES.pointsPerSpare,
-            level: state.level * RULES.levelBonus
-          };
-          pts.total = pts.pipes + pts.spare + pts.level;
-          state.lastPoints = pts; state.score += pts.total; state.cleared++; state.solved = true;
-          var life = false;
-          if (state.cleared % RULES.lifeEvery === 0 && state.lives < RULES.lives) { state.lives++; life = true; }
-          pts.life = life;
-          return { ok: true, reached: true, points: pts, flow: f, life: life };
-        }
-        state.lives--;
-        state.undo = [];
-        if (state.lives <= 0) { state.lives = 0; state.over = true; return { ok: true, reached: false, over: true, flow: f }; }
-        var refill = RULES.buffer(state.level), got = 0;
-        if (state.turnsLeft < refill) { got = refill - state.turnsLeft; state.turnsLeft = refill; }
-        return { ok: true, reached: false, over: false, refill: got, flow: f };
       },
       nextLevel: function () {
         if (!state.solved || state.over) return false;

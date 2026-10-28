@@ -30,7 +30,7 @@
       <img class="arkade-logo" src="../arkade/logo.svg" alt="Hojt Arkade">
       <h1 id="titel" class="neon-title">RØRLÆGGER</h1>
     </div>
-    <p class="lead opt">Drej rørene, så vandet kan løbe fra kilden til afløbet. Vælg et rør for at dreje det en kvart omgang. Når du er klar, lukker du vandet på. Der er ingen tid, men hver bane har et begrænset antal drejninger.</p>
+    <p class="lead opt">Drej rørene, så vandet kan løbe fra kilden til afløbet. Vælg et rør for at dreje det en kvart omgang. Så snart rørene hænger sammen, løber vandet af sig selv. Der er ingen tid, men hver bane har et begrænset antal drejninger.</p>
   </header>
   <div class="menu-demo" aria-hidden="true" id="menu-demo"></div>
   <p class="size-note" id="size-note" aria-live="polite"></p>
@@ -51,7 +51,7 @@
   <section class="panel om-panel">
     <h2 id="om-title" class="neon-sub">Om Hojt Arkade</h2>
     <p data-trin>Hojt Arkade er udviklet af Jon Leismann Engsager, Hojt Design. Jon er IT- og IKT-konsulent i det specialiserede område og laver blandt andet gratis spil til voksne, der bruger øjenstyring.</p>
-    <p data-trin>Rørlægger: vælg et rør for at dreje det en kvart omgang med uret. Hver drejning koster én af banens drejninger, og Fortryd giver den tilbage. Tryk på Luk vandet på, når du tror, vandet kan løbe fra kilden til afløbet. Når det lykkes, får du point for hvert felt med vand og for hver sparet drejning. Når det ikke lykkes, mister du et liv. Hver femte klarede bane giver et liv tilbage. Alle baner kan løses.</p>
+    <p data-trin>Rørlægger: vælg et rør for at dreje det en kvart omgang med uret. Hver drejning koster én af banens drejninger, og Fortryd giver den tilbage. Når rørene hænger sammen fra kilden til afløbet, løber vandet af sig selv, og du får point for hvert felt med vand og hver sparet drejning. Er drejningerne brugt først, er spillet slut. Alle baner kan løses.</p>
     <p data-trin>Koden er åben og frit tilgængelig under MIT-licensen, så alle kan bruge den og bygge videre på den.</p>
   </section>
   <div class="row" data-trin>
@@ -73,7 +73,6 @@
         <div class="hud"><div class="hud-label">Bane</div><div class="hud-value" id="hud-level">1</div><div class="hud-sub" id="hud-size">4 × 4</div></div>
         <div class="hud"><div class="hud-label">Point</div><div class="hud-value" id="hud-score">0</div></div>
         <div class="hud hud-turns"><div class="hud-label">Drejninger</div><div class="hud-value" id="hud-turns">0</div><div class="hud-sub" id="hud-turns-sub">tilbage</div></div>
-        <div class="hud hud-lives"><div class="hud-label">Liv</div><div class="lives" id="hud-lives" role="img" aria-label="3 liv"></div></div>
       </div>
       <p class="points-note" id="points-note" aria-live="polite"></p>
       <button class="btn pause-btn" id="btn-pause" aria-label="Pause">
@@ -89,9 +88,6 @@
     <aside class="side side-right" id="side-right" aria-label="Handlinger">
       <p class="hint" id="hint" aria-live="polite">Vælg et rør for at dreje det</p>
       <div class="tools" id="tools" role="group" aria-label="Handlinger">
-        <button class="btn primary act-btn water-btn" id="btn-water" aria-label="Luk vandet på">
-          <svg aria-hidden="true"><use href="#rl-ikon-vand"/></svg><span class="big">Luk vandet på</span><span class="small" id="water-sub">3 liv</span>
-        </button>
         <button class="btn act-btn" id="btn-undo" aria-label="Fortryd seneste drejning">
           <svg aria-hidden="true"><use href="#rl-ikon-fortryd"/></svg><span class="big">Fortryd</span><span class="small" id="undo-sub">giver drejningen tilbage</span>
         </button>
@@ -151,7 +147,7 @@
         <h2 id="go-title" class="neon-sub">Spillet er slut</h2>
         <div class="go-pic-row">
           <div class="go-pic" id="go-pic" aria-hidden="true"></div>
-          <p class="go-reason" id="go-reason">Du har ikke flere liv.</p>
+          <p class="go-reason" id="go-reason">Drejningerne er brugt.</p>
         </div>
         <div class="go-score"><span id="go-score">0</span><span class="go-unit">point</span></div>
         <p class="go-plates" id="go-levels">0 baner klaret</p>
@@ -209,7 +205,7 @@
         <button class="btn option" data-bset="visForbindelse" data-value="true"><span class="big">Vis</span></button>
       </div>
     </div>
-    <p class="note">Brug kun dwell her, hvis dit øjenstyringssystem ikke selv klikker. Har du dwell-klik i fx Tobii, så lad indstillingen være slået fra. Ét dwell på et rør drejer det én gang, også selv om blikket bliver på røret. Tastaturet virker altid: piletasterne flytter markøren, Enter eller mellemrum drejer røret, V lukker vandet på, F (eller Tilbage-tasten) fortryder, og Esc eller P giver pause.</p>
+    <p class="note">Brug kun dwell her, hvis dit øjenstyringssystem ikke selv klikker. Har du dwell-klik i fx Tobii, så lad indstillingen være slået fra. Ét dwell på et rør drejer det én gang, også selv om blikket bliver på røret. Tastaturet virker altid: piletasterne flytter markøren, Enter eller mellemrum drejer røret, F (eller Tilbage-tasten) fortryder, og Esc eller P giver pause.</p>
   </section>
 
   <section class="tab-panel" data-panel="udseende" hidden>

@@ -3,9 +3,10 @@
  * Bygger på de fælles moduler i ../arkade/ ligesom Pixelgåder og Lys ud.
  *
  * Vælg et rør (klik, tryk, dwell eller Enter) for at dreje det en kvart omgang.
- * Tryk på Luk vandet på, når vandet kan løbe fra kilden til afløbet. Der er
- * ingen tid. Baner uden ende – spillet slutter, når alle liv er brugt (eller
- * når man selv vælger Afslut).
+ * Så snart en drejning forbinder kilden med afløbet, løber vandet af sig selv,
+ * og banen er klaret. Der er ingen tid, men et begrænset antal drejninger pr.
+ * bane. Baner uden ende – spillet slutter, når drejningerne er brugt, uden at
+ * banen er løst (eller når man selv vælger Afslut).
  *
  * Logikken ligger i js/logik.js (ingen farver), tegningen i js/tegn.js (læser kun
  * tilstanden), og al grafik i tema/<navn>/.
@@ -40,7 +41,7 @@
   var bg = ArkadeBackground.create($('#baggrund'));
   // Et dwell = én handling. Dwell-modulet slipper sin lås, hvis en knap bliver
   // deaktiveret et øjeblik. Derfor holder spillet sin egen lås på knapperne
-  // (rørene, Luk vandet på og Fortryd): samme knap kan først dwelles igen, når
+  // (rørene og Fortryd): samme knap kan først dwelles igen, når
   // blikket har forladt den.
   var gazeLock = null, suppress = null;
   var dwell = ArkadeDwell.create({
@@ -83,7 +84,7 @@
   // Lydene kommer fra det fælles lydmodul (alle rolige). Rørlægger bruger disse navne:
   var SFX = {
     turn: 'move', undo: 'bonusGone', connected: 'eat', blocked: 'click', water: 'bonusSpawn',
-    cleared: 'bonus', failed: 'obstacle', lost: 'crash', record: 'record', click: 'click', pause: 'pause'
+    cleared: 'bonus', lost: 'crash', record: 'record', click: 'click', pause: 'pause'
   };
   function sfx(name) { audio.play(SFX[name] || name); }
   function unlockAudio() { audio.unlock(); }
@@ -147,7 +148,6 @@
   function sizeLabel(n) { return n + ' × ' + n; }
   function pointsText(n) { return n === 1 ? '1 point' : n + ' point'; }
   function levelsText(n) { return n === 1 ? '1 bane' : n + ' baner'; }
-  function livesText(n) { return n === 1 ? '1 liv' : n + ' liv'; }
   function turnsText(n) { return n === 1 ? '1 drejning' : n + ' drejninger'; }
   function cmText(px) { return (px / (96 / 2.54)).toFixed(1).replace('.', ','); }
 
@@ -254,14 +254,15 @@
     if (!res.ok) {
       var msg = {
         kilde: 'Kilden kan ikke drejes. Vandet kommer herfra.',
-        afloeb: 'Afløbet kan ikke drejes. Vandet skal hertil.',
-        ingen: 'Ingen drejninger tilbage. Brug Fortryd, eller luk vandet på.'
+        afloeb: 'Afløbet kan ikke drejes. Vandet skal hertil.'
       }[res.result] || '';
       if (msg) sfx('blocked');
-      setNote(msg, res.result === 'ingen' ? 'err' : '');
+      setNote(msg, '');
       refresh();
       return;
     }
+    if (res.solved) { letWaterRun(res.flow); return; }
+    if (res.over) { lose(); return; }
     var showConn = bset.get('visForbindelse');
     sfx(res.connected && showConn ? 'connected' : 'turn');
     setNote('', '');
@@ -276,43 +277,33 @@
     setNote('Drejningen er fortrudt.', '');
     refresh();
   }
-  // Luk vandet på: vandet løber roligt fra kilden. Imens kan intet vælges.
-  function openWater() {
-    if (!live()) return;
-    var res = run.openWater();
-    if (!res.ok) return;
+  // Banen er løst: vandet løber af sig selv, roligt fra kilden (straks ved reduceret
+  // bevægelse). Imens kan intet vælges. Derefter Bane klaret med point.
+  function letWaterRun(f) {
     sfx('water');
     flowing = true;
-    var f = res.flow;
     var ms = animationOn() ? (f.maxDist + 1) * WATER_STEP + WATER_FADE + 200 : 500;
-    setNote('Vandet løber …', '');
+    setNote('Rørene hænger sammen – vandet løber …', 'ok');
     refresh();
     clearTimeout(flowTimer);
     flowTimer = setTimeout(function () {
       flowing = false;
       if (!run || finished) return;
-      if (res.reached) {
-        sfx('cleared');
-        setNote('', '');
-        refresh();
-        showDone();
-        return;
-      }
-      if (res.over) {
-        sfx('lost');
-        setNote('Vandet nåede ikke afløbet, og du har ikke flere liv.', 'err');
-        refresh();
-        flowTimer = setTimeout(function () { finish('lost'); }, 1400);
-        return;
-      }
-      sfx('failed');
-      setNote('Vandet nåede ikke afløbet. Du mistede et liv – ' + livesText(run.state.lives) + ' tilbage.' +
-        (res.refill ? ' Du har fået ' + turnsText(run.state.turnsLeft) + '.' : ''), 'err');
+      sfx('cleared');
+      setNote('', '');
       refresh();
+      showDone();
     }, ms);
   }
-  $('#btn-water').classList.add('turn-btn');
-  $('#btn-water').addEventListener('click', function () { if (!swallowed(this)) openWater(); });
+  // Drejningerne er brugt, og banen er ikke løst: vis brættet et øjeblik, så slut.
+  function lose() {
+    sfx('lost');
+    flowing = true;
+    setNote('Drejningerne er brugt, og vandet kan ikke nå afløbet.', 'err');
+    refresh();
+    clearTimeout(flowTimer);
+    flowTimer = setTimeout(function () { flowing = false; finish('lost'); }, 1600);
+  }
   $('#btn-undo').classList.add('turn-btn');
   $('#btn-undo').addEventListener('click', function () { if (!swallowed(this)) undo(); });
 
@@ -320,11 +311,6 @@
   function renderBoard() {
     if (!run || !tegn.ready) return;
     tegn.board(run.state, { cursor: live() ? curIdx : -1, connected: bset.get('visForbindelse') });
-  }
-  function renderLives() {
-    var el = $('#hud-lives');
-    tegn.lives(el, run.state.lives, L.RULES.lives);
-    el.setAttribute('aria-label', livesText(run.state.lives) + ' tilbage');
   }
   function refresh() {
     if (!run) return;
@@ -336,20 +322,17 @@
     $('#hud-turns').textContent = s.turnsLeft;
     $('#hud-turns-sub').textContent = 'af ' + s.budget;
     $('.hud-turns').classList.toggle('empty', s.turnsLeft === 0);
-    renderLives();
     $('#points-note').textContent = 'Klaret bane: ' + L.RULES.pointsPerPipe + ' point pr. felt med vand og ' + L.RULES.pointsPerSpare + ' pr. sparet drejning';
     var hint = $('#hint'), cls = noteCls, txt = lastNote;
     if (s.solved && !flowing) { txt = 'Vandet løber hele vejen!'; cls = 'ok'; }
     else if (!txt) {
-      if (s.turnsLeft === 0) { txt = 'Ingen drejninger tilbage. Brug Fortryd, eller luk vandet på.'; cls = 'err'; }
-      else if (bset.get('visForbindelse') && s.flow && s.flow.reached) { txt = 'Rørene hænger sammen – luk vandet på!'; cls = 'ok'; }
+      if (s.turnsLeft === 1) { txt = 'Sidste drejning! Fortryd giver drejninger tilbage.'; cls = 'err'; }
+      else if (s.turnsLeft <= 3) { txt = 'Kun ' + turnsText(s.turnsLeft) + ' tilbage'; cls = 'err'; }
       else txt = 'Vælg et rør for at dreje det';
     }
     hint.textContent = txt;
     hint.className = 'hint' + (cls ? ' ' + cls : '');
-    $('#btn-water').disabled = !live();
     $('#btn-undo').disabled = !live() || !s.undo.length;
-    $('#water-sub').textContent = 'forkert koster et liv';
     boardEl.setAttribute('aria-label', 'Rørene, ' + sizeLabel(s.n) + ', bane ' + s.level);
     renderBoard();
     // Sikkerhedsnet: gør en ny tekst, at noget ikke kan være der, lægges skærmen om
@@ -369,7 +352,6 @@
     if (pt.spare) parts.push(pt.spare + ' for ' + turnsText(s.turnsLeft) + ' til overs');
     parts.push(pt.level + ' i banebonus');
     var txt = parts.join(' · ') + '. I alt ' + pointsText(s.score) + '.';
-    if (pt.life) txt += ' Du fik et liv tilbage.';
     $('#done-parts').textContent = txt;
     $('#btn-next-sub').textContent = 'Bane ' + (s.level + 1) + ' · ' + sizeLabel(L.sizeForLevel(s.level + 1, s.maxN));
     $('#done-overlay').hidden = false;
@@ -461,7 +443,7 @@
     } else rankText = 'Ingen point denne gang';
     paused = false; hideOverlays();
     $('#go-title').textContent = 'Spillet er slut';
-    if (why === 'lost') $('#go-reason').textContent = 'Vandet nåede ikke afløbet, og alle tre liv er brugt. Du nåede bane ' + s.level + '.';
+    if (why === 'lost') $('#go-reason').textContent = 'Drejningerne blev brugt, før vandet kunne nå afløbet. Du nåede bane ' + s.level + '.';
     else $('#go-reason').textContent = s.solved ? 'Du afsluttede efter bane ' + s.level + '.' : 'Du afsluttede på bane ' + s.level + '.';
     $('#go-pic').innerHTML = RorlaeggerTegn.miniBane(s.board, s.water);
     $('#go-score').textContent = s.score;
@@ -550,8 +532,8 @@
   });
 
   // ---------- Tastatur ----------
-  // Piletasterne flytter markøren, Enter eller mellemrum drejer røret, V lukker
-  // vandet på, F eller Backspace fortryder, Esc eller P giver pause.
+  // Piletasterne flytter markøren, Enter eller mellemrum drejer røret,
+  // F eller Backspace fortryder, Esc eller P giver pause.
   var KEYS = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] };
   var hoverIdx = -1;
   boardEl.addEventListener('pointerover', function (e) { var c = e.target.closest('.cell'); hoverIdx = c ? +c.dataset.i : -1; });
@@ -583,7 +565,6 @@
     var handled = true;
     if (KEYS[e.key]) moveCursor(KEYS[e.key]);
     else if (k === 'Enter' || k === ' ') { if (!e.repeat) keyTurn(); }
-    else if (k === 'v') { if (!e.repeat) openWater(); }
     else if (k === 'f' || k === 'Backspace') { if (!e.repeat) undo(); }
     else handled = false;
     if (!handled) return;
@@ -603,7 +584,7 @@
   function cssBtn(W, H) { var cm = 96 / 2.54; return Math.max(3 * cm, Math.min(0.15 * Math.min(W, H), 4.2 * cm)); }
   function cssGap(W, H) { return Math.max(0.8 * 96 / 2.54, 0.03 * Math.min(W, H)); }
   function spacing(W, H) { var mn = Math.min(W, H); return { p: Math.max(8, mn * 0.016), g: Math.max(8, Math.min(26, mn * 0.022)) }; }
-  var MAX_CELL = 190, NBTN = 3; // Luk vandet på, Fortryd og Pause
+  var MAX_CELL = 190, NBTN = 2, NHUD = 3; // Fortryd og Pause; Bane, Point og Drejninger
   function candidates(n, b, W, H) {
     var d = spacing(W, H), p = d.p, g = d.g, ig = 10;
     var hudH = Math.max(52, Math.min(84, b * 0.62)), hint = 60;
@@ -611,15 +592,15 @@
     var res = { p: p, g: g, hudH: hudH, ig: ig };
     // wide: status | gitter | tekst og handlinger
     var sideW = Math.min(380, Math.max(230, b * 2.2));
-    var leftH = 100 + 4 * hudH + 3 * ig + 70 + b + 3 * ig;
-    var rightH = hint + 2 * b + 2 * ig;
+    var leftH = 100 + NHUD * hudH + (NHUD - 1) * ig + 70 + b + 3 * ig;
+    var rightH = hint + b + ig;
     res.sideW = sideW;
     res.wide = (rightH <= H - 2 * p && leftH <= H - 2 * p) ? cell(W - 2 * p - 2 * sideW - 2 * g, H - 2 * p) : 0;
     // side: gitter | (status, tekst, handlinger og pause i k kolonner)
     res.side = 0;
     [1, 2, 3].forEach(function (k) {
       var panelW = Math.max(k * b + (k - 1) * ig, k === 1 ? 150 : 0);
-      var hudCols = panelW >= 4 * 100 + 3 * ig ? 4 : (panelW >= 2 * 96 + ig ? 2 : 1), hudRows = 4 / hudCols;
+      var hudCols = panelW >= 3 * 100 + 2 * ig ? 3 : (panelW >= 2 * 96 + ig ? 2 : 1), hudRows = Math.ceil(NHUD / hudCols);
       var rows = Math.ceil(NBTN / k);
       var panelH = hudRows * hudH + (hudRows - 1) * ig + g + hint + ig + rows * b + (rows - 1) * ig;
       if (panelH > H - 2 * p) return;
@@ -630,7 +611,7 @@
     res.below = 0;
     var needW = NBTN * b + (NBTN - 1) * ig;
     if (needW <= W - 2 * p) {
-      var hudCols = W - 2 * p >= 4 * 96 + 3 * ig ? 4 : 2, hudRows = 4 / hudCols;
+      var hudCols = W - 2 * p >= 3 * 96 + 2 * ig ? 3 : 2, hudRows = Math.ceil(NHUD / hudCols);
       var extra = hudRows * hudH + (hudRows - 1) * ig + g + hint + ig + b + g;
       res.below = cell(W - 2 * p, H - 2 * p - extra);
       res.belowK = NBTN; res.hudColsBelow = hudCols;
@@ -688,6 +669,7 @@
     st.setProperty('--panel-w', Math.floor(panelW) + 'px');
     st.setProperty('--tool-cols', toolCols);
     st.setProperty('--hud-cols', hudCols);
+    st.setProperty('--hud-span', NHUD % hudCols ? hudCols - (NHUD % hudCols) + 1 : 1); // sidste boks fylder rækken ud
     gameEl.dataset.layout = lay;
     gameEl.dataset.cell = cell;
   }
@@ -903,7 +885,7 @@
     get guard() { return gazeGuard ? gazeGuard.id : null; },
     get run() { return run; }, get cursor() { return curIdx; }, get flowing() { return flowing; },
     settings: arkade, gameSettings: bset, records: records, dwell: dwell, audio: audio, logik: L,
-    start: startGame, show: show, turn: turn, undo: undo, water: openWater,
+    start: startGame, show: show, turn: turn, undo: undo,
     next: nextLevel, finish: finish, showDone: showDone, refresh: refresh, cellSizeFor: cellSizeFor,
     setPaused: setPaused, layout: layoutGame
   };

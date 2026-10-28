@@ -14,7 +14,7 @@
  *   rl-flange    samlingen ved hver åbning  rl-vand  vandet (vises, når feltet er vådt)
  *   rl-kilde, rl-kilde-ikon, rl-afloeb, rl-afloeb-rist  kilde og afløb
  * ikoner (100 × 100, klasserne ico-line og ico-fill):
- *   drej, vand, fortryd, liv, pause, tilbage
+ *   drej, fortryd, pause, tilbage
  * felt: baggrunden i et felt (klassen rl-felt-bund).
  */
 (function (global) {
@@ -59,11 +59,7 @@
   var IKONER = {
     // Drej: en pil en kvart omgang med uret
     drej: '<path class="ico-line" d="M26 58 A26 26 0 1 1 52 84"/><path class="ico-fill" d="M12 52 L40 52 L26 72 Z"/>',
-    // Luk vandet på: en vandhane med en dråbe
-    vand: '<path class="ico-line" d="M14 40 H56 A16 16 0 0 1 72 56 V60"/><path class="ico-line" d="M34 40 V26 M22 26 H46"/>' +
-      '<path class="ico-fill" d="M72 68 C66 77 63 82 63 86 A9 9 0 0 0 81 86 C81 82 78 77 72 68 Z"/>',
     fortryd: '<path class="ico-line" d="M30 40 H62 A20 20 0 0 1 62 80 H40"/><path class="ico-fill" d="M14 40 L36 22 L36 58 Z"/>',
-    liv: '<path d="M50 12 C38 32 22 48 22 64 A28 28 0 0 0 78 64 C78 48 62 32 50 12 Z"/>',
     pause: '<rect x="24" y="20" width="18" height="60" rx="4"/><rect x="58" y="20" width="18" height="60" rx="4"/>',
     tilbage: '<path d="M44 22 L14 50 L44 78 V60 H86 V40 H44 Z"/>'
   };

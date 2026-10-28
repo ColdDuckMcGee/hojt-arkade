@@ -3,9 +3,9 @@
 # mindste knap >= 80 px, rørfelterne >= 80 px (vises som felt=..px) og ingen fejl i konsollen.
 #
 # Desuden spillet i browseren: drej med mus, tryk og tastatur, Fortryd, kilden kan ikke
-# drejes, Luk vandet på (forkert koster et liv, rigtigt giver Bane klaret), Næste bane,
-# bekræftelsen ved Afslut, game over, rekorder, glød fra, dwell (ét dwell = én drejning)
-# og rolig/statisk vand ved prefers-reduced-motion.
+# drejes, vandet løber af sig selv, når drejningen løser banen (Bane klaret), Næste bane,
+# bekræftelsen ved Afslut, game over, når drejningerne er brugt, rekorder, glød fra,
+# dwell (ét dwell = én drejning) og rolig/statisk vand ved prefers-reduced-motion.
 #
 # Kræver Python med Playwright og Chrome/Chromium:
 #   python3 rorlaegger/test/responsiv_test.py
@@ -95,10 +95,15 @@ def confirm_check(pg, w, h, tag, name, shot):
 SET = """([n, lv, seed]) => { const R = Rorlaegger, L = R.logik; R.run.state.level = lv; R.run._setBoard(L.generate(n, lv, seed)); R.refresh(); R.layout(); }"""
 # Drejbare felter, der ikke er kilde/afløb
 FREE = "Rorlaegger.run.state.board.tiles.map((t,i)=>t.fixed?-1:i).filter(i=>i>=0)"
-# Læg banens løsning (uden at bruge drejninger) – til at teste Bane klaret
-SOLVE = """() => { const R = Rorlaegger, L = R.logik, s = R.run.state, b = s.board;
-  b.tiles.forEach((t, i) => { if (!t.fixed && b.need[i]) t.rot = (t.rot + L.turnsNeeded(t, b.need[i])) % 4; });
-  s.flow = L.flow(b); R.refresh(); return s.flow.reached; }"""
+# Læg banens løsning undtagen den sidste drejning (uden at bruge drejninger). Returnerer
+# feltet, der mangler én drejning – den rigtige drejning skal så løse banen.
+SOLVE_BUT_ONE = """() => { const R = Rorlaegger, L = R.logik, s = R.run.state, b = s.board, todo = [];
+  b.tiles.forEach((t, i) => { if (!t.fixed && b.need[i]) for (let k = L.turnsNeeded(t, b.need[i]); k > 0; k--) todo.push(i); });
+  for (let j = 0; j < todo.length; j++) { const t = b.tiles[todo[j]]; t.rot = (t.rot + 1) % 4;
+    if (L.flow(b).reached) { t.rot = (t.rot + 3) % 4; s.flow = L.flow(b); R.refresh(); return todo[j]; } }
+  return -1; }"""
+# En drejbar brik uden for løsningens sti
+FILLER = "Rorlaegger.run.state.board.tiles.findIndex((t,i)=>!t.fixed && !Rorlaegger.run.state.board.need[i])"
 def wait_water(pg):
     pg.wait_for_function("!Rorlaegger.flowing", timeout=8000); pg.wait_for_timeout(80)
 def gameplay(pg, w, h, tag):
@@ -132,14 +137,6 @@ def gameplay(pg, w, h, tag):
     if st(pg, "Rorlaegger.run.state.turnsLeft") != tl: fails.append(tag + ' F fortrød ikke')
     # To drejninger, så der er noget at se
     click_cell(pg, free[1]); click_cell(pg, free[2])
-def water_fail(pg, w, h, tag):
-    if st(pg, "Rorlaegger.run.state.flow.reached"): fails.append(tag + ' banen var allerede løst'); return
-    lv = st(pg, "Rorlaegger.run.state.lives")
-    pg.click('#btn-water'); pg.wait_for_timeout(60)
-    if not st(pg, "Rorlaegger.flowing") or not st(pg, "document.getElementById('btn-water').disabled"): fails.append(tag + ' vandet løb ikke (knappen ikke låst)')
-    wait_water(pg)
-    r = st(pg, "[Rorlaegger.run.state.lives, document.querySelectorAll('#hud-lives .on').length, document.getElementById('hint').className, document.querySelectorAll('#board .cell.vaad').length > 0]")
-    if r != [lv - 1, lv - 1, 'hint err', True]: fails.append('%s forkert vand gav %s' % (tag, r))
 def dwell_check(pg, w, h, tag):
     """Ét dwell = én drejning, og dwell virker på Fortryd."""
     pg.evaluate("Rorlaegger.start(); Rorlaegger.settings.set('dwellTime', 0.5)"); pg.wait_for_timeout(120)
@@ -191,23 +188,30 @@ with sync_playwright() as p:
             pg.evaluate(SET, [n, 9, 1000 + n]); pg.wait_for_timeout(120)
             check(pg,'spil %dx%d' % (n, n),'#game',w,h, tag + '-spil-%dx%d.png' % (n, n))
         gameplay(pg, w, h, tag)
-        water_fail(pg, w, h, tag)
-        check(pg,'spil i gang (vand nåede ikke frem)','#game',w,h, tag+'.png')
+        if st(pg, "Rorlaegger.run.state.solved || Rorlaegger.run.state.over"): fails.append(tag + ' banen sluttede for tidligt')
+        if pg.locator('#btn-water').count() or pg.locator('#hud-lives').count(): fails.append(tag + ' Luk vandet på/liv findes stadig')
+        pg.wait_for_timeout(400)  # drejningen er færdig på billedet
+        check(pg,'spil i gang','#game',w,h, tag+'.png')
         if big and SHOT: pg.screenshot(path=SHOT + 'spil-i-gang.png')
         # Glød kan slås fra: ingen lysskær, spillet ser ens ud i opbygning
         pg.evaluate("Rorlaegger.gameSettings.set('gloed', false)"); pg.wait_for_timeout(400)
         g = pg.evaluate("""() => [document.documentElement.dataset.rlGloed, getComputedStyle(document.querySelector('#board')).boxShadow,
                     getComputedStyle(document.querySelector('#hud-score')).textShadow, getComputedStyle(document.documentElement).getPropertyValue('--rl-vand-glow').trim(),
                     document.querySelectorAll('#rl-ikoner symbol').length]""")
-        if g[0] != 'fra' or g[1] != 'none' or g[2] != 'none' or g[3] != 'none' or g[4] < 12: fails.append('%s glød fra gav %s' % (tag, g))
+        if g[0] != 'fra' or g[1] != 'none' or g[2] != 'none' or g[3] != 'none' or g[4] < 10: fails.append('%s glød fra gav %s' % (tag, g))
         check(pg,'spil uden glød','#game',w,h, tag+'-uden-gloed.png')
         pg.evaluate("Rorlaegger.gameSettings.set('gloed', true)"); pg.wait_for_timeout(40)
         pg.keyboard.press('Escape'); pg.wait_for_timeout(100); check(pg,'pause','#game',w,h, small and tag+'-pause.png')
         pg.keyboard.press('Escape'); pg.wait_for_timeout(60)
-        # Bane klaret: læg løsningen, luk vandet på
-        if not pg.evaluate(SOLVE): fails.append(tag + ' løsningen førte ikke vandet frem')
+        # Bane klaret: læg løsningen på nær én drejning; den sidste drejning (klik) lukker vandet på af sig selv
+        last = pg.evaluate(SOLVE_BUT_ONE)
+        if last < 0: fails.append(tag + ' kunne ikke lægge løsningen')
         sc0 = st(pg, "Rorlaegger.run.state.score")
-        pg.keyboard.press('v'); wait_water(pg); pg.wait_for_timeout(200)
+        click_cell(pg, last)
+        fl = st(pg, "[Rorlaegger.flowing, Rorlaegger.run.state.solved, document.querySelectorAll('#board .cell.vaad').length > 1, document.getElementById('btn-undo').disabled, document.getElementById('done-overlay').hidden]")
+        if fl != [True, True, True, True, True]: fails.append('%s vandet løb ikke af sig selv: %s' % (tag, fl))
+        if big and SHOT: pg.wait_for_timeout(700); pg.screenshot(path=SHOT + 'ekstra/vandet-loeber.png')
+        wait_water(pg); pg.wait_for_timeout(200)
         if st(pg, "document.getElementById('done-overlay').hidden"): fails.append(tag + ' Bane klaret blev ikke vist')
         s = st(pg, "[Rorlaegger.run.state.cleared, Rorlaegger.run.state.score > %d, document.getElementById('done-points').textContent]" % sc0)
         if s[0] != 1 or not s[1]: fails.append('%s point/klaret forkert %s' % (tag, s))
@@ -220,11 +224,18 @@ with sync_playwright() as p:
         pg.click('#btn-next'); pg.wait_for_timeout(150)
         if st(pg, "[Rorlaegger.run.state.level, Rorlaegger.run.state.cleared, Rorlaegger.run.state.solved]") != [2, 1, False]: fails.append(tag + ' Næste bane virkede ikke')
         check(pg,'bane 2','#game',w,h)
-        # Game over: vandet lukkes på, til livene er brugt
-        for k in range(3):
-            if not st(pg, "document.getElementById('gameover').hidden"): break
-            if st(pg, "Rorlaegger.run.state.flow.reached"): pg.evaluate("Rorlaegger.turn(%s)" % st(pg, FREE + "[0]"))
-            pg.evaluate("Rorlaegger.water()"); wait_water(pg)
+        # Game over: drejningerne bruges på en brik uden for stien, til der ikke er flere
+        pg.evaluate("Rorlaegger.run.state.turnsLeft = 2; Rorlaegger.refresh()")
+        fi = st(pg, FILLER)
+        click_cell(pg, fi)
+        if 'Sidste drejning' not in st(pg, "document.getElementById('hint').textContent"): fails.append(tag + ' ingen advarsel ved sidste drejning')
+        pg.wait_for_timeout(400)
+        check(pg,'sidste drejning','#game',w,h, tag+'-sidste-drejning.png')
+        click_cell(pg, fi)
+        o = st(pg, "[Rorlaegger.run.state.over, Rorlaegger.run.state.solved, Rorlaegger.run.state.turnsLeft, document.getElementById('hint').className]")
+        if o != [True, False, 0, 'hint err']: fails.append('%s drejningerne brugt gav %s' % (tag, o))
+        pg.evaluate("Rorlaegger.undo()")
+        if st(pg, "Rorlaegger.run.state.turnsLeft") != 0: fails.append(tag + ' Fortryd reddede et tabt spil')
         try: pg.wait_for_function("!document.getElementById('gameover').hidden", timeout=4000)
         except Exception: fails.append(tag + ' game over blev ikke vist')
         if not st(pg, "Rorlaegger.records.list('stigende').some(e => e.levels === 1 && e.score === %d)" % pts): fails.append(tag + ' rekorden blev ikke gemt')
@@ -243,9 +254,9 @@ with sync_playwright() as p:
     pg.on('console', lambda m: errs.append(m.type+': '+m.text) if m.type in ('error','warning') else None)
     pg.on('pageerror', lambda e: errs.append('pageerror: '+str(e)))
     pg.goto(URL); pg.wait_for_timeout(300)
-    pg.evaluate("Rorlaegger.start()"); pg.evaluate(SET, [4, 1, 5]); pg.evaluate(SOLVE)
+    pg.evaluate("Rorlaegger.start()"); pg.evaluate(SET, [4, 1, 5]); last = pg.evaluate(SOLVE_BUT_ONE)
     t = pg.evaluate("""() => { const c = document.querySelector('#board .cell .rl-drej'); return [document.getElementById('game').classList.contains('calm'), getComputedStyle(c).transitionDuration]; }""")
-    pg.evaluate("Rorlaegger.water()"); pg.wait_for_timeout(700)
+    pg.evaluate("Rorlaegger.turn(%d)" % last); pg.wait_for_timeout(700)
     done = st(pg, "!document.getElementById('done-overlay').hidden")
     print('%s reduced motion: calm=%s overgang=%s, klaret efter 0,7 s=%s' % ('OK  ' if t[0] and t[1] in ('0s',) and done else 'FEJL', t[0], t[1], done))
     if not (t[0] and t[1] == '0s' and done): fails.append('reduced motion: %s %s' % (t, done))

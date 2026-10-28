@@ -33,8 +33,6 @@
   --rl-cursor: #ff3fd8;
   --rl-fejl: #ff7a3c;
   --rl-ok: #39ff6a;
-  --rl-drop: #22eaff;
-  --rl-drop-off: rgba(206, 190, 232, 0.5);
   --rl-shadow: #000000;
   --rl-overlay-bg: rgba(0, 0, 0, 0.62);
   --rl-overlay-soft: rgba(0, 0, 0, 0.4);
@@ -45,13 +43,13 @@
   --rl-hud-border: var(--ui-soft);
 }
 [data-theme="solnedgang"] { --rl-frame: #ff8a1f; --rl-vand: #22eaff; --rl-afloeb-kant: #ff8a1f; --rl-afloeb-rist: #ff8a1f; --rl-cursor: #ff8a1f; --rl-ror-forb: #ffc58a; --rl-flange-forb: #e09a5a; }
-[data-theme="cyberpunk"] { --rl-frame: #2a9dff; --rl-board: rgba(0, 6, 8, 0.92); --rl-grid: rgba(57, 255, 106, 0.18); --rl-vand: #39ff6a; --rl-vand-kerne: #d0ffdc; --rl-kilde: #0b4a22; --rl-kilde-kant: #39ff6a; --rl-kilde-ikon: #d0ffdc; --rl-afloeb-kant: #2a9dff; --rl-afloeb-rist: #2a9dff; --rl-afloeb-vaad: #39ff6a; --rl-cursor: #2a9dff; --rl-ror-forb: #8fd6ff; --rl-drop: #39ff6a; }
+[data-theme="cyberpunk"] { --rl-frame: #2a9dff; --rl-board: rgba(0, 6, 8, 0.92); --rl-grid: rgba(57, 255, 106, 0.18); --rl-vand: #39ff6a; --rl-vand-kerne: #d0ffdc; --rl-kilde: #0b4a22; --rl-kilde-kant: #39ff6a; --rl-kilde-ikon: #d0ffdc; --rl-afloeb-kant: #2a9dff; --rl-afloeb-rist: #2a9dff; --rl-afloeb-vaad: #39ff6a; --rl-cursor: #2a9dff; --rl-ror-forb: #8fd6ff; }
 [data-theme="kontrast"] {
   --rl-board: #000000; --rl-frame: #ffffff; --rl-grid: rgba(255, 255, 255, 0.45); --rl-felt: #000000; --rl-felt-hover: #222222;
   --rl-ror: #8a8a8a; --rl-ror-kant: #000000; --rl-ror-forb: #ffffff; --rl-flange: #8a8a8a; --rl-flange-forb: #ffffff;
   --rl-vand: #00ffff; --rl-vand-kerne: #00ffff; --rl-kilde: #000000; --rl-kilde-kant: #00ffff; --rl-kilde-ikon: #00ffff;
   --rl-afloeb: #000000; --rl-afloeb-kant: #ffff00; --rl-afloeb-rist: #ffff00; --rl-afloeb-vaad: #00ffff;
-  --rl-cursor: #ff00ff; --rl-fejl: #ff6600; --rl-ok: #00ff00; --rl-drop: #00ffff; --rl-drop-off: #888888;
+  --rl-cursor: #ff00ff; --rl-fejl: #ff6600; --rl-ok: #00ff00;
 }
 
 /* ---------- Streger og hjørner ----------
@@ -70,8 +68,6 @@
   --rl-ror-hjoerne: round;         /* stroke-linejoin */
   --rl-stroke-ico: 9;
   --rl-stroke-hall: 7;
-  --rl-stroke-drop-off: 6;
-  --rl-drop-off-dash: 8 6;
   --rl-block-w: 2px;
   --rl-hall-border-w: 2px;
   --rl-radius-board: 14px;
@@ -92,14 +88,13 @@
   --rl-vand-glow: drop-shadow(0 0 calc(5px * var(--glow)) color-mix(in srgb, var(--rl-vand) 80%, transparent));
   --rl-kilde-glow: drop-shadow(0 0 calc(6px * var(--glow)) var(--rl-kilde-kant));
   --rl-afloeb-glow: drop-shadow(0 0 calc(6px * var(--glow)) var(--rl-afloeb-kant));
-  --rl-drop-glow: drop-shadow(0 0 calc(4px * var(--glow)) var(--rl-drop));
   --rl-score-glow: 0 0 calc(18px * var(--glow)) var(--ui);
   --rl-points-glow: 0 0 calc(12px * var(--glow)) color-mix(in srgb, var(--rl-ok) 50%, transparent);
 }
 html[data-rl-gloed="fra"], html[data-rl-gloed="fra"] [data-theme] {
   --glow: 0;
   --rl-board-glow: none; --rl-vand-glow: none; --rl-kilde-glow: none; --rl-afloeb-glow: none;
-  --rl-drop-glow: none; --rl-score-glow: none; --rl-points-glow: none;
+  --rl-score-glow: none; --rl-points-glow: none;
 }
 
 /* ---------- Prøver på farvesættene i Indstillinger ---------- */
