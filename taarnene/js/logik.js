@@ -17,41 +17,60 @@
   'use strict';
 
   // ---------- Baner ----------
-  // Stien som felter i rækkefølge [x, y]. Første felt ligger ved kanten (indgang),
-  // sidste felt ved kanten (udgang). Spillet vælger den største bane, skærmen kan bære.
-  var MAPS = [
-    { id: '8x5', w: 8, h: 5, path: [[0,1],[1,1],[2,1],[3,1],[4,1],[5,1],[6,1],[6,2],[6,3],[5,3],[4,3],[3,3],[2,3],[1,3],[1,4]] },
-    { id: '7x5', w: 7, h: 5, path: [[0,1],[1,1],[2,1],[3,1],[4,1],[5,1],[5,2],[5,3],[4,3],[3,3],[2,3],[1,3],[1,4]] },
-    { id: '6x4', w: 6, h: 4, path: [[0,0],[1,0],[2,0],[2,1],[2,2],[3,2],[4,2],[4,1],[5,1]] },
-    { id: '4x6', w: 4, h: 6, path: [[1,0],[1,1],[1,2],[2,2],[2,3],[2,4],[1,4],[1,5]] }
+  // En bane har et navn og en stiform. Hver bane findes i flere størrelser, så den
+  // kan vises med store felter på alle skærme: 8 × 5 (og spejlet 5 × 8), 6 × 4 og 4 × 6.
+  // Stien er felter i rækkefølge [x, y]. Første og sidste felt ligger ved kanten.
+  var BANER = [
+    { id: 'slangen', navn: 'Slangen', tekst: 'Stien slynger sig frem og tilbage.', maps: {
+      '8x5': [[0,1],[1,1],[2,1],[3,1],[4,1],[5,1],[6,1],[6,2],[6,3],[5,3],[4,3],[3,3],[2,3],[1,3],[1,4]],
+      '6x4': [[0,0],[1,0],[2,0],[3,0],[4,0],[4,1],[4,2],[3,2],[2,2],[1,2],[1,3]],
+      '4x6': [[0,0],[1,0],[2,0],[2,1],[2,2],[1,2],[1,3],[1,4],[2,4],[2,5]] } },
+    { id: 'hesteskoen', navn: 'Hesteskoen', tekst: 'Ind og ud i samme side. Tårne i midten når begge veje.', maps: {
+      '8x5': [[1,0],[1,1],[1,2],[1,3],[2,3],[3,3],[4,3],[5,3],[6,3],[6,2],[6,1],[6,0]],
+      '6x4': [[1,0],[1,1],[1,2],[2,2],[3,2],[4,2],[4,1],[4,0]],
+      '4x6': [[0,0],[0,1],[0,2],[0,3],[0,4],[1,4],[2,4],[3,4],[3,3],[3,2],[3,1],[3,0]] } },
+    { id: 'trappen', navn: 'Trappen', tekst: 'Stien går skråt ned i trin. Kort vej, så byg tæt på.', maps: {
+      '8x5': [[0,0],[1,0],[1,1],[2,1],[3,1],[3,2],[4,2],[5,2],[5,3],[6,3],[6,4]],
+      '6x4': [[0,0],[1,0],[1,1],[2,1],[3,1],[3,2],[4,2],[4,3]],
+      '4x6': [[0,0],[1,0],[1,1],[1,2],[2,2],[2,3],[2,4],[3,4]] } },
+    { id: 'lynet', navn: 'Lynet', tekst: 'Stien går op og ned i takker.', maps: {
+      '8x5': [[0,3],[1,3],[1,2],[1,1],[2,1],[3,1],[3,2],[3,3],[4,3],[5,3],[5,2],[5,1],[6,1],[7,1]],
+      '6x4': [[0,2],[1,2],[1,1],[1,0],[2,0],[3,0],[3,1],[3,2],[4,2],[5,2]],
+      '4x6': [[1,0],[1,1],[1,2],[2,2],[2,3],[2,4],[1,4],[1,5]] } }
   ];
+  function baneById(id) { return BANER.filter(function (b) { return b.id === id; })[0] || BANER[0]; }
+  function makeMap(bane, size) {
+    var wh = size.split('x');
+    return { id: size, bane: bane.id, navn: bane.navn, w: +wh[0], h: +wh[1], path: bane.maps[size] };
+  }
+  // Den første banes størrelser (bagudkompatibelt navn)
+  var MAPS = Object.keys(BANER[0].maps).map(function (k) { return makeMap(BANER[0], k); });
   // Spejlet over diagonalen (fx 8 × 5 bliver 5 × 8 på en høj skærm)
   function transpose(m) {
-    return { id: m.h + 'x' + m.w, w: m.h, h: m.w, path: m.path.map(function (c) { return [c[1], c[0]]; }) };
+    return { id: m.h + 'x' + m.w, bane: m.bane, navn: m.navn, w: m.h, h: m.w, path: m.path.map(function (c) { return [c[1], c[0]]; }) };
   }
-  function allMaps() {
+  function allMaps(baneId) {
+    var b = baneById(baneId);
     // De håndlavede først; en spejlet bane bruges kun, hvis der ikke er en håndlavet i samme størrelse
-    var out = MAPS.slice(), seen = {};
-    MAPS.forEach(function (m) { seen[m.id] = 1; });
-    MAPS.forEach(function (m) { var t = transpose(m); if (!seen[t.id]) { seen[t.id] = 1; out.push(t); } });
+    var own = Object.keys(b.maps).map(function (k) { return makeMap(b, k); });
+    var out = own.slice(), seen = {};
+    own.forEach(function (m) { seen[m.id] = 1; });
+    own.forEach(function (m) { var t = transpose(m); if (!seen[t.id]) { seen[t.id] = 1; out.push(t); } });
     return out;
   }
-  function mapById(id) { return allMaps().filter(function (m) { return m.id === id; })[0] || null; }
+  function mapById(id, baneId) { return allMaps(baneId).filter(function (m) { return m.id === id; })[0] || null; }
+  // Retning ud over kanten fra et endefelt c, hvis naboen i stien er nb
+  function edgeDir(m, c, nb) {
+    var d = nb ? [c[0] - nb[0], c[1] - nb[1]] : null;
+    if (d) { var x = c[0] + d[0], y = c[1] + d[1]; if (x < 0 || y < 0 || x >= m.w || y >= m.h) return d; }
+    if (c[0] === 0) return [-1, 0];
+    if (c[0] === m.w - 1) return [1, 0];
+    if (c[1] === 0) return [0, -1];
+    return [0, 1];
+  }
   // Udgangens retning: fra sidste felt ud over kanten
-  function exitDir(m) {
-    var e = m.path[m.path.length - 1];
-    if (e[0] === 0) return [-1, 0];
-    if (e[0] === m.w - 1) return [1, 0];
-    if (e[1] === 0) return [0, -1];
-    return [0, 1];
-  }
-  function entryDir(m) {
-    var s = m.path[0];
-    if (s[0] === 0) return [-1, 0];
-    if (s[0] === m.w - 1) return [1, 0];
-    if (s[1] === 0) return [0, -1];
-    return [0, 1];
-  }
+  function exitDir(m) { var n = m.path.length; return edgeDir(m, m.path[n - 1], m.path[n - 2]); }
+  function entryDir(m) { return edgeDir(m, m.path[0], m.path[1]); }
   // Midten af et felt i felt-enheder (0,5 = midten af første felt)
   function posAt(m, p) {
     var n = m.path.length;
@@ -165,6 +184,7 @@
       wave: 1,                // næste (eller igangværende) bølge
       cleared: 0,             // klarede bølger
       phase: 'bygge',         // 'bygge' | 'boelge' | 'slut'
+      wavePaused: false,      // bølgen holder pause, og man kan bygge midt i den
       towers: {},             // felt-indeks -> { type, level, invested, fresh }
       enemies: [],            // { id, type, hp, maxHp, p, slow }
       queue: [], tick: 0, kills: 0, leaked: 0,
@@ -176,8 +196,10 @@
     function isPath(i) { return !!onPath[i]; }
     function inside(i) { return i >= 0 && i < map.w * map.h; }
 
+    // Man kan bygge i byggefasen og i en pause midt i bølgen
+    function canEdit() { return state.phase === 'bygge' || (state.phase === 'boelge' && state.wavePaused); }
     function canBuild(i, type) {
-      if (state.phase !== 'bygge') return { ok: false, why: 'boelge' };
+      if (!canEdit()) return { ok: false, why: 'boelge' };
       if (!inside(i)) return { ok: false, why: 'udenfor' };
       if (isPath(i)) return { ok: false, why: 'sti' };
       if (state.towers[i]) return { ok: false, why: 'optaget' };
@@ -196,7 +218,7 @@
     }
     function upgrade(i) {
       var t = state.towers[i];
-      if (state.phase !== 'bygge') return { ok: false, why: 'boelge' };
+      if (!canEdit()) return { ok: false, why: 'boelge' };
       if (!t) return { ok: false, why: 'tom' };
       if (t.level >= MAX_LEVEL) return { ok: false, why: 'max' };
       var cost = upgradeCost(t.type, t.level);
@@ -211,7 +233,7 @@
     }
     function sell(i) {
       var t = state.towers[i];
-      if (state.phase !== 'bygge') return { ok: false, why: 'boelge' };
+      if (!canEdit()) return { ok: false, why: 'boelge' };
       if (!t) return { ok: false, why: 'tom' };
       var v = sellValue(i);
       state.money += v;
@@ -225,10 +247,24 @@
       state.queue = state.spec.types.slice();
       state.enemies = [];
       state.tick = 0;
-      state.phase = 'boelge';
+      state.phase = 'boelge'; state.wavePaused = false;
       Object.keys(state.towers).forEach(function (k) { state.towers[k].cd = 0; state.towers[k].fresh = 0; });
       state.last = null;
       return { ok: true, spec: state.spec };
+    }
+
+    // Pause midt i bølgen: byg, opgradér og sælg. Fortsæt genoptager bølgen, og det,
+    // der er bygget i pausen, kan derefter kun sælges til den almindelige pris.
+    function pauseWave() {
+      if (state.phase !== 'boelge' || state.wavePaused) return { ok: false };
+      state.wavePaused = true;
+      return { ok: true };
+    }
+    function resumeWave() {
+      if (state.phase !== 'boelge' || !state.wavePaused) return { ok: false };
+      state.wavePaused = false;
+      Object.keys(state.towers).forEach(function (k) { state.towers[k].fresh = 0; });
+      return { ok: true };
     }
 
     function spawn(type) {
@@ -240,7 +276,7 @@
 
     // Ét trin i bølgen. Returnerer hændelserne (til tegnelaget og lyden).
     function step() {
-      if (state.phase !== 'boelge') return null;
+      if (state.phase !== 'boelge' || state.wavePaused) return null;
       var ev = { tick: ++state.tick, moved: [], spawned: [], shots: [], slowed: [], killed: [], leaked: [], waveDone: false, gameOver: false, bonus: null };
       var n = map.path.length;
       // 1) Fjenderne går
@@ -315,14 +351,14 @@
     // Hele resten af bølgen på én gang (til "Vis resten" og test)
     function runWave(maxSteps) {
       var evs = [], k = 0;
-      while (state.phase === 'boelge' && k++ < (maxSteps || 10000)) evs.push(step());
+      while (state.phase === 'boelge' && !state.wavePaused && k++ < (maxSteps || 10000)) evs.push(step());
       return evs;
     }
     function end() { state.ended = true; if (state.phase !== 'slut') state.phase = 'slut'; return { score: state.score, cleared: state.cleared, wave: state.wave }; }
 
     return {
       state: state,
-      isPath: isPath, cellXY: cellXY, canBuild: canBuild, build: build, upgrade: upgrade,
+      isPath: isPath, cellXY: cellXY, canEdit: canEdit, pauseWave: pauseWave, resumeWave: resumeWave, canBuild: canBuild, build: build, upgrade: upgrade,
       sell: sell, sellValue: sellValue, startWave: startWave, step: step, runWave: runWave, end: end,
       posAt: function (p) { return posAt(map, p); },
       enemy: function (id) { return state.enemies.filter(function (e) { return e.id === id; })[0] || null; },
@@ -335,7 +371,7 @@
   }
 
   global.TaarneneLogik = {
-    MAPS: MAPS, allMaps: allMaps, mapById: mapById, transpose: transpose, validMap: validMap,
+    BANER: BANER, baneById: baneById, MAPS: MAPS, allMaps: allMaps, mapById: mapById, transpose: transpose, validMap: validMap,
     posAt: posAt, entryDir: entryDir, exitDir: exitDir,
     TOWERS: TOWERS, TOWER_TYPES: TOWER_TYPES, MAX_LEVEL: MAX_LEVEL, towerStats: towerStats, upgradeCost: upgradeCost,
     ENEMIES: ENEMIES, RULES: RULES, rng: rng, waveSpec: waveSpec, countTypes: countTypes,

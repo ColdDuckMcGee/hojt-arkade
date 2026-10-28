@@ -11,12 +11,50 @@ var LIGE = { id: 'test', w: 6, h: 3, path: [[0, 1], [1, 1], [2, 1], [3, 1], [4, 
 function nyt(opts) { return L.createGame(Object.assign({ map: LIGE, seed: 7 }, opts || {})); }
 function idx(g, x, y) { return y * g.state.map.w + x; }
 
+// Alle baners størrelser
+function alleMaps() { return [].concat.apply([], L.BANER.map(function (b) { return L.allMaps(b.id); })); }
+
+test('mindst 3 navngivne baner, hver i de samme størrelser', function () {
+  assert.ok(L.BANER.length >= 3);
+  var navne = {};
+  L.BANER.forEach(function (b) {
+    assert.ok(b.navn && b.tekst && !navne[b.navn], b.id); navne[b.navn] = 1;
+    assert.deepStrictEqual(L.allMaps(b.id).map(function (m) { return m.id; }).sort(), ['4x6', '5x8', '6x4', '8x5'], b.id);
+    L.allMaps(b.id).forEach(function (m) { assert.strictEqual(m.bane, b.id); assert.strictEqual(m.navn, b.navn); });
+  });
+  // Forskellig stiform: ingen to baner har samme sti i samme størrelse
+  ['8x5', '6x4', '4x6', '5x8'].forEach(function (size) {
+    var seen = {};
+    L.BANER.forEach(function (b) {
+      var key = JSON.stringify(L.mapById(size, b.id).path);
+      assert.ok(!seen[key], 'samme sti ' + size + ' ' + b.id); seen[key] = 1;
+    });
+  });
+  assert.strictEqual(L.baneById('findes-ikke').id, L.BANER[0].id, 'ukendt bane giver den første');
+});
+
+test('alle baner er gyldige, stierne rører ikke sig selv, og ind/ud vender ud over kanten', function () {
+  L.BANER.forEach(function (b) {
+    var maps = L.allMaps(b.id), ids = {};
+    maps.forEach(function (m) {
+      assert.ok(!ids[m.id], 'dublet ' + m.id); ids[m.id] = 1;
+      // To stifelter, der ikke følger efter hinanden, må ikke være naboer (så stien ikke flyder sammen)
+      for (var i = 0; i < m.path.length; i++) for (var j = i + 2; j < m.path.length; j++)
+        assert.notStrictEqual(Math.abs(m.path[i][0] - m.path[j][0]) + Math.abs(m.path[i][1] - m.path[j][1]), 1, b.id + ' ' + m.id + ' rører ' + i + '/' + j);
+      [[m.path[0], L.entryDir(m)], [m.path[m.path.length - 1], L.exitDir(m)]].forEach(function (o) {
+        var x = o[0][0] + o[1][0], y = o[0][1] + o[1][1];
+        assert.ok(x < 0 || y < 0 || x >= m.w || y >= m.h, b.id + ' ' + m.id + ' kant');
+      });
+    });
+  });
+});
+
 test('alle baner er gyldige og forskellige', function () {
-  var maps = L.allMaps(), ids = {};
-  assert.ok(maps.length >= 6);
+  var maps = alleMaps(), ids = {};
+  assert.ok(maps.length >= 12);
   maps.forEach(function (m) {
     assert.ok(L.validMap(m), m.id);
-    assert.ok(!ids[m.id], 'dublet ' + m.id); ids[m.id] = 1;
+    var key = m.bane + m.id; assert.ok(!ids[key], 'dublet ' + key); ids[key] = 1;
     var x0 = m.path[0][0], y0 = m.path[0][1], e = m.path[m.path.length - 1];
     assert.ok(x0 === 0 || y0 === 0 || x0 === m.w - 1 || y0 === m.h - 1, 'indgang på kanten ' + m.id);
     assert.ok(e[0] === 0 || e[1] === 0 || e[0] === m.w - 1 || e[1] === m.h - 1, 'udgang på kanten ' + m.id);
@@ -148,8 +186,43 @@ test('game over: uden tårne er livene brugt i første bølger', function () {
   var out = g.end(); assert.deepStrictEqual(Object.keys(out).sort(), ['cleared', 'score', 'wave']);
 });
 
+test('pause midt i bølgen: byg, opgradér og sælg; fuld pris kun i samme pause', function () {
+  var g = nyt(), s = g.state, a = idx(g, 1, 0), b = idx(g, 3, 0), c = idx(g, 4, 2);
+  g.build(a, 'laser');
+  assert.strictEqual(g.pauseWave().ok, false, 'ingen bølge at holde pause i');
+  assert.ok(g.startWave().ok);
+  // Bølgen kører: ingen byggeri
+  assert.strictEqual(g.build(b, 'laser').why, 'boelge');
+  assert.strictEqual(g.upgrade(a).why, 'boelge');
+  assert.strictEqual(g.sell(a).why, 'boelge');
+  g.step(); g.step();
+  var tick = s.tick, pos = s.enemies.map(function (e) { return e.p; });
+  assert.ok(g.pauseWave().ok); assert.ok(s.wavePaused); assert.strictEqual(g.pauseWave().ok, false);
+  // I pausen står bølgen helt stille
+  assert.strictEqual(g.step(), null); assert.deepStrictEqual(g.runWave(), []);
+  assert.strictEqual(s.tick, tick); assert.deepStrictEqual(s.enemies.map(function (e) { return e.p; }), pos);
+  assert.strictEqual(g.startWave().ok, false);
+  // Byg, opgradér og sælg midt i bølgen
+  s.money = 100; var m0 = s.money;
+  assert.ok(g.build(b, 'laser').ok); assert.ok(g.upgrade(b).ok);
+  assert.strictEqual(g.sellValue(b), 18, 'bygget i denne pause: alt tilbage');
+  assert.ok(g.build(c, 'frost').ok);
+  assert.strictEqual(g.sellValue(a), Math.floor(10 * L.RULES.sellRate), 'bygget før bølgen: 70 %');
+  assert.ok(g.upgrade(a).ok);
+  assert.strictEqual(g.sellValue(a), 8 + Math.floor(10 * L.RULES.sellRate), 'opgradering i pausen: fuld pris for den del');
+  assert.strictEqual(g.sell(b).value, 18); assert.strictEqual(s.money, m0 - 14 - 8, 'laser bygget og solgt i pausen koster intet');
+  // Fortsæt: bølgen genoptages, og pausens køb giver nu kun 70 %
+  assert.ok(g.resumeWave().ok); assert.ok(!s.wavePaused); assert.strictEqual(g.resumeWave().ok, false);
+  assert.strictEqual(g.sellValue(c), Math.floor(14 * L.RULES.sellRate));
+  assert.strictEqual(g.build(b, 'laser').why, 'boelge');
+  assert.ok(g.step()); assert.strictEqual(s.tick, tick + 1);
+  // Det nye frosttårn er med i bølgen
+  g.runWave();
+  assert.strictEqual(s.phase, 'bygge'); assert.ok(s.towers[c]);
+});
+
 test('uendeligt: selv et godt forsvar taber til sidst (alle baner)', function () {
-  L.allMaps().forEach(function (m) {
+  alleMaps().forEach(function (m) {
     var g = L.createGame({ map: m, seed: 11 }), s = g.state, k = 0;
     var near = [];
     for (var i = 0; i < m.w * m.h; i++) {
@@ -173,8 +246,9 @@ test('uendeligt: selv et godt forsvar taber til sidst (alle baner)', function ()
       }
       g.startWave(); g.runWave();
     }
-    assert.strictEqual(s.phase, 'slut', 'bane ' + m.id + ' slutter');
-    assert.ok(s.cleared >= 8 && s.cleared < 60, 'bane ' + m.id + ' klarede ' + s.cleared + ' bølger');
+    assert.strictEqual(s.phase, 'slut', 'bane ' + m.bane + ' ' + m.id + ' slutter');
+    console.log('    ' + m.bane + ' ' + m.id + ': ' + s.cleared + ' bølger');
+    assert.ok(s.cleared >= 8 && s.cleared < 60, 'bane ' + m.bane + ' ' + m.id + ' klarede ' + s.cleared + ' bølger');
   });
 });
 

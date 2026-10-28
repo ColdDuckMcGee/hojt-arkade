@@ -29,7 +29,7 @@
       <img class="arkade-logo" src="../arkade/logo.svg" alt="Hojt Arkade">
       <h1 id="titel" class="neon-title">TÅRNENE</h1>
     </div>
-    <p class="lead opt">Byg tårne langs stien i ro og mag. Når du er klar, starter du bølgen, og den kører helt af sig selv. Du skal ikke reagere på noget. Hver bølge er lidt sværere end den forrige.</p>
+    <p class="lead opt">Byg tårne langs stien i ro og mag. Når du er klar, starter du bølgen, og den kører helt af sig selv. Du skal ikke reagere på noget, men du kan holde pause og bygge midt i bølgen. Hver bølge er lidt sværere end den forrige.</p>
   </header>
   <div class="menu-demo" aria-hidden="true" id="menu-demo"></div>
   <p class="size-note" id="size-note" aria-live="polite"></p>
@@ -45,13 +45,23 @@
   </div>
 </main>
 
+<!-- ================= BANER ================= -->
+<main id="baner" class="screen" hidden aria-labelledby="baner-title">
+  <h2 id="baner-title" class="neon-sub baner-title">Vælg en bane</h2>
+  <div class="bane-valg" id="bane-valg" role="group" aria-labelledby="baner-title"></div>
+  <div class="row baner-back-row">
+    <button class="btn" id="btn-baner-back"><span class="icon" aria-hidden="true">←</span><span class="big">Tilbage</span></button>
+  </div>
+</main>
+
 <!-- ================= HJÆLP ================= -->
 <main id="hjaelp" class="screen" hidden aria-labelledby="hj-title">
   <section class="panel hj-panel">
     <h2 id="hj-title" class="neon-sub">Sådan spiller du</h2>
     <p data-trin>Fjenderne går ad stien fra indgangen til målet. Hver fjende, der slipper igennem, koster et liv (den store sekskant koster tre). Du har 10 liv.</p>
-    <p data-trin>Vælg et tomt felt ved siden af stien. Så kommer et stort panel, hvor du vælger et tårn. Vælg et tårn, du allerede har, for at opgradere eller sælge det. Tårne, du har bygget i denne pause, kan sælges for den fulde pris.</p>
+    <p data-trin>Vælg et tomt felt ved siden af stien. Så kommer et stort panel, hvor du vælger et tårn. Vælg et tårn, du allerede har, for at opgradere eller sælge det. Tårne, du har bygget i denne pause, kan sælges for den fulde pris. Ellers får du 70 %.</p>
     <p data-trin>Tryk på Start bølgen, når du er klar. Bølgen kører af sig selv, og du skal ikke gøre noget. Du får penge og point for hver fjende og for hver bølge, du klarer.</p>
+    <p data-trin>Vil du bygge midt i en bølge? Tryk på Pause og byg. Så står alt stille, og du kan bygge, opgradere og sælge i ro og mag. Tryk på Fortsæt bølgen, når du er klar.</p>
     <div class="hj-kort" data-trin id="hj-taarne"></div>
     <div class="hj-kort" data-trin id="hj-fjender"></div>
   </section>
@@ -150,6 +160,7 @@
       <p class="muted">Spillet venter på dig. Intet sker, før du vælger.</p>
       <div class="row">
         <button class="btn primary wide" id="btn-resume"><span class="big">Fortsæt</span></button>
+        <button class="btn wide" id="btn-pause-byg" hidden><span class="big">Byg i pausen</span><span class="small">bølgen venter</span></button>
       </div>
       <div class="row">
         <button class="btn" id="btn-pause-hjaelp"><span class="icon" aria-hidden="true">?</span><span class="big">Hjælp</span></button>
@@ -188,7 +199,7 @@
       </div>
       <div class="go-actions">
         <div class="row">
-          <button class="btn primary wide" id="btn-again" data-autofocus><span class="big">Nyt spil</span><span class="small">Bølge 1</span></button>
+          <button class="btn primary wide" id="btn-again" data-autofocus><span class="big">Nyt spil</span><span class="small" id="again-sub">Bølge 1</span></button>
         </div>
         <div class="row">
           <button class="btn" id="btn-go-menu"><span class="icon" aria-hidden="true">⌂</span><span class="big">Til menuen</span></button>
@@ -237,7 +248,7 @@
         <button class="btn option" data-tset="visning" data-value="trin"><span class="big">Trin for trin</span></button>
       </div>
     </div>
-    <p class="note">Brug kun dwell her, hvis dit øjenstyringssystem ikke selv klikker. Har du dwell-klik i fx Tobii, så lad indstillingen være slået fra. Tastaturet virker altid: piletasterne flytter markøren, Enter eller mellemrum vælger feltet, S starter bølgen (eller tager næste trin), H skifter hurtigere visning, og Esc eller P giver pause.</p>
+    <p class="note">Brug kun dwell her, hvis dit øjenstyringssystem ikke selv klikker. Har du dwell-klik i fx Tobii, så lad indstillingen være slået fra. Tastaturet virker altid: piletasterne flytter markøren, Enter eller mellemrum vælger feltet, S starter bølgen (eller tager næste trin, holder pause og byg eller fortsætter bølgen), H skifter hurtigere visning, og Esc eller P giver pause.</p>
   </section>
 
   <section class="tab-panel" data-panel="udseende" hidden>
@@ -312,6 +323,7 @@
 <script src="js/logik.js"></script>
 <script src="tema/neon/grafik.js"></script>
 <script src="js/tegn.js"></script>
+<script src="js/lyd.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

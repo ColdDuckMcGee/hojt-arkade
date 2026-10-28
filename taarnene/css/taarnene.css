@@ -427,3 +427,23 @@ ol.records .score { white-space: nowrap; }
 .tt-tvaers .hj-item { max-width: none; }
 .tt-tvaers .hj-item span { font-size: 0.88rem; line-height: 1.2; }
 .tt-tvaers .hj-item b { font-size: 1rem; }
+
+/* ---------- Vælg bane ---------- */
+.baner-title { margin: 0; }
+.bane-valg {
+  display: grid; grid-template-columns: repeat(var(--bane-cols, 2), minmax(0, 1fr));
+  gap: max(16px, calc(var(--gap) * 0.6));
+  width: min(100%, calc(var(--btn) * 3.2 * var(--bane-cols, 2)));
+}
+.bane-btn {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  min-width: 0; min-height: calc(var(--btn) * 1.6); padding: 12px 14px;
+}
+.bane-btn .bane-pic { display: block; height: calc(var(--btn) * 0.95); max-width: 100%; }
+.bane-btn .bane-pic svg { width: 100%; height: 100%; display: block; }
+.bane-btn .big { font-size: clamp(1.15rem, calc(var(--btn) * 0.22), 1.8rem); line-height: 1.1; }
+.bane-btn .bane-tekst { font-size: 0.95rem; color: var(--muted); line-height: 1.25; text-transform: none; letter-spacing: 0; }
+
+.tt-lille .bane-btn { min-height: calc(var(--btn) * 1.2); padding: 8px 10px; }
+.tt-lille .bane-btn .bane-pic { height: calc(var(--btn) * 0.7); }
+.tt-lille .bane-btn .bane-tekst, .tight .bane-btn .bane-tekst { display: none; }

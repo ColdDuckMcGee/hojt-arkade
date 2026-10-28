@@ -43,7 +43,8 @@
   // gloed: temaets glød (kan slås fra; spillet kan aflæses uden).
   // visning: 'auto' (bølgen kører af sig selv) eller 'trin' (ét trin pr. tryk).
   // hurtig: hurtigere visning af bølgen.
-  var tset = ArkadeSettings.create('taarnene', { gloed: true, visning: 'auto', hurtig: false });
+  // bane: den valgte bane (id fra TaarneneLogik.BANER).
+  var tset = ArkadeSettings.create('taarnene', { gloed: true, visning: 'auto', hurtig: false, bane: 'slangen' });
   var records = ArkadeHighscores.create('taarnene', { max: 10 });
 
   var THEMES = ['neon', 'solnedgang', 'cyberpunk', 'kontrast'];
@@ -51,6 +52,7 @@
   if (THEMES.indexOf(arkade.get('theme')) < 0) arkade.set('theme', 'neon');
   if (BACKGROUNDS.indexOf(arkade.get('background')) < 0) arkade.set('background', 'mork');
   if (['auto', 'trin'].indexOf(tset.get('visning')) < 0) tset.set('visning', 'auto');
+  if (L.BANER.map(function (b) { return b.id; }).indexOf(tset.get('bane')) < 0) tset.set('bane', L.BANER[0].id);
 
   var reducedMotionMq = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
 
@@ -100,8 +102,21 @@
     build: 'bonusSpawn', upgrade: 'bonus', sell: 'bonusGone', kill: 'eat', leak: 'obstacle',
     wave: 'move', waveDone: 'bonus', lost: 'crash', record: 'record', click: 'click', pause: 'pause', blocked: 'click'
   };
-  function sfx(name) { audio.play(SFX[name] || name); }
-  function unlockAudio() { audio.unlock(); }
+  // Spillets egne lyde (js/lyd.js). De fælles lyde (klik, pause, rekord) og musikken kommer fra arkaden.
+  var lyd = TaarneneLyd.create({ sfx: arkade.get('sound'), volume: volumeSetting() });
+  var LYD = {
+    build: 'byg', upgrade: 'opgrader', sell: 'saelg', kill: 'nedkaempet', leak: 'slapIgennem',
+    wave: 'boelgeStart', waveDone: 'boelgeKlaret', lost: 'gameOver', wavePause: 'boelgePause'
+  };
+  // Fælles lydstyrke, hvis arkaden får en (0–1 eller 0–100). I dag har settings.js kun
+  // Lydeffekter til/fra, så lydstyrken er fuld, og det er systemets lydstyrke, der gælder.
+  function volumeSetting() {
+    var v = arkade.all().volume;
+    if (typeof v !== 'number' || isNaN(v)) return 1;
+    return v > 1 ? v / 100 : v;
+  }
+  function sfx(name, n) { if (LYD[name]) lyd.play(LYD[name], n); else audio.play(SFX[name] || name); }
+  function unlockAudio() { audio.unlock(); lyd.unlock(); }
   document.addEventListener('pointerdown', unlockAudio, true);
   document.addEventListener('keydown', unlockAudio, true);
   document.addEventListener('touchstart', unlockAudio, { capture: true, passive: true });
@@ -134,7 +149,8 @@
     if (key === 'animation') applyAnimation();
     if (key === 'dwell') dwell.setEnabled(value);
     if (key === 'dwellTime') dwell.setTime(value * 1000);
-    if (key === 'sound') audio.setSfx(value);
+    if (key === 'sound') { audio.setSfx(value); lyd.setSfx(value); }
+    if (key === 'volume') lyd.setVolume(volumeSetting());
     if (key === 'music') { audio.unlock(); audio.setMusic(value); }
     syncSettingsUi();
   });
@@ -176,8 +192,9 @@
   // Felterne er knapper og skal være store nok til øjenstyring: helst 100 px
   // (ca. 2,6 cm) eller mere, mindst 80 px. Den største bane, der kan det, vælges.
   var MIN_CELL = 80, GOOD_CELL = 100;
-  function chooseMap() {
-    var v = viewport(), list = L.allMaps().map(function (m) { return { m: m, c: bestFit(m, v).cell }; });
+  function baneId() { return tset.get('bane'); }
+  function chooseMap(bane) {
+    var v = viewport(), list = L.allMaps(bane || baneId()).map(function (m) { return { m: m, c: bestFit(m, v).cell }; });
     function best(min) {
       var ok = list.filter(function (o) { return o.c >= min; });
       ok.sort(function (a, b) { return (b.m.w * b.m.h - a.m.w * a.m.h) || (b.c - a.c); });
@@ -191,14 +208,33 @@
   // ---------- Startmenu ----------
   function syncMenu() {
     var m = chooseMap(), c = bestFit(m, viewport()).cell, notes = [];
-    $('#start-sub').textContent = 'Bølger uden ende · bane ' + m.w + ' × ' + m.h;
+    $('#start-sub').textContent = 'Vælg bane · sidst: ' + m.navn;
     if (c < MIN_CELL) notes.push('På denne skærm bliver felterne ca. ' + cmText(c) + ' cm.' + (isFullscreen() ? '' : ' Fuld skærm giver lidt større felter.'));
     $('#size-note').textContent = notes.join(' ');
-    $('#menu-demo').innerHTML = TG.miniBane(L.MAPS[0], DEMO_TOWERS);
+    $('#menu-demo').innerHTML = TG.miniBane(L.mapById('8x5', 'slangen'), DEMO_TOWERS);
     if (current === 'menu') fitScreen($('#menu'));
   }
   var DEMO_TOWERS = { 10: { type: 'laser', level: 1 }, 20: { type: 'puls', level: 1 }, 29: { type: 'frost', level: 1 }, 36: { type: 'kanon', level: 1 } };
-  $('#btn-start').addEventListener('click', function () { sfx('click'); startGame(); });
+  $('#btn-start').addEventListener('click', function () { sfx('click'); openBaner(); });
+
+  // ---------- Vælg bane ----------
+  // Store knapper med et billede af banen, som den bliver på denne skærm.
+  function openBaner() {
+    var box = $('#bane-valg'), cur = baneId();
+    box.innerHTML = L.BANER.map(function (b) {
+      var m = chooseMap(b.id);
+      return '<button class="btn option bane-btn" data-bane="' + b.id + '" aria-pressed="' + (b.id === cur) + '"' + (b.id === cur ? ' data-autofocus' : '') + '>' +
+        '<span class="bane-pic" style="aspect-ratio:' + m.w + ' / ' + m.h + '" aria-hidden="true">' + TG.miniBane(m, {}) + '</span>' +
+        '<span class="big">' + b.navn + '</span><span class="small bane-tekst">' + b.tekst + '</span></button>';
+    }).join('');
+    $$('.bane-btn', box).forEach(function (btn) {
+      btn.addEventListener('click', function () { sfx('click'); tset.set('bane', btn.dataset.bane); startGame(); });
+    });
+    box.style.setProperty('--bane-cols', baneCols());
+    show('baner');
+  }
+  function baneCols() { var v = viewport(); return v.W / v.H > 1.25 ? Math.min(4, L.BANER.length) : 2; }
+  $('#btn-baner-back').addEventListener('click', function () { sfx('click'); show('menu'); });
   $('#btn-settings').addEventListener('click', function () { sfx('click'); openSettings('menu'); });
   $('#btn-records').addEventListener('click', function () { sfx('click'); openRecords(); });
   $('#btn-hjaelp').addEventListener('click', function () { sfx('click'); openHelp('menu'); });
@@ -276,7 +312,7 @@
   function startGame() {
     stopAnim();
     game = L.createGame({ map: chooseMap() });
-    paused = false; finished = false; restAuto = false;
+    paused = false; finished = false; restAuto = false; pendingPause = false;
     curIdx = -1; selIdx = -1; lastNote = ''; noteCls = '';
     tegn.build(game.state.map);
     hideOverlays();
@@ -288,6 +324,9 @@
   function overlayOpen() { return OVERLAYS.some(function (o) { return !$(o).hidden; }); }
   function confirmOpen() { return !$('#confirm-overlay').hidden; }
   function building() { return game && game.state.phase === 'bygge'; }
+  // Byg, opgradér og sælg: i byggefasen og i en pause midt i bølgen
+  function editing() { return game && game.canEdit(); }
+  function wavePaused() { return waving() && game.state.wavePaused; }
   function waving() { return game && game.state.phase === 'boelge'; }
   function live() { return game && !paused && !finished && current === 'game' && !overlayOpen(); }
   function setNote(t, cls) { lastNote = t; noteCls = cls || ''; }
@@ -299,7 +338,7 @@
     if (!live()) return;
     if (curIdx >= 0) curIdx = i;
     if (game.isPath(i)) { sfx('blocked'); setNote('Her er stien. Byg ved siden af.', ''); refresh(); return; }
-    if (!building()) { setNote('Byg igen, når bølgen er slut.', ''); refresh(); return; }
+    if (!editing()) { setNote('Tryk på Pause og byg for at bygge midt i bølgen.', ''); refresh(); return; }
     selIdx = i;
     sfx('click');
     if (game.state.towers[i]) openTower(i); else openBuild(i);
@@ -408,11 +447,38 @@
   function waveButton() {
     if (!live()) return;
     if (building()) { startWave(); return; }
+    if (wavePaused()) { resumeWave(); return; }
+    if (waving() && autoMode()) { requestWavePause(); return; }
     if (waving() && !autoMode() && !anim.on) playStep();
   }
+  // ---------- Pause og byg midt i bølgen ----------
+  // Trinnet, der vises lige nu, gøres færdigt; derefter står bølgen stille.
+  var pendingPause = false;
+  function requestWavePause() {
+    if (!waving() || wavePaused()) return;
+    if (anim.on) { pendingPause = true; setNote('Bølgen holder pause efter dette trin.', ''); refresh(); return; }
+    enterWavePause();
+  }
+  function enterWavePause() {
+    pendingPause = false;
+    clearTimeout(anim.timer);
+    if (!game.pauseWave().ok) return;
+    sfx('wavePause');
+    setNote('Bølgen holder pause. Byg, opgradér eller sælg, og tryk så Fortsæt bølgen.', 'ok');
+    refresh();
+  }
+  function resumeWave() {
+    if (!game.resumeWave().ok) return;
+    closePanelsQuiet();
+    sfx('wave');
+    setNote('Bølgen fortsætter.', '');
+    refresh();
+    if (autoMode() && !paused) anim.timer = setTimeout(playStep, GAP);
+  }
+  function closePanelsQuiet() { $('#byg-overlay').hidden = true; $('#taarn-overlay').hidden = true; selIdx = -1; tegn.range(null); }
   function speedButton() {
     if (!game || finished) return;
-    if (waving() && !autoMode()) {
+    if (waving() && !autoMode() && !wavePaused()) {
       // Trin for trin: "Vis resten" kører resten af bølgen af sig selv
       restAuto = true; sfx('click');
       if (!anim.on && !paused) playStep();
@@ -446,14 +512,15 @@
   }
   function playStep() {
     clearTimeout(anim.timer);
-    if (!game || !waving() || anim.on) return;
+    if (!game || !waving() || wavePaused() || anim.on) return;
     anim.before = snapshot();
     var ev = game.step();
     anim.ev = ev;
     anim.on = true;
     anim.t0 = performance.now();
     anim.dur = tset.get('hurtig') ? TICK_FAST : TICK;
-    if (ev.killed.length) sfx('kill');
+    if (ev.shots.length) lyd.skud(ev.shots.map(function (o) { return o.type; }));
+    if (ev.killed.length) setTimeout(function () { sfx('kill', ev.killed.length); }, 120);
     if (ev.leaked.length) sfx('leak');
     if (ev.leaked.length) {
       var lost = ev.leaked.reduce(function (a, k) { return a + k.lives; }, 0);
@@ -488,6 +555,7 @@
       return;
     }
     if (ev.waveDone) {
+      pendingPause = false;
       sfx('waveDone');
       tegn.clearWave();
       boardEl.classList.remove('boelge');
@@ -496,6 +564,7 @@
       refresh();
       return;
     }
+    if (pendingPause) { enterWavePause(); return; }
     refresh();
     if (autoMode() && !paused) anim.timer = setTimeout(playStep, GAP);
   }
@@ -503,7 +572,7 @@
   // ---------- Tegning ----------
   function renderBoard() {
     if (!game) return;
-    tegn.cells(game, { cursor: live() && building() ? curIdx : -1, selected: selIdx, names: NAVN });
+    tegn.cells(game, { cursor: live() && editing() ? curIdx : -1, selected: selIdx, names: NAVN });
   }
   function refresh() {
     if (!game) return;
@@ -517,6 +586,7 @@
     var hint = $('#hint'), cls = noteCls, txt = lastNote;
     if (!txt) {
       if (building()) txt = 'Næste bølge: ' + waveText(L.waveSpec(s.wave, s.seed)) + '.';
+      else if (wavePaused()) txt = 'Bølgen holder pause. Byg i ro og mag.';
       else if (waving()) txt = 'Bølgen kører af sig selv.';
     }
     hint.textContent = txt;
@@ -529,6 +599,16 @@
       $('#wave-sub').textContent = 'Bølge ' + s.wave + ' · ' + L.RULES.count(s.wave) + (s.wave % 5 === 0 ? ' + kæmper' : ' fjender');
       useIco.setAttribute('href', '#tt-ikon-boelge');
       wb.disabled = !live();
+    } else if (wavePaused()) {
+      $('#wave-label').textContent = 'Fortsæt bølgen';
+      $('#wave-sub').textContent = 'trin ' + s.tick;
+      useIco.setAttribute('href', '#tt-ikon-boelge');
+      wb.disabled = !live();
+    } else if (waving() && autoMode()) {
+      $('#wave-label').textContent = pendingPause ? 'Pause kommer' : 'Pause og\u00a0byg';
+      $('#wave-sub').textContent = pendingPause ? 'efter dette trin' : 'bølgen venter';
+      useIco.setAttribute('href', '#tt-ikon-pause');
+      wb.disabled = !live() || pendingPause;
     } else if (waving() && !autoMode()) {
       $('#wave-label').textContent = 'Næste trin';
       $('#wave-sub').textContent = 'trin ' + s.tick;
@@ -540,7 +620,7 @@
       useIco.setAttribute('href', '#tt-ikon-boelge');
       wb.disabled = true;
     }
-    if (waving() && !autoMode()) {
+    if (waving() && !autoMode() && !wavePaused()) {
       $('#speed-label').textContent = 'Vis resten';
       $('#speed-sub').textContent = 'resten af bølgen af sig selv';
       spIco.setAttribute('href', '#tt-ikon-hurtig');
@@ -564,6 +644,7 @@
     if (p && overlayOpen() && !$('#pause-overlay').hidden) return;
     if (p) { $('#byg-overlay').hidden = true; $('#taarn-overlay').hidden = true; selIdx = -1; tegn.range(null); }
     paused = p;
+    $('#btn-pause-byg').hidden = !(p && waving() && !wavePaused());
     $('#pause-overlay').hidden = !p;
     if (p) fitScreen($('#pause-overlay'));
     dwell.reset();
@@ -576,6 +657,14 @@
   }
   $('#btn-pause').addEventListener('click', function () { setPaused(!paused); });
   $('#btn-resume').addEventListener('click', function () { setPaused(false); });
+  // Fra pausemenuen: luk menuen, men lad bølgen vente, så man kan bygge
+  $('#btn-pause-byg').addEventListener('click', function () {
+    if (!waving()) { setPaused(false); return; }
+    if (!anim.on) game.pauseWave();
+    else pendingPause = true;
+    setPaused(false);
+    if (wavePaused()) { sfx('wavePause'); setNote('Bølgen holder pause. Byg, opgradér eller sælg, og tryk så Fortsæt bølgen.', 'ok'); refresh(); }
+  });
   $('#btn-pause-settings').addEventListener('click', function () { sfx('click'); openSettings('game'); });
   $('#btn-pause-hjaelp').addEventListener('click', function () { sfx('click'); openHelp('game'); });
   $('#btn-quit').addEventListener('click', function () { sfx('click'); askQuit(); });
@@ -610,7 +699,7 @@
   function saveRecord() {
     var out = game.end(), res = null;
     finished = true;
-    if (out.score > 0) res = records.add(CAT, out.score, { waves: out.cleared, kills: game.state.kills });
+    if (out.score > 0) res = records.add(CAT, out.score, { waves: out.cleared, kills: game.state.kills, bane: game.state.map.bane });
     return res;
   }
   function finish(why) {
@@ -629,7 +718,9 @@
     $('#go-reason').textContent = why === 'lost'
       ? 'Fjenderne kom igennem i bølge ' + wave + ', og alle ' + L.RULES.lives + ' liv er brugt.'
       : 'Du afsluttede før bølge ' + wave + '.';
+    $('#go-reason').textContent += ' Bane: ' + s.map.navn + '.';
     $('#go-pic').innerHTML = TG.miniBane(s.map, s.towers);
+    $('#again-sub').textContent = s.map.navn + ' · bølge 1';
     $('#go-pic').style.aspectRatio = s.map.w + ' / ' + s.map.h;
     $('#go-score').textContent = s.score;
     $('#go-waves').textContent = wavesText(s.cleared) + ' klaret · ' + s.kills + ' fjender nedkæmpet';
@@ -652,7 +743,7 @@
         var sc = li.querySelector('.score');
         sc.appendChild(document.createTextNode(e.score + ' point'));
         var lv = document.createElement('span'); lv.className = 'plates';
-        lv.textContent = ' · ' + wavesText(typeof e.waves === 'number' ? e.waves : 0);
+        lv.textContent = ' · ' + wavesText(typeof e.waves === 'number' ? e.waves : 0) + (e.bane ? ' · ' + L.baneById(e.bane).navn : '');
         sc.appendChild(lv);
         li.querySelector('.date').textContent = ArkadeHighscores.formatDate(e.date);
         if (e.id === highlightId) li.classList.add('new');
@@ -739,7 +830,7 @@
     renderBoard();
   }
   function keySelect() {
-    if (!live() || !building()) return;
+    if (!live() || !editing()) return;
     if (curIdx < 0) { curIdx = hoverIdx >= 0 ? hoverIdx : centre(); renderBoard(); return; }
     chooseCell(curIdx);
   }
@@ -1071,6 +1162,7 @@
     settings: arkade, gameSettings: tset, records: records, dwell: dwell, audio: audio, logik: L,
     start: startGame, show: show, chooseCell: chooseCell, build: doBuild, closePanels: closePanels,
     wave: waveButton, speed: speedButton, step: playStep, finish: finish, refresh: refresh,
-    setPaused: setPaused, layout: layoutGame
+    setPaused: setPaused, layout: layoutGame, lyd: lyd, openBaner: openBaner,
+    pauseWave: requestWavePause, resumeWave: resumeWave, get pendingPause() { return pendingPause; }
   };
 })();
