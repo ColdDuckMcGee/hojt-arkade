@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="da" data-theme="neon">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0c0612">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Kaperen – Hojt Arkade</title>
+<link rel="icon" href="../arkade/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../arkade/arkade.css">
+<link rel="stylesheet" href="css/kaperen.css">
+<!-- Temaet: al grafik (farver, glød, skygger, konturer og navngivne grafikelementer). Et andet tema leverer de samme navne. -->
+<link rel="stylesheet" href="tema/neon/tema.css">
+</head>
+<body>
+<canvas id="baggrund" aria-hidden="true"></canvas>
+
+<!-- Grafikken (skibe, flag, øer, effekter og ikoner) kommer fra temaet (tema/neon/grafik.js)
+     og lægges ind af js/tegn.js som <symbol>: #kap-skib-<navn>, #kap-ikon-<navn> osv. -->
+
+<!-- ================= STARTMENU ================= -->
+<main id="menu" class="screen" aria-labelledby="titel">
+  <button class="btn hall-btn" id="btn-hall" data-href="../index.html">
+    <svg class="hall-ico" viewBox="0 0 100 100" aria-hidden="true"><use href="#kap-ikon-tilbage"/></svg>
+    <span class="big">Tilbage til hallen</span>
+  </button>
+  <header class="title-block">
+    <div class="title-row">
+      <img class="arkade-logo" src="../arkade/logo.svg" alt="Hojt Arkade">
+      <h1 id="titel" class="neon-title">KAPEREN</h1>
+    </div>
+    <p class="lead opt">Sejl mellem havnene i øhavet, køb billigt og sælg dyrt. Til søs møder du handelsskibe, sørøvere og marinen – og du vælger i ro og mag, om du vil skyde, borde eller flygte. Jo mere berømt du bliver, jo mere jager marinen dig.</p>
+  </header>
+  <svg class="menu-skib opt" id="menu-skib" viewBox="0 0 100 100" aria-hidden="true"></svg>
+  <div class="row start-row">
+    <button class="btn primary wide" id="btn-start"><span class="big" id="btn-start-label">Ny rejse</span><span class="small" id="btn-start-sub">En lille slup og 300 guld</span></button>
+    <button class="btn" id="btn-ny" hidden><svg class="btn-ico" aria-hidden="true"><use href="#kap-ikon-nytskib"/></svg><span class="big">Ny rejse</span></button>
+  </div>
+  <div class="row more-row">
+    <button class="btn" id="btn-settings"><span class="icon" aria-hidden="true">⚙</span><span class="big">Indstillinger</span></button>
+    <button class="btn" id="btn-records"><span class="icon" aria-hidden="true">★</span><span class="big">Rekorder</span></button>
+    <button class="btn js-fullscreen"><span class="icon" aria-hidden="true">⛶</span><span class="big js-fs-label">Fuld skærm</span></button>
+    <button class="btn" id="btn-om"><span class="icon" aria-hidden="true">ⓘ</span><span class="big">Om</span></button>
+  </div>
+</main>
+
+<!-- ================= OM ================= -->
+<main id="om" class="screen" hidden aria-labelledby="om-title">
+  <img class="arkade-logo om-logo opt" data-trin src="../arkade/logo.svg" alt="Hojt Arkade">
+  <section class="panel om-panel">
+    <h2 id="om-title" class="neon-sub">Om Hojt Arkade</h2>
+    <p data-trin>Hojt Arkade er udviklet af Jon Leismann Engsager, Hojt Design. Jon er IT- og IKT-konsulent i det specialiserede område og laver blandt andet gratis spil til voksne, der bruger øjenstyring.</p>
+    <p data-trin>Kaperen: handl med rom, sukker, krydderier, tobak og silke mellem otte havne. En rejse tager dage og koster proviant. Til søs kan du møde handelsskibe, sørøvere, marinen eller en storm. Alt sker i ture: skyd, ryk nærmere, bord eller flyg. Spillet slutter, når skibet synker, eller marinen tager dig – eller når du selv går i land med din formue.</p>
+    <p data-trin>Koden er åben og frit tilgængelig under MIT-licensen, så alle kan bruge den og bygge videre på den.</p>
+  </section>
+  <div class="row" data-trin>
+    <a class="btn link-btn" id="link-hojt" href="https://hojt.dk" target="_blank" rel="noopener"><span class="big">Hojt Design</span><span class="small">hojt.dk</span></a>
+    <a class="btn link-btn" id="link-github" href="https://github.com/ColdDuckMcGee/hojt-arkade" target="_blank" rel="noopener"><span class="big">Koden på GitHub</span><span class="small">github.com/ColdDuckMcGee/hojt-arkade</span></a>
+  </div>
+  <div class="row om-back-row">
+    <button class="btn primary wide" id="btn-om-back"><span class="icon" aria-hidden="true">←</span><span class="big">Tilbage</span></button>
+    <a class="btn" id="link-alle-spil" href="../index.html"><span class="icon" aria-hidden="true">▦</span><span class="big">Alle spil</span></a>
+  </div>
+</main>
+
+<!-- ================= SPIL ================= -->
+<main id="game" class="screen" hidden aria-label="Spillet">
+  <div class="spil" id="spil">
+    <div class="hud-bar">
+      <div class="hud-grid" id="hud" aria-live="polite">
+        <div class="hud" data-hud="dag"><span class="hud-label">Dag</span><span class="hud-v"><svg class="hud-ico" aria-hidden="true"><use href="#kap-ikon-dag"/></svg><span class="hud-value"></span></span></div>
+        <div class="hud hud-guld" data-hud="guld"><span class="hud-label">Guld</span><span class="hud-v"><svg class="hud-ico" aria-hidden="true"><use href="#kap-ikon-guld"/></svg><span class="hud-value"></span></span></div>
+        <div class="hud" data-hud="skrog"><span class="hud-label">Skrog</span><span class="hud-v"><svg class="hud-ico" aria-hidden="true"><use href="#kap-ikon-skrog"/></svg><span class="hud-value"></span></span></div>
+        <div class="hud" data-hud="mandskab"><span class="hud-label">Mandskab</span><span class="hud-v"><svg class="hud-ico" aria-hidden="true"><use href="#kap-ikon-mandskab"/></svg><span class="hud-value"></span></span></div>
+        <div class="hud" data-hud="kanoner"><span class="hud-label">Kanoner</span><span class="hud-v"><svg class="hud-ico" aria-hidden="true"><use href="#kap-ikon-kanon"/></svg><span class="hud-value"></span></span></div>
+        <div class="hud" data-hud="proviant"><span class="hud-label">Proviant</span><span class="hud-v"><svg class="hud-ico" aria-hidden="true"><use href="#kap-ikon-proviant"/></svg><span class="hud-value"></span></span></div>
+        <div class="hud" data-hud="last"><span class="hud-label">Last</span><span class="hud-v"><svg class="hud-ico" aria-hidden="true"><use href="#kap-ikon-last"/></svg><span class="hud-value"></span></span></div>
+        <div class="hud" data-hud="beroemmelse"><span class="hud-label">Berømmelse</span><span class="hud-v"><svg class="hud-ico" aria-hidden="true"><use href="#kap-ikon-beroemmelse"/></svg><span class="hud-value"></span></span></div>
+      </div>
+      <button class="btn menu-btn" id="btn-pause" aria-label="Pause og menu"><svg aria-hidden="true"><use href="#kap-ikon-menu"/></svg><span class="small">Menu</span></button>
+    </div>
+
+    <!-- I havnen -->
+    <section class="view v-havn" id="v-havn" aria-label="Havnen">
+      <div class="faner" role="tablist" aria-label="Havnen">
+        <button class="btn option fane-btn" data-fane="marked" role="tab"><svg aria-hidden="true"><use href="#kap-ikon-marked"/></svg><span class="big">Marked</span></button>
+        <button class="btn option fane-btn" data-fane="vaerft" role="tab"><svg aria-hidden="true"><use href="#kap-ikon-vaerft"/></svg><span class="big">Værft</span></button>
+        <button class="btn option fane-btn" data-fane="vaerthus" role="tab"><svg aria-hidden="true"><use href="#kap-ikon-vaerthus"/></svg><span class="big">Værtshus</span></button>
+        <button class="btn primary fane-btn" id="btn-til-soes"><svg aria-hidden="true"><use href="#kap-ikon-kort"/></svg><span class="big">Til søs</span></button>
+      </div>
+      <div class="havn-indhold">
+        <div class="havn-top">
+          <h2 class="havn-navn" id="havn-navn">Tågeskær</h2>
+          <p class="besked" id="besked" aria-live="polite"></p>
+        </div>
+        <div class="fane" data-panel="marked">
+          <div class="varer" id="varer" role="group" aria-label="Varer"></div>
+          <div class="handel" role="group" aria-label="Køb og sælg">
+            <button class="btn handel-btn koeb" data-koeb="1"><span class="big">Køb 1</span><span class="small"></span></button>
+            <button class="btn handel-btn koeb" data-koeb="5"><span class="big">Køb 5</span><span class="small"></span></button>
+            <button class="btn handel-btn koeb" data-koeb="alt"><span class="big">Køb alt</span><span class="small"></span></button>
+            <button class="btn handel-btn saelg" data-saelg="1"><span class="big">Sælg 1</span><span class="small"></span></button>
+            <button class="btn handel-btn saelg" data-saelg="5"><span class="big">Sælg 5</span><span class="small"></span></button>
+            <button class="btn handel-btn saelg" data-saelg="alt"><span class="big">Sælg alt</span><span class="small"></span></button>
+          </div>
+        </div>
+        <div class="fane knapgitter" data-panel="vaerft" role="group" aria-label="Værftet" hidden>
+          <button class="btn kob-btn" data-vaerft="reparer"><svg aria-hidden="true"><use href="#kap-ikon-reparer"/></svg><span class="kob-navn">Reparér</span><span class="kob-pris"></span></button>
+          <button class="btn kob-btn" data-vaerft="kanon"><svg aria-hidden="true"><use href="#kap-ikon-kanon"/></svg><span class="kob-navn">Ny kanon</span><span class="kob-pris"></span></button>
+          <button class="btn kob-btn" data-vaerft="sejl"><svg aria-hidden="true"><use href="#kap-ikon-sejl"/></svg><span class="kob-navn">Bedre sejl</span><span class="kob-pris"></span></button>
+          <button class="btn kob-btn" data-vaerft="lastrum"><svg aria-hidden="true"><use href="#kap-ikon-lastrum"/></svg><span class="kob-navn">Større lastrum</span><span class="kob-pris"></span></button>
+          <button class="btn kob-btn" data-vaerft="skib"><svg aria-hidden="true"><use href="#kap-ikon-nytskib"/></svg><span class="kob-navn">Større skib</span><span class="kob-pris"></span></button>
+          <div class="skib-kort" id="skib-kort" aria-live="polite"></div>
+        </div>
+        <div class="fane knapgitter" data-panel="vaerthus" role="group" aria-label="Værtshuset" hidden>
+          <button class="btn kob-btn" data-hyr="1"><svg aria-hidden="true"><use href="#kap-ikon-mandskab"/></svg><span class="kob-navn">Hyr 1</span><span class="kob-pris"></span></button>
+          <button class="btn kob-btn" data-hyr="5"><svg aria-hidden="true"><use href="#kap-ikon-mandskab"/></svg><span class="kob-navn">Hyr 5</span><span class="kob-pris"></span></button>
+          <button class="btn kob-btn" data-hyr="alt"><svg aria-hidden="true"><use href="#kap-ikon-mandskab"/></svg><span class="kob-navn">Hyr fuldt</span><span class="kob-pris"></span></button>
+          <button class="btn kob-btn" data-proviant="5"><svg aria-hidden="true"><use href="#kap-ikon-proviant"/></svg><span class="kob-navn">Proviant 5 dage</span><span class="kob-pris"></span></button>
+          <button class="btn kob-btn" data-proviant="alt"><svg aria-hidden="true"><use href="#kap-ikon-proviant"/></svg><span class="kob-navn">Fyld proviant</span><span class="kob-pris"></span></button>
+          <div class="skib-kort rygte" id="rygte" aria-live="polite"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Kortet -->
+    <section class="view v-kort" id="v-kort" aria-label="Kortet" hidden>
+      <div class="kort-boks" id="kort-boks">
+        <svg class="kort-svg" id="kort-svg" role="img" aria-label="Kort over øhavet"></svg>
+        <div class="havne-lag" id="havne-lag" role="group" aria-label="Havne"></div>
+        <div class="kortskib" id="kortskib" hidden><svg viewBox="0 0 40 40" aria-hidden="true"><use href="#kap-kortskib"/></svg></div>
+      </div>
+      <div class="kort-panel">
+        <div class="kort-tekst">
+          <h2 class="kort-titel" id="kort-titel">Vælg en havn</h2>
+          <p class="kort-info" id="kort-info"></p>
+        </div>
+        <button class="btn primary kort-knap" id="btn-sejl"><svg aria-hidden="true"><use href="#kap-ikon-sejl"/></svg><span class="big">Sæt sejl</span></button>
+        <button class="btn kort-knap" id="btn-kort-tilbage"><svg aria-hidden="true"><use href="#kap-ikon-anker"/></svg><span class="big">Bliv i havnen</span></button>
+      </div>
+    </section>
+
+    <!-- Et møde til søs -->
+    <section class="view v-moede" id="v-moede" aria-label="Til søs" hidden>
+      <div class="scene-boks">
+        <svg class="scene-svg" id="scene-svg" role="img" aria-label="Skibene på havet"></svg>
+        <div class="scene-info" id="fjende-info" aria-live="polite"></div>
+        <p class="scene-log" id="moede-log" aria-live="polite"></p>
+      </div>
+      <div class="moede-knapper" id="moede-knapper" data-fase="kamp" role="group" aria-label="Dit valg">
+        <button class="btn moede-btn f-kamp" id="btn-skyd"><svg aria-hidden="true"><use href="#kap-ikon-skyd"/></svg><span class="big">Skyd</span><span class="small"></span></button>
+        <button class="btn moede-btn f-kamp" id="btn-naermere"><svg aria-hidden="true"><use href="#kap-ikon-naermere"/></svg><span class="big">Ryk nærmere</span><span class="small"></span></button>
+        <button class="btn moede-btn f-kamp" id="btn-bord"><svg aria-hidden="true"><use href="#kap-ikon-bord"/></svg><span class="big">Bord</span><span class="small"></span></button>
+        <button class="btn moede-btn f-kamp" id="btn-flygt"><svg aria-hidden="true"><use href="#kap-ikon-flygt"/></svg><span class="big">Flygt</span><span class="small"></span></button>
+        <button class="btn moede-btn f-storm" id="btn-ride"><svg aria-hidden="true"><use href="#kap-ikon-storm"/></svg><span class="big">Ride stormen af</span><span class="small">Skroget tager skade</span></button>
+        <button class="btn moede-btn f-storm" id="btn-laa"><svg aria-hidden="true"><use href="#kap-ikon-laa"/></svg><span class="big">Søg læ</span><span class="small">2 dage mere</span></button>
+        <button class="btn primary moede-btn f-slut" id="btn-videre"><svg aria-hidden="true"><use href="#kap-ikon-videre"/></svg><span class="big">Sejl videre</span><span class="small"></span></button>
+      </div>
+    </section>
+  </div>
+
+  <div class="overlay" id="pause-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="pause-title">
+    <div class="panel">
+      <h2 id="pause-title" class="neon-sub">Pause</h2>
+      <p class="muted">Spillet venter på dig. Intet sker, før du vælger.</p>
+      <div class="row">
+        <button class="btn primary wide" id="btn-resume"><span class="big">Fortsæt</span></button>
+      </div>
+      <div class="row">
+        <button class="btn" id="btn-pause-settings"><span class="icon" aria-hidden="true">⚙</span><span class="big">Indstillinger</span></button>
+        <button class="btn js-fullscreen"><span class="icon" aria-hidden="true">⛶</span><span class="big js-fs-label">Fuld skærm</span></button>
+        <button class="btn" id="btn-land"><svg class="btn-ico" aria-hidden="true"><use href="#kap-ikon-land"/></svg><span class="big">Gå i land</span><span class="small">slut og gem point</span></button>
+        <button class="btn" id="btn-pause-menu"><span class="icon" aria-hidden="true">⌂</span><span class="big">Til menuen</span><span class="small">rejsen gemmes</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Spillet er slut -->
+  <div class="overlay soft" id="slut-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="slut-title">
+    <div class="panel slut-panel">
+      <div class="slut-tekst">
+        <p class="slut-kicker" id="slut-kicker">Rejsen er slut</p>
+        <h2 id="slut-title" class="neon-sub slut-point">0 point</h2>
+        <p class="slut-grund" id="slut-grund"></p>
+        <p class="muted slut-tal" id="slut-tal"></p>
+        <p class="slut-rank" id="slut-rank"></p>
+      </div>
+      <div class="row slut-row">
+        <button class="btn primary wide" id="btn-slut-ny"><svg class="btn-ico" aria-hidden="true"><use href="#kap-ikon-sejl"/></svg><span class="big">Ny rejse</span></button>
+        <button class="btn" id="btn-slut-rekorder"><span class="icon" aria-hidden="true">★</span><span class="big">Rekorder</span></button>
+        <button class="btn" id="btn-slut-menu"><span class="icon" aria-hidden="true">⌂</span><span class="big">Menu</span></button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ================= INDSTILLINGER ================= -->
+<main id="settings" class="screen" hidden aria-labelledby="set-title">
+  <h2 id="set-title" class="sr-only">Indstillinger</h2>
+  <div class="row tabs" role="tablist">
+    <button class="btn" id="btn-settings-back"><span class="icon" aria-hidden="true">←</span><span class="big">Tilbage</span></button>
+    <button class="btn option tab" data-tab="styring" role="tab"><span class="big">Styring</span></button>
+    <button class="btn option tab" data-tab="udseende" role="tab"><span class="big">Udseende</span></button>
+    <button class="btn option tab" data-tab="lyd" role="tab"><span class="big">Lyd</span></button>
+  </div>
+
+  <section class="tab-panel" data-panel="styring">
+    <div class="setting">
+      <div class="setting-label">Dwell<small>Kig på en knap for at vælge den</small></div>
+      <div class="row" role="group">
+        <button class="btn option" data-set="dwell" data-value="false"><span class="big">Fra</span></button>
+        <button class="btn option" data-set="dwell" data-value="true"><span class="big">Til</span></button>
+      </div>
+    </div>
+    <div class="setting">
+      <div class="setting-label">Dwell-tid<small>Hvor længe du skal kigge</small></div>
+      <div class="row">
+        <button class="btn" id="dwell-minus" aria-label="Kortere dwell-tid"><span class="big">−</span><span class="small">Kortere</span></button>
+        <div class="value-box" id="dwell-value" aria-live="polite">1,2 sek.</div>
+        <button class="btn" id="dwell-plus" aria-label="Længere dwell-tid"><span class="big">+</span><span class="small">Længere</span></button>
+      </div>
+    </div>
+    <p class="note">Brug kun dwell her, hvis dit øjenstyringssystem ikke selv klikker. Har du dwell-klik i fx Tobii, så lad indstillingen være slået fra. Spillet venter altid på dig – der er intet tidspres. Tastaturet virker også: 1–5 vælger en vare, K køber 1, Skift+K køber 5, S sælger 1 (Skift+S sælger 5). Til søs: S skyder, N rykker nærmere, B entrer, F flygter (eller sejler videre). På kortet vælger piletasterne en havn, og Enter sætter sejl. Esc eller P giver pause.</p>
+  </section>
+
+  <section class="tab-panel" data-panel="udseende" hidden>
+    <div class="setting">
+      <div class="setting-label">Tema</div>
+      <div class="row" role="group">
+        <button class="btn option theme-btn" data-set="theme" data-value="neon"><span class="swatch" data-farver="neon"></span><span class="small">Pink og cyan</span></button>
+        <button class="btn option theme-btn" data-set="theme" data-value="solnedgang"><span class="swatch" data-farver="solnedgang"></span><span class="small">Orange og lilla</span></button>
+        <button class="btn option theme-btn" data-set="theme" data-value="cyberpunk"><span class="swatch" data-farver="cyberpunk"></span><span class="small">Grøn og blå</span></button>
+        <button class="btn option theme-btn" data-set="theme" data-value="kontrast"><span class="swatch" data-farver="kontrast"></span><span class="small">Høj kontrast</span></button>
+      </div>
+    </div>
+    <div class="setting">
+      <div class="setting-label">Baggrund</div>
+      <div class="row" role="group">
+        <button class="btn option" data-set="background" data-value="mork"><span class="big">Mørk</span></button>
+        <button class="btn option" data-set="background" data-value="solnedgang"><span class="big">Solnedgang</span></button>
+        <button class="btn option" data-set="background" data-value="neonby"><span class="big">Neonby</span></button>
+      </div>
+    </div>
+    <div class="setting">
+      <div class="setting-label">Glød<small>Lysskær om skibe, øer, knapper og tekst</small></div>
+      <div class="row" role="group">
+        <button class="btn option" data-gset="gloed" data-value="false"><span class="big">Fra</span></button>
+        <button class="btn option" data-gset="gloed" data-value="true"><span class="big">Til</span></button>
+      </div>
+    </div>
+    <div class="setting">
+      <div class="setting-label">Animation<small id="motion-note">Bevægelse i baggrunden og på kortet</small></div>
+      <div class="row" role="group">
+        <button class="btn option" data-set="animation" data-value="false"><span class="big">Fra</span></button>
+        <button class="btn option" data-set="animation" data-value="true"><span class="big">Til</span></button>
+      </div>
+    </div>
+  </section>
+
+  <section class="tab-panel" data-panel="lyd" hidden>
+    <div class="setting">
+      <div class="setting-label">Lydeffekter</div>
+      <div class="row" role="group">
+        <button class="btn option" data-set="sound" data-value="false"><span class="big">Fra</span></button>
+        <button class="btn option" data-set="sound" data-value="true"><span class="big">Til</span></button>
+      </div>
+    </div>
+    <div class="setting">
+      <div class="setting-label">Musik</div>
+      <div class="row" role="group">
+        <button class="btn option" data-set="music" data-value="false"><span class="big">Fra</span></button>
+        <button class="btn option" data-set="music" data-value="true"><span class="big">Til</span></button>
+      </div>
+    </div>
+  </section>
+  <div class="row trin-bund" hidden></div>
+</main>
+
+<!-- ================= REKORDER ================= -->
+<main id="records" class="screen" hidden aria-labelledby="rec-title">
+  <div class="row tabs">
+    <button class="btn" id="btn-records-back"><span class="icon" aria-hidden="true">←</span><span class="big">Tilbage</span></button>
+  </div>
+  <section class="panel records-panel">
+    <h2 class="group-label" id="rec-title">Top 10 · point</h2>
+    <ol class="records" id="rec-list"></ol>
+    <p class="muted rec-note" id="rec-note">Point = formue (guld, last og skib) + 10 for hver berømmelse.</p>
+  </section>
+</main>
+
+<!-- Bekræft (Gå i land / Ny rejse): to store knapper med god afstand. "Nej" står først og har fokus. -->
+<div class="overlay bekraeft" id="bekraeft-overlay" hidden role="alertdialog" aria-modal="true" aria-labelledby="bekraeft-title" aria-describedby="bekraeft-text">
+  <div class="panel">
+    <h2 id="bekraeft-title" class="neon-sub">Gå i land?</h2>
+    <p class="muted confirm-text" id="bekraeft-text"></p>
+    <div class="row confirm-row">
+      <button class="btn primary confirm-btn" id="btn-bekraeft-nej"><span class="icon" aria-hidden="true">←</span><span class="big" id="bekraeft-nej-label">Nej, sejl videre</span></button>
+      <button class="btn confirm-btn" id="btn-bekraeft-ja"><svg class="btn-ico" aria-hidden="true"><use href="#kap-ikon-land"/></svg><span class="big" id="bekraeft-ja-label">Ja, gå i land</span></button>
+    </div>
+  </div>
+</div>
+
+<script src="../arkade/settings.js"></script>
+<script src="../arkade/highscores.js"></script>
+<script src="../arkade/dwell.js"></script>
+<script src="../arkade/audio.js"></script>
+<script src="../arkade/background.js"></script>
+<script src="js/logik.js"></script>
+<script src="tema/neon/grafik.js"></script>
+<script src="js/tegn.js"></script>
+<script src="js/lyd.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

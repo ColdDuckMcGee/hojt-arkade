@@ -1,0 +1,363 @@
+/* Kaperen – spillets egen opsætning. Bygger på ../arkade/arkade.css.
+ * Startmenu, overlays, indstillinger, rekorder, Om og små skærme følger de andre
+ * spil (fx Rampen og Tårnene), så de ser ens ud og opfører sig ens.
+ *
+ * Farver, glød, skygger, konturer, stregtykkelser og hjørner kommer fra temaet:
+ * tema/<navn>/tema.css (her: tema/neon/). Denne fil indeholder kun opbygning og mål. */
+
+/* ---------- Hele vinduet, ingen rulning ---------- */
+html, body { height: 100%; height: 100dvh; }
+.screen { justify-content: safe center; align-items: safe center; }
+.screen > *, .overlay > .panel, .tab-panel > * { flex-shrink: 0; }
+#game > .spil { flex-shrink: 1; }
+
+/* ---------- Startmenu ---------- */
+#menu { gap: calc(var(--gap) * 0.7); }
+.title-block { text-align: center; max-width: 1100px; }
+.title-row { display: flex; align-items: center; justify-content: center; gap: max(16px, 3vmin); flex-wrap: wrap; }
+.title-row .arkade-logo { height: clamp(100px, 18vh, 200px); }
+.neon-title { font-size: clamp(2.6rem, 8.5vmin, 5.5rem); letter-spacing: 0.1em; }
+.lead { text-shadow: var(--kap-text-shadow); margin: 10px auto 0; max-width: 46em; color: var(--muted); font-size: 1.1rem; line-height: 1.5; }
+.menu-skib { display: block; width: calc(var(--btn) * 2.6); height: calc(var(--btn) * 1.1); }
+@media (max-height: 900px) {
+  .lead { display: none; }
+  .title-row .arkade-logo { height: clamp(80px, 14vh, 150px); }
+}
+.tight .menu-skib { display: none; }
+
+.hall-btn {
+  position: absolute; top: max(16px, 2.5vmin); left: max(16px, 2.5vmin);
+  width: max(var(--btn), 7.5em); min-height: var(--btn); padding: 8px 10px;
+  border-width: var(--kap-hall-border-w); border-color: color-mix(in srgb, var(--muted) 70%, transparent);
+  background: var(--kap-hall-bg); box-shadow: none; color: var(--muted);
+}
+.hall-btn .big { font-size: 1.05rem; font-weight: 600; line-height: 1.2; text-align: center; }
+.hall-ico { width: 42%; height: auto; fill: none; stroke: var(--muted); stroke-width: var(--kap-hall-ikon-w); stroke-linejoin: round; }
+.hall-btn .ico-line { stroke: var(--muted); }
+.hall-btn .ico-fill { fill: var(--muted); }
+.hall-btn:hover, .hall-btn.arkade-dwelling { color: var(--ui-text); border-color: var(--muted); background: var(--kap-hall-bg-hover); box-shadow: none; }
+#menu.hall-inflow .hall-btn { position: static; align-self: flex-start; order: -1; flex: none; width: auto; min-height: calc(var(--btn) * 0.7); flex-direction: row; gap: 12px; padding: 8px 18px; }
+#menu.hall-inflow .hall-ico { width: 32px; }
+/* Overlays (pause, turen er slut, ny bil) */
+.overlay {
+  position: absolute; inset: 0; z-index: 5;
+  display: flex; align-items: safe center; justify-content: safe center; overflow: hidden;
+  background: var(--kap-overlay-bg);
+}
+.overlay.soft { background: var(--kap-overlay-bg); }
+.overlay .panel { display: flex; flex-direction: column; align-items: center; gap: var(--gap); text-align: center; max-width: calc(100% - 24px); }
+.overlay .panel p { margin: 0; }
+/* ---------- Indstillinger ---------- */
+#settings { justify-content: flex-start; padding-top: max(20px, 4vmin); }
+.tabs { margin-bottom: 4px; }
+.tab-panel { display: flex; flex-direction: column; gap: calc(var(--gap) * 0.8); align-items: stretch; width: min(1100px, 100%); }
+.setting { display: grid; grid-template-columns: 13em 1fr; align-items: center; gap: var(--gap); }
+@media (max-width: 900px) { .setting { grid-template-columns: 1fr; justify-items: center; text-align: center; } .setting .row { justify-content: center !important; } }
+.setting-label { font-size: 1.35rem; font-weight: 700; display: flex; flex-direction: column; text-shadow: var(--kap-text-shadow); }
+.setting-label small { font-size: 0.95rem; font-weight: 400; color: var(--muted); margin-top: 4px; }
+.setting .row { justify-content: flex-start; }
+.value-box { min-width: 6em; text-align: center; font-size: 1.8rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.note { max-width: 44em; margin: 0 auto; color: var(--muted); line-height: 1.5; text-align: center; }
+.theme-btn .swatch {
+  width: 64px; height: 32px; border-radius: var(--kap-radius-swatch);
+  background: linear-gradient(90deg, var(--a) 0 33%, var(--b) 33% 66%, var(--c) 66% 100%);
+  border: var(--kap-block-w) solid var(--kap-swatch-border);
+}
+
+/* ---------- Rekorder ---------- */
+#records { justify-content: flex-start; padding-top: max(20px, 3vmin); gap: calc(var(--gap) * 0.6); }
+.records-panel { min-width: min(560px, 92vw); }
+.records li .plates { font-weight: 400; color: var(--muted); }
+ol.records .score { white-space: nowrap; }
+.rec-note { margin: 8px 0 0; text-align: center; font-size: 0.95rem; }
+@media (max-height: 640px) and (min-width: 700px) {
+  .records { columns: 2; column-gap: 20px; }
+  .records li { break-inside: avoid; }
+}
+
+/* ---------- Om ---------- */
+#om { gap: calc(var(--gap) * 0.7); }
+.om-logo { height: clamp(84px, 15vh, 200px); }
+@media (max-height: 740px) { .om-logo { height: 84px; } .om-panel p { font-size: 1.15rem; line-height: 1.45; } }
+.om-panel { max-width: 46em; text-align: center; }
+.om-panel h2 { margin-bottom: 12px; }
+.om-panel p { margin: 10px 0 0; font-size: 1.25rem; line-height: 1.55; }
+.link-btn { text-decoration: none; min-width: calc(var(--btn) * 2.4); }
+.link-btn .small { font-size: 0.95rem; }
+
+/* ---------- Sider (kun når der ikke er plads til det hele) ---------- */
+.trin-skjult { display: none !important; }
+.trin-nav { display: contents; }
+.trin-nav[hidden] { display: none; }
+.trin-label { align-self: center; min-width: 6.5em; text-align: center; font-size: 1.1rem; font-weight: 700; color: var(--muted); text-shadow: var(--kap-text-shadow); }
+.trin-nav .btn .icon { font-size: 2rem; }
+.tight .opt { display: none; }
+
+/* Bekræft Ny bil: to lige store knapper med god afstand */
+.confirm-row { gap: max(calc(var(--btn) * 0.6), 48px); flex-wrap: nowrap; }
+.confirm-btn { min-width: calc(var(--btn) * 2); min-height: calc(var(--btn) * 1.1); }
+.confirm-btn .big { font-size: 1.4rem; }
+.confirm-text { font-size: 1.15rem; max-width: 30em; line-height: 1.45; }
+
+/* ---------- Små skærme (korteste side under 560 px) ---------- */
+.kap-lille .btn { padding: 6px 12px; gap: 2px; }
+.kap-lille .btn .big { font-size: 1.15rem; }
+.kap-lille .btn.primary .big { font-size: 1.35rem; }
+.kap-lille .btn .icon { font-size: 1.3rem; }
+.kap-lille .btn .small { font-size: 0.85rem; }
+.kap-lille .btn.wide { min-width: calc(var(--btn) * 1.6); }
+.kap-lille .trin-nav .btn .big { display: none; }
+.kap-lille .trin-nav .btn .icon { font-size: 2.4rem; }
+.kap-lille .trin-label { min-width: 0; font-size: 1rem; }
+.kap-lille:not(.kap-tvaers) #menu .more-row { display: grid; grid-template-columns: 1fr 1fr; width: min(100%, 26em); }
+.kap-lille .link-btn { min-width: calc(var(--btn) * 1.6); }
+.kap-lille .screen { padding: 12px; }
+.kap-lille .panel { padding: 14px 18px; }
+.kap-lille .overlay .panel { gap: 12px; }
+.kap-lille .records li { padding-top: 3px; padding-bottom: 3px; }
+.kap-lille #settings, .kap-lille #records { padding-top: 12px; }
+.kap-lille .setting-label { font-size: 1.2rem; }
+.kap-lille .setting .row { gap: 12px; }
+.kap-lille .theme-btn .swatch { width: 48px; height: 26px; }
+.kap-lille #menu.hall-inflow .hall-btn { min-height: var(--btn); }
+.kap-lille #settings .tabs { gap: 10px; }
+.kap-lille:not(.kap-tvaers) #settings .tabs { display: grid; grid-template-columns: 1fr 1fr; width: min(100%, 24em); }
+.kap-lille #settings .trin-bund { gap: 10px; margin-top: auto; }
+.kap-lille .value-box { min-width: 4.2em; font-size: 1.5rem; }
+.kap-lille .confirm-row { gap: 40px; }
+.kap-lille .confirm-btn { min-width: calc(var(--btn) * 1.5); }
+.kap-lille:not(.kap-tvaers) .confirm-row { flex-direction: column; gap: 32px; }
+.kap-lille:not(.kap-tvaers) .confirm-btn { width: min(100%, 16em); }
+.kap-lille .res-row { gap: 12px; }
+/* Mobil på tværs */
+.kap-tvaers #menu {
+  display: grid; justify-content: safe center; align-content: safe center; justify-items: center; align-items: center;
+  grid-template-columns: auto auto; grid-template-areas: "hall title" "start start" "more more";
+  column-gap: var(--gap); row-gap: calc(var(--gap) * 0.6);
+}
+.kap-tvaers #menu .hall-btn { grid-area: hall; position: static; justify-self: start; }
+.kap-tvaers #menu .title-block { grid-area: title; justify-self: start; }
+.kap-tvaers #menu .title-row .arkade-logo { height: calc(var(--btn) * 0.8); }
+.kap-tvaers #menu .neon-title { font-size: clamp(2rem, 11vh, 3.4rem); }
+.kap-tvaers #menu .lead, .kap-tvaers #menu .menu-bil { display: none; }
+.kap-tvaers #menu .start-row { grid-area: start; }
+.kap-tvaers #menu .more-row { grid-area: more; }
+.kap-tvaers .setting { grid-template-columns: minmax(6em, 10em) auto; column-gap: 16px; justify-items: start; justify-content: center; text-align: left; }
+.kap-tvaers .setting .row { justify-content: flex-start !important; }
+.kap-tvaers #settings .tab-panel { gap: 10px; }
+.kap-tvaers .om-logo { height: 84px; }
+.kap-tvaers .om-panel p { font-size: 1.1rem; line-height: 1.45; }
+/* ---------- Grafik fra temaet (klasser → temaets variabler) ---------- */
+.kap-grafik { position: absolute; width: 0; height: 0; overflow: hidden; }
+.ikon, .btn svg, .hud-ico { overflow: visible; }
+.ico-line { fill: none; stroke: var(--ico-line, currentColor); stroke-width: var(--kap-ikon-w); stroke-linecap: round; stroke-linejoin: round; }
+.ico-fill { fill: var(--ico-fill, currentColor); }
+.ico-paa-fyld { stroke: var(--kap-ikon-paa-fyld); }
+.btn-ico { width: calc(var(--btn) * 0.42); height: calc(var(--btn) * 0.42); flex: none; }
+.hall-ico path { fill: var(--muted); }
+
+.kap-hav-stop-1 { stop-color: var(--kap-hav-1); }
+.kap-hav-stop-2 { stop-color: var(--kap-hav-2); }
+.kap-himmel-stop-1 { stop-color: var(--kap-himmel-1); }
+.kap-himmel-stop-2 { stop-color: var(--kap-himmel-2); }
+.kap-hav-boelge { fill: none; stroke: var(--kap-hav-boelge); stroke-width: var(--kap-streg-w); stroke-linecap: round; }
+.kap-hav-tekstur { opacity: var(--kap-hav-moenster-synlig); }
+.kap-horisont { stroke: var(--kap-horisont); stroke-width: var(--kap-streg-w); filter: var(--kap-gloed-filter-accent); }
+.kap-rute { stroke: var(--kap-rute); stroke-width: var(--kap-rute-w); stroke-dasharray: 4 10; stroke-linecap: round; fill: none; }
+.kap-rute-valgt { stroke: var(--kap-rute-valgt); stroke-width: var(--kap-rute-valgt-w); stroke-dasharray: 10 8; filter: var(--kap-gloed-filter); }
+.kap-oe, .kap-skib-g, .kap-effekt, .kap-storm, .menu-skib use { filter: var(--kap-skygge) var(--kap-gloed-filter); }
+.kap-oe-pynt { opacity: 0.8; }
+.kap-oe-strand, .kap-oe-land, .kap-oe-top { vector-effect: non-scaling-stroke; }
+.kap-oe-strand { fill: var(--kap-oe-strand); stroke: var(--kap-oe-strand-kant); stroke-width: var(--kap-streg-w); }
+.kap-oe-land { fill: var(--kap-oe-land); stroke: var(--kap-kontur); stroke-width: var(--kap-kontur-w); }
+.kap-oe-top { fill: var(--kap-oe-top-fyld); stroke: var(--kap-oe-top); stroke-width: calc(var(--kap-streg-w) * 1.2); stroke-linecap: round; stroke-linejoin: round; }
+.kap-kompas { opacity: 0.8; }
+.kap-kompas-ring { fill: none; stroke: var(--kap-kompas); stroke-width: var(--kap-streg-w); }
+.kap-kompas-pil { fill: var(--kap-kompas-pil); stroke: var(--kap-kontur); stroke-width: var(--kap-kontur-w); }
+.kap-kompas-n { fill: none; stroke: var(--kap-kompas); stroke-width: var(--kap-streg-w); }
+
+.kap-skrog { fill: var(--kap-skrog); stroke: var(--kap-skrog-kant); stroke-width: var(--kap-streg-w); stroke-linejoin: round; }
+.kap-skrog-kant { fill: none; stroke: var(--kap-skrog-kant); stroke-width: calc(var(--kap-streg-w) * 0.6); }
+.kap-mast { stroke: var(--kap-mast); stroke-width: var(--kap-streg-w); stroke-linecap: round; }
+.kap-sejl { fill: var(--kap-sejl); stroke: var(--kap-sejl-kant); stroke-width: calc(var(--kap-streg-w) * 0.7); stroke-linejoin: round; }
+.kap-kanonport { fill: var(--kap-kanonport); }
+.kap-spiller { --kap-skrog-kant: var(--kap-spiller-skrog-kant); }
+.kap-kapret { opacity: 0.7; }
+.kap-flag { --kap-flag-c: var(--kap-flag-handel); }
+.kap-flag-spiller { --kap-flag-c: var(--kap-flag-spiller); }
+.kap-flag-pirat { --kap-flag-c: var(--kap-flag-pirat); }
+.kap-flag-marine { --kap-flag-c: var(--kap-flag-marine); }
+.kap-flag-dug { fill: var(--kap-flag-dug); stroke: var(--kap-flag-c); stroke-width: var(--kap-flag-w); }
+.kap-flag-tegn { fill: var(--kap-flag-c); stroke: var(--kap-flag-c); stroke-width: calc(var(--kap-flag-w) * 1.5); stroke-linecap: round; }
+.kap-kortskib-krop { fill: var(--kap-kortskib); stroke: var(--kap-kontur); stroke-width: var(--kap-kontur-w); }
+.kap-kortskib-sejl { fill: none; stroke: var(--kap-kortskib-sejl); stroke-width: 2.5; stroke-linecap: round; }
+.kap-plask { fill: var(--kap-plask); }
+.kap-traef { fill: var(--kap-traef); stroke: var(--kap-kontur); stroke-width: var(--kap-kontur-w); }
+.kap-roeg { fill: var(--kap-roeg); }
+.kap-storm-sky { fill: var(--kap-storm-sky); stroke: var(--kap-kontur); stroke-width: var(--kap-kontur-w); }
+.kap-storm-regn { fill: none; stroke: var(--kap-storm-regn); stroke-width: var(--kap-streg-w); stroke-linecap: round; }
+.kap-storm-lyn { fill: var(--kap-storm-lyn); }
+
+/* ---------- Startmenu: skibet ---------- */
+.menu-skib { display: block; width: calc(var(--btn) * 2.4); height: calc(var(--btn) * 1.5); }
+
+/* ---------- Spilleskærm ----------
+ * js/app.js sætter --btn, --pad, --ig, --hud-h og klasserne:
+ *  lay-bred: tværformat (kort/scene til venstre, panel til højre)
+ *  lay-hoej: højformat (kort/scene øverst, panel under)
+ *  lav:      lav tværskærm – havnens faner står i en blok til venstre
+ *  hud8:     statuslinjen står på én række (ellers to) */
+#game { padding: var(--pad, 12px); overflow: hidden; display: block; }
+.spil { width: 100%; height: 100%; display: flex; flex-direction: column; gap: var(--ig, 10px); }
+.spil .btn { min-width: 0; min-height: 0; }
+.spil .btn .big { font-size: clamp(1rem, calc(var(--btn) * 0.17), 1.5rem); line-height: 1.1; }
+.spil .btn .small { font-size: clamp(0.8rem, calc(var(--btn) * 0.12), 1.05rem); line-height: 1.15; }
+.spil .btn[aria-pressed="true"] { --ico-fill: var(--ui-text); --ico-line: var(--ui-text); }
+
+.hud-bar { display: flex; gap: var(--ig, 10px); flex: none; height: var(--hud-h, 84px); }
+.hud-grid { flex: 1 1 auto; min-width: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: 1fr 1fr; gap: 6px; }
+.hud8 .hud-grid { grid-template-columns: repeat(8, minmax(0, 1fr)); grid-template-rows: 1fr; }
+.hud { padding: 1px 6px; background: var(--kap-hud-bg); border: var(--kap-block-w) solid var(--kap-hud-border); border-radius: var(--kap-radius-hud); display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 0; overflow: hidden; }
+.hud-label { font-size: calc(0.72rem * var(--hud-k, 1)); color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase; line-height: 1.1; white-space: nowrap; }
+.hud-v { display: flex; align-items: center; gap: 5px; min-width: 0; }
+.hud-ico { width: 1.05em; height: 1.05em; flex: none; color: var(--accent); font-size: calc(clamp(0.95rem, calc(var(--hud-h) * 0.22), 1.6rem) * var(--hud-k, 1)); }
+.hud-value { font-size: calc(clamp(0.95rem, calc(var(--hud-h) * 0.22), 1.7rem) * var(--hud-k, 1)); font-weight: 800; font-variant-numeric: tabular-nums; color: var(--ui-text); line-height: 1.1; white-space: nowrap; }
+.hud8 .hud-ico, .hud8 .hud-value { font-size: calc(clamp(1.1rem, calc(var(--hud-h) * 0.26), 2rem) * var(--hud-k, 1)); }
+.hud-guld .hud-value { color: var(--kap-guld); }
+.hud.lav .hud-value { color: var(--kap-fejl); }
+.hud-kort .hud-label { display: none; }
+.menu-btn { width: var(--btn); height: 100%; padding: 4px; flex: none; gap: 2px; }
+.menu-btn svg { width: 42%; height: 42%; }
+
+.view { flex: 1 1 auto; min-height: 0; min-width: 0; }
+.view[hidden] { display: none !important; }
+
+/* Havnen */
+.v-havn { display: grid; gap: var(--ig, 10px); grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+.faner { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--ig, 10px); }
+.fane-btn { height: var(--btn); flex-direction: row; gap: 10px; padding: 4px 8px; }
+.fane-btn svg { width: calc(var(--btn) * 0.36); height: calc(var(--btn) * 0.36); flex: none; }
+.lay-hoej .fane-btn { flex-direction: column; gap: 2px; }
+.lay-hoej .fane-btn svg { width: calc(var(--btn) * 0.3); height: calc(var(--btn) * 0.3); }
+.lav .v-havn { grid-template-columns: calc(var(--btn) * 2 + var(--ig)) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+.lav .faner { grid-template-columns: 1fr 1fr; grid-auto-rows: var(--btn); align-content: start; }
+.lav .fane-btn { flex-direction: column; gap: 2px; }
+.lav .fane-btn svg { width: calc(var(--btn) * 0.3); height: calc(var(--btn) * 0.3); }
+.havn-indhold { display: flex; flex-direction: column; gap: var(--ig, 10px); min-height: 0; min-width: 0; }
+.havn-top { display: flex; align-items: center; gap: 6px 18px; flex-wrap: wrap; flex: none; }
+.havn-navn { margin: 0; font-size: clamp(1.3rem, calc(var(--btn) * 0.22), 2.2rem); line-height: 1.1; white-space: nowrap; color: var(--accent); text-shadow: var(--kap-text-shadow); }
+.besked { margin: 0; flex: 1 1 14em; min-height: 1.3em; font-size: clamp(1rem, calc(var(--btn) * 0.14), 1.3rem); line-height: 1.3; color: var(--ui-text); text-shadow: var(--kap-text-shadow); }
+.besked.ok { color: var(--kap-ok); }
+.besked.err { color: var(--kap-fejl); }
+.fane { display: flex; flex-direction: column; gap: var(--ig, 10px); min-height: 0; }
+.fane[hidden] { display: none; }
+
+.varer { display: grid; grid-template-columns: repeat(var(--var-cols, 5), minmax(0, 1fr)); gap: var(--ig, 10px); }
+.vare-btn { display: grid !important; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "ico navn navn" "pris pris pris" "tag tag har"; align-items: center; justify-items: start; column-gap: 6px; row-gap: 1px; min-height: var(--btn) !important; padding: 4px 8px !important; text-align: left; }
+.vare-btn svg { grid-area: ico; width: clamp(20px, calc(var(--btn) * 0.24), 40px); height: clamp(20px, calc(var(--btn) * 0.24), 40px); }
+.vare-navn { grid-area: navn; font-weight: 800; font-size: clamp(0.95rem, calc(var(--btn) * 0.15), 1.4rem); line-height: 1.1; white-space: nowrap; }
+.vare-pris { grid-area: pris; font-variant-numeric: tabular-nums; font-size: clamp(0.85rem, calc(var(--btn) * 0.13), 1.2rem); white-space: nowrap; line-height: 1.15; }
+.vare-pris b { font-size: 1.2em; color: var(--kap-guld); }
+.vare-tag { grid-area: tag; font-size: clamp(0.72rem, calc(var(--btn) * 0.1), 0.95rem); font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap; color: var(--muted); }
+.vare-btn::after { display: none; }
+.vare-tag.billig { color: var(--kap-billig); }
+.vare-tag.dyr { color: var(--kap-dyr); }
+.vare-har { grid-area: har; justify-self: end; font-size: clamp(0.75rem, calc(var(--btn) * 0.11), 1rem); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.handel { display: grid; grid-template-columns: repeat(var(--handel-cols, 6), minmax(0, 1fr)); gap: var(--ig, 10px); }
+.handel-btn { height: var(--btn); padding: 4px 6px; gap: 2px; }
+
+.knapgitter { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: minmax(var(--btn), auto); gap: var(--ig, 10px); }
+.knapgitter[hidden] { display: none !important; }
+.kob-btn { display: grid !important; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "ico navn" "ico pris"; align-items: center; justify-items: start; column-gap: 8px; row-gap: 2px; padding: 4px 10px !important; text-align: left; }
+.kob-btn svg { grid-area: ico; width: clamp(24px, calc(var(--btn) * 0.32), 52px); height: clamp(24px, calc(var(--btn) * 0.32), 52px); }
+.kob-navn { grid-area: navn; font-weight: 800; font-size: clamp(0.95rem, calc(var(--btn) * 0.15), 1.4rem); line-height: 1.1; }
+.kob-pris { grid-area: pris; font-size: clamp(0.8rem, calc(var(--btn) * 0.12), 1.15rem); color: var(--kap-guld); font-variant-numeric: tabular-nums; line-height: 1.15; }
+.kob-btn.dyr .kob-pris { color: var(--kap-fejl); }
+.kob-btn.max .kob-pris { color: var(--kap-ok); }
+.skib-kort { padding: 6px 10px; background: var(--kap-hud-bg); border: var(--kap-block-w) solid var(--kap-hud-border); border-radius: var(--kap-radius-hud); font-size: clamp(0.85rem, calc(var(--btn) * 0.12), 1.15rem); line-height: 1.3; display: flex; flex-direction: column; justify-content: center; min-width: 0; }
+.skib-kort b { color: var(--accent); }
+.lay-hoej .knapgitter { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.lay-hoej .skib-kort { grid-column: span 2; }
+
+/* Kortet */
+.v-kort { display: grid; gap: var(--ig, 10px); grid-template-columns: minmax(0, 1fr) var(--kpanel-w, 320px); grid-template-rows: minmax(0, 1fr); }
+.lay-hoej .v-kort { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
+.kort-boks { position: relative; min-height: var(--kort-min, 272px); min-width: 0; border-radius: var(--kap-radius-kort); overflow: hidden; box-shadow: var(--kap-kort-gloed); border: var(--kap-frame-w) solid var(--ui-soft); }
+.kort-svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.havne-lag { position: absolute; inset: 0; }
+.havn-btn { position: absolute; padding: 2px 6px !important; background: var(--kap-havn-bg) !important; gap: 0 !important; }
+.havn-btn .big { font-size: min(clamp(0.9rem, calc(var(--hh, 80px) * 0.2), 1.4rem), calc(var(--hw, 200px) * 0.12)) !important; white-space: nowrap; }
+.havn-btn .small { font-size: min(clamp(0.75rem, calc(var(--hh, 80px) * 0.15), 1.05rem), calc(var(--hw, 200px) * 0.1)) !important; white-space: nowrap; color: var(--muted); }
+.havn-btn[aria-current="location"] { background: var(--kap-havn-her) !important; }
+.havn-btn[aria-current="location"] .small { color: var(--ui-text); }
+.havn-btn[aria-pressed="true"] { background: var(--ui) !important; }
+.havn-btn[aria-pressed="true"] .small { color: var(--bg); }
+.kortskib { position: absolute; left: 0; top: 0; width: 44px; height: 44px; margin: -22px 0 0 -22px; pointer-events: none; z-index: 3; filter: var(--kap-gloed-filter); }
+.kortskib svg { width: 100%; height: 100%; display: block; }
+.kort-panel { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr auto; gap: var(--ig, 10px); min-width: 0; align-content: end; }
+.kort-tekst { grid-column: 1 / -1; align-self: end; min-width: 0; }
+.kort-titel { margin: 0 0 4px; font-size: clamp(1.2rem, calc(var(--btn) * 0.2), 2rem); color: var(--accent); line-height: 1.15; }
+.kort-info { margin: 0; font-size: clamp(0.95rem, calc(var(--btn) * 0.13), 1.25rem); line-height: 1.3; color: var(--ui-text); }
+.kort-info .err { color: var(--kap-fejl); }
+.kort-info .ok { color: var(--kap-ok); }
+.kort-knap { height: var(--btn); padding: 4px 6px; gap: 2px; }
+.kort-knap svg, .moede-btn svg { width: calc(var(--btn) * 0.3); height: calc(var(--btn) * 0.3); flex: none; }
+
+/* Mødet */
+.v-moede { display: grid; gap: var(--ig, 10px); grid-template-columns: minmax(0, 1fr) var(--mpanel-w, 320px); grid-template-rows: minmax(0, 1fr); }
+.lay-hoej .v-moede { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
+.scene-boks { position: relative; min-height: var(--scene-min, 220px); min-width: 0; border-radius: var(--kap-radius-kort); overflow: hidden; box-shadow: var(--kap-kort-gloed); border: var(--kap-frame-w) solid var(--ui-soft); }
+.scene-svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.scene-info { position: absolute; top: 6px; left: 6px; right: 6px; display: flex; flex-wrap: wrap; gap: 4px 6px; pointer-events: none; }
+.scene-chip { padding: 2px 8px; background: var(--kap-hud-bg); border: var(--kap-block-w) solid var(--kap-hud-border); border-radius: var(--kap-radius-hud); font-size: clamp(0.85rem, calc(var(--btn) * 0.12), 1.15rem); white-space: nowrap; font-variant-numeric: tabular-nums; line-height: 1.3; }
+.scene-chip.navn { font-weight: 800; color: var(--accent); }
+.scene-chip .bar { display: inline-block; vertical-align: middle; width: 4em; height: 0.55em; margin-left: 6px; border-radius: var(--kap-radius-bar); background: var(--kap-bar-tom); overflow: hidden; }
+.scene-chip .bar i { display: block; height: 100%; background: var(--kap-bar); }
+.scene-chip .bar.lav i { background: var(--kap-bar-lav); }
+.scene-log { position: absolute; left: 6px; right: 6px; bottom: 6px; margin: 0; padding: 4px 10px; background: var(--kap-hud-bg); border-radius: var(--kap-radius-hud); font-size: clamp(0.9rem, calc(var(--btn) * 0.13), 1.25rem); line-height: 1.3; color: var(--ui-text); }
+.scene-log:empty { display: none; }
+.moede-knapper { display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: var(--btn); gap: var(--ig, 10px); align-content: center; min-width: 0; }
+.moede-btn { height: 100%; padding: 4px 6px; gap: 2px; }
+.moede-knapper:not([data-fase="kamp"]) .f-kamp,
+.moede-knapper:not([data-fase="storm"]) .f-storm,
+.moede-knapper:not([data-fase="slut"]) .f-slut { display: none; }
+.moede-knapper[data-fase="slut"] .f-slut { grid-column: 1 / -1; grid-row: span 2; }
+.moede-knapper[data-fase="storm"] .f-storm { grid-row: span 2; }
+.moede-btn .small { color: var(--muted); }
+
+/* Overlays (pause, slut, bekræft) */
+.bekraeft { position: fixed; z-index: 30; }
+.slut-tekst { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.slut-kicker { font-size: 1.1rem; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
+.slut-point { font-size: clamp(2.2rem, 7vmin, 4rem); margin: 0; font-variant-numeric: tabular-nums; color: var(--kap-guld); text-shadow: var(--kap-guld-gloed); }
+.slut-grund { font-size: 1.25rem; color: var(--ui-text); }
+.slut-tal { font-size: 1.05rem; max-width: 36em; line-height: 1.45; }
+.slut-rank { min-height: 1.3em; font-size: 1.2rem; color: var(--accent); font-weight: 700; }
+.kap-tvaers .slut-panel { display: grid !important; grid-template-columns: 1fr auto; align-items: center; }
+.kap-tvaers .slut-panel .slut-row { flex-direction: column; flex-wrap: nowrap; }
+.kap-tvaers .slut-point { font-size: 2.2rem; }
+
+/* Små skærme */
+.kap-lille .hud { padding: 1px 3px; }
+.kap-lille .hud-label { font-size: calc(0.6rem * var(--hud-k, 1)); letter-spacing: 0; }
+.kap-lille .spil .btn { padding-left: 4px; padding-right: 4px; }
+.kap-lille .spil .btn .big { font-size: 1rem; }
+.kap-lille .spil .btn .small { font-size: 0.78rem; }
+.kap-lille .spil .vare-btn, .kap-lille .spil .kob-btn { padding: 3px 6px !important; }
+.kap-lille .vare-navn { font-size: 0.9rem; }
+.kap-lille .vare-btn svg { width: 18px; height: 18px; }
+.kap-lille .fane-btn .big { font-size: 0.85rem; }
+.kap-lille:not(.kap-tvaers) #rec-list .plates { display: block; font-size: 0.85em; line-height: 1.1; }
+.kap-lille .fane-btn { padding: 4px 3px; }
+.kap-lille .besked { font-size: 0.95rem; }
+.kap-lille .havn-navn { font-size: 1.25rem; }
+.tight .scene-chip:not(.navn):not(.vigtig) { display: none; }
+
+/* Ingen bevægelse, når animation er slået fra eller computeren beder om mindre bevægelse */
+html.kap-stille *, html.kap-stille *::before, html.kap-stille *::after { transition: none !important; animation: none !important; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
+.kap-tvaers #rec-list .date { display: none; }
+.lav .skib-kort { font-size: 0.78rem; line-height: 1.2; padding: 4px 8px; }
+.lav .fane-btn .big { font-size: 0.85rem; }
+.kap-lille:not(.kap-tvaers) .hud-value, .kap-lille:not(.kap-tvaers) .hud-ico { font-size: calc(0.88rem * var(--hud-k, 1)); }
+.kap-lille:not(.kap-tvaers) .hud-label { font-size: calc(0.52rem * var(--hud-k, 1)); }

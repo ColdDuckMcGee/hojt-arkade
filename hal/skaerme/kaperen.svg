@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 220">
+  <!-- Stillbillede af Kaperen til maskinens skærm: et øhav om natten. Til venstre sejler spillerens brig (cyan skrog, hvide sejl, pink flag med krydsede sværd), og til højre ligger et sørøverskib med sort flag og hvidt kranie. Et kanonskud (gul prikket bue) er på vej over vandet og slår et plask op ved fjenden. Bag dem ligger en ø med en palme, og en gul måne hænger på himlen over de cyan bølger. Tegnet i SVG, ingen billeder og ingen skrifttyper. -->
+  <defs>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <linearGradient id="hav" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0b2c4a"/><stop offset="1" stop-color="#05101f"/></linearGradient>
+  </defs>
+  <rect width="240" height="220" fill="#0a0414"/>
+  <!-- himmel og måne -->
+  <g fill="#e8e0ff" fill-opacity=".6"><circle cx="30" cy="22" r="1"/><circle cx="96" cy="14" r="1.2"/><circle cx="150" cy="30" r="1"/><circle cx="214" cy="18" r="1"/><circle cx="70" cy="44" r=".8"/></g>
+  <circle cx="196" cy="42" r="14" fill="#ffe14d" filter="url(#glow)"/>
+  <circle cx="202" cy="38" r="12" fill="#0a0414"/>
+  <!-- ø med palme -->
+  <path d="M104 118 Q124 96 150 118 Z" fill="#3a2c10" stroke="#ffd166" stroke-width="1.5"/>
+  <g stroke="#39e58c" stroke-width="2.5" fill="none" stroke-linecap="round" filter="url(#glow)">
+    <path d="M128 106 Q126 92 131 80"/>
+    <path d="M131 80 Q120 76 114 84M131 80 Q142 74 148 82M131 80 Q128 70 120 68M131 80 Q138 70 146 70"/>
+  </g>
+  <!-- havet -->
+  <rect x="0" y="118" width="240" height="102" fill="url(#hav)"/>
+  <g stroke="#22eaff" stroke-width="2" fill="none" stroke-linecap="round" filter="url(#glow)">
+    <path d="M0 118H240"/>
+    <path d="M10 186 q8 -6 16 0 t16 0M150 196 q8 -6 16 0 t16 0M96 206 q8 -6 16 0 t16 0M196 172 q8 -6 16 0 t16 0"/>
+  </g>
+  <!-- kanonskuddet -->
+  <g fill="#ffe14d" filter="url(#glow)">
+    <circle cx="88" cy="118" r="2"/><circle cx="102" cy="106" r="2"/><circle cx="118" cy="99" r="2"/><circle cx="134" cy="98" r="2"/><circle cx="150" cy="104" r="2"/><circle cx="163" cy="114" r="2.6"/>
+  </g>
+  <g stroke="#7fd0ff" stroke-width="2" stroke-linecap="round" filter="url(#glow)"><path d="M168 150V136M174 150L180 136M162 150L156 138"/></g>
+  <!-- spillerens brig -->
+  <g filter="url(#glow)" stroke-linejoin="round">
+    <path d="M18 140 H96 L86 160 H28 Z" fill="#0b2c4a" stroke="#22eaff" stroke-width="3"/>
+    <path d="M44 140V74M70 140V82" stroke="#e8e0ff" stroke-width="2.5"/>
+    <path d="M30 80 Q46 90 44 108 H30 Q34 94 30 80Z M30 112 Q46 120 44 136 H28 Q34 124 30 112Z" fill="#e8e0ff" fill-opacity=".9"/>
+    <path d="M58 88 Q72 98 70 114 H58 Q62 100 58 88Z M58 118 Q72 126 70 138 H56 Q60 128 58 118Z" fill="#e8e0ff" fill-opacity=".9"/>
+    <path d="M44 74 H62 V86 H44 Z" fill="#ff4fd8"/>
+    <path d="M48 76 L58 84M58 76 L48 84" stroke="#0a0414" stroke-width="2"/>
+    <circle cx="40" cy="150" r="2.5" fill="#05020a" stroke="#22eaff"/><circle cx="56" cy="150" r="2.5" fill="#05020a" stroke="#22eaff"/><circle cx="72" cy="150" r="2.5" fill="#05020a" stroke="#22eaff"/>
+  </g>
+  <!-- sørøveren -->
+  <g filter="url(#glow)" stroke-linejoin="round">
+    <path d="M168 150 H226 L218 164 H176 Z" fill="#2a0a1e" stroke="#ff4fd8" stroke-width="2.5"/>
+    <path d="M198 150V98" stroke="#e8e0ff" stroke-width="2"/>
+    <path d="M186 104 Q198 112 196 128 H186 Q189 116 186 104Z M186 132 Q198 138 196 148 H184 Q188 140 186 132Z" fill="#cfd8ff" fill-opacity=".75"/>
+    <path d="M198 98 H216 V110 H198 Z" fill="#05020a" stroke="#e8e0ff" stroke-width="1.2"/>
+    <circle cx="207" cy="103" r="2.6" fill="#ffffff"/>
+    <path d="M202 108 L212 108" stroke="#ffffff" stroke-width="1.5"/>
+  </g>
+</svg>

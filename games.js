@@ -25,7 +25,7 @@ window.HOJT_SPIL = [
   { navn: 'Lys ud',         sti: 'lys-ud/',         farve: 'gul',    status: 'aktiv', tekst: 'Tryk på lamperne, og sluk dem alle sammen.', skaerm: 'hal/skaerme/lys-ud.svg' },
   { navn: 'Fire på stribe', sti: 'fire-paa-stribe/', farve: 'blå',   status: 'aktiv', tekst: 'Slip brikkerne ned, og få fire i træk før computeren.', skaerm: 'hal/skaerme/fire-paa-stribe.svg' },
   { navn: 'Bomberne',      sti: 'bomberne/',      farve: 'rød',   status: 'aktiv', tekst: 'Læg bomber i labyrinten, og spræng fjenderne. Alt flytter sig kun, når du gør.', skaerm: 'hal/skaerme/bomberne.svg' },
-  { navn: 'Kaperen',       sti: 'kaperen/',       farve: 'cyan',  status: 'snart', tekst: 'Sejl mellem havnene, handl med varer, og vælg, om du vil skyde, borde eller flygte.' },
+  { navn: 'Kaperen',       sti: 'kaperen/',       farve: 'cyan',  status: 'aktiv', tekst: 'Sejl mellem havnene, handl med varer, og vælg, om du vil skyde, borde eller flygte.', skaerm: 'hal/skaerme/kaperen.svg' },
   { navn: 'Kanonen',       sti: 'kanonen/',       farve: 'orange', status: 'aktiv', tekst: 'Indstil vinkel og krudt, og ram modstanderen på skift i et landskab, der kan sprænges.', skaerm: 'hal/skaerme/kanonen.svg' },
   { navn: 'Labyrinten',    sti: 'labyrinten/',    farve: 'gul',   status: 'aktiv', tekst: 'Spis alle prikkerne, og undgå vagterne. De flytter sig kun, når du gør.', skaerm: 'hal/skaerme/labyrinten.svg' },
   { navn: 'Kælderen',      sti: 'kaelderen/',     farve: 'lilla', status: 'snart', tekst: 'Gå ned gennem kældre, der laves automatisk, ét træk ad gangen, og se, hvor dybt du kommer.' },
