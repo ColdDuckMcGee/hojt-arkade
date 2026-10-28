@@ -58,9 +58,9 @@
   <section class="panel om-panel">
     <h2 id="om-title" class="neon-sub">Om Hojt Arkade</h2>
     <p data-trin>Hojt Arkade er udviklet af Jon Leismann Engsager, Hojt Design. Jon er IT- og IKT-konsulent i det specialiserede område og laver blandt andet gratis spil til voksne, der bruger øjenstyring.</p>
-    <p data-trin>Billard: drej retningen og vælg kraften med de store knapper (eller peg på bordet for at sigte), og tryk på Stød. Næste kugle sigter på dine kugler en ad gangen. Forhåndslinjen viser, hvor stødbolden rammer, og hvor kuglerne ca. løber hen.</p>
-    <p data-trin>Tastatur: pil venstre/højre drejer (med Skift 10°), pil op/ned ændrer kraften, N er Næste kugle, F flytter kuglen i hånden, Enter eller mellemrum støder, og Esc giver pause.</p>
-    <p data-trin>Hele kugler er 1–7, halve kugler (med en stribe) er 9–15, og 8’eren er sort. Den første, der nedlægger en kugle, får den slags. Ram dine egne først, nedlæg dem alle, og til sidst 8'eren. Et fejlstød giver modstanderen kuglen i hånden. Vinder du partiet, fortsætter serien.</p>
+    <p data-trin>Billard: drej retningen med de tre par drejeknapper – grov (10°), mellem (1°) og fin (0,1°) – eller peg på bordet for at sigte. Vælg kraften, og tryk på Stød. Næste kugle sigter på dine kugler en ad gangen. Forhåndslinjen viser, hvor stødbolden rammer, og hvor kuglerne ca. løber hen.</p>
+    <p data-trin>Tastatur: pil venstre/højre drejer 1° (med Skift 10°, med Alt eller Ctrl 0,1°), pil op/ned ændrer kraften, N er Næste kugle, F flytter kuglen i hånden, Enter eller mellemrum støder, og Esc giver pause.</p>
+    <p data-trin>Hele kugler er 1–7, halve (med stribe) 9–15, og 8’eren er sort. Den første, der nedlægger en kugle, får den slags. Nedlæg dine egne og til sidst 8'eren. Partiet slutter, så snart 8'eren er i hul: når dine egne er væk, vinder du – for tidligt eller med fejlstød taber du. De andre kugler bliver liggende. Fejlstød giver modstanderen kuglen i hånden.</p>
     <p data-trin>Banderegel: når stødbolden har ramt en lovlig kugle, skal en kugle gå i hul, eller en kugle (stødbolden eller en anden) ramme en bande. Ellers er det fejlstød. Næste kugle sigter nær hullet, men altid lidt ved siden af, så du selv finjusterer. Kraften vælger du selv.</p>
     <p data-trin>Koden er åben og frit tilgængelig under MIT-licensen, så alle kan bruge den og bygge videre på den.</p>
   </section>
@@ -102,10 +102,12 @@
       <p class="hint" id="hint" aria-live="polite">Vælg retning og kraft, og tryk på Stød</p>
       <div class="controls" id="controls" role="group" aria-label="Retning, kraft og stød">
         <div class="ctrl-head head-dir"><span class="ctrl-label">Retning</span><span class="ctrl-value"><svg class="dir-arrow" id="dir-arrow" viewBox="0 0 100 100" aria-hidden="true"><use href="#billard-ikon-pil"/></svg><span id="dir-value">90°</span></span></div>
-        <button class="btn step-btn d1" data-turn="-10" data-dwell-repeat aria-label="Drej 10 grader mod uret"><svg aria-hidden="true"><use href="#billard-ikon-drej-venstre"/></svg><span class="big">10°</span></button>
-        <button class="btn step-btn d2" data-turn="-1" data-fine data-dwell-repeat aria-label="Drej et fint trin mod uret"><svg aria-hidden="true"><use href="#billard-ikon-drej-venstre"/></svg><span class="big js-fine">1°</span></button>
-        <button class="btn step-btn d3" data-turn="1" data-fine data-dwell-repeat aria-label="Drej et fint trin med uret"><svg aria-hidden="true"><use href="#billard-ikon-drej-hoejre"/></svg><span class="big js-fine">1°</span></button>
-        <button class="btn step-btn d4" data-turn="10" data-dwell-repeat aria-label="Drej 10 grader med uret"><svg aria-hidden="true"><use href="#billard-ikon-drej-hoejre"/></svg><span class="big">10°</span></button>
+        <button class="btn step-btn rot-btn d1" data-turn="-10" data-dwell-repeat aria-label="Drej 10 grader mod uret (grov)"><svg aria-hidden="true"><use href="#billard-ikon-drej-venstre-grov"/></svg><span class="big">10°</span><span class="small">grov</span></button>
+        <button class="btn step-btn rot-btn d2" data-turn="10" data-dwell-repeat aria-label="Drej 10 grader med uret (grov)"><svg aria-hidden="true"><use href="#billard-ikon-drej-hoejre-grov"/></svg><span class="big">10°</span><span class="small">grov</span></button>
+        <button class="btn step-btn rot-btn d3" data-turn="-1" data-dwell-repeat aria-label="Drej 1 grad mod uret (mellem)"><svg aria-hidden="true"><use href="#billard-ikon-drej-venstre"/></svg><span class="big">1°</span><span class="small">mellem</span></button>
+        <button class="btn step-btn rot-btn d4" data-turn="1" data-dwell-repeat aria-label="Drej 1 grad med uret (mellem)"><svg aria-hidden="true"><use href="#billard-ikon-drej-hoejre"/></svg><span class="big">1°</span><span class="small">mellem</span></button>
+        <button class="btn step-btn rot-btn d5" data-turn="-0.1" data-dwell-repeat aria-label="Drej 0,1 grad mod uret (fin)"><svg aria-hidden="true"><use href="#billard-ikon-drej-venstre-fin"/></svg><span class="big">0,1°</span><span class="small">fin</span></button>
+        <button class="btn step-btn rot-btn d6" data-turn="0.1" data-dwell-repeat aria-label="Drej 0,1 grad med uret (fin)"><svg aria-hidden="true"><use href="#billard-ikon-drej-hoejre-fin"/></svg><span class="big">0,1°</span><span class="small">fin</span></button>
         <button class="btn step-btn nx" id="btn-next-ball" aria-label="Sigt på næste kugle"><svg aria-hidden="true"><use href="#billard-ikon-naeste"/></svg><span class="big">Næste</span></button>
         <button class="btn step-btn mv" id="btn-move-cue" aria-label="Flyt stødbolden (kuglen i hånden)"><svg aria-hidden="true"><use href="#billard-ikon-flyt"/></svg><span class="big">Flyt</span></button>
         <div class="ctrl-head head-pow"><span class="ctrl-label">Kraft</span><span class="ctrl-value" id="pow-value">5</span><span class="meter" id="pow-meter" aria-hidden="true"></span></div>
@@ -217,14 +219,6 @@
         <button class="btn" id="dwell-minus" aria-label="Kortere dwell-tid"><span class="big">−</span><span class="small">Kortere</span></button>
         <div class="value-box" id="dwell-value" aria-live="polite">1,2 sek.</div>
         <button class="btn" id="dwell-plus" aria-label="Længere dwell-tid"><span class="big">+</span><span class="small">Længere</span></button>
-      </div>
-    </div>
-    <div class="setting">
-      <div class="setting-label">Fint trin<small>De små drejeknapper</small></div>
-      <div class="row" role="group">
-        <button class="btn option" data-gset="fint" data-value="1"><span class="big">1°</span></button>
-        <button class="btn option" data-gset="fint" data-value="0.5"><span class="big">0,5°</span></button>
-        <button class="btn option" data-gset="fint" data-value="0.2"><span class="big">0,2°</span></button>
       </div>
     </div>
     <div class="setting">

@@ -360,5 +360,81 @@ test('et helt parti kan spilles færdigt (du med Næste kugle mod Svær)', funct
   assert.ok(st.frameOver === 'human' || st.frameOver === 'cpu');
 });
 
+// ---------- v1.2: 8'eren afslutter partiet med det samme ----------
+function eightShot(who, mine, extra) {
+  var run = L.createSeries('normal', 1), other = mine === 'hel' ? 'halv' : 'hel', g = {};
+  g[who] = mine; g[who === 'human' ? 'cpu' : 'human'] = other;
+  run._setBalls(balls([[0, 300, 300], [8, 100, 100], [12, 700, 380], [13, 820, 300]].concat(extra || [])), { groups: g, turn: who });
+  if (who === 'cpu') run.prepareCpu({ aim: 225, power: 6 }); else { run.setAim(225); run.setPower(6); }
+  return { run: run, res: run.shoot() };
+}
+test('8\'eren lovligt i hul: partiet er vundet med det samme, selv om modstanderens kugler ligger tilbage', function () {
+  var o = eightShot('human', 'hel');
+  assert.ok(o.res.judge.eightIn); assert.strictEqual(o.res.winner, 'human'); assert.strictEqual(o.run.state.frameOver, 'human');
+  assert.ok(!o.run.live(), 'partiet er slut');
+  var left = o.run.state.balls.filter(function (b) { return b.in && b.id !== 0; }).map(function (b) { return b.id; });
+  assert.deepStrictEqual(left.sort(), [12, 13], 'modstanderens kugler bliver liggende');
+});
+test('8\'eren for tidligt i hul: partiet er tabt med det samme (spilleren)', function () {
+  var o = eightShot('human', 'hel', [[3, 600, 120]]);
+  assert.ok(o.res.judge.eightIn); assert.strictEqual(o.res.winner, 'cpu'); assert.ok(o.run.state.over);
+  assert.ok(by(o.run.state.balls, 3).in, 'egne kugler ligger stadig');
+});
+test('8\'eren med fejlstød (stødbolden følger med i hul): tabt', function () {
+  var j = L.judge({ group: 'hel', onEight: true }, sim(8, [8, 0], 1));
+  assert.strictEqual(j.frame, 'lose');
+  j = L.judge({ group: 'hel', onEight: true }, sim(3, [8], 1));
+  assert.strictEqual(j.frame, 'lose', 'ramte ikke 8\'eren først');
+});
+test('computeren: 8\'eren lovligt = computeren vinder; for tidligt = du vinder', function () {
+  var o = eightShot('cpu', 'hel');
+  assert.strictEqual(o.res.winner, 'cpu'); assert.ok(o.run.state.over);
+  var o2 = eightShot('cpu', 'hel', [[3, 600, 120]]);
+  assert.strictEqual(o2.res.winner, 'human'); assert.strictEqual(o2.run.state.frameOver, 'human'); assert.ok(!o2.run.state.over);
+});
+test('intet kræver, at alle kugler er væk: hele partier slutter med kugler på bordet', function () {
+  var withLeft = 0, frames = 0;
+  for (var seed = 1; seed <= 6; seed++) {
+    var run = L.createSeries('svaer', seed), st = run.state;
+    for (var k = 0; k < 300 && run.live(); k++) {
+      // begge sider spilles af computerens plan (spillerens tur sættes via sigte og kraft)
+      var plan = AI.plan(run);
+      if (st.turn === 'cpu') run.prepareCpu(plan); else { if (plan.spot && st.ballInHand) run.placeCue(plan.spot); run.setAim(plan.aim); run.setPower(plan.power); }
+      run.shoot();
+    }
+    if (!run.live()) {
+      frames++;
+      assert.ok(st.last && st.last.judge.eightIn, 'partiet sluttede uden at 8\'eren gik i hul');
+      if (st.balls.some(function (b) { return b.in && b.id !== 0 && b.id !== 8; })) withLeft++;
+    }
+  }
+  assert.ok(frames >= 5, frames + ' partier sluttede');
+  assert.ok(withLeft >= 3, 'kun ' + withLeft + ' partier sluttede med kugler tilbage');
+});
+test('forhåndslinjen kender hullet, 8\'eren løber mod (til markering)', function () {
+  var bs = balls([[0, 300, 300], [8, 100, 100]]);
+  var pv = L.preview(bs, 225);
+  assert.strictEqual(pv.hit.id, 8); assert.strictEqual(pv.hit.pocket, 0);
+  assert.strictEqual(L.preview(bs, 228).hit.pocket, null, 'skævt snit: intet hul');
+});
+test('drejning i trin på 0,1°, 1° og 10° (uden afrundingsfejl)', function () {
+  var run = L.createSeries('normal', 1);
+  run.setAim(0);
+  for (var i = 0; i < 3; i++) run.turnAim(0.1);
+  assert.strictEqual(run.state.aim, 0.3);
+  run.turnAim(-0.1); run.turnAim(-0.1); run.turnAim(-0.1); run.turnAim(-0.1);
+  assert.strictEqual(run.state.aim, 359.9);
+  run.turnAim(1); run.turnAim(10);
+  assert.strictEqual(run.state.aim, 10.9);
+});
+test('alle 15 kugler + stødbold er med ved start, også 8\'eren', function () {
+  for (var seed = 1; seed <= 5; seed++) {
+    var st = L.createSeries('normal', seed).state;
+    assert.strictEqual(st.balls.filter(function (b) { return b.in; }).length, 16);
+    assert.ok(by(st.balls, 8).in);
+    st.balls.forEach(function (b) { assert.ok(b.x > 0 && b.x < L.W && b.y > 0 && b.y < L.H, 'kugle ' + b.id + ' uden for bordet'); });
+  }
+});
+
 console.log('\n' + (n - failed) + ' af ' + n + ' test bestået');
 process.exit(failed ? 1 : 0);

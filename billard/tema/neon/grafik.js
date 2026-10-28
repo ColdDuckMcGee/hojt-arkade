@@ -34,12 +34,13 @@
     'bande', 'bande-kant', 'hul', 'hul-kant',
     'kugle-1', 'kugle-2', 'kugle-3', 'kugle-4', 'kugle-5', 'kugle-6', 'kugle-7', 'kugle-8',
     'kugle-9', 'kugle-10', 'kugle-11', 'kugle-12', 'kugle-13', 'kugle-14', 'kugle-15',
-    'kugle-stoed', 'kugle-hvid', 'kugle-tal', 'kugle-tal-bund', 'kugle-kant', 'kugle-glans', 'otte-ring',
+    'kugle-stoed', 'kugle-hvid', 'kugle-tal', 'kugle-tal-bund', 'kugle-kant', 'kugle-glans', 'otte-ring', 'otte-kant',
     'maal', 'haand', 'koe', 'koe-2', 'koe-spids', 'sigte', 'sigte-spoegelse', 'sigte-obj', 'sigte-stoed', 'sigte-advarsel',
     'gloed-farve', 'skygge-farve', 'kontur'
   ];
   var TEKSTER = ['skrift'];
   var TAL = [
+    'otte-kant-w', 'otte-ring-w', 'otte-tal-bund-r',
     'gloed', 'gloed-blur', 'skygge-x', 'skygge-y', 'skygge-blur', 'kontur-w',
     'bord-radius', 'bord-kant-w', 'bande-w', 'bande-kant-w', 'diamant-r', 'linje-w', 'moenster-w', 'moenster-afstand',
     'hul-kant-w', 'kugle-kant-w', 'kugle-tal-str', 'kugle-tal-bund-r', 'stribe', 'glans',
@@ -197,7 +198,7 @@
       }
       if (type !== 'stoed') {
         // Tallet i en lys cirkel
-        ctx.beginPath(); ctx.arc(0, 0, r * s['kugle-tal-bund-r'], 0, Math.PI * 2);
+        ctx.beginPath(); ctx.arc(0, 0, r * s[type === 'otte' ? 'otte-tal-bund-r' : 'kugle-tal-bund-r'], 0, Math.PI * 2);
         ctx.fillStyle = s['kugle-tal-bund']; ctx.fill();
         ctx.fillStyle = s['kugle-tal'];
         ctx.font = '700 ' + (r * s['kugle-tal-str']).toFixed(2) + 'px ' + s['skrift'];
@@ -205,10 +206,18 @@
         ctx.fillText(String(k.nr), 0, r * 0.06);
       }
       ctx.restore();
-      if (type === 'otte' && s['otte-ring'] !== 'transparent') {
-        ctx.beginPath(); ctx.arc(x, y, r - s['kugle-kant-w'] * 0.5, 0, Math.PI * 2);
-        glow(ctx, s, s['otte-ring'], 0.5);
-        ctx.lineWidth = s['kugle-kant-w']; ctx.strokeStyle = s['otte-ring']; ctx.stroke(); noFx(ctx);
+      if (type === 'otte') {
+        // Den sorte 8'er: en lys kant yderst, så den skiller sig ud fra en mørk filt, og en farvet ring indenfor
+        var kw = s['otte-kant-w'], rw = s['otte-ring-w'];
+        if (kw > 0) {
+          ctx.beginPath(); ctx.arc(x, y, r - kw * 0.5, 0, Math.PI * 2);
+          ctx.lineWidth = kw; ctx.strokeStyle = s['otte-kant']; ctx.stroke();
+        }
+        if (rw > 0) {
+          ctx.beginPath(); ctx.arc(x, y, r - kw - rw * 0.5, 0, Math.PI * 2);
+          glow(ctx, s, s['otte-ring'], 0.5);
+          ctx.lineWidth = rw; ctx.strokeStyle = s['otte-ring']; ctx.stroke(); noFx(ctx);
+        }
       }
       // Glans
       if (s['glans'] > 0) {
@@ -309,6 +318,11 @@
   var ikoner = {
     'drej-venstre': '<path class="ico-line" d="M30 30 A28 28 0 1 1 22 58"/><path class="ico-fill" d="M14 16 L40 22 L22 42 Z"/>',
     'drej-hoejre': '<path class="ico-line" d="M70 30 A28 28 0 1 0 78 58"/><path class="ico-fill" d="M86 16 L60 22 L78 42 Z"/>',
+    // Grov: stor bue med to pile. Fin: lille bue med et sigtepunkt i midten.
+    'drej-venstre-grov': '<path class="ico-line" d="M30 30 A28 28 0 1 1 22 58"/><path class="ico-fill" d="M14 16 L40 22 L22 42 Z"/><path class="ico-fill" d="M4 34 L24 38 L10 54 Z"/>',
+    'drej-hoejre-grov': '<path class="ico-line" d="M70 30 A28 28 0 1 0 78 58"/><path class="ico-fill" d="M86 16 L60 22 L78 42 Z"/><path class="ico-fill" d="M96 34 L76 38 L90 54 Z"/>',
+    'drej-venstre-fin': '<path class="ico-line" d="M40 38 A16 16 0 1 1 36 62"/><path class="ico-fill" d="M30 28 L48 34 L36 48 Z"/><circle class="ico-fill" cx="50" cy="52" r="4"/>',
+    'drej-hoejre-fin': '<path class="ico-line" d="M60 38 A16 16 0 1 0 64 62"/><path class="ico-fill" d="M70 28 L52 34 L64 48 Z"/><circle class="ico-fill" cx="50" cy="52" r="4"/>',
     'kraft-ned': '<rect class="ico-fill" x="14" y="62" width="14" height="22" rx="3"/><rect class="ico-line" x="38" y="46" width="14" height="38" rx="3"/><rect class="ico-line" x="62" y="28" width="14" height="56" rx="3"/>',
     'kraft-op': '<rect class="ico-fill" x="14" y="62" width="14" height="22" rx="3"/><rect class="ico-fill" x="38" y="46" width="14" height="38" rx="3"/><rect class="ico-fill" x="62" y="28" width="14" height="56" rx="3"/>',
     'stoed': '<path class="ico-line" d="M8 78 L52 52"/><circle class="ico-fill" cx="68" cy="42" r="13"/><path class="ico-line" d="M84 18 L92 10 M88 32 L97 30 M72 16 L74 6"/>',

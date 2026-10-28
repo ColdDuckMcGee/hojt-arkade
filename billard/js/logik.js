@@ -254,7 +254,8 @@
       var tx = d.x - cos * nx, ty = d.y - cos * ny, tl = Math.hypot(tx, ty);
       out.to = g;
       out.hit = { type: 'kugle', id: hit.id, ghost: g, ball: { x: hit.x, y: hit.y },
-        obj: { x: nx, y: ny }, objLen: cos, cue: tl > 1e-6 ? { x: tx / tl, y: ty / tl } : null, cueLen: tl };
+        obj: { x: nx, y: ny }, objLen: cos, cue: tl > 1e-6 ? { x: tx / tl, y: ty / tl } : null, cueLen: tl,
+        pocket: pocketAhead(balls, hit, { x: nx, y: ny }) };
       return out;
     }
     var p = { x: cue.x + d.x * tw, y: cue.y + d.y * tw };
@@ -264,6 +265,19 @@
     if (side === 'v' || side === 'h') r.x = -r.x; else r.y = -r.y;
     out.hit = { type: 'bande', side: side, refl: r };
     return out;
+  }
+
+  // Hullet, objektkuglen løber direkte mod (ren geometri, ingen bander), eller null
+  function pocketAhead(balls, b, d) {
+    var best = null, bt = Infinity;
+    POCKETS.forEach(function (p) {
+      var vx = p.aim.x - b.x, vy = p.aim.y - b.y, t = vx * d.x + vy * d.y;
+      if (t <= 0) return;
+      var off = Math.abs(vx * d.y - vy * d.x);
+      if (off > (p.kind === 'midte' ? 10 : 14)) return;
+      if (t < bt && segClear(balls, b, { x: b.x + d.x * t, y: b.y + d.y * t }, [0, b.id], 2 * R - 0.5)) { bt = t; best = p.id; }
+    });
+    return best;
   }
 
   // ---------- Skudmuligheder (geometri, til "Næste kugle" og computeren) ----------
@@ -434,7 +448,7 @@
       remaining: function (who) { return remaining(st.groups[who]); },
       onEight: onEight,
       setAim: function (a) { st.aim = normAngle(a); st.targetIndex = -1; return st.aim; },
-      turnAim: function (d) { st.aim = normAngle(st.aim + d); st.targetIndex = -1; return st.aim; },
+      turnAim: function (d) { st.aim = normAngle(Math.round((st.aim + d) * 10) / 10); st.targetIndex = -1; return st.aim; },
       aimAt: function (p) { var c = cue(); if (Math.hypot(p.x - c.x, p.y - c.y) < 1) return st.aim; st.aim = normAngle(Math.round(angleTo(c, p) * 10) / 10); st.targetIndex = -1; return st.aim; },
       setPower: function (p) { st.power = Math.max(1, Math.min(RULES.powers, Math.round(p))); return st.power; },
       // Næste lovlige kugle: sigter, så den går mod det letteste hul (hjælp=true),
@@ -536,7 +550,7 @@
     W: W, H: H, R: R, RULES: RULES, POCKETS: POCKETS, LEVELS: LEVELS, LEVEL_IDS: LEVEL_IDS, DEFAULT_LEVEL: 'normal',
     rng: rng, normAngle: normAngle, angleTo: angleTo, dirOf: dirOf, speedOf: speedOf, rollDistance: rollDistance,
     groupOf: groupOf, other: other, rack: rack, simulate: simulate, preview: preview, judge: judge,
-    shotOption: shotOption, shotOptions: shotOptions, powerFor: powerFor, aimOffset: aimOffset, segClear: segClear,
+    shotOption: shotOption, shotOptions: shotOptions, powerFor: powerFor, aimOffset: aimOffset, pocketAhead: pocketAhead, segClear: segClear,
     inMouth: inMouth, nearestPocket: nearestPocket, freeSpotNear: freeSpotNear, overlapsAny: overlapsAny,
     cloneBalls: cloneBalls, ballById: ballById, createSeries: createSeries
   };

@@ -113,6 +113,7 @@
         var b = L.ballById(state.balls, id);
         if (b && b.in) T.tegn.maal(ctx, { x: b.x, y: b.y, r: L.R }, s);
       });
+      if (view.pocketMark) T.tegn.maal(ctx, { x: view.pocketMark.x, y: view.pocketMark.y, r: view.pocketMark.r }, s);
       if (view.preview) T.tegn.sigte(ctx, Object.assign({ r: L.R }, view.preview), s);
       drawBalls(ctx, s, pos, rot);
       if (cue && view.hand) T.tegn.haand(ctx, { x: cue.x, y: cue.y, r: L.R }, s);

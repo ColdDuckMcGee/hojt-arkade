@@ -23,12 +23,11 @@
     dwell: false, dwellTime: 1.2, theme: 'neon', background: 'mork',
     animation: true, sound: true, music: true
   });
-  // niveau: computerens niveau. fint: de små drejeknapper (grader).
+  // niveau: computerens niveau.
   // hjaelp: Næste kugle sigter mod hul (true) eller mod kuglens midte (false).
   // gloed: temaets glød og lysskær (kan slås fra; spillet kan aflæses uden).
-  var gset = ArkadeSettings.create('billard', { niveau: 'normal', fint: '1', hjaelp: true, gloed: true });
+  var gset = ArkadeSettings.create('billard', { niveau: 'normal', hjaelp: true, gloed: true });
   if (!L.LEVELS[gset.get('niveau')]) gset.set('niveau', 'normal');
-  if (['1', '0.5', '0.2'].indexOf(String(gset.get('fint'))) < 0) gset.set('fint', '1');
   var records = ArkadeHighscores.create('billard', { max: 10 });
 
   var THEMES = ['neon', 'solnedgang', 'cyberpunk', 'kontrast'];
@@ -128,13 +127,11 @@
   function applyGlow() { root.setAttribute('data-billard-gloed', gset.get('gloed') ? 'til' : 'fra'); restyle(); }
   gset.onChange(function (key) {
     if (key === 'gloed') applyGlow();
-    if (key === 'fint') syncFine();
     syncSettingsUi();
     if (run) refresh();
   });
-  function fine() { return parseFloat(gset.get('fint')) || 1; }
   function fmtDeg(v) { return String(v).replace('.', ',') + '°'; }
-  function syncFine() { $$('.js-fine').forEach(function (el) { el.textContent = fmtDeg(fine()); }); }
+  function fmtDeg1(v) { return v.toFixed(1).replace('.', ',') + '°'; }
   function restyle() {
     BillardTegn.readStyle();
     if (typeof tegn !== 'undefined' && tegn) tegn.restyle();
@@ -243,7 +240,7 @@
   var runLevel = 'normal';
   var tegn = BillardTegn.create(tableEl);
   var ROLL_SPEED = 1.5;           // kuglerne ruller 1,5 gange hurtigere end virkelig tid
-  var CPU_THINK = 700, CPU_AIM = 1100, AFTER_PAUSE = 450;   // ms (kan sættes ned i test)
+  var CPU_THINK = 700, CPU_AIM = 1100, AFTER_PAUSE = 1300;   // ms (kan sættes ned i test)
 
   function startGame(seed) {
     tegn.stop();
@@ -315,7 +312,7 @@
   }
   tableEl.addEventListener('click', function (e) { aimAtScreen(e.clientX, e.clientY); });
   $$('#controls [data-turn]').forEach(function (b) {
-    b.addEventListener('click', function () { var d = +b.dataset.turn; turnAim(b.hasAttribute('data-fine') ? d * fine() : d); });
+    b.addEventListener('click', function () { var d = +b.dataset.turn; turnAim(d); });
   });
   $$('#controls [data-power]').forEach(function (b) { b.addEventListener('click', function () { changePower(+b.dataset.power); }); });
   $('#btn-next-ball').addEventListener('click', nextBall);
@@ -368,14 +365,16 @@
     var j = res.judge, s = run.state;
     if (res.winner) {
       if (res.winner === 'human') {
-        sfx('frame'); setNote('', ''); refresh();
+        sfx('frame');
+        setNote(res.who === 'human' ? '8\'eren er i hul – partiet er vundet!' : '8\'eren er i hul – computeren fik den i for tidligt, så partiet er vundet!', 'ok');
+        refresh();
         afterTimer = setTimeout(showDone, AFTER_PAUSE);
         return;
       }
       sfx('lost');
-      if (res.who === 'cpu') lostReason = 'Computeren nedlagde 8\'eren og vandt parti ' + s.frame + '.';
-      else if (j.foul) lostReason = '8\'eren gik i hul med et fejlstød (' + FOUL[j.reason].toLowerCase() + '), så computeren vandt parti ' + s.frame + '.';
-      else lostReason = '8\'eren gik i hul, før dine egne kugler var nedlagt, så computeren vandt parti ' + s.frame + '.';
+      if (res.who === 'cpu') lostReason = '8\'eren er i hul – partiet er tabt. Computeren nedlagde den lovligt og vandt parti ' + s.frame + '.';
+      else if (j.foul) lostReason = '8\'eren er i hul – partiet er tabt. Den gik i hul med et fejlstød (' + FOUL[j.reason].toLowerCase() + ').';
+      else lostReason = '8\'eren er i hul – partiet er tabt. Den gik i hul, før dine egne kugler var nedlagt.';
       setNote(lostReason, 'err');
       refresh();
       afterTimer = setTimeout(function () { finish('lost'); }, 1600);
@@ -421,6 +420,9 @@
       view.cue = { aim: s.aim, power: s.power };
       if (s.turn === 'human') view.targets = run.legalTargets('human');
       view.hand = s.ballInHand && s.turn === 'human';
+      // 8'eren: hullet, den er på vej mod, markeres (ingen meldepligt)
+      var ph = view.preview && view.preview.hit;
+      if (ph && ph.type === 'kugle' && ph.id === 8 && ph.pocket !== null && run.onEight(s.turn)) view.pocketMark = L.POCKETS[ph.pocket];
     }
     tegn.draw(s, view);
   }
@@ -445,7 +447,7 @@
     $('#points-note').textContent = 'Egen kugle: ' + pointsText(L.RULES.points.ball * s.mult) + ' · vundet parti: ' + pointsText(L.RULES.points.frame * s.mult);
     // Retning og kraft
     var sa = tegn.screenAngle(s.aim);
-    $('#dir-value').textContent = fmtDeg(Math.round(sa * 10) / 10);
+    $('#dir-value').textContent = fmtDeg1(Math.round(sa * 10) / 10);
     $('#dir-arrow').style.transform = 'rotate(' + sa + 'deg)';
     $('#pow-value').textContent = s.power;
     var m = $('#pow-meter');
@@ -476,7 +478,7 @@
     }
     $('#btn-pause').disabled = !run.live() || rolling;
     tableEl.classList.toggle('locked', !on);
-    tableEl.setAttribute('aria-label', 'Bordet, parti ' + s.frame + '. ' + (s.turn === 'human' ? 'Din tur' : 'Computerens tur') + '. Retning ' + Math.round(sa) + ' grader, kraft ' + s.power + ' af ' + L.RULES.powers + '.');
+    tableEl.setAttribute('aria-label', 'Bordet, parti ' + s.frame + '. ' + (s.turn === 'human' ? 'Din tur' : 'Computerens tur') + '. Retning ' + (Math.round(sa * 10) / 10).toFixed(1).replace('.', ',') + ' grader, kraft ' + s.power + ' af ' + L.RULES.powers + '.');
     renderTable();
     // Sikkerhedsnet: gør en ny tekst, at noget ikke kan være der, lægges skærmen om
     if (current === 'game' && !relayouting && (overflows(gameEl) || overflows(root))) { relayouting = true; layoutGame(); relayouting = false; }
@@ -490,7 +492,7 @@
     $('#done-kicker').textContent = 'Parti ' + s.frame + ' · ' + levelName(s.level);
     $('#done-title').textContent = 'Parti vundet!';
     $('#done-points').textContent = '+' + pointsText(s.framePoints);
-    var how = s.last && s.last.who === 'cpu' ? 'Computeren nedlagde 8\'eren før tid, så partiet er dit. ' : 'Du nedlagde 8\'eren. ';
+    var how = s.last && s.last.who === 'cpu' ? '8\'eren er i hul: computeren fik den i for tidligt eller med et fejlstød, så partiet er dit. ' : '8\'eren er i hul – du nedlagde den lovligt. ';
     $('#done-parts').textContent = how + 'I alt ' + pointsText(s.score) + ' og ' + framesText(s.framesWon) + ' vundet. Vind det næste, så fortsætter serien.';
     $('#btn-next-sub').textContent = 'Parti ' + (s.frame + 1) + (s.frame % 2 === 1 ? ' · computeren slår op' : ' · du slår op');
     $('#done-overlay').hidden = false;
@@ -688,19 +690,19 @@
   });
 
   // ---------- Tastatur ----------
-  // Pil venstre/højre drejer et fint trin (Skift: 10°), pil op/ned ændrer kraften,
+  // Pil venstre/højre drejer 1° (Skift: 10°, Alt eller Ctrl: 0,1°), pil op/ned ændrer kraften,
   // N sigter på næste kugle, F flytter kuglen i hånden, Enter, mellemrum eller S
   // støder, Esc eller P giver pause.
   document.addEventListener('keydown', function (e) {
-    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    var arrowLR = e.key === 'ArrowLeft' || e.key === 'ArrowRight';
+    if (e.metaKey || ((e.altKey || e.ctrlKey) && !arrowLR)) return; // Alt/Ctrl kun til fin drejning
     if (current !== 'game') return;
     if (confirmOpen()) { if (e.key === 'Escape') { e.preventDefault(); cancelQuit(); } return; } // Esc = Nej
     if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') { e.preventDefault(); setPaused(!paused); return; }
     if (overlayOpen()) return; // Enter og mellemrum virker på den fokuserede knap
     var k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
     var handled = true;
-    if (k === 'ArrowLeft') turnAim(e.shiftKey ? -10 : -fine());
-    else if (k === 'ArrowRight') turnAim(e.shiftKey ? 10 : fine());
+    if (k === 'ArrowLeft' || k === 'ArrowRight') turnAim((k === 'ArrowLeft' ? -1 : 1) * (e.shiftKey ? 10 : (e.altKey || e.ctrlKey) ? 0.1 : 1));
     else if (k === 'ArrowUp') changePower(1);
     else if (k === 'ArrowDown') changePower(-1);
     else if (k === 'n') nextBall();
@@ -719,7 +721,7 @@
   // Ellers vælges det layout, der giver det største bord. Bordet med ramme er
   // 1120 × 620 og kan stå på højkant (620 × 1120), hvis det giver et større bord.
   var BW = BillardTegn.OW, BH = BillardTegn.OH;
-  var LAYOUTS = ['wide', 'side', 'side5', 'below'];
+  var LAYOUTS = ['wide', 'side', 'stack', 'below'];
   function viewport() { return { W: root.clientWidth || window.innerWidth, H: root.clientHeight || window.innerHeight }; }
   function cssBtn(W, H) { var cm = 96 / 2.54; return Math.max(3 * cm, Math.min(0.15 * Math.min(W, H), 4.2 * cm)); }
   function cssGap(W, H) { return Math.max(0.8 * 96 / 2.54, 0.03 * Math.min(W, H)); }
@@ -735,11 +737,11 @@
     var d = spacing(W, H), p = d.p, g = d.g, ig = 10;
     var hudH = Math.max(50, Math.min(84, b * 0.62)), hint = small ? 44 : 64, head = small ? 32 : 40;
     var res = { p: p, g: g, hudH: hudH, ig: ig, head: head, hint: hint };
-    // wide: status | bord | stødet (2 kolonner: 7 rækker)
+    // wide: status | bord | stødet (2 kolonner: 6 rækker knapper)
     var sideW = Math.min(340, Math.max(230, b * 2.1));
     var ctrlW = 2 * b + ig;
     var leftH = 100 + 4 * hudH + 3 * ig + 70 + b + 3 * ig;
-    var rightH = hint + 2 * head + 5 * b + 8 * ig;
+    var rightH = hint + 2 * head + 6 * b + 8 * ig;
     // wide: beskedlinjen står i en smal kolonne, så den får 4 linjer, når der er plads
     if (rightH + 28 <= H - 2 * p) { res.hintWide = hint + 28; rightH += 28; } else res.hintWide = hint;
     res.sideW = sideW; res.ctrlW = ctrlW;
@@ -755,19 +757,19 @@
     res.panelW = panelW; res.hudCols = hudCols; res.statusH = statusH; res.hudHc = hudRows === 2 ? Math.max(40, (statusH - ig) / 2) : statusH;
     var colSide = res.hintBoard.side ? statusH + g + ctlH : colH;
     res.side = colSide <= H - 2 * p ? fitBoard(W - 2 * p - g - panelW, H - 2 * p) : null;
-    // side5: som side, men stødet i 5 kolonner og kun 2 rækker knapper (lave skærme, fx mobil på langs)
-    var panelW5 = 5 * b + 4 * ig;
-    var hudCols5 = (panelW5 - b - ig) >= 4 * 74 + 3 * ig ? 4 : 2, hudRows5 = 4 / hudCols5;
-    var statusH5 = Math.max(b, hudRows5 * hudH + (hudRows5 - 1) * ig);
-    var ctlH5 = head + 2 * b + 2 * ig, colH5 = statusH5 + g + hint + ig + ctlH5;
-    // (beskedlinjen står altid ved knapperne her: på et smalt bord ville den dække kuglerne)
-    res.hintBoard.side5 = false;
-    res.panelW5 = panelW5; res.hudCols5 = hudCols5; res.hudHc5 = hudRows5 === 2 ? Math.max(40, (statusH5 - ig) / 2) : statusH5;
-    res.side5 = colH5 <= H - 2 * p ? fitBoard(W - 2 * p - g - panelW5, H - 2 * p) : null;
+    // stack: bordet med status under til venstre, stødet (4 kolonner, 3 rækker) og beskedlinjen til højre (meget lave skærme)
+    res.hintBoard.stack = false;
+    if (hint + ig + ctlH <= H - 2 * p) {
+      var fs = fitBoard(W - 2 * p - g - panelW, H - 2 * p - g - b);
+      if (fs.h > fs.w) { var ks = Math.min((W - 2 * p - g - panelW) / BW, (H - 2 * p - g - b) / BH); fs = { w: Math.floor(BW * ks), h: Math.floor(BH * ks), k: ks }; }
+      res.hudColsS = (fs.w - b - ig) >= 4 * 74 + 3 * ig ? 4 : 2;
+      res.hudHcS = res.hudColsS === 2 ? Math.max(40, (b - ig) / 2) : b;
+      res.stack = fs;
+    } else res.stack = null;
     res.below = panelW <= W - 2 * p ? fitBoard(W - 2 * p, H - 2 * p - colH - g) : null;
     LAYOUTS.forEach(function (l) { if (!res[l] || res[l].k * BH < 140) res[l] = null; });
     // Højkant: knapperne ligger under bordet, når der er plads til det
-    if (H > W && res.below) { res.wide = res.side = res.side5 = null; }
+    if (H > W && res.below) { res.wide = res.side = res.stack = null; }
     return res;
   }
   function area(f) { return f ? f.k : 0; }
@@ -795,11 +797,10 @@
   var gameEl = $('#game'), gridEl = $('#game-grid');
   function overflows(el) { return el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1; }
   function applyLayout(lay, b, f, res, v) {
-    var five = lay === 'side5';
-    ['wide', 'side', 'below'].forEach(function (l) { gridEl.classList.toggle('lay-' + l, l === (five ? 'side' : lay)); });
+    var stack = lay === 'stack';
+    ['wide', 'side', 'stack', 'below'].forEach(function (l) { gridEl.classList.toggle('lay-' + l, l === lay); });
     gridEl.classList.toggle('compact', lay !== 'wide');
     gridEl.classList.toggle('ctl4', lay !== 'wide');
-    gridEl.classList.toggle('ctl5', five);
     var st = gameEl.style;
     st.setProperty('--btn', b + 'px');
     st.setProperty('--gap', Math.max(10, cssGap(v.W, v.H) * Math.min(1, b / cssBtn(v.W, v.H))) + 'px');
@@ -810,11 +811,11 @@
     st.setProperty('--hint-h', (lay === 'wide' ? res.hintWide : res.hint) + 'px');
     st.setProperty('--side-w', Math.floor(res.sideW) + 'px');
     st.setProperty('--ctrl-w', Math.floor(res.ctrlW) + 'px');
-    st.setProperty('--hud-h', Math.round(lay === 'wide' ? res.hudH : five ? res.hudHc5 : res.hudHc) + 'px');
-    st.setProperty('--hud-cols', lay === 'wide' ? 1 : five ? res.hudCols5 : res.hudCols);
+    st.setProperty('--hud-h', Math.round(lay === 'wide' ? res.hudH : stack ? res.hudHcS : res.hudHc) + 'px');
+    st.setProperty('--hud-cols', lay === 'wide' ? 1 : stack ? res.hudColsS : res.hudCols);
     st.setProperty('--board-w', f.w + 'px');
     st.setProperty('--board-h', f.h + 'px');
-    st.setProperty('--panel-w', Math.floor(lay === 'below' ? Math.min(v.W - 2 * res.p, Math.max(res.panelW, f.w)) : five ? res.panelW5 : res.panelW) + 'px');
+    st.setProperty('--panel-w', Math.floor(lay === 'below' ? Math.min(v.W - 2 * res.p, Math.max(res.panelW, f.w)) : res.panelW) + 'px');
     gameEl.dataset.layout = lay;
     var hb = !!(res.hintBoard && res.hintBoard[lay]), hintEl = $('#hint');
     gridEl.classList.toggle('hint-board', hb);
@@ -1016,7 +1017,6 @@
   // ---------- Start ----------
   BillardTegn.installerIkoner();
   syncSmall();
-  syncFine();
   applyGlow();
   applyTheme();
   applyBackground();

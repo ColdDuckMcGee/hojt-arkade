@@ -115,6 +115,24 @@ def gameplay(pg, w, h, tag):
     pg.mouse.move(1, 1)
     pg.keyboard.press('Shift+ArrowLeft'); pg.keyboard.press('ArrowRight')
     if B(pg, "Billard.run.state.aim") != a0: fails.append('%s piletaster drejede forkert (%s)' % (tag, B(pg, "Billard.run.state.aim")))
+    # v1.2: seks drejeknapper (10°, 1°, 0,1°), retning med én decimal, Alt/Ctrl+pil = 0,1°
+    rb = B(pg, "[...document.querySelectorAll('#controls .rot-btn')].map(e => [e.dataset.turn, e.textContent.replace(/\\s+/g, ' ').trim(), Math.round(e.getBoundingClientRect().width), Math.round(e.getBoundingClientRect().height)])")
+    if sorted(r[0] for r in rb) != sorted(['-10', '10', '-1', '1', '-0.1', '0.1']): fails.append('%s drejeknapper: %s' % (tag, rb))
+    for r in rb:
+        if min(r[2], r[3]) < 80: fails.append('%s drejeknap %s er %sx%s' % (tag, r[0], r[2], r[3]))
+        if not any(wd in r[1] for wd in ('grov', 'mellem', 'fin')): fails.append('%s drejeknap %s mangler etiket: %s' % (tag, r[0], r[1]))
+    pg.evaluate("Billard.run.setAim(274); Billard.refresh()")
+    pg.click('#controls [data-turn="0.1"]'); pg.click('#controls [data-turn="0.1"]'); pg.click('#controls [data-turn="0.1"]'); pg.click('#controls [data-turn="-0.1"]')
+    pg.mouse.move(1, 1); pg.wait_for_timeout(30)
+    g = B(pg, "[Billard.run.state.aim, document.getElementById('dir-value').textContent.trim(), (Math.round(Billard.tegn.screenAngle(274.2) * 10) / 10).toFixed(1).replace('.', ',')]")
+    if g[0] != 274.2 or g[2] + '°' != g[1] or ',' not in g[1]: fails.append('%s 0,1°-knapper/visning gav %s' % (tag, g))
+    pg.keyboard.press('Alt+ArrowRight'); pg.keyboard.press('Alt+ArrowRight'); pg.keyboard.press('Control+ArrowLeft')
+    if B(pg, "Billard.run.state.aim") != 274.3: fails.append('%s Alt/Ctrl+pil gav %s' % (tag, B(pg, "Billard.run.state.aim")))
+    pg.evaluate("Billard.run.setAim(%s); Billard.refresh()" % a0)
+    # Alle 15 kugler + stødbolden tegnes ved start, også 8'eren
+    dr = B(pg, "(() => { const t = window.BillardTema.tegn, o = t.kugle, seen = []; t.kugle = function (c, b) { seen.push([b.nr, b.type]); return o.apply(this, arguments); }; Billard.refresh(); t.kugle = o; return seen; })()")
+    ids = sorted(set(d[0] for d in dr))
+    if ids != list(range(16)) or [8, 'otte'] not in dr: fails.append('%s tegnede kugler ved start: %s' % (tag, dr))
     p0 = B(pg, "Billard.run.state.power")
     pg.click('#controls [data-power="1"]')
     if B(pg, "[Billard.run.state.power, document.querySelectorAll('#pow-meter i.on').length]") != [p0 + 1, p0 + 1]: fails.append(tag + ' kraft + virkede ikke')
@@ -168,6 +186,9 @@ def win_and_lose(pg, w, h, tag, small):
     pg.evaluate("Billard.run.setAim(225); Billard.run.setPower(6); Billard.refresh()")
     sc0 = B(pg, "Billard.run.state.score")
     pg.keyboard.press('Enter'); wait_idle(pg, False)
+    pg.wait_for_timeout(30)
+    nt = B(pg, "document.getElementById('hint').textContent")
+    if "8'eren er i hul – partiet er vundet" not in nt: fails.append('%s beskeden ved 8\'eren i hul var: %s' % (tag, nt))
     try: pg.wait_for_function("!document.getElementById('done-overlay').hidden", timeout=3000)
     except Exception: fails.append(tag + ' Parti vundet blev ikke vist'); return None
     s = B(pg, "[Billard.run.state.framesWon, Billard.run.state.score - %d, document.getElementById('done-title').textContent]" % sc0)
@@ -193,7 +214,7 @@ def win_and_lose(pg, w, h, tag, small):
     lv = B(pg, "Billard.run.state.level")
     if not B(pg, "Billard.records.list('%s').some(e => e.score === %d && e.frames === 1)" % (lv, pts)): fails.append('%s rekorden blev ikke gemt (%s, %s)' % (tag, lv, pts))
     reason = B(pg, "document.getElementById('go-reason').textContent")
-    if "8'eren gik i hul" not in reason: fails.append(tag + ' game over viser ikke grunden: ' + reason)
+    if "8'eren er i hul – partiet er tabt" not in reason: fails.append(tag + ' game over viser ikke grunden: ' + reason)
     return pts
 def dwell_check(pg, w, h, tag):
     """Ét dwell på Stød = ét stød. Drejeknappen gentager."""
@@ -209,7 +230,7 @@ def dwell_check(pg, w, h, tag):
     if B(pg, "window.__shots") != 1: fails.append(tag + ' dwell på Stød stødte igen uden at blikket flyttede sig')
     # Gør det til din tur igen og test gentagelse på drej
     setup(pg, [[0, 300, 250], [2, 500, 150], [10, 600, 350], [8, 800, 250]], {'groups': GROUPS, 'turn': 'human'})
-    pg.evaluate("Billard.gameSettings.set('fint', '1'); Billard.run.setAim(0); Billard.refresh()")
+    pg.evaluate("Billard.run.setAim(0); Billard.refresh()")
     a0 = B(pg, "Billard.run.state.aim")
     x, y = center(pg, '#controls [data-turn="1"]'); pg.mouse.move(x, y, steps=3)
     try: pg.wait_for_function("Billard.run.state.aim === %d" % ((a0 + 2) % 360), timeout=5000)
@@ -220,7 +241,7 @@ def game_shot(pg):
     """Et spil i gang: efter åbningsstødet, med Næste kugle (forhåndslinjen ses)."""
     pg.evaluate("Billard.setDelays(0, 0, 0); Billard.start(31); Billard.run.setPower(10); Billard.refresh()"); pg.wait_for_timeout(100)
     pg.evaluate("Billard.shoot()"); wait_idle(pg)
-    pg.evaluate("Billard.setDelays(700, 1100, 450)")
+    pg.evaluate("Billard.setDelays(700, 1100, 1300)")
     pg.mouse.move(1, 1)
     if B(pg, "Billard.run.live()"): pg.keyboard.press('n')
     pg.wait_for_timeout(80)
@@ -321,9 +342,9 @@ with sync_playwright() as p:
     pg.evaluate("Billard.start(9)")
     setup(pg, WIN8, {'groups': GROUPS, 'turn': 'human'})
     pg.evaluate("Billard.run.setAim(225); Billard.run.setPower(6); Billard.refresh()")
-    pg.keyboard.press('Enter'); pg.wait_for_timeout(1000)
+    pg.keyboard.press('Enter'); pg.wait_for_timeout(1800)
     t = B(pg, "[document.getElementById('game').classList.contains('calm'), Billard.tegn.animating, !document.getElementById('done-overlay').hidden]")
-    print('%s reduced motion: calm=%s animerer=%s, parti vundet efter 1 s=%s' % ('OK  ' if t == [True, False, True] else 'FEJL', t[0], t[1], t[2]))
+    print('%s reduced motion: calm=%s animerer=%s, parti vundet efter 1,8 s=%s' % ('OK  ' if t == [True, False, True] else 'FEJL', t[0], t[1], t[2]))
     if t != [True, False, True]: fails.append('reduced motion: %s' % t)
     ctx.close()
     # Hallen med Billard aktiv

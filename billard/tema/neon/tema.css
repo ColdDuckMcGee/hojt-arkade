@@ -42,6 +42,7 @@
   --billard-kugle-kant: rgba(0, 0, 0, 0.55);
   --billard-kugle-glans: rgba(255, 255, 255, 0.45);
   --billard-otte-ring: #ff3fd8;
+  --billard-otte-kant: #f4f0fa;      /* lys kant om den sorte 8'er */
   --billard-maal: #39ff6a;
   --billard-haand: #ffe14d;
   --billard-koe: #f0d9a8;
@@ -95,7 +96,7 @@
   --billard-kugle-9: #ffff00; --billard-kugle-10: #0055ff; --billard-kugle-11: #ff0000; --billard-kugle-12: #aa00ff;
   --billard-kugle-13: #ff8800; --billard-kugle-14: #00cc44; --billard-kugle-15: #990033;
   --billard-kugle-stoed: #ffffff; --billard-kugle-hvid: #ffffff; --billard-kugle-tal: #000000; --billard-kugle-tal-bund: #ffffff;
-  --billard-kugle-kant: #000000; --billard-kugle-glans: transparent; --billard-otte-ring: #ffffff;
+  --billard-kugle-kant: #000000; --billard-kugle-glans: transparent; --billard-otte-ring: #ffff00; --billard-otte-kant: #ffffff;
   --billard-maal: #00ff00; --billard-haand: #ffff00; --billard-koe: #ffffff; --billard-koe-2: #ffffff; --billard-koe-spids: #00ffff;
   --billard-sigte: #ffff00; --billard-sigte-spoegelse: #ffffff; --billard-sigte-obj: #00ff00; --billard-sigte-stoed: #ffffff; --billard-sigte-advarsel: #ff6600;
   --billard-ok: #00ff00; --billard-fejl: #ff6600; --billard-meter: #ffff00; --billard-meter-tom: #888888;
@@ -114,6 +115,9 @@
   --billard-moenster-afstand: 62.5;  /* gitteret på filten; 0 = intet mønster */
   --billard-hul-kant-w: 2.5;
   --billard-kugle-kant-w: 1.5;
+  --billard-otte-kant-w: 1.4;        /* 8'erens lyse kant */
+  --billard-otte-ring-w: 1.0;        /* 8'erens farvede ring indenfor */
+  --billard-otte-tal-bund-r: 0.5;    /* 8'erens hvide talcirkel – lidt mindre, så den sorte kugle ses rundt om */
   --billard-kugle-tal-str: 0.78;     /* tallets højde i forhold til radius */
   --billard-kugle-tal-bund-r: 0.56;  /* den lyse cirkel bag tallet */
   --billard-stribe: 0.6;             /* striben på de halve (halv højde i forhold til radius) */

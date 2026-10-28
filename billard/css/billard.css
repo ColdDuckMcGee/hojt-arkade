@@ -50,12 +50,17 @@ html, body { height: 100%; height: 100dvh; }
  * js/app.js vælger det layout, der giver det største bord, og sætter
  * --btn, --board-w, --board-h, --side-w, --panel-w, --hud-cols m.fl. på #game:
  *  lay-wide:  status til venstre, bordet i midten, stødet (2 kolonner knapper) til højre
- *  lay-side:  bordet til venstre; status og stødet (4 kolonner, eller 5 med .ctl5) til højre (lav skærm)
+ *  lay-side:  bordet til venstre; status og stødet (4 kolonner) til højre (lav skærm)
+ *  lay-stack: bordet med status under til venstre; stødet (4 kolonner) til højre (meget lav skærm, fx mobil på langs)
  *  lay-below: status øverst, bordet i midten, stødet (4 kolonner) under (højkant) */
 #game { padding: var(--game-pad, 12px); overflow: hidden; }
 .game-grid { display: grid; gap: var(--game-gap, 24px); align-items: center; justify-items: center; }
 .lay-wide { grid-template-columns: var(--side-w, 300px) auto var(--ctrl-w, 300px); grid-template-areas: "sideL board sideR"; }
 .lay-side { grid-template-columns: auto var(--panel-w, 400px); grid-template-areas: "board sideL" "board sideR"; }
+.lay-stack { grid-template-columns: auto var(--panel-w, 400px); grid-template-areas: "board sideR" "sideL sideR"; }
+.lay-stack.compact .side-left { width: var(--board-w, 400px); align-self: start; }
+.lay-stack .side-right { align-self: center; }
+.lay-stack .board-wrap { align-self: end; }
 .lay-below { grid-template-columns: var(--panel-w, 360px); grid-template-areas: "sideL" "board" "sideR"; }
 .side-left { grid-area: sideL; }
 .lay-side .side-left { align-self: end; }
@@ -92,14 +97,12 @@ html, body { height: 100%; height: 100dvh; }
 .controls {
   display: grid; gap: var(--ig, 10px);
   grid-template-columns: repeat(2, var(--btn));
-  grid-template-areas: "dh dh" "d1 d4" "d2 d3" "nx mv" "ph ph" "pm pp" "go go";
+  grid-template-areas: "dh dh" "d1 d2" "d3 d4" "d5 d6" "ph ph" "pm pp" "nx mv" "go go";
 }
-.ctl4 .controls { justify-content: center; grid-template-columns: repeat(4, var(--btn)); grid-template-areas: "dh dh ph ph" "d1 d2 d3 d4" "nx mv pm pp" "go go go go"; }
-/* ctl5: lave skærme – 5 kolonner, 2 rækker knapper */
-.ctl4.ctl5 .controls { grid-template-columns: repeat(5, var(--btn)); grid-template-areas: "dh dh dh ph ph" "d1 d2 d3 d4 nx" "mv pm pp go go"; }
+.ctl4 .controls { justify-content: center; grid-template-columns: repeat(4, var(--btn)); grid-template-areas: "dh dh ph ph" "d1 d2 pm pp" "d3 d4 nx mv" "d5 d6 go go"; }
 .nx { grid-area: nx; } .mv { grid-area: mv; }
 .head-dir { grid-area: dh; } .head-pow { grid-area: ph; }
-.d1 { grid-area: d1; } .d2 { grid-area: d2; } .d3 { grid-area: d3; } .d4 { grid-area: d4; }
+.d1 { grid-area: d1; } .d2 { grid-area: d2; } .d3 { grid-area: d3; } .d4 { grid-area: d4; } .d5 { grid-area: d5; } .d6 { grid-area: d6; }
 .pm { grid-area: pm; } .pp { grid-area: pp; } .go-btn { grid-area: go; }
 .ctrl-head { height: var(--head-h, 40px); display: flex; align-items: center; gap: 10px; justify-content: space-between; padding: 0 12px; background: var(--billard-hud-bg); border: var(--billard-block-w) solid var(--billard-hud-border); border-radius: var(--billard-radius-hud-small); min-width: 0; overflow: hidden; }
 .ctrl-label { font-size: 0.95rem; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; }
@@ -111,6 +114,10 @@ html, body { height: 100%; height: 100dvh; }
 .step-btn { width: var(--btn); height: var(--btn); min-width: 0; min-height: 0; padding: 4px; gap: 2px; }
 .step-btn svg { width: calc(var(--btn) * 0.42); height: calc(var(--btn) * 0.42); flex: none; }
 .step-btn .big { font-size: clamp(1rem, calc(var(--btn) * 0.19), 1.5rem); line-height: 1.05; }
+/* Drejeknapperne: grov, mellem og fin har hver sit ikon, sin vinkel og et lille ord */
+.rot-btn { gap: 0; }
+.rot-btn svg { width: calc(var(--btn) * 0.36); height: calc(var(--btn) * 0.36); }
+.rot-btn .small { font-size: clamp(0.72rem, calc(var(--btn) * 0.12), 0.95rem); line-height: 1.05; color: var(--muted); letter-spacing: 0.04em; }
 .go-btn { height: var(--btn); min-height: 0; min-width: 0; flex-direction: row; gap: 14px; padding: 6px 12px; --ico-line: var(--billard-sigte); --ico-fill: var(--billard-sigte); }
 .go-btn svg { width: calc(var(--btn) * 0.5); height: calc(var(--btn) * 0.5); flex: none; }
 .go-btn .big { font-size: clamp(1.3rem, calc(var(--btn) * 0.26), 2rem); }
