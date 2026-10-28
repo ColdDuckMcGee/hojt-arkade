@@ -1,0 +1,163 @@
+/* Rampen – tema "neon" (synthwave, neon på glas).
+ *
+ * Al grafik i spillet kommer herfra og fra grafik.js i samme mappe: farver, glød,
+ * skygger, konturer, stregtykkelser, skrift og hjørner. Spillets egen CSS
+ * (css/rampen.css) og JS bruger kun variablerne nedenfor, så et nyt tema
+ * (fx tema/tegneserie/) skal levere de samme variabler og de samme navngivne
+ * tegnefunktioner og ikoner.
+ *
+ * Banen tegnes på et canvas. js/tegn.js læser alle --rampen-<navn>, som
+ * grafik.js nævner i RampenTema.farver og RampenTema.tal, og giver dem videre.
+ * Tal uden enhed er i px.
+ *
+ * Farvesættene følger Hojt Arkades fælles indstilling data-theme
+ * (neon, solnedgang, cyberpunk, kontrast). Glød slås fra med
+ * data-rampen-gloed="fra" på <html> (Indstillinger → Udseende → Glød). */
+
+:root, [data-theme] {
+  /* Zonerne: himmel (top/bund), jord (flade/kant) og kulisse (flade/streg) */
+  --rampen-himmel-forstad-1: #0b0420; --rampen-himmel-forstad-2: #3a0f52;
+  --rampen-jord-forstad: #12061f;     --rampen-jord-forstad-kant: #ff3fd8;
+  --rampen-kulisse-forstad: #1d0a33;  --rampen-kulisse-forstad-2: #ffe14d;
+  --rampen-himmel-oerken-1: #1a0820;  --rampen-himmel-oerken-2: #7a2a3a;
+  --rampen-jord-oerken: #2a1208;      --rampen-jord-oerken-kant: #ff8a1f;
+  --rampen-kulisse-oerken: #4a1e22;   --rampen-kulisse-oerken-2: #ff8a1f;
+  --rampen-himmel-bjerge-1: #050a24;  --rampen-himmel-bjerge-2: #23306a;
+  --rampen-jord-bjerge: #0b0f22;      --rampen-jord-bjerge-kant: #22eaff;
+  --rampen-kulisse-bjerge: #182452;   --rampen-kulisse-bjerge-2: #c8f6ff;
+  --rampen-himmel-skyer-1: #12205a;   --rampen-himmel-skyer-2: #6a4ab0;
+  --rampen-jord-skyer: #2c2a6a;       --rampen-jord-skyer-kant: #f6ecff;
+  --rampen-kulisse-skyer: rgba(246, 236, 255, 0.22); --rampen-kulisse-skyer-2: rgba(246, 236, 255, 0.5);
+  --rampen-himmel-rummet-1: #000000;  --rampen-himmel-rummet-2: #0d0420;
+  --rampen-jord-rummet: #1a1a24;      --rampen-jord-rummet-kant: #a78bff;
+  --rampen-kulisse-rummet: #3a2a6a;   --rampen-kulisse-rummet-2: #f6ecff;
+
+  --rampen-kontur: #000000;
+  --rampen-gloed-farve: #ff3fd8;
+  --rampen-skygge-farve: transparent;
+  --rampen-tekst: #ffffff;
+  --rampen-tekst-kant: rgba(0, 0, 0, 0.75);
+  --rampen-maaler: rgba(246, 236, 255, 0.7);
+  --rampen-milepael: #ffe14d;
+  --rampen-rampe: #2a0f40;
+  --rampen-rampe-kant: #22eaff;
+  --rampen-trampolin: #c4b0de;
+  --rampen-trampolin-dug: #39ff6a;
+  --rampen-rampe-ting: #39ff6a;
+  --rampen-olie: #000000;
+  --rampen-sten: #5a4a6a;
+  --rampen-sten-kant: #ff7a3c;
+  --rampen-kaktus: #ff7a3c;
+  --rampen-kegle: #ff7a3c;
+  --rampen-kegle-stribe: #ffffff;
+  --rampen-ballon: #39ff6a;
+  --rampen-ballon-snor: rgba(246, 236, 255, 0.7);
+  --rampen-vind: #22eaff;
+  --rampen-moent: #ffe14d;
+  --rampen-moent-kant: #a86a00;
+  --rampen-bonus: #39ff6a;
+  --rampen-bonus-kant: #04300f;
+  --rampen-bil-krop: #ff3fd8;
+  --rampen-bil-krop-2: #22eaff;
+  --rampen-bil-kant: #ffe8fb;
+  --rampen-bil-rude: #22eaff;
+  --rampen-hjul: #0b0414;
+  --rampen-hjul-nav: #ffe8fb;
+  --rampen-vinge: #22eaff;
+  --rampen-raket: #c4b0de;
+  --rampen-flamme: #ff8a1f;
+  --rampen-flamme-kerne: #ffe14d;
+  --rampen-skaerm: #ffe14d;
+  --rampen-skaerm-snor: #ffe8fb;
+  --rampen-spor: rgba(246, 236, 255, 0.4);
+  --rampen-forhaand-uden: #ffe14d;
+  --rampen-forhaand-med: #22eaff;
+  --rampen-forhaand-start: #ffe14d;
+  --rampen-landing: #ffe14d;
+
+  /* Flader uden for banen */
+  --rampen-ok: #39ff6a;
+  --rampen-fejl: #ff7a3c;
+  --rampen-moent-tekst: #ffe14d;
+  --rampen-shadow: #000000;
+  --rampen-overlay-bg: rgba(0, 0, 0, 0.62);
+  --rampen-overlay-soft: rgba(0, 0, 0, 0.42);
+  --rampen-hall-bg: rgba(0, 0, 0, 0.45);
+  --rampen-hall-bg-hover: rgba(255, 255, 255, 0.08);
+  --rampen-swatch-border: rgba(255, 255, 255, 0.5);
+  --rampen-hud-bg: var(--panel);
+  --rampen-hud-border: var(--ui-soft);
+  --rampen-meter: #ffe14d;
+  --rampen-meter-tom: rgba(206, 190, 232, 0.5);
+  --rampen-hp: #39ff6a;
+  --rampen-hp-lav: #ff7a3c;
+  --rampen-font: var(--font);
+}
+[data-theme="solnedgang"] {
+  --rampen-jord-forstad-kant: #ff8a1f; --rampen-gloed-farve: #ff8a1f; --rampen-bil-krop: #ff8a1f; --rampen-bil-krop-2: #c77dff;
+  --rampen-rampe-kant: #c77dff; --rampen-vinge: #c77dff; --rampen-forhaand-med: #c77dff;
+}
+[data-theme="cyberpunk"] {
+  --rampen-himmel-forstad-1: #000208; --rampen-himmel-forstad-2: #04203a; --rampen-jord-forstad: #00100c; --rampen-jord-forstad-kant: #39ff6a;
+  --rampen-gloed-farve: #39ff6a; --rampen-bil-krop: #39ff6a; --rampen-bil-krop-2: #2a9dff; --rampen-rampe-kant: #2a9dff;
+  --rampen-bil-kant: #e8fff0; --rampen-forhaand-uden: #39ff6a; --rampen-forhaand-start: #39ff6a; --rampen-meter: #39ff6a;
+}
+[data-theme="kontrast"] {
+  --rampen-himmel-forstad-1: #000000; --rampen-himmel-forstad-2: #000000; --rampen-himmel-oerken-1: #000000; --rampen-himmel-oerken-2: #000000;
+  --rampen-himmel-bjerge-1: #000000; --rampen-himmel-bjerge-2: #000000; --rampen-himmel-skyer-1: #000000; --rampen-himmel-skyer-2: #000000;
+  --rampen-himmel-rummet-1: #000000; --rampen-himmel-rummet-2: #000000;
+  --rampen-jord-forstad: #000000; --rampen-jord-oerken: #000000; --rampen-jord-bjerge: #000000; --rampen-jord-skyer: #000000; --rampen-jord-rummet: #000000;
+  --rampen-jord-forstad-kant: #ffffff; --rampen-jord-oerken-kant: #ffffff; --rampen-jord-bjerge-kant: #ffffff; --rampen-jord-skyer-kant: #ffffff; --rampen-jord-rummet-kant: #ffffff;
+  --rampen-kulisse-forstad: #222222; --rampen-kulisse-oerken: #222222; --rampen-kulisse-bjerge: #222222; --rampen-kulisse-skyer: #222222; --rampen-kulisse-rummet: #222222;
+  --rampen-bil-krop: #ffff00; --rampen-bil-krop-2: #00ffff; --rampen-bil-kant: #ffffff; --rampen-forhaand-uden: #ffff00; --rampen-forhaand-med: #00ffff;
+  --rampen-forhaand-start: #ffff00; --rampen-ballon: #00ff00; --rampen-sten: #888888; --rampen-kaktus: #ff6600; --rampen-kegle: #ff6600;
+  --rampen-ok: #00ff00; --rampen-fejl: #ff6600; --rampen-meter: #ffff00; --rampen-meter-tom: #888888;
+}
+
+/* ---------- Streger, tekst og hjørner ---------- */
+:root {
+  --rampen-kontur-w: 0;             /* sorte konturer (fx ligne claire) – 0 i neon */
+  --rampen-streg-w: 2.5;
+  --rampen-forhaand-w: 5;
+  --rampen-spor-w: 3;
+  --rampen-jord-kant-w: 3;
+  --rampen-tekst-str: 18;
+  --rampen-radius: 8;
+  --rampen-gloed: 1;                /* 0, når glød er slået fra */
+  --rampen-gloed-blur: 14;
+  --rampen-skygge-x: 0;             /* blød skygge (fx papirklip, ler) – ingen i neon */
+  --rampen-skygge-y: 0;
+  --rampen-skygge-blur: 0;
+
+  --rampen-frame-w: 3px;
+  --rampen-block-w: 2px;
+  --rampen-stroke-ico: 9;
+  --rampen-stroke-hall: 7;
+  --rampen-hall-border-w: 2px;
+  --rampen-radius-board: 14px;
+  --rampen-radius-hud: 14px;
+  --rampen-radius-hud-small: 10px;
+  --rampen-radius-swatch: 6px;
+  --rampen-radius-meter: 4px;
+}
+[data-theme="kontrast"] { --rampen-gloed: 0; }
+
+/* ---------- Glød og skygger i siden ---------- */
+:root, [data-theme] {
+  --rampen-text-shadow: 0 1px 4px var(--rampen-shadow);
+  --rampen-text-shadow-strong: 0 1px 6px var(--rampen-shadow), 0 0 2px var(--rampen-shadow);
+  --rampen-board-glow: 0 0 calc(20px * var(--glow)) color-mix(in srgb, var(--accent) 45%, transparent);
+  --rampen-score-glow: 0 0 calc(18px * var(--glow)) var(--ui);
+  --rampen-points-glow: 0 0 calc(12px * var(--glow)) color-mix(in srgb, var(--rampen-ok) 50%, transparent);
+}
+html[data-rampen-gloed="fra"], html[data-rampen-gloed="fra"] [data-theme] {
+  --glow: 0;
+  --rampen-gloed: 0;
+  --rampen-board-glow: none; --rampen-score-glow: none; --rampen-points-glow: none;
+}
+
+/* ---------- Prøver på farvesættene i Indstillinger ---------- */
+.swatch[data-farver="neon"] { --a: #ff2fd2; --b: #22eaff; --c: #1a0b2a; }
+.swatch[data-farver="solnedgang"] { --a: #ff8a1f; --b: #c77dff; --c: #2a0b3d; }
+.swatch[data-farver="cyberpunk"] { --a: #39ff6a; --b: #2a8dff; --c: #000000; }
+.swatch[data-farver="kontrast"] { --a: #ffff00; --b: #00ffff; --c: #000000; }

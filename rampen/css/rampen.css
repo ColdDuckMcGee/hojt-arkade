@@ -1,0 +1,292 @@
+/* Rampen – spillets egen opsætning. Bygger på ../arkade/arkade.css.
+ * Startmenu, overlays, indstillinger, rekorder, Om og små skærme følger de andre
+ * spil (fx Golf), så de ser ens ud og opfører sig ens.
+ *
+ * Farver, glød, skygger, stregtykkelser og hjørner kommer fra temaet:
+ * tema/<navn>/tema.css (her: tema/neon/). Denne fil indeholder kun opbygning og mål. */
+
+.rampen-ikoner { position: absolute; width: 0; height: 0; overflow: hidden; }
+.ico-line { fill: none; stroke: var(--ico-line, var(--accent)); stroke-width: var(--rampen-stroke-ico); stroke-linecap: round; stroke-linejoin: round; }
+.ico-fill { fill: var(--ico-fill, var(--accent)); }
+.btn-ico { width: calc(var(--btn) * 0.42); height: calc(var(--btn) * 0.42); flex: none; }
+
+/* ---------- Hele vinduet, ingen rulning ---------- */
+html, body { height: 100%; height: 100dvh; }
+.screen { justify-content: safe center; align-items: safe center; }
+.screen > *, .overlay > .panel, .tab-panel > * { flex-shrink: 0; }
+
+/* ---------- Startmenu ---------- */
+#menu { gap: calc(var(--gap) * 0.7); }
+.title-block { text-align: center; max-width: 1100px; }
+.title-row { display: flex; align-items: center; justify-content: center; gap: max(16px, 3vmin); flex-wrap: wrap; }
+.title-row .arkade-logo { height: clamp(100px, 18vh, 200px); }
+.neon-title { font-size: clamp(2.6rem, 8.5vmin, 5.5rem); letter-spacing: 0.1em; }
+.lead { text-shadow: var(--rampen-text-shadow-strong); margin: 10px auto 0; max-width: 46em; color: var(--muted); font-size: 1.1rem; line-height: 1.5; }
+.menu-bil { display: block; width: calc(var(--btn) * 2.6); height: calc(var(--btn) * 1.1); }
+@media (max-height: 900px) {
+  .lead { display: none; }
+  .title-row .arkade-logo { height: clamp(80px, 14vh, 150px); }
+}
+.tight .menu-bil { display: none; }
+
+.hall-btn {
+  position: absolute; top: max(16px, 2.5vmin); left: max(16px, 2.5vmin);
+  width: max(var(--btn), 7.5em); min-height: var(--btn); padding: 8px 10px;
+  border-width: var(--rampen-hall-border-w); border-color: color-mix(in srgb, var(--muted) 70%, transparent);
+  background: var(--rampen-hall-bg); box-shadow: none; color: var(--muted);
+}
+.hall-btn .big { font-size: 1.05rem; font-weight: 600; line-height: 1.2; text-align: center; }
+.hall-ico { width: 42%; height: auto; fill: none; stroke: var(--muted); stroke-width: var(--rampen-stroke-hall); stroke-linejoin: round; }
+.hall-btn .ico-line { stroke: var(--muted); }
+.hall-btn .ico-fill { fill: var(--muted); }
+.hall-btn:hover, .hall-btn.arkade-dwelling { color: var(--ui-text); border-color: var(--muted); background: var(--rampen-hall-bg-hover); box-shadow: none; }
+#menu.hall-inflow .hall-btn { position: static; align-self: flex-start; order: -1; flex: none; width: auto; min-height: calc(var(--btn) * 0.7); flex-direction: row; gap: 12px; padding: 8px 18px; }
+#menu.hall-inflow .hall-ico { width: 32px; }
+#btn-start .small { font-variant-numeric: tabular-nums; }
+
+/* ---------- Spilleskærm ----------
+ * js/app.js vælger layout og sætter --btn, --board-w, --board-h, --panel-w m.fl.:
+ *  lay-wide:  banen til venstre, status og valg (2 kolonner) til højre
+ *  lay-side:  banen til venstre, status og valg (4 kolonner) til højre (lave skærme)
+ *  lay-below: banen øverst, status og valg (4 kolonner) under (højkant) */
+#game { padding: var(--game-pad, 12px); overflow: hidden; }
+.game-grid { display: grid; gap: var(--game-gap, 24px); align-items: center; justify-items: center; }
+.lay-wide, .lay-side { grid-template-columns: auto var(--panel-w, 300px); grid-template-areas: "board side"; }
+.lay-below { grid-template-columns: var(--panel-w, 360px); grid-template-areas: "board" "side"; }
+.board-wrap { grid-area: board; position: relative; width: var(--board-w, 600px); height: var(--board-h, 360px); }
+.course { display: block; width: 100%; height: 100%; border-radius: var(--rampen-radius-board); box-shadow: var(--rampen-board-glow); }
+
+.side { grid-area: side; width: var(--panel-w, 300px); display: flex; flex-direction: column; align-items: stretch; gap: var(--ig, 10px); }
+.status-row { display: flex; flex-direction: row; gap: var(--ig, 10px); align-items: stretch; }
+.hud-grid { flex: 1 1 auto; min-width: 0; display: grid; grid-template-columns: repeat(var(--hud-cols, 2), minmax(0, 1fr)); gap: var(--ig, 10px); }
+.hud { padding: 2px 6px; text-align: center; background: var(--rampen-hud-bg); border-radius: var(--rampen-radius-hud-small); border: var(--rampen-block-w) solid var(--rampen-hud-border); height: var(--hud-h, 60px); display: flex; flex-direction: column; justify-content: center; min-width: 0; overflow: hidden; }
+.hud-label { font-size: 0.8rem; color: var(--muted); letter-spacing: 0.05em; text-transform: uppercase; line-height: 1.1; }
+.hud-value { font-size: clamp(1.05rem, calc(var(--hud-h, 60px) * 0.4), 1.9rem); font-weight: 800; font-variant-numeric: tabular-nums; color: var(--ui-text); line-height: 1.1; white-space: nowrap; }
+.hud-coins .hud-value { color: var(--rampen-moent-tekst); }
+.hud-hp.low .hud-value { color: var(--rampen-fejl); }
+.compact .hud { padding: 1px 4px; gap: 0; }
+.compact .hud-label { font-size: 0.68rem; letter-spacing: 0.02em; }
+.compact .hud-value { font-size: clamp(1rem, calc(var(--hud-h, 48px) * 0.4), 1.5rem); }
+.pause-btn { position: absolute; top: 8px; right: 8px; width: var(--btn); height: var(--btn); padding: 6px; min-width: 0; min-height: 0; z-index: 2; background: var(--rampen-overlay-soft); }
+.pause-btn svg { width: 46%; height: 46%; }
+.pause-btn .small { font-size: 0.85rem; }
+.lay-below .pause-btn .small, .lay-side .pause-btn .small { display: none; }
+
+.hint { margin: 0; height: var(--hint-h, 2.7em); overflow: hidden; font-size: 1.05rem; line-height: 1.3; text-align: center; color: var(--ui-text); text-shadow: var(--rampen-text-shadow); display: flex; align-items: center; justify-content: center; }
+.hint.ok { color: var(--rampen-ok); }
+.hint.err { color: var(--rampen-fejl); }
+/* Lav skærm: beskedlinjen ligger øverst på banen */
+.board-wrap > .hint { display: block; position: absolute; left: 8px; right: calc(var(--btn) + 16px); top: 8px; height: auto; max-height: 4.1em; padding: 2px 10px; font-size: 0.9rem; background: var(--rampen-hud-bg); border-radius: var(--rampen-radius-hud-small); pointer-events: none; }
+.board-wrap > .hint:empty { display: none; }
+
+/* Valgene: ét gitter, hvor kun den aktuelle fase vises */
+.controls { display: grid; gap: var(--ig, 10px); grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.ctl4 .controls { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.controls:not([data-phase="launch"]) .p-launch,
+.controls:not([data-phase="freeze"]) .p-freeze,
+.controls:not([data-phase="fly"]) .p-fly,
+.controls:not(.wings) .p-wings,
+.controls.nb .p-boost { display: none; }
+.controls[data-phase="launch"] { grid-template-rows: var(--head-h) var(--btn) var(--btn) var(--head-h) var(--btn) var(--btn); grid-template-areas: "vh vh" "v1 v4" "v2 v3" "kh kh" "km kp" "go go"; }
+.ctl4 .controls[data-phase="launch"] { grid-template-rows: var(--head-h) var(--btn) var(--btn); grid-template-areas: "vh vh kh kh" "v1 v2 v3 v4" "km kp go go"; }
+.controls[data-phase="freeze"] { grid-template-rows: var(--head-h) var(--btn) var(--btn) var(--btn) var(--btn); grid-template-areas: "fh fh" "ja ja" "ja ja" "ve ve" "ve ve"; }
+.controls[data-phase="freeze"].wings { grid-template-areas: "fh fh" "no nn" "nl nl" "ja ve" "ja ve"; }
+.controls[data-phase="freeze"].nb { grid-template-areas: "fh fh" "ve ve" "ve ve" "ve ve" "ve ve"; }
+.controls[data-phase="freeze"].wings.nb { grid-template-areas: "fh fh" "no nn" "nl nl" "ve ve" "ve ve"; }
+.ctl4 .controls[data-phase="freeze"] { grid-template-rows: var(--head-h) var(--btn) var(--btn); grid-template-areas: "fh fh fh fh" "ja ja ve ve" "ja ja ve ve"; }
+.ctl4 .controls[data-phase="freeze"].wings { grid-template-areas: "fh fh fh fh" "no nl nn ve" "ja ja ja ve"; }
+.ctl4 .controls[data-phase="freeze"].nb { grid-template-areas: "fh fh fh fh" "ve ve ve ve" "ve ve ve ve"; }
+.ctl4 .controls[data-phase="freeze"].wings.nb { grid-template-areas: "fh fh fh fh" "no nl nn ve" "no nl nn ve"; }
+.controls[data-phase="fly"] { grid-template-rows: var(--head-h) var(--btn) var(--btn); grid-template-areas: "fh fh" "hu hu" "sp sp"; }
+.ctl4 .controls[data-phase="fly"] { grid-template-areas: "fh fh fh fh" "hu hu sp sp" "hu hu sp sp"; }
+.controls[data-phase="idle"] { grid-template-rows: var(--head-h); }
+.controls[data-phase="idle"] > * { display: none; }
+
+.head-ang { grid-area: vh; } .head-pow { grid-area: kh; } .head-freeze, .head-fly { grid-area: fh; }
+.v1 { grid-area: v1; } .v2 { grid-area: v2; } .v3 { grid-area: v3; } .v4 { grid-area: v4; }
+.km { grid-area: km; } .kp { grid-area: kp; } .go { grid-area: go; }
+.no { grid-area: no; } .nl { grid-area: nl; } .nn { grid-area: nn; }
+.ja { grid-area: ja; } .ve { grid-area: ve; } .hu { grid-area: hu; } .sp { grid-area: sp; }
+
+.ctrl-head { height: var(--head-h, 40px); display: flex; align-items: center; gap: 8px; justify-content: space-between; padding: 0 10px; background: var(--rampen-hud-bg); border: var(--rampen-block-w) solid var(--rampen-hud-border); border-radius: var(--rampen-radius-hud-small); min-width: 0; overflow: hidden; }
+.ctrl-label { font-size: 0.9rem; color: var(--muted); letter-spacing: 0.05em; text-transform: uppercase; white-space: nowrap; }
+.ctrl-value { font-size: 1.25rem; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--ui-text); white-space: nowrap; }
+.head-freeze .ctrl-label { color: var(--ui-text); font-weight: 800; font-size: 1.05rem; text-transform: none; letter-spacing: 0; }
+.meter { display: flex; gap: 2px; align-items: flex-end; height: 60%; flex: 1 1 auto; max-width: 8em; min-width: 0; }
+.meter i { flex: 1 1 0; background: var(--rampen-meter-tom); border-radius: var(--rampen-radius-meter); height: calc(30% + var(--k) * 7%); }
+.meter i.on { background: var(--rampen-meter); }
+.controls .btn { width: 100%; height: 100%; min-width: 0; min-height: 0; padding: 4px; gap: 2px; }
+.controls .btn svg { width: calc(var(--btn) * 0.4); height: calc(var(--btn) * 0.4); flex: none; }
+.controls .btn .big { font-size: clamp(1rem, calc(var(--btn) * 0.19), 1.5rem); line-height: 1.05; }
+.controls .act-btn { flex-direction: row; gap: 12px; padding: 6px 10px; }
+.controls .act-btn .big { font-size: clamp(1.15rem, calc(var(--btn) * 0.22), 1.8rem); }
+.controls .btn[aria-pressed="true"] { --ico-fill: var(--ui-text); }
+.controls .btn:disabled svg { opacity: .7; }
+
+/* Overlays (pause, turen er slut, ny bil) */
+.overlay {
+  position: absolute; inset: 0; z-index: 5;
+  display: flex; align-items: safe center; justify-content: safe center; overflow: hidden;
+  background: var(--rampen-overlay-bg);
+}
+.overlay.soft { background: var(--rampen-overlay-soft); }
+.overlay .panel { display: flex; flex-direction: column; align-items: center; gap: var(--gap); text-align: center; max-width: calc(100% - 24px); }
+.overlay .panel p { margin: 0; }
+
+/* Turen er slut */
+.res-text { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.res-kicker { font-size: 1.1rem; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
+.res-dist { font-size: clamp(2.4rem, 8vmin, 4.2rem); margin: 0; font-variant-numeric: tabular-nums; }
+.res-reason { font-size: 1.2rem; color: var(--ui-text); }
+.res-coins { font-size: clamp(1.5rem, 4.6vmin, 2.4rem); font-weight: 800; color: var(--rampen-moent-tekst); text-shadow: var(--rampen-points-glow); }
+.res-parts { font-size: 1.05rem; max-width: 36em; line-height: 1.45; }
+.res-rank { min-height: 1.3em; font-size: 1.2rem; color: var(--accent); font-weight: 700; }
+.res-row .btn-ico, .shop-row .btn-ico { width: calc(var(--btn) * 0.36); height: calc(var(--btn) * 0.36); }
+
+/* ---------- Værkstedet ---------- */
+#shop { gap: calc(var(--gap) * 0.6); }
+.shop-head { display: flex; align-items: center; justify-content: center; gap: var(--gap); flex-wrap: wrap; }
+.shop-bil { display: block; width: calc(var(--btn) * 2.2); height: calc(var(--btn) * 0.95); }
+.shop-info { text-align: left; }
+.shop-info h2 { margin: 0; }
+.shop-sub { margin: 4px 0 0; color: var(--muted); font-size: 1.05rem; }
+.shop-coins { display: flex; align-items: center; gap: 10px; font-size: clamp(1.6rem, 5vmin, 2.6rem); font-weight: 800; color: var(--rampen-moent-tekst); font-variant-numeric: tabular-nums; padding: 6px 16px; background: var(--rampen-hud-bg); border: var(--rampen-block-w) solid var(--rampen-hud-border); border-radius: var(--rampen-radius-hud); }
+.shop-coins svg { width: 1.1em; height: 1.1em; }
+.upg-grid { display: grid; grid-template-columns: repeat(var(--upg-cols, 4), minmax(0, calc(var(--btn) * 2.1))); gap: calc(var(--gap) * 0.5); justify-content: center; width: 100%; }
+.upg-btn { display: grid !important; grid-template-columns: auto 1fr; grid-template-areas: "ico name" "ico lvl" "desc desc" "price price"; align-items: center; column-gap: 10px; row-gap: 2px; min-height: var(--btn); min-width: 0; padding: 6px 10px; text-align: left; }
+.upg-btn svg { grid-area: ico; width: calc(var(--btn) * 0.42); height: calc(var(--btn) * 0.42); }
+.upg-name { grid-area: name; font-size: 1.15rem; font-weight: 800; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.upg-lvl { grid-area: lvl; display: flex; gap: 3px; height: 10px; }
+.upg-lvl i { flex: 1 1 0; max-width: 16px; border-radius: var(--rampen-radius-meter); background: var(--rampen-meter-tom); }
+.upg-lvl i.on { background: var(--rampen-meter); }
+.upg-desc { grid-area: desc; font-size: 0.85rem; color: var(--muted); line-height: 1.2; }
+.upg-price { grid-area: price; font-size: 1.05rem; font-weight: 800; color: var(--rampen-moent-tekst); font-variant-numeric: tabular-nums; }
+.upg-btn.dyr .upg-price { color: var(--rampen-fejl); }
+.upg-btn.max .upg-price { color: var(--rampen-ok); }
+.goals { display: flex; gap: calc(var(--gap) * 0.5); flex-wrap: wrap; justify-content: center; max-width: 1100px; }
+.goal { padding: 6px 12px; background: var(--rampen-hud-bg); border: var(--rampen-block-w) solid var(--rampen-hud-border); border-radius: var(--rampen-radius-hud-small); font-size: 1rem; color: var(--ui-text); }
+.goal b { color: var(--rampen-moent-tekst); }
+.goals-label { width: 100%; text-align: center; color: var(--muted); font-size: 0.9rem; letter-spacing: .06em; text-transform: uppercase; }
+.tight .upg-desc { display: none; }
+
+/* ---------- Indstillinger ---------- */
+#settings { justify-content: flex-start; padding-top: max(20px, 4vmin); }
+.tabs { margin-bottom: 4px; }
+.tab-panel { display: flex; flex-direction: column; gap: calc(var(--gap) * 0.8); align-items: stretch; width: min(1100px, 100%); }
+.setting { display: grid; grid-template-columns: 13em 1fr; align-items: center; gap: var(--gap); }
+@media (max-width: 900px) { .setting { grid-template-columns: 1fr; justify-items: center; text-align: center; } .setting .row { justify-content: center !important; } }
+.setting-label { font-size: 1.35rem; font-weight: 700; display: flex; flex-direction: column; text-shadow: var(--rampen-text-shadow); }
+.setting-label small { font-size: 0.95rem; font-weight: 400; color: var(--muted); margin-top: 4px; }
+.setting .row { justify-content: flex-start; }
+.value-box { min-width: 6em; text-align: center; font-size: 1.8rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.note { max-width: 44em; margin: 0 auto; color: var(--muted); line-height: 1.5; text-align: center; }
+.theme-btn .swatch {
+  width: 64px; height: 32px; border-radius: var(--rampen-radius-swatch);
+  background: linear-gradient(90deg, var(--a) 0 33%, var(--b) 33% 66%, var(--c) 66% 100%);
+  border: var(--rampen-block-w) solid var(--rampen-swatch-border);
+}
+
+/* ---------- Rekorder ---------- */
+#records { justify-content: flex-start; padding-top: max(20px, 3vmin); gap: calc(var(--gap) * 0.6); }
+.records-panel { min-width: min(560px, 92vw); }
+.records li .plates { font-weight: 400; color: var(--muted); }
+ol.records .score { white-space: nowrap; }
+.rec-note { margin: 8px 0 0; text-align: center; font-size: 0.95rem; }
+@media (max-height: 640px) and (min-width: 700px) {
+  .records { columns: 2; column-gap: 20px; }
+  .records li { break-inside: avoid; }
+}
+
+/* ---------- Om ---------- */
+#om { gap: calc(var(--gap) * 0.7); }
+.om-logo { height: clamp(84px, 15vh, 200px); }
+@media (max-height: 740px) { .om-logo { height: 84px; } .om-panel p { font-size: 1.15rem; line-height: 1.45; } }
+.om-panel { max-width: 46em; text-align: center; }
+.om-panel h2 { margin-bottom: 12px; }
+.om-panel p { margin: 10px 0 0; font-size: 1.25rem; line-height: 1.55; }
+.link-btn { text-decoration: none; min-width: calc(var(--btn) * 2.4); }
+.link-btn .small { font-size: 0.95rem; }
+
+/* ---------- Sider (kun når der ikke er plads til det hele) ---------- */
+.trin-skjult { display: none !important; }
+.trin-nav { display: contents; }
+.trin-nav[hidden] { display: none; }
+.trin-label { align-self: center; min-width: 6.5em; text-align: center; font-size: 1.1rem; font-weight: 700; color: var(--muted); text-shadow: var(--rampen-text-shadow); }
+.trin-nav .btn .icon { font-size: 2rem; }
+.tight .opt { display: none; }
+
+/* Bekræft Ny bil: to lige store knapper med god afstand */
+.confirm-row { gap: max(calc(var(--btn) * 0.6), 48px); flex-wrap: nowrap; }
+.confirm-btn { min-width: calc(var(--btn) * 2); min-height: calc(var(--btn) * 1.1); }
+.confirm-btn .big { font-size: 1.4rem; }
+.confirm-text { font-size: 1.15rem; max-width: 30em; line-height: 1.45; }
+
+/* ---------- Små skærme (korteste side under 560 px) ---------- */
+.rampen-lille .btn { padding: 6px 12px; gap: 2px; }
+.rampen-lille .btn .big { font-size: 1.15rem; }
+.rampen-lille .btn.primary .big { font-size: 1.35rem; }
+.rampen-lille .btn .icon { font-size: 1.3rem; }
+.rampen-lille .btn .small { font-size: 0.85rem; }
+.rampen-lille .btn.wide { min-width: calc(var(--btn) * 1.6); }
+.rampen-lille .trin-nav .btn .big { display: none; }
+.rampen-lille .trin-nav .btn .icon { font-size: 2.4rem; }
+.rampen-lille .trin-label { min-width: 0; font-size: 1rem; }
+.rampen-lille:not(.rampen-tvaers) #menu .more-row { display: grid; grid-template-columns: 1fr 1fr; width: min(100%, 26em); }
+.rampen-lille .link-btn { min-width: calc(var(--btn) * 1.6); }
+.rampen-lille .screen { padding: 12px; }
+.rampen-lille .panel { padding: 14px 18px; }
+.rampen-lille .overlay .panel { gap: 12px; }
+.rampen-lille .records li { padding-top: 3px; padding-bottom: 3px; }
+.rampen-lille #settings, .rampen-lille #records { padding-top: 12px; }
+.rampen-lille .setting-label { font-size: 1.2rem; }
+.rampen-lille .setting .row { gap: 12px; }
+.rampen-lille .theme-btn .swatch { width: 48px; height: 26px; }
+.rampen-lille #menu.hall-inflow .hall-btn { min-height: var(--btn); }
+.rampen-lille #settings .tabs { gap: 10px; }
+.rampen-lille:not(.rampen-tvaers) #settings .tabs { display: grid; grid-template-columns: 1fr 1fr; width: min(100%, 24em); }
+.rampen-lille #settings .trin-bund { gap: 10px; margin-top: auto; }
+.rampen-lille .value-box { min-width: 4.2em; font-size: 1.5rem; }
+.rampen-lille .confirm-row { gap: 40px; }
+.rampen-lille .confirm-btn { min-width: calc(var(--btn) * 1.5); }
+.rampen-lille:not(.rampen-tvaers) .confirm-row { flex-direction: column; gap: 32px; }
+.rampen-lille:not(.rampen-tvaers) .confirm-btn { width: min(100%, 16em); }
+.rampen-lille .res-row { gap: 12px; }
+.rampen-lille .shop-row { gap: 12px; flex-wrap: nowrap; width: min(100%, 30em); }
+.rampen-lille .shop-row .btn { min-width: 0; flex: 1 1 0; }
+.rampen-lille .upg-btn { padding: 4px 8px; column-gap: 6px; }
+.rampen-lille .upg-name { font-size: 0.95rem; }
+.rampen-lille .upg-desc { display: none; }
+.rampen-lille .shop-sub { font-size: 0.9rem; }
+.rampen-lille:not(.rampen-tvaers) .shop-info { text-align: center; }
+.rampen-lille:not(.rampen-tvaers) .shop-bil { display: none; }
+.rampen-lille .goal { font-size: 0.9rem; padding: 4px 8px; }
+
+/* Mobil på tværs */
+.rampen-tvaers #menu {
+  display: grid; justify-content: safe center; align-content: safe center; justify-items: center; align-items: center;
+  grid-template-columns: auto auto; grid-template-areas: "hall title" "start start" "more more";
+  column-gap: var(--gap); row-gap: calc(var(--gap) * 0.6);
+}
+.rampen-tvaers #menu .hall-btn { grid-area: hall; position: static; justify-self: start; }
+.rampen-tvaers #menu .title-block { grid-area: title; justify-self: start; }
+.rampen-tvaers #menu .title-row .arkade-logo { height: calc(var(--btn) * 0.8); }
+.rampen-tvaers #menu .neon-title { font-size: clamp(2rem, 11vh, 3.4rem); }
+.rampen-tvaers #menu .lead, .rampen-tvaers #menu .menu-bil { display: none; }
+.rampen-tvaers #menu .start-row { grid-area: start; }
+.rampen-tvaers #menu .more-row { grid-area: more; }
+.rampen-tvaers .setting { grid-template-columns: minmax(6em, 10em) auto; column-gap: 16px; justify-items: start; justify-content: center; text-align: left; }
+.rampen-tvaers .setting .row { justify-content: flex-start !important; }
+.rampen-tvaers #settings .tab-panel { gap: 10px; }
+.rampen-tvaers .om-logo { height: 84px; }
+.rampen-tvaers .om-panel p { font-size: 1.1rem; line-height: 1.45; }
+.rampen-tvaers .shop-bil, .rampen-tvaers .shop-sub, .rampen-tvaers .goals { display: none; }
+.rampen-tvaers #shop { gap: 8px; }
+.rampen-tvaers .shop-coins { font-size: 1.5rem; padding: 2px 12px; }
+.rampen-tvaers .result-panel { display: grid !important; grid-template-columns: 1fr auto; align-items: center; }
+.rampen-tvaers .result-panel .res-row { flex-direction: column; flex-wrap: nowrap; }
+.rampen-tvaers .res-dist { font-size: 2.2rem; }
+.rampen-tvaers .res-coins { font-size: 1.4rem; }
+.shop-row .small { white-space: nowrap; font-size: 0.8rem; }
+/* Ja/Vent kan blive smalle (med vinger): ikon over tekst */
+.controls .ja, .controls .ve { flex-direction: column; gap: 4px; }
+.controls .ja .big, .controls .ve .big { white-space: normal; text-align: center; line-height: 1.1; }

@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="da" data-theme="neon">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0c0612">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Rampen – Hojt Arkade</title>
+<link rel="icon" href="../arkade/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../arkade/arkade.css">
+<link rel="stylesheet" href="css/rampen.css">
+<!-- Temaet: al grafik (farver, glød, skygger, konturer, tegnefunktioner og ikoner). Et andet tema leverer de samme navne. -->
+<link rel="stylesheet" href="tema/neon/tema.css">
+</head>
+<body>
+<canvas id="baggrund" aria-hidden="true"></canvas>
+
+<!-- Ikonerne kommer fra temaet (tema/neon/grafik.js) og lægges ind af js/tegn.js som #rampen-ikon-<navn>. -->
+
+<!-- ================= STARTMENU ================= -->
+<main id="menu" class="screen" aria-labelledby="titel">
+  <button class="btn hall-btn" id="btn-hall" data-href="../index.html">
+    <svg class="hall-ico" viewBox="0 0 100 100" aria-hidden="true"><use href="#rampen-ikon-tilbage"/></svg>
+    <span class="big">Tilbage til hallen</span>
+  </button>
+  <header class="title-block">
+    <div class="title-row">
+      <img class="arkade-logo" src="../arkade/logo.svg" alt="Hojt Arkade">
+      <h1 id="titel" class="neon-title">RAMPEN</h1>
+    </div>
+    <p class="lead opt">Send en lille, dårlig bil ud over rampen, og se hvor langt den kommer. Vælg vinkel og kraft i ro og mag. Spillet stopper op, når der skal vælges, fx om raketten skal tændes nu. Afstanden giver mønter, og mønterne bliver til en bedre bil.</p>
+  </header>
+  <canvas class="menu-bil" id="menu-bil" aria-hidden="true"></canvas>
+  <div class="row start-row">
+    <button class="btn primary wide" id="btn-start"><span class="big" id="btn-start-label">Kør</span><span class="small" id="btn-start-sub">Bil 1</span></button>
+    <button class="btn" id="btn-menu-shop"><svg class="btn-ico" aria-hidden="true"><use href="#rampen-ikon-vaerksted"/></svg><span class="big">Værkstedet</span></button>
+  </div>
+  <div class="row more-row">
+    <button class="btn" id="btn-settings"><span class="icon" aria-hidden="true">⚙</span><span class="big">Indstillinger</span></button>
+    <button class="btn" id="btn-records"><span class="icon" aria-hidden="true">★</span><span class="big">Rekorder</span></button>
+    <button class="btn js-fullscreen"><span class="icon" aria-hidden="true">⛶</span><span class="big js-fs-label">Fuld skærm</span></button>
+    <button class="btn" id="btn-om"><span class="icon" aria-hidden="true">ⓘ</span><span class="big">Om</span></button>
+  </div>
+</main>
+
+<!-- ================= OM ================= -->
+<main id="om" class="screen" hidden aria-labelledby="om-title">
+  <img class="arkade-logo om-logo opt" data-trin src="../arkade/logo.svg" alt="Hojt Arkade">
+  <section class="panel om-panel">
+    <h2 id="om-title" class="neon-sub">Om Hojt Arkade</h2>
+    <p data-trin>Hojt Arkade er udviklet af Jon Leismann Engsager, Hojt Design. Jon er IT- og IKT-konsulent i det specialiserede område og laver blandt andet gratis spil til voksne, der bruger øjenstyring.</p>
+    <p data-trin>Rampen: vælg vinkel og kraft, og send bilen afsted. Når bilen topper et hop eller er ved at lande, stopper spillet og spørger, om raketten skal tændes. To linjer viser, hvor bilen lander med og uden boost. Med vinger vælger du også næsen: op svæver længere, men lander hårdere; ned giver en blød landing, der bevarer farten.</p>
+    <p data-trin>Trampoliner, balloner, vindstød, ramper og olie hjælper bilen videre. Sten, kaktusser og kegler bremser den eller giver skade. Afstanden og mønterne bliver til opgraderinger i værkstedet, og du kan køre så mange ture, du vil.</p>
+    <p data-trin>Koden er åben og frit tilgængelig under MIT-licensen, så alle kan bruge den og bygge videre på den.</p>
+  </section>
+  <div class="row" data-trin>
+    <a class="btn link-btn" id="link-hojt" href="https://hojt.dk" target="_blank" rel="noopener"><span class="big">Hojt Design</span><span class="small">hojt.dk</span></a>
+    <a class="btn link-btn" id="link-github" href="https://github.com/ColdDuckMcGee/hojt-arkade" target="_blank" rel="noopener"><span class="big">Koden på GitHub</span><span class="small">github.com/ColdDuckMcGee/hojt-arkade</span></a>
+  </div>
+  <div class="row om-back-row">
+    <button class="btn primary wide" id="btn-om-back"><span class="icon" aria-hidden="true">←</span><span class="big">Tilbage</span></button>
+    <a class="btn" id="link-alle-spil" href="../index.html"><span class="icon" aria-hidden="true">▦</span><span class="big">Alle spil</span></a>
+  </div>
+</main>
+
+<!-- ================= SPIL ================= -->
+<main id="game" class="screen" hidden aria-label="Spillet">
+  <div class="game-grid" id="game-grid">
+    <div class="board-wrap" id="board-wrap">
+      <canvas class="course" id="course" role="img" aria-label="Banen"></canvas>
+      <button class="btn pause-btn" id="btn-pause" aria-label="Pause">
+        <svg viewBox="0 0 100 100" aria-hidden="true"><use href="#rampen-ikon-pause"/></svg>
+        <span class="small">Pause</span>
+      </button>
+    </div>
+
+    <aside class="side" id="side" aria-label="Status og valg">
+      <div class="status-row" id="status-row">
+        <div class="hud-grid" aria-live="polite">
+          <div class="hud"><div class="hud-label">Afstand</div><div class="hud-value" id="hud-dist">0 m</div></div>
+          <div class="hud hud-hp"><div class="hud-label">Bilen</div><div class="hud-value" id="hud-hp">100 %</div></div>
+          <div class="hud hud-coins"><div class="hud-label">Mønter</div><div class="hud-value" id="hud-coins">0</div></div>
+          <div class="hud"><div class="hud-label">Boost</div><div class="hud-value" id="hud-boost">1</div></div>
+        </div>
+      </div>
+      <p class="hint" id="hint" aria-live="polite">Vælg vinkel og kraft, og send bilen afsted</p>
+      <div class="controls" id="controls" data-phase="launch" role="group" aria-label="Valg">
+        <!-- Opsendelse -->
+        <div class="ctrl-head head-ang p-launch"><span class="ctrl-label">Vinkel</span><span class="ctrl-value" id="ang-value">30°</span></div>
+        <button class="btn step-btn v1 p-launch" data-ang="-5" data-dwell-repeat aria-label="Vinkel 5 grader lavere"><svg aria-hidden="true"><use href="#rampen-ikon-vinkel-ned"/></svg><span class="big">−5°</span></button>
+        <button class="btn step-btn v2 p-launch" data-ang="-1" data-dwell-repeat aria-label="Vinkel 1 grad lavere"><svg aria-hidden="true"><use href="#rampen-ikon-vinkel-ned"/></svg><span class="big">−1°</span></button>
+        <button class="btn step-btn v3 p-launch" data-ang="1" data-dwell-repeat aria-label="Vinkel 1 grad højere"><svg aria-hidden="true"><use href="#rampen-ikon-vinkel-op"/></svg><span class="big">+1°</span></button>
+        <button class="btn step-btn v4 p-launch" data-ang="5" data-dwell-repeat aria-label="Vinkel 5 grader højere"><svg aria-hidden="true"><use href="#rampen-ikon-vinkel-op"/></svg><span class="big">+5°</span></button>
+        <div class="ctrl-head head-pow p-launch"><span class="ctrl-label">Kraft</span><span class="ctrl-value" id="pow-value">10</span><span class="meter" id="pow-meter" aria-hidden="true"></span></div>
+        <button class="btn step-btn km p-launch" data-pow="-1" aria-label="Mindre kraft"><svg aria-hidden="true"><use href="#rampen-ikon-kraft-ned"/></svg><span class="big">−</span></button>
+        <button class="btn step-btn kp p-launch" data-pow="1" aria-label="Mere kraft"><svg aria-hidden="true"><use href="#rampen-ikon-kraft-op"/></svg><span class="big">+</span></button>
+        <button class="btn primary act-btn go p-launch" id="btn-launch"><svg aria-hidden="true"><use href="#rampen-ikon-send"/></svg><span class="big">Send afsted</span></button>
+        <!-- Beslutningspunkt -->
+        <div class="ctrl-head head-freeze p-freeze"><span class="ctrl-label" id="freeze-label">Boost nu?</span><span class="ctrl-value" id="freeze-value"></span></div>
+        <button class="btn step-btn no p-freeze p-wings" data-nose="op" aria-label="Næsen op"><svg aria-hidden="true"><use href="#rampen-ikon-naese-op"/></svg><span class="big">Op</span></button>
+        <button class="btn step-btn nl p-freeze p-wings" data-nose="lige" aria-label="Næsen lige"><svg aria-hidden="true"><use href="#rampen-ikon-naese-lige"/></svg><span class="big">Lige</span></button>
+        <button class="btn step-btn nn p-freeze p-wings" data-nose="ned" aria-label="Næsen ned"><svg aria-hidden="true"><use href="#rampen-ikon-naese-ned"/></svg><span class="big">Ned</span></button>
+        <button class="btn primary act-btn ja p-freeze p-boost" id="btn-boost"><svg aria-hidden="true"><use href="#rampen-ikon-boost"/></svg><span class="big">Ja, boost</span></button>
+        <button class="btn act-btn ve p-freeze" id="btn-wait"><svg aria-hidden="true"><use href="#rampen-ikon-vent"/></svg><span class="big" id="btn-wait-label">Vent</span></button>
+        <!-- Flyvetur -->
+        <div class="ctrl-head head-fly p-fly"><span class="ctrl-label">Visning</span><span class="ctrl-value" id="fly-value">Rolig</span></div>
+        <button class="btn act-btn hu p-fly" id="btn-speed" aria-pressed="false"><svg aria-hidden="true"><use href="#rampen-ikon-hurtig"/></svg><span class="big" id="btn-speed-label">Hurtigere</span></button>
+        <button class="btn act-btn sp p-fly" id="btn-skip"><svg aria-hidden="true"><use href="#rampen-ikon-spring"/></svg><span class="big">Spring frem</span></button>
+      </div>
+    </aside>
+  </div>
+
+  <div class="overlay" id="pause-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="pause-title">
+    <div class="panel">
+      <h2 id="pause-title" class="neon-sub">Pause</h2>
+      <p class="muted">Spillet venter på dig. Intet sker, før du vælger.</p>
+      <div class="row">
+        <button class="btn primary wide" id="btn-resume"><span class="big">Fortsæt</span></button>
+      </div>
+      <div class="row">
+        <button class="btn" id="btn-pause-settings"><span class="icon" aria-hidden="true">⚙</span><span class="big">Indstillinger</span></button>
+        <button class="btn js-fullscreen"><span class="icon" aria-hidden="true">⛶</span><span class="big js-fs-label">Fuld skærm</span></button>
+        <button class="btn" id="btn-pause-shop"><span class="icon" aria-hidden="true">⚒</span><span class="big">Værkstedet</span></button>
+        <button class="btn" id="btn-pause-end"><span class="icon" aria-hidden="true">⏭</span><span class="big">Spol til slut</span><span class="small">uden flere boost</span></button>
+        <button class="btn" id="btn-pause-menu"><span class="icon" aria-hidden="true">⌂</span><span class="big">Til menuen</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Turen er slut -->
+  <div class="overlay soft" id="result-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="res-title">
+    <div class="panel result-panel">
+      <div class="res-text">
+        <p class="res-kicker" id="res-kicker">Tur 1</p>
+        <h2 id="res-title" class="neon-sub res-dist">0 m</h2>
+        <p class="res-reason" id="res-reason">Bilen holder stille.</p>
+        <p class="res-coins" id="res-coins">+0 mønter</p>
+        <p class="muted res-parts" id="res-parts"></p>
+        <p class="res-rank" id="res-rank"></p>
+      </div>
+      <div class="row res-row">
+        <button class="btn primary wide" id="btn-res-shop"><svg class="btn-ico" aria-hidden="true"><use href="#rampen-ikon-vaerksted"/></svg><span class="big">Til værkstedet</span></button>
+        <button class="btn" id="btn-res-again"><svg class="btn-ico" aria-hidden="true"><use href="#rampen-ikon-send"/></svg><span class="big">Kør igen</span></button>
+        <button class="btn" id="btn-res-menu"><span class="icon" aria-hidden="true">⌂</span><span class="big">Menu</span></button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ================= VÆRKSTEDET ================= -->
+<main id="shop" class="screen" hidden aria-labelledby="shop-title">
+  <div class="shop-head">
+    <canvas class="shop-bil" id="shop-bil" aria-hidden="true"></canvas>
+    <div class="shop-info">
+      <h2 id="shop-title" class="neon-sub">Værkstedet</h2>
+      <p class="shop-sub"><span id="shop-car">Bil 1 · sæbekassebil</span> · længste tur <span id="shop-best">0 m</span></p>
+    </div>
+    <div class="shop-coins" aria-live="polite"><svg aria-hidden="true"><use href="#rampen-ikon-moent"/></svg><span id="shop-coins">0</span></div>
+  </div>
+  <div class="upg-grid" id="upg-grid" role="group" aria-label="Opgraderinger"></div>
+  <div class="goals" id="goals" aria-label="Mål"></div>
+  <div class="row shop-row">
+    <button class="btn primary wide" id="btn-shop-go"><svg class="btn-ico" aria-hidden="true"><use href="#rampen-ikon-send"/></svg><span class="big">Kør</span></button>
+    <button class="btn" id="btn-newcar"><svg class="btn-ico" aria-hidden="true"><use href="#rampen-ikon-bil"/></svg><span class="big">Ny bil</span><span class="small" id="newcar-sub">fra 1000 m</span></button>
+    <button class="btn" id="btn-shop-menu"><span class="icon" aria-hidden="true">⌂</span><span class="big">Menu</span></button>
+  </div>
+  <!-- Bekræft Ny bil: to store knapper med god afstand. "Nej" står først og har fokus. -->
+  <div class="overlay" id="newcar-overlay" hidden role="alertdialog" aria-modal="true" aria-labelledby="newcar-title" aria-describedby="newcar-text">
+    <div class="panel">
+      <h2 id="newcar-title" class="neon-sub">Vil du have en ny bil?</h2>
+      <p class="muted confirm-text" id="newcar-text"></p>
+      <div class="row confirm-row">
+        <button class="btn primary confirm-btn" id="btn-newcar-no"><span class="icon" aria-hidden="true">←</span><span class="big">Nej, behold bilen</span></button>
+        <button class="btn confirm-btn" id="btn-newcar-yes"><svg class="btn-ico" aria-hidden="true"><use href="#rampen-ikon-bil"/></svg><span class="big">Ja, ny bil</span></button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ================= INDSTILLINGER ================= -->
+<main id="settings" class="screen" hidden aria-labelledby="set-title">
+  <h2 id="set-title" class="sr-only">Indstillinger</h2>
+  <div class="row tabs" role="tablist">
+    <button class="btn" id="btn-settings-back"><span class="icon" aria-hidden="true">←</span><span class="big">Tilbage</span></button>
+    <button class="btn option tab" data-tab="styring" role="tab"><span class="big">Styring</span></button>
+    <button class="btn option tab" data-tab="udseende" role="tab"><span class="big">Udseende</span></button>
+    <button class="btn option tab" data-tab="lyd" role="tab"><span class="big">Lyd</span></button>
+  </div>
+
+  <section class="tab-panel" data-panel="styring">
+    <div class="setting">
+      <div class="setting-label">Dwell<small>Kig på en knap for at vælge den</small></div>
+      <div class="row" role="group">
+        <button class="btn option" data-set="dwell" data-value="false"><span class="big">Fra</span></button>
+        <button class="btn option" data-set="dwell" data-value="true"><span class="big">Til</span></button>
+      </div>
+    </div>
+    <div class="setting">
+      <div class="setting-label">Dwell-tid<small>Hvor længe du skal kigge</small></div>
+      <div class="row">
+        <button class="btn" id="dwell-minus" aria-label="Kortere dwell-tid"><span class="big">−</span><span class="small">Kortere</span></button>
+        <div class="value-box" id="dwell-value" aria-live="polite">1,2 sek.</div>
+        <button class="btn" id="dwell-plus" aria-label="Længere dwell-tid"><span class="big">+</span><span class="small">Længere</span></button>
+      </div>
+    </div>
+    <div class="setting">
+      <div class="setting-label">Flyveturen<small>Hvor hurtigt turen vises</small></div>
+      <div class="row" role="group">
+        <button class="btn option" data-gset="fart" data-value="rolig"><span class="big">Rolig</span></button>
+        <button class="btn option" data-gset="fart" data-value="hurtig"><span class="big">Hurtig</span></button>
+      </div>
+    </div>
+    <p class="note">Brug kun dwell her, hvis dit øjenstyringssystem ikke selv klikker. Har du dwell-klik i fx Tobii, så lad indstillingen være slået fra. Bliver blikket på en vinkelknap, drejer den videre ét trin for hver dwell-tid. Tastaturet virker altid: pil op og ned ændrer vinklen (med Skift 5°), pil venstre og højre ændrer kraften, Enter eller mellemrum sender bilen afsted, J er Ja til boost, V er Vent, og Esc eller P giver pause.</p>
+  </section>
+
+  <section class="tab-panel" data-panel="udseende" hidden>
+    <div class="setting">
+      <div class="setting-label">Tema</div>
+      <div class="row" role="group">
+        <button class="btn option theme-btn" data-set="theme" data-value="neon"><span class="swatch" data-farver="neon"></span><span class="small">Pink og cyan</span></button>
+        <button class="btn option theme-btn" data-set="theme" data-value="solnedgang"><span class="swatch" data-farver="solnedgang"></span><span class="small">Orange og lilla</span></button>
+        <button class="btn option theme-btn" data-set="theme" data-value="cyberpunk"><span class="swatch" data-farver="cyberpunk"></span><span class="small">Grøn og blå</span></button>
+        <button class="btn option theme-btn" data-set="theme" data-value="kontrast"><span class="swatch" data-farver="kontrast"></span><span class="small">Høj kontrast</span></button>
+      </div>
+    </div>
+    <div class="setting">
+      <div class="setting-label">Baggrund</div>
+      <div class="row" role="group">
+        <button class="btn option" data-set="background" data-value="mork"><span class="big">Mørk</span></button>
+        <button class="btn option" data-set="background" data-value="solnedgang"><span class="big">Solnedgang</span></button>
+        <button class="btn option" data-set="background" data-value="neonby"><span class="big">Neonby</span></button>
+      </div>
+    </div>
+    <div class="setting">
+      <div class="setting-label">Glød<small>Lysskær om bilen, linjer, knapper og tekst</small></div>
+      <div class="row" role="group">
+        <button class="btn option" data-gset="gloed" data-value="false"><span class="big">Fra</span></button>
+        <button class="btn option" data-gset="gloed" data-value="true"><span class="big">Til</span></button>
+      </div>
+    </div>
+    <div class="setting">
+      <div class="setting-label">Animation<small id="motion-note">Bevægelse i baggrunden</small></div>
+      <div class="row" role="group">
+        <button class="btn option" data-set="animation" data-value="false"><span class="big">Fra</span></button>
+        <button class="btn option" data-set="animation" data-value="true"><span class="big">Til</span></button>
+      </div>
+    </div>
+  </section>
+
+  <section class="tab-panel" data-panel="lyd" hidden>
+    <div class="setting">
+      <div class="setting-label">Lydeffekter</div>
+      <div class="row" role="group">
+        <button class="btn option" data-set="sound" data-value="false"><span class="big">Fra</span></button>
+        <button class="btn option" data-set="sound" data-value="true"><span class="big">Til</span></button>
+      </div>
+    </div>
+    <div class="setting">
+      <div class="setting-label">Musik</div>
+      <div class="row" role="group">
+        <button class="btn option" data-set="music" data-value="false"><span class="big">Fra</span></button>
+        <button class="btn option" data-set="music" data-value="true"><span class="big">Til</span></button>
+      </div>
+    </div>
+  </section>
+  <div class="row trin-bund" hidden></div>
+</main>
+
+<!-- ================= REKORDER ================= -->
+<main id="records" class="screen" hidden aria-labelledby="rec-title">
+  <div class="row tabs">
+    <button class="btn" id="btn-records-back"><span class="icon" aria-hidden="true">←</span><span class="big">Tilbage</span></button>
+    <button class="btn option" data-rec="tur"><span class="big">Længste tur</span></button>
+    <button class="btn option" data-rec="biler"><span class="big">Biler</span></button>
+  </div>
+  <section class="panel records-panel">
+    <h2 class="group-label" id="rec-title">Rekorder</h2>
+    <ol class="records" id="rec-list"></ol>
+    <p class="muted rec-note" id="rec-note"></p>
+  </section>
+</main>
+
+<script src="../arkade/settings.js"></script>
+<script src="../arkade/highscores.js"></script>
+<script src="../arkade/dwell.js"></script>
+<script src="../arkade/audio.js"></script>
+<script src="../arkade/background.js"></script>
+<script src="js/logik.js"></script>
+<script src="tema/neon/grafik.js"></script>
+<script src="js/tegn.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

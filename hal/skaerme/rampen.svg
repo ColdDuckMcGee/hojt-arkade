@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 220">
+  <!-- Stillbillede af Rampen til maskinens skærm: en lille pink bil med cyan vinger og en raketflamme flyver ud over en cyan rampe til venstre. Den prikkede gule forhåndslinje og den hele cyan boost-linje viser to landinger. Mønter (gule) og en grøn ballon hænger i luften, og en grøn trampolin og en orange sten står på jorden. Himlen er mørk lilla med synthwave-gitter i jorden. Tegnet i SVG, ingen billeder og ingen skrifttyper. -->
+  <defs>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <linearGradient id="himmel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0b0420"/><stop offset="1" stop-color="#3a0f52"/></linearGradient>
+  </defs>
+  <rect width="240" height="220" fill="url(#himmel)"/>
+  <!-- huse langt væk -->
+  <g fill="#1d0a33" stroke="#ffe14d" stroke-opacity=".5" stroke-width="1.2">
+    <path d="M120 176V150L134 140L148 150V176Z"/><path d="M160 176V156L172 146L184 156V176Z"/><path d="M196 176V144L212 132L228 144V176Z"/>
+  </g>
+  <!-- jorden med gitter -->
+  <rect x="0" y="176" width="240" height="44" fill="#12061f"/>
+  <g stroke="#ff3fd8" stroke-opacity=".25" stroke-width="1"><path d="M20 176L4 220M60 176L50 220M100 176L96 220M140 176L144 220M180 176L190 220M220 176L236 220"/></g>
+  <path d="M0 176H240" stroke="#ff3fd8" stroke-width="3" filter="url(#glow)"/>
+  <!-- rampen -->
+  <path d="M0 120Q30 148 52 150L58 146V176H0Z" fill="#2a0f40" stroke="#22eaff" stroke-width="3" filter="url(#glow)"/>
+  <!-- forhåndslinjer: uden boost (prikket gul) og med boost (hel cyan) -->
+  <g fill="#ffe14d" filter="url(#glow)">
+    <circle cx="128" cy="78" r="2.2"/><circle cx="140" cy="86" r="2.2"/><circle cx="151" cy="96" r="2.2"/><circle cx="161" cy="108" r="2.2"/>
+    <circle cx="170" cy="121" r="2.2"/><circle cx="178" cy="135" r="2.2"/><circle cx="185" cy="150" r="2.2"/><circle cx="191" cy="165" r="2.2"/>
+  </g>
+  <path d="M126 74Q178 46 214 90Q226 112 230 170" fill="none" stroke="#22eaff" stroke-width="3" stroke-linecap="round" filter="url(#glow)"/>
+  <path d="M186 170l10 10m0 -10l-10 10" stroke="#ffe14d" stroke-width="3" stroke-linecap="round"/>
+  <!-- mønter og ballon -->
+  <g fill="#ffe14d" stroke="#a86a00" stroke-width="1.5" filter="url(#glow)"><circle cx="150" cy="56" r="5"/><circle cx="166" cy="52" r="5"/><circle cx="182" cy="54" r="5"/></g>
+  <ellipse cx="62" cy="46" rx="11" ry="13" fill="#39ff6a" filter="url(#glow)"/>
+  <path d="M62 59Q58 70 64 82" fill="none" stroke="#f6ecff" stroke-opacity=".7" stroke-width="1.2"/>
+  <!-- trampolin og sten -->
+  <g filter="url(#glow)"><path d="M70 176V168M96 176V168" stroke="#c4b0de" stroke-width="3"/><path d="M66 167H100" stroke="#39ff6a" stroke-width="4" stroke-linecap="round"/></g>
+  <path d="M110 176Q112 162 122 160Q132 162 134 176Z" fill="#5a4a6a" stroke="#ff7a3c" stroke-width="2" filter="url(#glow)"/>
+  <!-- bilen med vinger og raketflamme -->
+  <g transform="translate(112 80) rotate(-14)">
+    <path d="M-34 -4L-56 -2L-34 2Z" fill="#ff8a1f" filter="url(#glow)"/><path d="M-34 -2L-46 -1L-34 1Z" fill="#ffe14d"/>
+    <rect x="-36" y="-8" width="12" height="7" rx="3" fill="#c4b0de"/>
+    <path d="M-30 6V-6L-6 -12L8 -12L30 -2V6Z" fill="#ff3fd8" stroke="#ffe8fb" stroke-width="1.5" filter="url(#glow)"/>
+    <path d="M-2 -10H8L20 -3H-2Z" fill="#22eaff"/>
+    <path d="M-16 -2L18 -3L8 2L-20 2Z" fill="#22eaff" filter="url(#glow)"/>
+    <circle cx="-16" cy="7" r="6" fill="#0b0414" stroke="#ffe8fb" stroke-width="1.5"/><circle cx="16" cy="7" r="6" fill="#0b0414" stroke="#ffe8fb" stroke-width="1.5"/>
+  </g>
+</svg>
