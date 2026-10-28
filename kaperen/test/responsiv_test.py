@@ -2,9 +2,9 @@
 # Tjekker: ingen rulning, intet klippet af, ingen overlap, tekst inden i knapperne,
 # mindste knap >= 80 px og ingen fejl i konsollen.
 #
-# Desuden spillet i browseren: køb og sælg (mus og tastatur), værft, værtshus, kortet
-# (vælg havn, sæt sejl, ankomst), møder (skyd, ryk nærmere, bord, flygt, sejl videre,
-# storm), pause, "Gå i land" med bekræftelse og rekord, game over, gem/fortsæt,
+# Desuden spillet i browseren: køb og sælg (mus og tastatur), værft (kikkert), værtshus
+# (rygte), havet i tåge (kompas, felter og tastatur), søkortet (vælg havn, sæt kurs,
+# autosejlads, ankomst), møder (skyd, ryk nærmere, bord, flygt, sejl videre, storm), pause, "Gå i land" med bekræftelse og rekord, game over, gem/fortsæt,
 # glød fra, dwell (knappen under blikket vælges ikke af sig selv) og mindre bevægelse.
 # Til sidst hallen med Kaperen aktiv.
 #
@@ -39,10 +39,15 @@ CHECK = """(sel) => {
      // Tekst, der er klippet af sin boks (overflow hidden)
      if ((e.tagName === 'P' || e.classList.contains('scene-chip') || e.classList.contains('hud')) && (e.scrollHeight > e.clientHeight + 2 || e.scrollWidth > e.clientWidth + 2)) out.textOut.push((e.id || e.className) + ' ' + e.scrollWidth + 'x' + e.scrollHeight + '>' + e.clientWidth + 'x' + e.clientHeight);
   }));
-  let bs = []; roots.forEach(r0 => bs.push(...[...r0.querySelectorAll('button, a.btn')].filter(vis)));
+  // Nabofelterne på havet er usynlige klikflader oven på kortet (de er lige så store som et felt)
+  let bs = []; roots.forEach(r0 => bs.push(...[...r0.querySelectorAll('button, a.btn')].filter(e => vis(e) && !e.classList.contains('felt-btn'))));
   const name = e => e.id || e.dataset.vare || e.dataset.havn || e.dataset.fane || e.dataset.koeb && 'koeb' + e.dataset.koeb || e.dataset.saelg && 'saelg' + e.dataset.saelg || e.dataset.vaerft || e.dataset.tab || e.getAttribute('aria-label') || e.textContent.trim().replace(/\\s+/g,' ').slice(0,16);
   for (let i = 0; i < bs.length; i++) for (let j = i + 1; j < bs.length; j++) { const a = bs[i].getBoundingClientRect(), b = bs[j].getBoundingClientRect();
      if (a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1 && !bs[i].contains(bs[j]) && !bs[j].contains(bs[i]) && bs[i].closest('.overlay') === bs[j].closest('.overlay')) out.overlap.push(name(bs[i]) + '/' + name(bs[j])); }
+  // Kortet må ikke ligge under knappanelet
+  [['#hav-boks', '#hav-panel'], ['#kort-boks', '.kort-panel'], ['#scene-boks', '#moede-knapper']].forEach(([x, y]) => { const ex = scr.querySelector(x), ey = scr.querySelector(y);
+     if (!ex || !ey || !vis(ex) || !vis(ey)) return; const a = ex.getBoundingClientRect(), b = ey.getBoundingClientRect();
+     if (a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1) out.overlap.push(x + '/' + y); });
   // Hvis et overlay er åbent, tæller kun dets knapper (resten ligger bag det)
   const ov = !bekr.hidden ? bekr : [...scr.querySelectorAll('.overlay')].find(o => !o.hidden);
   const counted = ov ? bs.filter(e => ov.contains(e)) : bs;
@@ -78,11 +83,25 @@ def pages(pg, scr, w, h, name, shotbase):
 def st(pg, expr): return pg.evaluate(expr)
 def center(pg, sel):
     bb = pg.locator(sel).bounding_box(); return bb['x'] + bb['width'] / 2, bb['y'] + bb['height'] / 2
-# Et spil, der står midt i et møde af en bestemt slags (fundet med seeds)
-def moede_state(pg, slags, ber=0, til='soelvbyen'):
-    return pg.evaluate("""([slags, ber, til]) => { const L = Kaperen.logik;
-      for (let s = 1; s < 5000; s++) { const g = L.createGame({ seed: s }); g.state.beroemmelse = ber; g.state.proviant = 30;
-        const r = g.sejl(til); if (r && r.moede && r.moede.slags === slags) { Kaperen.setState(g.save()); return s; } } return -1; }""", [slags, ber, til])
+# Et spil, der står midt i et møde af en bestemt slags: sejl ud af havnen, læg et skib ved siden af, og sejl ind i det
+def moede_state(pg, slags, ber=0):
+    return pg.evaluate("""([slags, ber]) => { const L = Kaperen.logik, R = L.RETNINGER;
+      for (let s = 1; s < 3000; s++) { const g = L.createGame({ seed: s }), st = g.state; st.beroemmelse = ber; st.proviant = 30;
+        const nb = p => { for (let r = 0; r < 8; r++) { const x = p[0] + R[r][0], y = p[1] + R[r][1]; if (g.felt(x, y) === 'hav') return [x, y, r]; } return null; };
+        let n = nb(st.pos); if (!n) continue;
+        const r1 = g.flyt(R[n[2]][0], R[n[2]][1]); if (!r1.ok || r1.moede || st.havn) continue;
+        st.skibe = [];
+        if (slags === 'storm') { st.moede = { slags: 'storm', slut: null }; Kaperen.setState(g.save()); return s; }
+        n = nb(st.pos); if (!n) continue;
+        g._nytSkib(slags, n[0], n[1]);
+        const r2 = g.flyt(R[n[2]][0], R[n[2]][1]);
+        if (r2.moede && r2.moede.slags === slags) { Kaperen.setState(g.save()); return s; } } return -1; }""", [slags, ber])
+def afslut_moede(pg):
+    for _ in range(40):
+        if st(pg, "!Kaperen.game.state.moede || !!Kaperen.game.state.moede.slut || !!Kaperen.game.state.over"): break
+        pg.click('#btn-laa' if st(pg, "Kaperen.game.state.moede.slags") == 'storm' else '#btn-flygt'); pg.wait_for_timeout(30)
+    if not st(pg, "!!Kaperen.game.state.over") and st(pg, "Kaperen.view") == 'moede':
+        pg.click('#btn-videre'); pg.wait_for_timeout(80)
 def ny(pg):
     pg.evaluate("Kaperen.nyRejse()"); pg.wait_for_timeout(120)
 
@@ -127,36 +146,80 @@ def gameplay(pg, w, h, tag, big):
     pg.click('[data-hyr="5"]'); pg.click('[data-proviant=alt]'); pg.wait_for_timeout(40)
     r = st(pg, "[Kaperen.game.state.mandskab, Kaperen.game.state.proviant, Kaperen.logik.PROVIANT_MAX]")
     if r[0] != 13 or r[1] != r[2]: fails.append('%s værtshus gav %s' % (tag, r))
-    # Kortet
+    # Kikkert på værftet
+    pg.click('.fane-btn[data-fane=vaerft]'); pg.wait_for_timeout(40)
+    pg.click('[data-vaerft=kikkert]'); pg.wait_for_timeout(40)
+    if st(pg, "Kaperen.game.synsvidde()") != st(pg, "Kaperen.logik.SYN") + 1: fails.append(tag + ' kikkerten virkede ikke')
+    # Rygter i værtshuset: to nye havne på kortet
+    pg.click('.fane-btn[data-fane=vaerthus]'); pg.wait_for_timeout(40)
+    pg.click('#btn-rygte'); pg.wait_for_timeout(40); pg.click('#btn-rygte'); pg.wait_for_timeout(40)
+    if st(pg, "Kaperen.game.kendteHavne().length") != 3: fails.append(tag + ' rygterne gav ikke nye havne: %s' % st(pg, "Kaperen.game.kendteHavne()"))
+    # Havet i tåge
     pg.click('#btn-til-soes'); pg.wait_for_timeout(120)
-    if st(pg, "Kaperen.view") != 'kort': fails.append(tag + ' Til søs åbnede ikke kortet')
-    if st(pg, "document.querySelector('.havn-btn[aria-current=location]').dataset.havn") != st(pg, "Kaperen.game.state.havn"): fails.append(tag + ' kortet viser ikke, hvor man er')
-    check(pg, 'kort', '#game', w, h, tag + '-kort-tom.png')
-    pg.click('.havn-btn[data-havn=kongshavn]'); pg.wait_for_timeout(60)
-    if 'Kongshavn' not in st(pg, "document.getElementById('kort-titel').textContent"): fails.append(tag + ' valgt havn vises ikke')
-    check(pg, 'kort: havn valgt', '#game', w, h, tag + '-kort.png')
-    if big and SHOT: pg.screenshot(path=SHOT + 'kort.png')
-    pg.keyboard.press('ArrowRight'); pg.wait_for_timeout(30)
-    if st(pg, "document.querySelector('.havn-btn[aria-pressed=true]').dataset.havn") == 'kongshavn': fails.append(tag + ' piletast skiftede ikke havn')
-    pg.click('.havn-btn[data-havn=kongshavn]'); pg.wait_for_timeout(30)
+    if st(pg, "Kaperen.view") != 'hav': fails.append(tag + ' Til søs viste ikke havet')
+    check(pg, 'hav (i havn)', '#game', w, h, tag + '-hav-havn.png')
     d0 = st(pg, "Kaperen.game.state.dag")
-    pg.click('#btn-sejl')
-    pg.wait_for_function("!Kaperen.sejler", timeout=8000); pg.wait_for_timeout(100)
-    r = st(pg, "[Kaperen.view, Kaperen.game.state.dag > %d]" % d0)
-    if r[0] == 'moede':
-        m = st(pg, "Kaperen.game.state.moede.slags")
-        # klar mødet hurtigt: flygt/sejl videre eller storm
-        for _ in range(30):
-            if st(pg, "!!Kaperen.game.state.moede.slut || !!Kaperen.game.state.over"): break
-            if m == 'storm': pg.click('#btn-laa')
-            else: pg.click('#btn-flygt')
-            pg.wait_for_timeout(30)
-        if not st(pg, "!!Kaperen.game.state.over"):
-            pg.click('#btn-videre'); pg.wait_for_timeout(100)
-    if not st(pg, "!!Kaperen.game.state.over") and st(pg, "[Kaperen.view, Kaperen.game.state.havn]") != ['havn', 'kongshavn']: fails.append('%s sejladsen endte ikke i Kongshavn: %s' % (tag, st(pg, "[Kaperen.view, Kaperen.game.state.havn]")))
-    if not r[1]: fails.append(tag + ' dagene gik ikke')
+    ret = st(pg, "[...document.querySelectorAll('.ret-btn[data-ret]')].filter(b => !b.disabled).map(b => b.dataset.ret)")
+    if not ret: fails.append(tag + ' ingen retning at sejle i')
+    else:
+        p0 = st(pg, "Kaperen.game.state.pos.join()")
+        pg.click('.ret-btn[data-ret="%s"]' % ret[0]); pg.wait_for_timeout(80)
+        # At sejle ind i et skib starter et møde uden at bruge en dag
+        if st(pg, "Kaperen.view") == 'moede' and st(pg, "Kaperen.game.state.pos.join()") == p0: afslut_moede(pg)
+        else:
+            if st(pg, "Kaperen.view") == 'moede': afslut_moede(pg)
+            if st(pg, "Kaperen.game.state.dag") != d0 + 1 and not st(pg, "!!Kaperen.game.state.over"): fails.append(tag + ' kompasset sejlede ikke ét felt (én dag)')
+    # Nabofelt med musen og tastaturet
+    if st(pg, "Kaperen.view") == 'hav':
+        fb = st(pg, "[...document.querySelectorAll('.felt-btn')].filter(b => !b.disabled).map(b => b.dataset.ret)")
+        d1 = st(pg, "Kaperen.game.state.dag")
+        if fb:
+            p1 = st(pg, "Kaperen.game.state.pos.join()")
+            pg.click('.felt-btn[data-ret="%s"]' % fb[0]); pg.wait_for_timeout(80)
+            moedt = st(pg, "Kaperen.view") == 'moede'
+            if moedt: afslut_moede(pg)
+            if st(pg, "Kaperen.game.state.dag") != d1 + 1 and not (moedt and st(pg, "Kaperen.game.state.pos.join()") == p1): fails.append(tag + ' klik på nabofelt sejlede ikke')
+        pg.mouse.move(1, 1); pg.evaluate("document.activeElement && document.activeElement.blur()")
+        pg.evaluate("Kaperen.game.state.havn || (Kaperen.game.state.skibe = [])")
+        d2 = st(pg, "Kaperen.game.state.dag"); pg.keyboard.press(' ' if not st(pg, "Kaperen.game.state.havn") else 'ArrowUp'); pg.wait_for_timeout(60)
+        if st(pg, "Kaperen.view") == 'moede': afslut_moede(pg)
+        pg.evaluate("Kaperen.refresh()")
+    pg.evaluate("(() => { const st = Kaperen.game.state; st.skibe = []; Kaperen.refresh(); })()")
+    if st(pg, "Kaperen.view") == 'hav':
+        check(pg, 'hav i tåge', '#game', w, h, tag + '-hav.png')
+        if big and SHOT:
+            # Et skib i sigte og et i tågen
+            pg.evaluate("""(() => { const g = Kaperen.game, st = g.state; let n = 0;
+              for (let y = 0; y < 15 && n < 2; y++) for (let x = 0; x < 24 && n < 2; x++) { const d = Math.max(Math.abs(x - st.pos[0]), Math.abs(y - st.pos[1]));
+                if (g.felt(x, y) === 'hav' && ((n === 0 && d === 3 && g.iSyn(x, y)) || (n === 1 && d === 2 && g.iSyn(x, y)))) { g._nytSkib(n ? 'handel' : 'pirat', x, y); n++; } }
+              Kaperen.refresh(); })()""")
+            pg.wait_for_timeout(100); pg.screenshot(path=SHOT + 'hav-taage.png')
+            pg.evaluate("Kaperen.game.state.skibe = []; Kaperen.refresh()")
+    # Søkortet: kun det opdagede og de kendte havne
+    pg.evaluate("Kaperen.aabnKort()"); pg.wait_for_timeout(100)
+    if st(pg, "Kaperen.view") != 'kort': fails.append(tag + ' K/Kort åbnede ikke søkortet')
+    v0 = st(pg, "Kaperen.valgtHavn")
+    check(pg, 'søkort (delvist)', '#game', w, h, tag + '-kort-delvist.png')
+    if big and SHOT: pg.screenshot(path=SHOT + 'kort-delvist.png')
+    pg.mouse.move(1, 1); pg.evaluate("document.activeElement && document.activeElement.blur()")
+    pg.keyboard.press('ArrowRight'); pg.wait_for_timeout(40)
+    if st(pg, "Kaperen.valgtHavn") == v0: fails.append(tag + ' piletast skiftede ikke havn på kortet')
+    # Hele havet kendt: sæt kurs og sejl selv derhen
+    til = st(pg, "(() => { const g = Kaperen.game, st = g.state; st.set = st.set.replace(/0/g, '1'); const ids = g.kendteHavne().filter(i => i !== st.havn).sort((a, b) => g.kursInfo(b).dage - g.kursInfo(a).dage); Kaperen.vaelgHavn(ids[0]); return ids[0]; })()")
+    st(pg, "Kaperen.game.state.proviant = 40"); pg.wait_for_timeout(60)
+    check(pg, 'søkort: havn valgt', '#game', w, h, tag + '-kort.png')
+    if big and SHOT: pg.screenshot(path=SHOT + 'kort.png')
+    for _ in range(25):
+        if st(pg, "!!Kaperen.game.state.over") or st(pg, "Kaperen.game.state.havn") == til: break
+        if st(pg, "Kaperen.view") == 'moede': afslut_moede(pg); continue
+        if st(pg, "Kaperen.view") != 'kort': pg.evaluate("Kaperen.aabnKort()"); pg.evaluate("Kaperen.vaelgHavn('%s')" % til); pg.wait_for_timeout(40)
+        pg.evaluate("Kaperen.game.state.skibe = []; Kaperen.game.state.proviant = 40")
+        pg.click('#btn-kurs')
+        pg.wait_for_function("!Kaperen.sejler", timeout=15000); pg.wait_for_timeout(60)
+    if not st(pg, "!!Kaperen.game.state.over") and st(pg, "[Kaperen.view, Kaperen.game.state.havn]") != ['havn', til]: fails.append('%s kursen endte ikke i %s: %s' % (tag, til, st(pg, "[Kaperen.view, Kaperen.game.state.havn]")))
     # Møde med en sørøver: skyd, ryk nærmere og bord
     moede_state(pg, 'pirat'); pg.wait_for_timeout(120)
+    if big and SHOT: pg.screenshot(path=SHOT + 'moede.png')
     pg.evaluate("Kaperen.game.state.skrog = 900; Kaperen.game.state.mandskab = 16; Kaperen.refresh()")
     check(pg, 'møde: sørøver', '#game', w, h, tag + '-moede-start.png')
     pg.click('#btn-skyd'); pg.wait_for_timeout(80)
@@ -176,7 +239,11 @@ def gameplay(pg, w, h, tag, big):
         check(pg, 'møde: slut', '#game', w, h, tag + '-moede-slut.png')
         pg.keyboard.press('Enter') if st(pg, "document.activeElement.id") == 'btn-videre' else pg.click('#btn-videre')
         pg.wait_for_timeout(80)
-        if st(pg, "Kaperen.view") != 'havn': fails.append(tag + ' Sejl videre efter kampen gik ikke i havn')
+        if st(pg, "Kaperen.view") != 'hav': fails.append(tag + ' Sejl videre efter kampen gik ikke tilbage til havet')
+        check(pg, 'hav efter mødet', '#game', w, h, tag + '-hav-efter.png')
+        pg.keyboard.press('Escape'); pg.wait_for_timeout(60)
+        if not st(pg, "document.getElementById('btn-land').disabled"): fails.append(tag + ' Gå i land kan vælges til søs')
+        pg.keyboard.press('Escape'); pg.wait_for_timeout(60)
     # Handelsskib: fredeligt, "Sejl videre"
     moede_state(pg, 'handel'); pg.wait_for_timeout(100)
     if st(pg, "document.querySelector('#btn-flygt .big').textContent") != 'Sejl videre': fails.append(tag + ' fredeligt skib: ingen Sejl videre')
@@ -242,12 +309,20 @@ def dwell_check(pg, w, h, tag):
     try: pg.wait_for_function("Object.values(Kaperen.game.state.last).reduce((a, b) => a + b, 0) >= 1", timeout=3000)
     except Exception: fails.append(tag + ' dwell på Køb 1 købte ikke')
     pg.mouse.move(1, 1); pg.wait_for_timeout(50)
-    # Til søs: knappen under blikket på kortet må ikke aktiveres af sig selv
+    # Til søs: knappen (eller nabofeltet) under blikket på havet må ikke aktiveres af sig selv
+    d0 = st(pg, "Kaperen.game.state.dag")
     x, y = center(pg, '#btn-til-soes'); pg.mouse.move(x, y, steps=2)
-    try: pg.wait_for_function("Kaperen.view === 'kort'", timeout=3000)
-    except Exception: fails.append(tag + ' dwell på Til søs åbnede ikke kortet')
+    try: pg.wait_for_function("Kaperen.view === 'hav'", timeout=3000)
+    except Exception: fails.append(tag + ' dwell på Til søs viste ikke havet')
     pg.wait_for_timeout(1500)
-    if st(pg, "Kaperen.view") != 'kort' or st(pg, "Kaperen.sejler"): fails.append(tag + ' dwell valgte noget af sig selv på kortet')
+    if st(pg, "Kaperen.view") != 'hav' or st(pg, "Kaperen.game.state.dag") != d0: fails.append(tag + ' dwell valgte noget af sig selv på havet')
+    # Dwell på en retning sejler (og gentager, så længe blikket bliver)
+    ret = st(pg, "[...document.querySelectorAll('.ret-btn[data-ret]')].filter(b => !b.disabled).map(b => b.dataset.ret)")
+    if ret:
+        pg.evaluate("Kaperen.game.state.proviant = 40")
+        x, y = center(pg, '.ret-btn[data-ret="%s"]' % ret[0]); pg.mouse.move(x, y, steps=2)
+        try: pg.wait_for_function("Kaperen.game.state.dag > %d || Kaperen.view !== 'hav'" % d0, timeout=4000)
+        except Exception: fails.append(tag + ' dwell på en retning sejlede ikke')
     pg.evaluate("Kaperen.settings.set('dwell', false)"); pg.mouse.move(1, 1)
     print('OK   %dx%d dwell' % (w, h) if not [f for f in fails if f.startswith(tag) and 'dwell' in f] else 'FEJL %dx%d dwell' % (w, h))
 
@@ -274,11 +349,12 @@ with sync_playwright() as p:
         gameplay(pg, w, h, tag, big)
         # Glød kan slås fra
         ny(pg); pg.click('#btn-til-soes'); pg.wait_for_timeout(80)
+        if st(pg, "Kaperen.view") != 'hav': fails.append(tag + ' Til søs viste ikke havet (glød)')
         pg.evaluate("Kaperen.gameSettings.set('gloed', false)"); pg.wait_for_timeout(200)
         g = pg.evaluate("""() => [document.documentElement.dataset.kapGloed, getComputedStyle(document.querySelector('.hud-value')).textShadow,
                     getComputedStyle(document.documentElement).getPropertyValue('--kap-gloed-filter').trim(), document.querySelectorAll('#kap-grafik symbol').length]""")
         if g[0] != 'fra' or g[1] != 'none' or 'transparent' not in g[2] or g[3] < 40: fails.append('%s glød fra gav %s' % (tag, g))
-        check(pg,'kort uden glød','#game',w,h, tag+'-uden-gloed.png')
+        check(pg,'hav uden glød','#game',w,h, tag+'-uden-gloed.png')
         pg.evaluate("Kaperen.gameSettings.set('gloed', true)")
         dwell_check(pg, w, h, tag)
         ctx.close()
@@ -288,10 +364,13 @@ with sync_playwright() as p:
     pg.on('console', lambda m: errs.append(m.type+': '+m.text) if m.type in ('error','warning') else None)
     pg.on('pageerror', lambda e: errs.append('pageerror: '+str(e)))
     pg.goto(URL); pg.wait_for_timeout(300)
-    ny(pg); pg.click('#btn-til-soes'); pg.click('.havn-btn[data-havn=ravnsoe]'); pg.click('#btn-sejl'); pg.wait_for_timeout(100)
-    a = st(pg, "[document.documentElement.classList.contains('kap-stille'), Kaperen.sejler, Kaperen.view !== 'kort', document.getElementById('kortskib').hidden]")
+    ny(pg); pg.click('#btn-til-soes')
+    pg.evaluate("(() => { const g = Kaperen.game, st = g.state; st.guld = 500; g.rygteHavn(); st.set = st.set.replace(/0/g, '1'); st.proviant = 40; Kaperen.aabnKort(); Kaperen.vaelgHavn(g.kendteHavne().filter(i => i !== st.havn)[0]); })()")
+    d0 = st(pg, "Kaperen.game.state.dag")
+    pg.click('#btn-kurs'); pg.wait_for_timeout(100)
+    a = st(pg, "[document.documentElement.classList.contains('kap-stille'), Kaperen.sejler, Kaperen.view !== 'kort', Kaperen.game.state.dag > %d]" % d0)
     ok = a == [True, False, True, True]
-    print('%s reduced motion: stille/sejler/videre/skib skjult=%s' % ('OK  ' if ok else 'FEJL', a))
+    print('%s reduced motion: stille/sejler/videre/dage gået=%s' % ('OK  ' if ok else 'FEJL', a))
     if not ok: fails.append('reduced motion: %s' % a)
     ctx.close()
     # Hallen med Kaperen aktiv

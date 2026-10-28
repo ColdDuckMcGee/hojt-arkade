@@ -3,14 +3,20 @@
  * ud over navnene på havne, varer og skibe. Alt er turbaseret og styres af en
  * fast tilfældighedsgenerator (seed), så spillet kan gemmes og testes.
  *
+ * v1.1: Havet er et gitter af felter (BREDDE × HOEJDE), som laves tilfældigt for
+ * hvert spil. Man ser kun felterne inden for synsvidden og opdager havne, øer og
+ * skibe ved at sejle rundt. Et felt er én dag og én dags proviant.
+ *
  *   var g = KaperenLogik.createGame({ seed: 7 });   // eller createGame(gemtTilstand)
  *   g.pris('rom')              -> { koeb, salg, niveau: 'billig' | 'normal' | 'dyr' }
  *   g.koeb('rom', 5 | 'alt')   g.saelg('rom', 1 | 5 | 'alt')
- *   g.rejseInfo('rubinhavn')   g.sejl('rubinhavn')   -> { dage, moede, sult }
+ *   g.flyt(dx, dy)  g.vent()   -> { ok, sult, nyeHavne, havn, moede, nyeSkibe }
+ *   g.saetKurs('rubinhavn')  g.autoTrin()  g.stopKurs()  g.kursInfo('rubinhavn')
+ *   g.felt(x, y)  g.sett(x, y)  g.iSyn(x, y)  g.synligeSkibe()  g.synsvidde()
  *   g.handling('skyd' | 'naermere' | 'bord' | 'flygt')   (møde med et skib)
- *   g.storm('ride' | 'laa')    g.ankom()
- *   g.reparer(n | 'alt')  g.koebKanon()  g.opgrader('sejl' | 'lastrum')  g.koebSkib()
- *   g.hyr(n | 'alt')  g.proviant(n | 'fyld')  g.rygte()
+ *   g.storm('ride' | 'laa')    g.efterMoede()
+ *   g.reparer(n | 'alt')  g.koebKanon()  g.opgrader('sejl' | 'lastrum')  g.koebSkib()  g.koebKikkert()
+ *   g.hyr(n | 'alt')  g.proviant(n | 'fyld')  g.rygte()  g.rygteHavn()
  *   g.formue()  g.point()  g.gaaILand()  g.save()
  */
 (function (global) {
@@ -23,17 +29,17 @@
     { id: 'tobak', navn: 'Tobak', pris: 40 },
     { id: 'silke', navn: 'Silke', pris: 95 }
   ];
-  // Havnene ligger i tre rækker på kortet (x og y fra 0 til 1), så de store
-  // knapper aldrig overlapper. Kortets bredde regnes som 1,6 × højden.
+  // Havnenes plads på havet findes tilfældigt for hvert spil; deres priser og
+  // særpræg (flådehavn, piratskjul) er faste.
   var HAVNE = [
-    { id: 'kongshavn', navn: 'Kongshavn', x: 1 / 6, y: 0.17, billig: ['silke'], dyr: ['rom', 'sukker'], flaade: true },
-    { id: 'rubinhavn', navn: 'Rubinhavn', x: 3 / 6, y: 0.15, billig: ['krydderier'], dyr: ['silke'] },
-    { id: 'palmebugt', navn: 'Palmebugt', x: 5 / 6, y: 0.19, billig: ['rom', 'sukker'], dyr: ['krydderier'] },
-    { id: 'taageskaer', navn: 'Tågeskær', x: 2 / 6, y: 0.5, billig: ['tobak'], dyr: ['sukker', 'silke'] },
-    { id: 'soelvbyen', navn: 'Sølvbyen', x: 4 / 6, y: 0.52, billig: ['rom'], dyr: ['krydderier', 'tobak'] },
-    { id: 'saltkyst', navn: 'Saltkyst', x: 1 / 6, y: 0.83, billig: ['tobak'], dyr: ['rom'] },
-    { id: 'ankerholm', navn: 'Ankerholm', x: 3 / 6, y: 0.85, billig: ['krydderier', 'silke'], dyr: ['tobak'] },
-    { id: 'ravnsoe', navn: 'Ravnsø', x: 5 / 6, y: 0.81, billig: ['sukker'], dyr: ['tobak', 'silke'], skjul: true }
+    { id: 'kongshavn', navn: 'Kongshavn', billig: ['silke'], dyr: ['rom', 'sukker'], flaade: true },
+    { id: 'rubinhavn', navn: 'Rubinhavn', billig: ['krydderier'], dyr: ['silke'] },
+    { id: 'palmebugt', navn: 'Palmebugt', billig: ['rom', 'sukker'], dyr: ['krydderier'] },
+    { id: 'taageskaer', navn: 'Tågeskær', billig: ['tobak'], dyr: ['sukker', 'silke'] },
+    { id: 'soelvbyen', navn: 'Sølvbyen', billig: ['rom'], dyr: ['krydderier', 'tobak'] },
+    { id: 'saltkyst', navn: 'Saltkyst', billig: ['tobak'], dyr: ['rom'] },
+    { id: 'ankerholm', navn: 'Ankerholm', billig: ['krydderier', 'silke'], dyr: ['tobak'] },
+    { id: 'ravnsoe', navn: 'Ravnsø', billig: ['sukker'], dyr: ['tobak', 'silke'], skjul: true }
   ];
   var SKIBE = [
     { id: 'slup', navn: 'Slup', last: 20, skrog: 60, kanoner: 6, mandskab: 16, fart: 4, pris: 0 },
@@ -46,11 +52,18 @@
   var KANON_PRIS = 120;
   var SEJL_PRIS = [400, 900, 1800];     // niveau 1, 2 og 3
   var LASTRUM_PRIS = [300, 700, 1500];
+  var KIKKERT_PRIS = [250, 700];        // kikkert 1 og 2: synsvidde +1 og +2
+  var RYGTE_PRIS = 25;                  // rygte om en ukendt havn
   var REPARATION = 3;            // guld pr. skrogpoint
   var PROVIANT_MAX = 40;
   var TRAEF = [0.85, 0.7, 0.5, 0.3];    // chance for at ramme pr. kanon ved afstand 0–3
   var AFSTANDE = 4;              // 0 = side om side (bord), 3 = langt væk; 4 = væk
   var START = { guld: 300, kanoner: 2, mandskab: 8, proviant: 12, havn: 'taageskaer', skib: 'slup' };
+  var BREDDE = 24, HOEJDE = 15;  // havets felter
+  var SYN = 2;                   // synsvidde i felter uden kikkert
+  var STORM_CHANCE = 0.025;      // pr. dag til søs
+  var BEROEMMELSE_FAKTOR = 50;   // point = formue + 50 × berømmelse (valgt ved simulering, se test/simulering.js)
+  var RETNINGER = [[0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1]];
 
   // ---------- Tilfældighed (mulberry32, tilstanden gemmes) ----------
   function rng(st) {
@@ -70,16 +83,12 @@
     return k;
   }
   function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+  function cheb(ax, ay, bx, by) { return Math.max(Math.abs(ax - bx), Math.abs(ay - by)); }
 
   function havnById(id) { for (var i = 0; i < HAVNE.length; i++) if (HAVNE[i].id === id) return HAVNE[i]; return null; }
   function vareById(id) { for (var i = 0; i < VARER.length; i++) if (VARER[i].id === id) return VARER[i]; return null; }
   function skibById(id) { for (var i = 0; i < SKIBE.length; i++) if (SKIBE[i].id === id) return SKIBE[i]; return SKIBE[0]; }
   function skibIndex(id) { for (var i = 0; i < SKIBE.length; i++) if (SKIBE[i].id === id) return i; return 0; }
-  function afstand(a, b) {
-    var A = havnById(a), B = havnById(b);
-    var dx = (A.x - B.x) * 1.6, dy = A.y - B.y;
-    return Math.sqrt(dx * dx + dy * dy);
-  }
   function niveauI(havn, vare) {
     if (havn.billig.indexOf(vare) >= 0) return 'billig';
     if (havn.dyr.indexOf(vare) >= 0) return 'dyr';
@@ -93,20 +102,32 @@
   function createGame(init) {
     init = init || {};
     var st;
-    if (init.havn && init.skib) {
+    if (init.version === 2 && init.felt && init.skib) {
       st = JSON.parse(JSON.stringify(init));
+    } else if (init.skib && (init.havn || init.rejse)) {
+      // Gemt spil fra v1 (fast kort): behold skib, last og guld, og læg skibet
+      // i den havn, det lå i (eller sejlede fra) på et nyt, ukendt hav.
+      st = JSON.parse(JSON.stringify(init));
+      var her = (st.havn && havnById(st.havn)) ? st.havn : (st.rejse && havnById(st.rejse.fra) ? st.rejse.fra : START.havn);
+      delete st.rejse;
+      st.version = 2; st.havn = her; st.sidste = her; st.moede = null; st.kurs = null;
+      st.kikkert = 0; st.skibe = []; st.naesteId = 1; st.migreret = true;
+      st.tal = st.tal || {}; st.tal.felter = st.tal.felter || 0;
+      HAVNE.forEach(function (h) { if (!st.priser || !st.priser[h.id]) { st.priser = st.priser || {}; st.priser[h.id] = nyePriser(h); } });
+      lavVerden(her);
     } else {
       st = {
-        version: 1, seed: (init.seed !== undefined ? init.seed : Math.floor(Math.random() * 1e9)) | 0,
-        dag: 1, guld: START.guld, havn: START.havn, skib: START.skib,
+        version: 2, seed: (init.seed !== undefined ? init.seed : Math.floor(Math.random() * 1e9)) | 0,
+        dag: 1, guld: START.guld, havn: START.havn, sidste: START.havn, skib: START.skib,
         skrog: skibById(START.skib).skrog, kanoner: START.kanoner, mandskab: START.mandskab,
-        proviant: START.proviant, sejl: 0, lastrum: 0, investeret: START.kanoner * KANON_PRIS,
+        proviant: START.proviant, sejl: 0, lastrum: 0, kikkert: 0, investeret: START.kanoner * KANON_PRIS,
         last: tomLast(), betalt: tomLast(), beroemmelse: 0, priser: {}, besoeg: {},
-        rejse: null, moede: null, over: null,
-        tal: { rejser: 0, kapret: 0, sænket: 0, flygtet: 0, handel: 0 }
+        moede: null, over: null, kurs: null, skibe: [], naesteId: 1,
+        tal: { rejser: 0, kapret: 0, sænket: 0, flygtet: 0, handel: 0, felter: 0 }
       };
       HAVNE.forEach(function (h) { st.priser[h.id] = nyePriser(h); });
       st.besoeg[st.havn] = 1;
+      lavVerden(st.havn);
     }
 
     function nyePriser(h) {
@@ -115,6 +136,103 @@
       return p;
     }
 
+    // ---------- Havet ----------
+    // felt: streng med '0' (hav) og '1' (land); set: '1' for felter, man har set.
+    function lavVerden(startId) {
+      for (var forsoeg = 0; forsoeg < 400; forsoeg++) {
+        var f = [], i, x, y;
+        for (i = 0; i < BREDDE * HOEJDE; i++) f.push(0);
+        var n = Math.max(0, rint(st, 13, 18) - Math.floor(forsoeg / 40));
+        for (var k = 0; k < n; k++) {
+          var cx = rint(st, 1, BREDDE - 2), cy = rint(st, 1, HOEJDE - 2);
+          var rx = rfloat(st, 0.7, 2.6), ry = rfloat(st, 0.6, 1.9);
+          for (y = cy - 3; y <= cy + 3; y++) for (x = cx - 3; x <= cx + 3; x++) {
+            if (x < 0 || y < 0 || x >= BREDDE || y >= HOEJDE) continue;
+            var v = Math.pow((x - cx) / rx, 2) + Math.pow((y - cy) / ry, 2);
+            if (v <= 1 + rfloat(st, -0.3, 0.3)) f[y * BREDDE + x] = 1;
+          }
+        }
+        var pos = placerHavne(f, startId, forsoeg > 300);
+        if (!pos || !forbundet(f, pos, startId)) continue;
+        st.felt = f.join('');
+        st.havnePos = pos;
+        st.pos = pos[startId].slice();
+        st.set = new Array(BREDDE * HOEJDE + 1).join('0');
+        st.kendt = {}; st.kendt[startId] = true;
+        opdag();
+        return;
+      }
+      throw new Error('kunne ikke lave et hav');
+    }
+    function placerHavne(f, startId, nød) {
+      var kyst = [];
+      for (var y = 1; y < HOEJDE - 1; y++) for (var x = 1; x < BREDDE - 1; x++) {
+        if (f[y * BREDDE + x]) continue;
+        var vedLand = f[(y - 1) * BREDDE + x] || f[(y + 1) * BREDDE + x] || f[y * BREDDE + x - 1] || f[y * BREDDE + x + 1];
+        if (vedLand || nød) kyst.push([x, y]);
+      }
+      var midt = kyst.filter(function (p) { return p[0] >= BREDDE / 4 && p[0] <= BREDDE * 3 / 4 && p[1] >= HOEJDE / 4 && p[1] <= HOEJDE * 3 / 4; });
+      if (!midt.length) return null;
+      var pos = {}, sat = [];
+      pos[startId] = vaelg(st, midt).slice(); sat.push(pos[startId]);
+      var andre = HAVNE.map(function (h) { return h.id; }).filter(function (id) { return id !== startId; });
+      for (var i = 0; i < andre.length; i++) {
+        var fundet = null;
+        for (var dmin = 6; dmin >= 4 && !fundet; dmin--) {
+          var c = kyst.filter(function (p) { return sat.every(function (q) { return cheb(p[0], p[1], q[0], q[1]) >= dmin; }); });
+          if (c.length) fundet = vaelg(st, c).slice();
+        }
+        if (!fundet) return null;
+        pos[andre[i]] = fundet; sat.push(fundet);
+      }
+      return pos;
+    }
+    function forbundet(f, pos, startId) {
+      var set = {}, ko = [pos[startId]], s0 = pos[startId];
+      set[s0[1] * BREDDE + s0[0]] = 1;
+      while (ko.length) {
+        var p = ko.shift();
+        for (var r = 0; r < 8; r++) {
+          var x = p[0] + RETNINGER[r][0], y = p[1] + RETNINGER[r][1];
+          if (x < 0 || y < 0 || x >= BREDDE || y >= HOEJDE || f[y * BREDDE + x]) continue;
+          var i = y * BREDDE + x; if (set[i]) continue; set[i] = 1; ko.push([x, y]);
+        }
+      }
+      for (var id in pos) if (!set[pos[id][1] * BREDDE + pos[id][0]]) return false;
+      return true;
+    }
+    function ude(x, y) { return x < 0 || y < 0 || x >= BREDDE || y >= HOEJDE; }
+    function erLand(x, y) { return ude(x, y) || st.felt.charAt(y * BREDDE + x) === '1'; }
+    function havnVed(x, y) { for (var id in st.havnePos) { var p = st.havnePos[id]; if (p[0] === x && p[1] === y) return id; } return null; }
+    function felt(x, y) { return ude(x, y) ? 'ude' : erLand(x, y) ? 'land' : havnVed(x, y) ? 'havn' : 'hav'; }
+    function sett(x, y) { return !ude(x, y) && st.set.charAt(y * BREDDE + x) === '1'; }
+    function synsvidde() { return SYN + (st.kikkert || 0); }
+    function iSyn(x, y) {
+      var dx = x - st.pos[0], dy = y - st.pos[1], r = synsvidde() + 0.5;
+      return dx * dx + dy * dy <= r * r;
+    }
+    function opdag() {
+      var r = synsvidde(), a = st.set.split(''), nye = [];
+      for (var dy = -r; dy <= r; dy++) for (var dx = -r; dx <= r; dx++) {
+        var x = st.pos[0] + dx, y = st.pos[1] + dy;
+        if (ude(x, y) || !iSyn(x, y)) continue;
+        a[y * BREDDE + x] = '1';
+        var h = havnVed(x, y);
+        if (h && !st.kendt[h]) { st.kendt[h] = true; nye.push(h); }
+      }
+      st.set = a.join('');
+      return nye;
+    }
+    function afsloer(x0, y0, r) {
+      var a = st.set.split('');
+      for (var y = y0 - r; y <= y0 + r; y++) for (var x = x0 - r; x <= x0 + r; x++) if (!ude(x, y)) a[y * BREDDE + x] = '1';
+      st.set = a.join('');
+    }
+    function andelOpdaget() { var n = 0; for (var i = 0; i < st.set.length; i++) if (st.set.charAt(i) === '1') n++; return n / st.set.length; }
+    function kendteHavne() { return HAVNE.filter(function (h) { return st.kendt[h.id]; }).map(function (h) { return h.id; }); }
+    function havnePos(id) { return st.havnePos[id] ? st.havnePos[id].slice() : null; }
+    function synligeSkibe() { return st.skibe.filter(function (s) { return iSyn(s.x, s.y); }); }
+    function skibPaa(x, y) { for (var i = 0; i < st.skibe.length; i++) if (st.skibe[i].x === x && st.skibe[i].y === y) return st.skibe[i]; return null; }
     // ---------- Skibet ----------
     function type() { return skibById(st.skib); }
     function lastrum() { return Math.round(type().last * (1 + 0.25 * st.lastrum)); }
@@ -124,7 +242,7 @@
     function maxSkrog() { return type().skrog; }
     function maxMandskab() { return type().mandskab; }
     function effKanoner() { return Math.min(st.kanoner, Math.floor(st.mandskab / 2)); }
-    function niveau() { return 1 + Math.floor((st.dag - 1) / 25) + Math.floor(st.beroemmelse / 15); }
+    function niveau() { return 1 + Math.floor((st.dag - 1) / 40) + Math.floor(st.beroemmelse / 15); }
 
     // ---------- Marked ----------
     function pris(vare, havnId) {
@@ -134,7 +252,7 @@
       var rel = koeb / v.pris;
       return { koeb: koeb, salg: Math.max(1, Math.round(koeb * SALG)), niveau: rel <= 0.8 ? 'billig' : rel >= 1.25 ? 'dyr' : 'normal' };
     }
-    function kanHandle() { return !st.over && !st.rejse; }
+    function kanHandle() { return !st.over && !!st.havn && !(st.moede && !st.moede.slut); }
     function koeb(vare, n) {
       if (!kanHandle() || !vareById(vare)) return { ok: false, grund: 'ikke-i-havn' };
       var max = n === 'alt' ? Infinity : n, antal = 0, betalt = 0;
@@ -239,45 +357,110 @@
       st.guld -= kan * p; st.proviant += kan;
       return { ok: true, antal: kan, pris: kan * p };
     }
-    // Et rygte om en god pris et andet sted (bedste salg af en vare, man kan købe billigt her)
+    // Et rygte om en god pris i en havn, man kender (bedste salg af en vare, man kan købe her)
     function rygte() {
       var bedst = null;
+      if (!st.havn) return null;
       VARER.forEach(function (v) {
         var her = pris(v.id).koeb;
         HAVNE.forEach(function (h) {
-          if (h.id === st.havn) return;
+          if (h.id === st.havn || !st.kendt[h.id]) return;
           var s = pris(v.id, h.id).salg, gevinst = s - her;
           if (!bedst || gevinst > bedst.gevinst) bedst = { vare: v.id, havn: h.id, salg: s, koeb: her, gevinst: gevinst };
         });
       });
       return bedst;
     }
-
-    // ---------- Rejse ----------
-    function rejseDage(til) { return Math.max(1, Math.ceil(afstand(st.havn, til) * 14 / fart())); }
-    function rejseInfo(til) {
-      var d = rejseDage(til);
-      return { dage: d, proviant: d, nok: st.proviant >= d, havn: havnById(til) };
+    // Køb et rygte om den nærmeste ukendte havn: den kommer på kortet med lidt hav omkring.
+    function rygtePris() { return HAVNE.some(function (h) { return !st.kendt[h.id]; }) ? RYGTE_PRIS : null; }
+    function rygteHavn() {
+      if (!kanHandle()) return { ok: false };
+      var ukendte = HAVNE.filter(function (h) { return !st.kendt[h.id]; });
+      if (!ukendte.length) return { ok: false, grund: 'alle' };
+      if (st.guld < RYGTE_PRIS) return { ok: false, grund: 'guld', mangler: RYGTE_PRIS - st.guld };
+      var x = st.pos[0], y = st.pos[1];
+      ukendte.sort(function (a, b) {
+        var pa = st.havnePos[a.id], pb = st.havnePos[b.id];
+        return (Math.pow(pa[0] - x, 2) + Math.pow(pa[1] - y, 2)) - (Math.pow(pb[0] - x, 2) + Math.pow(pb[1] - y, 2));
+      });
+      var h = ukendte[0].id, p = st.havnePos[h];
+      st.guld -= RYGTE_PRIS; st.kendt[h] = true; afsloer(p[0], p[1], 1);
+      return { ok: true, havn: h, pris: RYGTE_PRIS };
     }
-    function sejl(til) {
-      if (st.over || st.rejse || !havnById(til) || til === st.havn) return null;
-      var dage = rejseDage(til);
-      st.rejse = { fra: st.havn, til: til, dage: dage };
-      st.dag += dage; st.tal.rejser++;
-      var sult = spis(dage);
-      if (st.over) return { dage: dage, moede: null, sult: sult };
-      // Et møde undervejs?
-      var moede = null;
-      var chance = Math.min(0.8, 0.3 + 0.1 * dage);
-      if (rng(st) < chance) {
-        var flaade = havnById(til).flaade || havnById(st.havn).flaade, skjul = havnById(til).skjul || havnById(st.havn).skjul;
-        var w = { handel: 35, pirat: 28 + (skjul ? 22 : 0), marine: 6 + st.beroemmelse * 0.6 + (flaade ? 15 : 0), storm: 14 };
-        var slags = vaegtet(st, w);
-        moede = slags === 'storm' ? { slags: 'storm', dagNr: rint(st, 1, dage) } : nytSkib(slags);
-        moede.dagNr = rint(st, 1, dage);
+    // Kikkert fra værftet: længere synsvidde
+    function kikkertPris() { var k = st.kikkert || 0; return k >= KIKKERT_PRIS.length ? null : KIKKERT_PRIS[k]; }
+    function koebKikkert() {
+      if (!kanHandle()) return { ok: false };
+      var p = kikkertPris();
+      if (p === null) return { ok: false, grund: 'max' };
+      if (st.guld < p) return { ok: false, grund: 'guld', mangler: p - st.guld };
+      st.guld -= p; st.kikkert = (st.kikkert || 0) + 1; st.investeret += p;
+      opdag();
+      return { ok: true, pris: p, syn: synsvidde() };
+    }
+
+    // ---------- Til søs: ét felt er én dag ----------
+    function kanSejle() { return !st.over && !(st.moede && !st.moede.slut); }
+    function synligeIds() { return synligeSkibe().map(function (s) { return s.id; }); }
+    function flyt(dx, dy, auto) {
+      if (!kanSejle()) return { ok: false, grund: st.over ? 'over' : 'moede' };
+      dx = clamp(Math.round(dx) || 0, -1, 1); dy = clamp(Math.round(dy) || 0, -1, 1);
+      if (!dx && !dy) return { ok: false, grund: 'stille' };
+      var nx = st.pos[0] + dx, ny = st.pos[1] + dy;
+      if (erLand(nx, ny)) return { ok: false, grund: ude(nx, ny) ? 'kant' : 'land' };
+      if (st.moede) efterMoede();
+      if (!auto) st.kurs = null;
+      var andet = skibPaa(nx, ny);
+      if (andet && !st.havn) {
+        var mm = startMoede(andet);
+        return { ok: true, dag: st.dag, sult: null, nyeHavne: [], havn: null, moede: mm, nyeSkibe: [] };
       }
-      st.moede = moede;
-      return { dage: dage, moede: moede, sult: sult };
+      var foer = synligeIds();
+      st.havn = null;
+      st.pos = [nx, ny];
+      return efterDag(foer, true);
+    }
+    // Lig stille en dag (kun til søs): skibene omkring sejler videre.
+    function vent() {
+      if (!kanSejle() || st.havn) return { ok: false, grund: st.havn ? 'havn' : 'moede' };
+      if (st.moede) efterMoede();
+      st.kurs = null;
+      return efterDag(synligeIds(), false);
+    }
+    function efterDag(foer, flyttede) {
+      var r = { ok: true, sult: null, nyeHavne: [], havn: null, moede: null, nyeSkibe: [] };
+      st.dag++; if (flyttede) st.tal.felter = (st.tal.felter || 0) + 1;
+      r.sult = spis(1);
+      r.dag = st.dag;
+      if (st.over) return r;
+      r.nyeHavne = opdag();
+      var h = havnVed(st.pos[0], st.pos[1]);
+      if (h) { anloeb(h); r.havn = h; }
+      st.skibe = st.skibe.filter(skibTrin);
+      nyeSkibe();
+      if (!h) {
+        var naer = null;
+        st.skibe.forEach(function (s) { if (cheb(s.x, s.y, st.pos[0], st.pos[1]) <= 1 && !naer) naer = s; });
+        if (naer) r.moede = startMoede(naer);
+        else if (rng(st) < STORM_CHANCE) { st.moede = { slags: 'storm', slut: null }; st.kurs = null; r.moede = st.moede; }
+      }
+      r.nyeSkibe = synligeIds().filter(function (id) { return foer.indexOf(id) < 0; });
+      return r;
+    }
+    function anloeb(h) {
+      st.havn = h; st.sidste = h; st.kendt[h] = true; st.tal.rejser++;
+      st.besoeg[h] = (st.besoeg[h] || 0) + 1;
+      // Priserne ændrer sig over tid: havnen, man kommer til, får nye priser,
+      // og de andre havne glider lidt.
+      st.priser[h] = nyePriser(havnById(h));
+      HAVNE.forEach(function (o) {
+        if (o.id === h) return;
+        VARER.forEach(function (v) {
+          var base = FAKTOR[niveauI(o, v.id)], f = st.priser[o.id][v.id];
+          f = f + (base - f) * 0.25 + base * rfloat(st, -0.06, 0.06);
+          st.priser[o.id][v.id] = Math.round(clamp(f, base * 0.6, base * 1.4) * 1000) / 1000;
+        });
+      });
     }
     // Proviant pr. dag. Mangler der, mister man folk hver dag uden mad.
     function spis(dage) {
@@ -289,24 +472,137 @@
       if (st.mandskab <= 0) slut('sult');
       return uden ? { dage: uden, tab: tab } : null;
     }
-    function ankom() {
-      if (st.over || !st.rejse) return false;
-      if (st.moede && !st.moede.slut) return false;
-      var til = st.rejse.til;
-      st.havn = til; st.rejse = null; st.moede = null;
-      st.besoeg[til] = (st.besoeg[til] || 0) + 1;
-      // Priserne ændrer sig over tid: havnen, man kommer til, får nye priser,
-      // og de andre havne glider lidt.
-      st.priser[til] = nyePriser(havnById(til));
-      HAVNE.forEach(function (h) {
-        if (h.id === til) return;
-        VARER.forEach(function (v) {
-          var base = FAKTOR[niveauI(h, v.id)], f = st.priser[h.id][v.id];
-          f = f + (base - f) * 0.25 + base * rfloat(st, -0.06, 0.06);
-          st.priser[h.id][v.id] = Math.round(clamp(f, base * 0.6, base * 1.4) * 1000) / 1000;
-        });
-      });
+
+    // ---------- Andre skibe på havet ----------
+    function erFjendeTilSoes(s) { return s.slags === 'pirat' || (s.slags === 'marine' && st.beroemmelse >= 10); }
+    function optaget(x, y, selv) {
+      if (erLand(x, y) || havnVed(x, y)) return true;
+      if (x === st.pos[0] && y === st.pos[1]) return true;
+      var s = skibPaa(x, y); return !!(s && s !== selv);
+    }
+    function skibTrin(s) {
+      var d = cheb(s.x, s.y, st.pos[0], st.pos[1]);
+      if (d > 14) return false;
+      var maal, vaek = false, p;
+      if (erFjendeTilSoes(s) && d <= 5 && !st.havn) {
+        p = clamp(0.45 + 0.15 * (s.fart - fart()), 0.2, 0.9); maal = st.pos;
+      } else if (s.slags === 'handel' && d <= 2 && !st.havn) {
+        p = clamp(0.3 + 0.1 * (s.fart - fart()), 0.1, 0.8); maal = st.pos; vaek = true;
+      } else {
+        p = 0.5;
+        if (!s.maal || (s.x === s.maal[0] && s.y === s.maal[1]) || rng(st) < 0.05) {
+          s.maal = [clamp(s.x + rint(st, -8, 8), 0, BREDDE - 1), clamp(s.y + rint(st, -6, 6), 0, HOEJDE - 1)];
+        }
+        maal = s.maal;
+      }
+      if (rng(st) >= p) return true;
+      var bedst = null, bedstV = null, nu = afst(s.x, s.y, maal);
+      for (var r = 0; r < 8; r++) {
+        var x = s.x + RETNINGER[r][0], y = s.y + RETNINGER[r][1];
+        if (optaget(x, y, s)) continue;
+        var v = afst(x, y, maal) * (vaek ? -1 : 1) + rng(st) * 0.01;
+        if (bedstV === null || v < bedstV) { bedstV = v; bedst = [x, y]; }
+      }
+      if (bedst && (vaek ? -bedstV > nu - 0.001 : bedstV < nu + 0.5)) { s.x = bedst[0]; s.y = bedst[1]; }
       return true;
+    }
+    function afst(x, y, m) { return Math.sqrt(Math.pow(x - m[0], 2) + Math.pow(y - m[1], 2)); }
+    function nyeSkibe() {
+      var r = synsvidde();
+      var naer = st.skibe.filter(function (s) { return cheb(s.x, s.y, st.pos[0], st.pos[1]) <= r + 6; }).length;
+      if (naer >= 3 || rng(st) >= 0.25) return null;
+      var a = rint(st, r + 2, r + 5);
+      for (var t = 0; t < 30; t++) {
+        var dx = rint(st, -a, a), dy = rint(st, -a, a);
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== a) continue;
+        var x = st.pos[0] + dx, y = st.pos[1] + dy;
+        if (optaget(x, y, null)) continue;
+        var s = nytSoeSkib(x, y); st.skibe.push(s); return s;
+      }
+      return null;
+    }
+    function naerHavn(id, d) { var p = st.havnePos[id]; return p && cheb(p[0], p[1], st.pos[0], st.pos[1]) <= d; }
+    function nytSoeSkib(x, y) {
+      var skjul = naerHavn('ravnsoe', 7), flaade = naerHavn('kongshavn', 7);
+      var w = { handel: 35, pirat: 28 + (skjul ? 22 : 0), marine: 6 + st.beroemmelse * 0.6 + (flaade ? 15 : 0) };
+      var slags = vaegtet(st, w), lv = niveau();
+      return {
+        id: st.naesteId++, slags: slags, x: x, y: y, maal: null,
+        fart: slags === 'marine' ? 5 : slags === 'pirat' ? 4 + (lv > 2 ? 1 : 0) : 3,
+        skibstype: slags === 'marine' ? 'fregat' : slags === 'handel' ? (lv >= 3 ? 'brig' : 'slup') : (lv >= 2 ? 'brig' : 'slup')
+      };
+    }
+    function startMoede(s) {
+      var m = nytSkib(s.slags);
+      st.tal.moeder = (st.tal.moeder || 0) + 1;
+      m.skibId = s.id; m.afstand = 2; m.skibstype = s.skibstype; m.fart = s.fart;
+      st.moede = m; st.kurs = null;
+      return m;
+    }
+    // Når mødet er slut, forsvinder det andet skib fra havet.
+    function efterMoede() {
+      var m = st.moede;
+      if (!m || !m.slut) return false;
+      if (m.skibId) st.skibe = st.skibe.filter(function (s) { return s.id !== m.skibId; });
+      st.moede = null;
+      return true;
+    }
+
+    // ---------- Kurs mod en kendt havn (sejler selv over kendt hav) ----------
+    function sti(til) {
+      var m = st.havnePos[til];
+      if (!m || !st.kendt[til]) return null;
+      var s = st.pos;
+      if (s[0] === m[0] && s[1] === m[1]) return [];
+      var fra = {}, ko = [s], k0 = s[1] * BREDDE + s[0];
+      fra[k0] = -1;
+      while (ko.length) {
+        var p = ko.shift();
+        if (p[0] === m[0] && p[1] === m[1]) break;
+        for (var r = 0; r < 8; r++) {
+          var x = p[0] + RETNINGER[r][0], y = p[1] + RETNINGER[r][1], i = y * BREDDE + x;
+          if (erLand(x, y) || fra[i] !== undefined || !sett(x, y)) continue;
+          var hv = havnVed(x, y);
+          if (hv && hv !== til) continue;
+          fra[i] = p[1] * BREDDE + p[0]; ko.push([x, y]);
+        }
+      }
+      var mi = m[1] * BREDDE + m[0];
+      if (fra[mi] === undefined) return null;
+      var vej = [];
+      for (var c = mi; c !== k0; c = fra[c]) vej.unshift([c % BREDDE, Math.floor(c / BREDDE)]);
+      return vej;
+    }
+    function kursInfo(til) {
+      var v = sti(til);
+      return v ? { dage: v.length, proviant: v.length, nok: st.proviant >= v.length, havn: havnById(til), sti: v } : null;
+    }
+    function saetKurs(til) {
+      if (!kanSejle()) return { ok: false, grund: 'moede' };
+      if (!st.kendt[til]) return { ok: false, grund: 'ukendt' };
+      if (til === st.havn) return { ok: false, grund: 'her' };
+      var v = sti(til);
+      if (!v) return { ok: false, grund: 'ingen-vej' };
+      if (st.moede) efterMoede();
+      st.kurs = { til: til };
+      return { ok: true, dage: v.length };
+    }
+    function stopKurs() { st.kurs = null; }
+    // Ét skridt (én dag) ad kursen. r.stop siger, hvorfor sejladsen holder op.
+    function autoTrin() {
+      if (!st.kurs) return null;
+      var til = st.kurs.til, v = sti(til);
+      if (!v || !v.length) { st.kurs = null; return { ok: false, stop: 'ingen-vej' }; }
+      var p0 = st.proviant;
+      var r = flyt(v[0][0] - st.pos[0], v[0][1] - st.pos[1], true);
+      if (!r.ok) { st.kurs = null; r.stop = 'blokeret'; return r; }
+      if (st.over) r.stop = 'over';
+      else if (r.moede) r.stop = 'moede';
+      else if (r.havn) r.stop = r.havn === til ? 'fremme' : 'havn';
+      else if (r.nyeSkibe.length) r.stop = 'skib';
+      else if (p0 > 0 && st.proviant === 0) r.stop = 'proviant';
+      if (r.stop) st.kurs = null;
+      return r;
     }
 
     // ---------- Møder ----------
@@ -485,7 +781,7 @@
     // ---------- Slut og point ----------
     function lastVaerdi() { var s = 0; VARER.forEach(function (v) { s += st.last[v.id] * v.pris; }); return s; }
     function formue() { return st.guld + lastVaerdi() + (st.over && st.over.grund !== 'land' ? 0 : skibsvaerdi()); }
-    function point() { return formue() + 10 * st.beroemmelse; }
+    function point() { return formue() + BEROEMMELSE_FAKTOR * st.beroemmelse; }
     function slut(grund) {
       if (st.over) return st.over;
       st.over = { grund: grund };
@@ -495,7 +791,7 @@
     }
     function gaaILand() {
       if (st.over) return st.over;
-      if (st.rejse) return null;
+      if (!st.havn || (st.moede && !st.moede.slut)) return null;
       return slut('land');
     }
 
@@ -503,23 +799,30 @@
       get state() { return st; },
       VARER: VARER, HAVNE: HAVNE, SKIBE: SKIBE,
       type: type, lastrum: lastrum, lastIalt: lastIalt, fri: fri, fart: fart, maxSkrog: maxSkrog,
-      maxMandskab: maxMandskab, effKanoner: effKanoner, niveau: niveau,
+      maxMandskab: maxMandskab, effKanoner: effKanoner, niveau: niveau, kanHandle: kanHandle,
       pris: pris, koeb: koeb, saelg: saelg, gnsKoebt: gnsKoebt,
       reparationPris: reparationPris, reparer: reparer, kanonPris: kanonPris, koebKanon: koebKanon,
       opgraderPris: opgraderPris, opgrader: opgrader, naesteSkib: naesteSkib, koebSkib: koebSkib, skibsvaerdi: skibsvaerdi,
+      kikkertPris: kikkertPris, koebKikkert: koebKikkert,
       hyrePris: hyrePris, hyr: hyr, proviantPris: proviantPris, proviant: proviant, rygte: rygte,
-      rejseDage: rejseDage, rejseInfo: rejseInfo, sejl: sejl, ankom: ankom,
+      rygtePris: rygtePris, rygteHavn: rygteHavn,
+      felt: felt, sett: sett, iSyn: iSyn, synsvidde: synsvidde, havnVed: havnVed, havnePos: havnePos,
+      kendteHavne: kendteHavne, andelOpdaget: andelOpdaget, synligeSkibe: synligeSkibe, kanSejle: kanSejle,
+      flyt: flyt, vent: vent, sti: sti, kursInfo: kursInfo, saetKurs: saetKurs, stopKurs: stopKurs, autoTrin: autoTrin,
+      efterMoede: efterMoede,
       handling: handling, storm: storm, erFjendtlig: erFjendtlig,
       traefChance: traefChance, flugtChance: flugtChance, naermereChance: naermereChance, bordChance: bordChance,
       lastVaerdi: lastVaerdi, formue: formue, point: point, gaaILand: gaaILand, slut: slut,
       save: function () { return JSON.parse(JSON.stringify(st)); },
-      _rng: function () { return rng(st); }
+      _rng: function () { return rng(st); },
+      _nytSkib: function (slags, x, y) { var s = nytSoeSkib(x, y); s.slags = slags; st.skibe.push(s); return s; }
     };
   }
 
   global.KaperenLogik = {
     createGame: createGame, VARER: VARER, HAVNE: HAVNE, SKIBE: SKIBE, havnById: havnById, vareById: vareById,
-    skibById: skibById, afstand: afstand, AFSTANDE: AFSTANDE, PROVIANT_MAX: PROVIANT_MAX, KANON_PRIS: KANON_PRIS,
-    REPARATION: REPARATION, TRAEF: TRAEF, START: START
+    skibById: skibById, AFSTANDE: AFSTANDE, PROVIANT_MAX: PROVIANT_MAX, KANON_PRIS: KANON_PRIS,
+    REPARATION: REPARATION, TRAEF: TRAEF, START: START, BREDDE: BREDDE, HOEJDE: HOEJDE, SYN: SYN,
+    KIKKERT_PRIS: KIKKERT_PRIS, RYGTE_PRIS: RYGTE_PRIS, BEROEMMELSE_FAKTOR: BEROEMMELSE_FAKTOR, RETNINGER: RETNINGER
   };
 })(typeof window !== 'undefined' ? window : globalThis);

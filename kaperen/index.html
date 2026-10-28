@@ -51,7 +51,8 @@
   <section class="panel om-panel">
     <h2 id="om-title" class="neon-sub">Om Hojt Arkade</h2>
     <p data-trin>Hojt Arkade er udviklet af Jon Leismann Engsager, Hojt Design. Jon er IT- og IKT-konsulent i det specialiserede område og laver blandt andet gratis spil til voksne, der bruger øjenstyring.</p>
-    <p data-trin>Kaperen: handl med rom, sukker, krydderier, tobak og silke mellem otte havne. En rejse tager dage og koster proviant. Til søs kan du møde handelsskibe, sørøvere, marinen eller en storm. Alt sker i ture: skyd, ryk nærmere, bord eller flyg. Spillet slutter, når skibet synker, eller marinen tager dig – eller når du selv går i land med din formue.</p>
+    <p data-trin>Kaperen: du starter med en slup og 300 guld i en ukendt øverden. Havet ligger i tåge, til du har sejlet derhen – felt for felt, én dag ad gangen, og hver dag koster proviant. Opdag havne, handl med rom, sukker, krydderier, tobak og silke, eller kapr andre skibe.</p>
+    <p data-trin>Til søs kan du møde handelsskibe, sørøvere, marinen eller en storm. Spillet slutter, når skibet synker, eller marinen tager dig – eller når du selv går i land med din formue og din berømmelse.</p>
     <p data-trin>Koden er åben og frit tilgængelig under MIT-licensen, så alle kan bruge den og bygge videre på den.</p>
   </section>
   <div class="row" data-trin>
@@ -87,7 +88,7 @@
         <button class="btn option fane-btn" data-fane="marked" role="tab"><svg aria-hidden="true"><use href="#kap-ikon-marked"/></svg><span class="big">Marked</span></button>
         <button class="btn option fane-btn" data-fane="vaerft" role="tab"><svg aria-hidden="true"><use href="#kap-ikon-vaerft"/></svg><span class="big">Værft</span></button>
         <button class="btn option fane-btn" data-fane="vaerthus" role="tab"><svg aria-hidden="true"><use href="#kap-ikon-vaerthus"/></svg><span class="big">Værtshus</span></button>
-        <button class="btn primary fane-btn" id="btn-til-soes"><svg aria-hidden="true"><use href="#kap-ikon-kort"/></svg><span class="big">Til søs</span></button>
+        <button class="btn primary fane-btn" id="btn-til-soes"><svg aria-hidden="true"><use href="#kap-ikon-sejl"/></svg><span class="big">Til søs</span></button>
       </div>
       <div class="havn-indhold">
         <div class="havn-top">
@@ -111,6 +112,7 @@
           <button class="btn kob-btn" data-vaerft="sejl"><svg aria-hidden="true"><use href="#kap-ikon-sejl"/></svg><span class="kob-navn">Bedre sejl</span><span class="kob-pris"></span></button>
           <button class="btn kob-btn" data-vaerft="lastrum"><svg aria-hidden="true"><use href="#kap-ikon-lastrum"/></svg><span class="kob-navn">Større lastrum</span><span class="kob-pris"></span></button>
           <button class="btn kob-btn" data-vaerft="skib"><svg aria-hidden="true"><use href="#kap-ikon-nytskib"/></svg><span class="kob-navn">Større skib</span><span class="kob-pris"></span></button>
+          <button class="btn kob-btn" data-vaerft="kikkert"><svg aria-hidden="true"><use href="#kap-ikon-kikkert"/></svg><span class="kob-navn">Kikkert</span><span class="kob-pris"></span></button>
           <div class="skib-kort" id="skib-kort" aria-live="polite"></div>
         </div>
         <div class="fane knapgitter" data-panel="vaerthus" role="group" aria-label="Værtshuset" hidden>
@@ -119,25 +121,60 @@
           <button class="btn kob-btn" data-hyr="alt"><svg aria-hidden="true"><use href="#kap-ikon-mandskab"/></svg><span class="kob-navn">Hyr fuldt</span><span class="kob-pris"></span></button>
           <button class="btn kob-btn" data-proviant="5"><svg aria-hidden="true"><use href="#kap-ikon-proviant"/></svg><span class="kob-navn">Proviant 5 dage</span><span class="kob-pris"></span></button>
           <button class="btn kob-btn" data-proviant="alt"><svg aria-hidden="true"><use href="#kap-ikon-proviant"/></svg><span class="kob-navn">Fyld proviant</span><span class="kob-pris"></span></button>
+          <button class="btn kob-btn" id="btn-rygte"><svg aria-hidden="true"><use href="#kap-ikon-rygte"/></svg><span class="kob-navn">Rygte om en havn</span><span class="kob-pris"></span></button>
           <div class="skib-kort rygte" id="rygte" aria-live="polite"></div>
         </div>
       </div>
     </section>
 
-    <!-- Kortet -->
-    <section class="view v-kort" id="v-kort" aria-label="Kortet" hidden>
+    <!-- Havet omkring skibet (tåge over det ukendte) -->
+    <section class="view v-hav" id="v-hav" aria-label="Havet" hidden>
+      <div class="hav-boks" id="hav-boks">
+        <svg class="kort-svg" id="hav-svg" role="img" aria-label="Havet omkring skibet"></svg>
+        <div class="felt-lag" id="felt-lag" role="group" aria-label="Sejl til et nabofelt">
+        <button class="felt-btn" data-ret="7" data-dwell-repeat tabindex="-1" aria-label="Sejl mod nordvest"></button>
+        <button class="felt-btn" data-ret="0" data-dwell-repeat tabindex="-1" aria-label="Sejl mod nord"></button>
+        <button class="felt-btn" data-ret="1" data-dwell-repeat tabindex="-1" aria-label="Sejl mod nordøst"></button>
+        <button class="felt-btn" data-ret="6" data-dwell-repeat tabindex="-1" aria-label="Sejl mod vest"></button>
+        <button class="felt-btn" data-ret="2" data-dwell-repeat tabindex="-1" aria-label="Sejl mod øst"></button>
+        <button class="felt-btn" data-ret="5" data-dwell-repeat tabindex="-1" aria-label="Sejl mod sydvest"></button>
+        <button class="felt-btn" data-ret="4" data-dwell-repeat tabindex="-1" aria-label="Sejl mod syd"></button>
+        <button class="felt-btn" data-ret="3" data-dwell-repeat tabindex="-1" aria-label="Sejl mod sydøst"></button>
+        </div>
+        <div class="scene-info" id="hav-info" aria-live="polite"></div>
+        <p class="scene-log" id="hav-log" aria-live="polite"></p>
+      </div>
+      <div class="hav-panel" id="hav-panel" role="group" aria-label="Sejl">
+        <div class="kompas-gitter">
+          <button class="btn ret-btn" data-ret="7" data-dwell-repeat aria-label="Sejl mod nordvest"><svg aria-hidden="true" style="--rot:315deg"><use href="#kap-ikon-pil"/></svg><span class="big">NV</span></button>
+          <button class="btn ret-btn" data-ret="0" data-dwell-repeat aria-label="Sejl mod nord"><svg aria-hidden="true" style="--rot:0deg"><use href="#kap-ikon-pil"/></svg><span class="big">N</span></button>
+          <button class="btn ret-btn" data-ret="1" data-dwell-repeat aria-label="Sejl mod nordøst"><svg aria-hidden="true" style="--rot:45deg"><use href="#kap-ikon-pil"/></svg><span class="big">NØ</span></button>
+          <button class="btn ret-btn" data-ret="6" data-dwell-repeat aria-label="Sejl mod vest"><svg aria-hidden="true" style="--rot:270deg"><use href="#kap-ikon-pil"/></svg><span class="big">V</span></button>
+          <button class="btn ret-btn kort-ret" id="btn-hav-kort"><svg aria-hidden="true"><use href="#kap-ikon-kort"/></svg><span class="big">Kort</span></button>
+          <button class="btn ret-btn" data-ret="2" data-dwell-repeat aria-label="Sejl mod øst"><svg aria-hidden="true" style="--rot:90deg"><use href="#kap-ikon-pil"/></svg><span class="big">Ø</span></button>
+          <button class="btn ret-btn" data-ret="5" data-dwell-repeat aria-label="Sejl mod sydvest"><svg aria-hidden="true" style="--rot:225deg"><use href="#kap-ikon-pil"/></svg><span class="big">SV</span></button>
+          <button class="btn ret-btn" data-ret="4" data-dwell-repeat aria-label="Sejl mod syd"><svg aria-hidden="true" style="--rot:180deg"><use href="#kap-ikon-pil"/></svg><span class="big">S</span></button>
+          <button class="btn ret-btn" data-ret="3" data-dwell-repeat aria-label="Sejl mod sydøst"><svg aria-hidden="true" style="--rot:135deg"><use href="#kap-ikon-pil"/></svg><span class="big">SØ</span></button>
+        </div>
+        <button class="btn primary hav-ekstra" id="btn-hav-ekstra"><svg aria-hidden="true"><use href="#kap-ikon-vent"/></svg><span class="big">Vent en dag</span><span class="small"></span></button>
+      </div>
+    </section>
+
+    <!-- Søkortet: det, du har opdaget -->
+    <section class="view v-kort" id="v-kort" aria-label="Søkortet" hidden>
       <div class="kort-boks" id="kort-boks">
-        <svg class="kort-svg" id="kort-svg" role="img" aria-label="Kort over øhavet"></svg>
-        <div class="havne-lag" id="havne-lag" role="group" aria-label="Havne"></div>
-        <div class="kortskib" id="kortskib" hidden><svg viewBox="0 0 40 40" aria-hidden="true"><use href="#kap-kortskib"/></svg></div>
+        <svg class="kort-svg" id="kort-svg" role="img" aria-label="Søkort over det, du har opdaget"></svg>
+        <div class="scene-info" id="kort-chips"></div>
       </div>
       <div class="kort-panel">
         <div class="kort-tekst">
-          <h2 class="kort-titel" id="kort-titel">Vælg en havn</h2>
+          <h2 class="kort-titel" id="kort-titel">Søkortet</h2>
           <p class="kort-info" id="kort-info"></p>
         </div>
-        <button class="btn primary kort-knap" id="btn-sejl"><svg aria-hidden="true"><use href="#kap-ikon-sejl"/></svg><span class="big">Sæt sejl</span></button>
-        <button class="btn kort-knap" id="btn-kort-tilbage"><svg aria-hidden="true"><use href="#kap-ikon-anker"/></svg><span class="big">Bliv i havnen</span></button>
+        <button class="btn kort-knap" id="btn-havn-forrige"><span class="icon" aria-hidden="true">‹</span><span class="big">Forrige havn</span></button>
+        <button class="btn kort-knap" id="btn-havn-naeste"><span class="icon" aria-hidden="true">›</span><span class="big">Næste havn</span></button>
+        <button class="btn primary kort-knap" id="btn-kurs"><svg aria-hidden="true"><use href="#kap-ikon-kurs"/></svg><span class="big">Sæt kurs</span><span class="small"></span></button>
+        <button class="btn kort-knap" id="btn-kort-tilbage"><svg aria-hidden="true"><use href="#kap-ikon-tilbage"/></svg><span class="big">Tilbage</span></button>
       </div>
     </section>
 

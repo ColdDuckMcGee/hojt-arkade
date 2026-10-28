@@ -163,18 +163,32 @@ ol.records .score { white-space: nowrap; }
 .kap-hav-boelge { fill: none; stroke: var(--kap-hav-boelge); stroke-width: var(--kap-streg-w); stroke-linecap: round; }
 .kap-hav-tekstur { opacity: var(--kap-hav-moenster-synlig); }
 .kap-horisont { stroke: var(--kap-horisont); stroke-width: var(--kap-streg-w); filter: var(--kap-gloed-filter-accent); }
-.kap-rute { stroke: var(--kap-rute); stroke-width: var(--kap-rute-w); stroke-dasharray: 4 10; stroke-linecap: round; fill: none; }
-.kap-rute-valgt { stroke: var(--kap-rute-valgt); stroke-width: var(--kap-rute-valgt-w); stroke-dasharray: 10 8; filter: var(--kap-gloed-filter); }
-.kap-oe, .kap-skib-g, .kap-effekt, .kap-storm, .menu-skib use { filter: var(--kap-skygge) var(--kap-gloed-filter); }
-.kap-oe-pynt { opacity: 0.8; }
-.kap-oe-strand, .kap-oe-land, .kap-oe-top { vector-effect: non-scaling-stroke; }
-.kap-oe-strand { fill: var(--kap-oe-strand); stroke: var(--kap-oe-strand-kant); stroke-width: var(--kap-streg-w); }
-.kap-oe-land { fill: var(--kap-oe-land); stroke: var(--kap-kontur); stroke-width: var(--kap-kontur-w); }
-.kap-oe-top { fill: var(--kap-oe-top-fyld); stroke: var(--kap-oe-top); stroke-width: calc(var(--kap-streg-w) * 1.2); stroke-linecap: round; stroke-linejoin: round; }
-.kap-kompas { opacity: 0.8; }
-.kap-kompas-ring { fill: none; stroke: var(--kap-kompas); stroke-width: var(--kap-streg-w); }
-.kap-kompas-pil { fill: var(--kap-kompas-pil); stroke: var(--kap-kontur); stroke-width: var(--kap-kontur-w); }
-.kap-kompas-n { fill: none; stroke: var(--kap-kompas); stroke-width: var(--kap-streg-w); }
+.kap-skib-g, .kap-effekt, .kap-storm, .menu-skib use, .kap-topskib, .kap-felt-havn { filter: var(--kap-skygge) var(--kap-gloed-filter); }
+/* Havfelterne */
+.kap-felt-land-flade { fill: var(--kap-felt-land); }
+.kap-kyst { fill: none; stroke: var(--kap-kyst); stroke-width: var(--kap-kyst-w); stroke-linecap: round; filter: var(--kap-gloed-filter); }
+.kap-felt-top-streg, .kap-felt-top-fyld, .kap-havn-mole, .kap-havn-hus, .kap-havn-lys, .kap-maal-ring { vector-effect: non-scaling-stroke; stroke-linecap: round; stroke-linejoin: round; }
+.kap-felt-top-streg { fill: none; stroke: var(--kap-felt-top); stroke-width: var(--kap-streg-w); }
+.kap-felt-top-fyld { fill: var(--kap-felt-top-fyld); stroke: var(--kap-felt-top); stroke-width: var(--kap-streg-w); }
+.kap-gitter { fill: none; stroke: var(--kap-gitter); stroke-width: 1; }
+.kap-havn-mole { fill: var(--kap-havn-mole); stroke: var(--kap-kontur); stroke-width: var(--kap-kontur-w); }
+.kap-havn-hus { fill: var(--kap-hav-1); stroke: var(--kap-havn-hus); stroke-width: var(--kap-streg-w); }
+.kap-havn-lys { fill: var(--kap-havn-lys); stroke: var(--kap-kontur); stroke-width: var(--kap-kontur-w); }
+.kap-havn-navn { fill: var(--kap-havn-navn); font-family: var(--kap-font); font-weight: 800; paint-order: stroke; stroke: var(--kap-hav-1); stroke-width: 4px; stroke-linejoin: round; }
+.kap-havn-navn-valgt { fill: var(--kap-havn-navn-valgt); }
+.kap-kurs { fill: var(--kap-kurs); }
+.kap-maal-ring { fill: none; stroke: var(--kap-maal); stroke-width: calc(var(--kap-streg-w) * 1.4); }
+.kap-maal-g { filter: var(--kap-gloed-filter); }
+.kap-taage rect { fill: var(--kap-taage); }
+.kap-taage-tekstur { opacity: var(--kap-taage-moenster-synlig); }
+.kap-taage-sky { fill: var(--kap-taage-sky); }
+.kap-taage-sloer { fill: none; stroke: var(--kap-taage-sloer); stroke-width: 2; stroke-linecap: round; }
+.kap-dunkel rect { fill: var(--kap-dunkel); }
+.kap-verdens-kant rect { fill: var(--kap-verdens-kant); }
+.kap-synsvidde { fill: none; stroke: var(--kap-synsvidde); stroke-width: 2; stroke-dasharray: 6 8; }
+.kap-topskib-handel { --kap-kortskib: var(--kap-flag-handel); }
+.kap-topskib-pirat { --kap-kortskib: var(--kap-flag-pirat); }
+.kap-topskib-marine { --kap-kortskib: var(--kap-flag-marine); }
 
 .kap-skrog { fill: var(--kap-skrog); stroke: var(--kap-skrog-kant); stroke-width: var(--kap-streg-w); stroke-linejoin: round; }
 .kap-skrog-kant { fill: none; stroke: var(--kap-skrog-kant); stroke-width: calc(var(--kap-streg-w) * 0.6); }
@@ -266,7 +280,7 @@ ol.records .score { white-space: nowrap; }
 .handel { display: grid; grid-template-columns: repeat(var(--handel-cols, 6), minmax(0, 1fr)); gap: var(--ig, 10px); }
 .handel-btn { height: var(--btn); padding: 4px 6px; gap: 2px; }
 
-.knapgitter { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: minmax(var(--btn), auto); gap: var(--ig, 10px); }
+.knapgitter { display: grid !important; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: minmax(var(--btn), auto); gap: var(--ig, 10px); }
 .knapgitter[hidden] { display: none !important; }
 .kob-btn { display: grid !important; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "ico navn" "ico pris"; align-items: center; justify-items: start; column-gap: 8px; row-gap: 2px; padding: 4px 10px !important; text-align: left; }
 .kob-btn svg { grid-area: ico; width: clamp(24px, calc(var(--btn) * 0.32), 52px); height: clamp(24px, calc(var(--btn) * 0.32), 52px); }
@@ -275,33 +289,51 @@ ol.records .score { white-space: nowrap; }
 .kob-btn.dyr .kob-pris { color: var(--kap-fejl); }
 .kob-btn.max .kob-pris { color: var(--kap-ok); }
 .skib-kort { padding: 6px 10px; background: var(--kap-hud-bg); border: var(--kap-block-w) solid var(--kap-hud-border); border-radius: var(--kap-radius-hud); font-size: clamp(0.85rem, calc(var(--btn) * 0.12), 1.15rem); line-height: 1.3; display: flex; flex-direction: column; justify-content: center; min-width: 0; }
+.skib-kort { grid-column: span 2; }
 .skib-kort b { color: var(--accent); }
 .lay-hoej .knapgitter { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .lay-hoej .skib-kort { grid-column: span 2; }
 
-/* Kortet */
-.v-kort { display: grid; gap: var(--ig, 10px); grid-template-columns: minmax(0, 1fr) var(--kpanel-w, 320px); grid-template-rows: minmax(0, 1fr); }
-.lay-hoej .v-kort { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
-.kort-boks { position: relative; min-height: var(--kort-min, 272px); min-width: 0; border-radius: var(--kap-radius-kort); overflow: hidden; box-shadow: var(--kap-kort-gloed); border: var(--kap-frame-w) solid var(--ui-soft); }
+/* Havet omkring skibet */
+.v-hav { display: grid; gap: var(--ig, 10px); grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: minmax(0, 1fr); }
+.lay-hoej .v-hav { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(var(--kort-min, 272px), 1fr) auto; }
+.hav-boks, .kort-boks { position: relative; min-height: var(--kort-min, 272px); min-width: 0; border-radius: var(--kap-radius-kort); overflow: hidden; box-shadow: var(--kap-kort-gloed); border: var(--kap-frame-w) solid var(--ui-soft); background: var(--kap-verdens-kant); }
 .kort-svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-.havne-lag { position: absolute; inset: 0; }
-.havn-btn { position: absolute; padding: 2px 6px !important; background: var(--kap-havn-bg) !important; gap: 0 !important; }
-.havn-btn .big { font-size: min(clamp(0.9rem, calc(var(--hh, 80px) * 0.2), 1.4rem), calc(var(--hw, 200px) * 0.12)) !important; white-space: nowrap; }
-.havn-btn .small { font-size: min(clamp(0.75rem, calc(var(--hh, 80px) * 0.15), 1.05rem), calc(var(--hw, 200px) * 0.1)) !important; white-space: nowrap; color: var(--muted); }
-.havn-btn[aria-current="location"] { background: var(--kap-havn-her) !important; }
-.havn-btn[aria-current="location"] .small { color: var(--ui-text); }
-.havn-btn[aria-pressed="true"] { background: var(--ui) !important; }
-.havn-btn[aria-pressed="true"] .small { color: var(--bg); }
-.kortskib { position: absolute; left: 0; top: 0; width: 44px; height: 44px; margin: -22px 0 0 -22px; pointer-events: none; z-index: 3; filter: var(--kap-gloed-filter); }
-.kortskib svg { width: 100%; height: 100%; display: block; }
-.kort-panel { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr auto; gap: var(--ig, 10px); min-width: 0; align-content: end; }
+.felt-lag { position: absolute; inset: 0; pointer-events: none; }
+.felt-btn { position: absolute; pointer-events: auto; padding: 0; margin: 0; background: transparent; border: var(--kap-block-w) solid transparent; border-radius: 10px; cursor: pointer; }
+.felt-btn:hover, .felt-btn:focus-visible, .felt-btn.arkade-dwelling { background: var(--kap-felt-valg); border-color: var(--kap-felt-valg-kant); }
+.felt-btn:disabled { visibility: hidden; }
+.v-hav .scene-log { pointer-events: none; }
+.scene-log.err { color: var(--kap-fejl); }
+.scene-log.ok { color: var(--kap-ok); }
+.hav-panel { display: flex; flex-direction: column; gap: var(--ig, 10px); justify-content: center; align-items: stretch; min-width: 0; }
+.kompas-gitter { display: grid; grid-template-columns: repeat(3, var(--btn)); grid-template-rows: repeat(3, var(--btn)); gap: var(--ig, 10px); }
+.ret-btn { width: 100%; height: 100%; padding: 2px !important; gap: 0 !important; }
+.ret-btn svg { width: calc(var(--btn) * 0.38); height: calc(var(--btn) * 0.38); transform: rotate(var(--rot, 0deg)); flex: none; }
+.kort-ret svg { transform: none; }
+.hav-ekstra { height: var(--btn); padding: 4px 6px; gap: 2px; }
+.hav-ekstra svg { width: calc(var(--btn) * 0.3); height: calc(var(--btn) * 0.3); flex: none; }
+.lav .hav-panel, .lay-hoej .hav-panel { flex-direction: row; justify-content: center; }
+.hav-ekstra { flex: none; }
+.lav .hav-ekstra { height: auto; width: calc(var(--btn) * 1.15); }
+.lay-hoej .hav-panel { flex-direction: column; align-items: center; }
+.lay-hoej .hav-ekstra { width: 100%; flex-direction: row; gap: 10px; }
+
+/* Søkortet */
+.v-kort { display: grid; gap: var(--ig, 10px); grid-template-columns: minmax(0, 1fr) var(--kpanel-w, 320px); grid-template-rows: minmax(0, 1fr); }
+.lay-hoej .v-kort { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(var(--kort-min, 272px), 1fr) auto; }
+.kort-svg { cursor: pointer; }
+.kort-panel { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr auto auto; gap: var(--ig, 10px); min-width: 0; align-content: end; }
+.lay-hoej .kort-panel { grid-template-rows: auto auto auto; }
 .kort-tekst { grid-column: 1 / -1; align-self: end; min-width: 0; }
 .kort-titel { margin: 0 0 4px; font-size: clamp(1.2rem, calc(var(--btn) * 0.2), 2rem); color: var(--accent); line-height: 1.15; }
 .kort-info { margin: 0; font-size: clamp(0.95rem, calc(var(--btn) * 0.13), 1.25rem); line-height: 1.3; color: var(--ui-text); }
 .kort-info .err { color: var(--kap-fejl); }
 .kort-info .ok { color: var(--kap-ok); }
 .kort-knap { height: var(--btn); padding: 4px 6px; gap: 2px; }
+.kort-knap .icon { font-size: 1.6rem; line-height: 1; }
 .kort-knap svg, .moede-btn svg { width: calc(var(--btn) * 0.3); height: calc(var(--btn) * 0.3); flex: none; }
+.kort-knap .small { color: var(--muted); }
 
 /* Mødet */
 .v-moede { display: grid; gap: var(--ig, 10px); grid-template-columns: minmax(0, 1fr) var(--mpanel-w, 320px); grid-template-rows: minmax(0, 1fr); }

@@ -29,7 +29,7 @@
   // ---------- Rejsen, der er i gang ----------
   var SAVE_KEY = 'hojtArkade.kaperen.spil';
   function loadGame() {
-    try { var raw = localStorage.getItem(SAVE_KEY); var g = raw ? JSON.parse(raw) : null; return g && !g.over && g.havn && g.skib ? g : null; } catch (e) { return null; }
+    try { var raw = localStorage.getItem(SAVE_KEY); var g = raw ? JSON.parse(raw) : null; return g && !g.over && g.skib && (g.havn || g.pos || g.rejse) ? g : null; } catch (e) { return null; }
   }
   function saveGame() {
     try {
@@ -110,7 +110,7 @@
     root.classList.toggle('kap-stille', !animationOn());
     $('#motion-note').textContent = reducedMotionMq.matches
       ? 'Slået fra, fordi din computer er sat til mindre bevægelse'
-      : 'Bevægelse i baggrunden og skibet, der sejler på kortet';
+      : 'Bevægelse i baggrunden, og skibet sejler felt for felt efter kursen';
   }
   if (reducedMotionMq.addEventListener) reducedMotionMq.addEventListener('change', applyAnimation);
   arkade.onChange(function (key, value) {
@@ -166,7 +166,7 @@
     var gemt = loadGame();
     if (gemt) {
       $('#btn-start-label').textContent = 'Fortsæt rejsen';
-      $('#btn-start-sub').textContent = 'Dag ' + gemt.dag + ' · ' + havnNavn(gemt.havn) + ' · ' + guld(gemt.guld);
+      $('#btn-start-sub').textContent = 'Dag ' + gemt.dag + ' · ' + (gemt.havn ? havnNavn(gemt.havn) : 'til søs') + ' · ' + guld(gemt.guld);
     } else {
       $('#btn-start-label').textContent = 'Ny rejse';
       $('#btn-start-sub').textContent = 'En lille slup og ' + guld(L.START.guld);
@@ -238,8 +238,8 @@
   onAct($('#btn-bekraeft-ja'), function () { var f = bekraeftJa; lukBekraeft(); sfx('click'); if (f) f(); });
 
   // ---------- Rejsen ----------
-  // view: 'havn', 'kort' eller 'moede'. fane: 'marked', 'vaerft' eller 'vaerthus'.
-  var view = 'havn', fane = 'marked', valgtVare = 'rom', valgtHavn = null, sejler = false;
+  // view: 'havn', 'hav', 'kort' eller 'moede'. fane: 'marked', 'vaerft' eller 'vaerthus'.
+  var view = 'havn', fane = 'marked', valgtVare = 'rom';
   var besked = { tekst: '', cls: '' }, moedeLog = '', paused = false, slutVist = false;
   var OVERLAYS = ['#pause-overlay', '#slut-overlay'];
   function overlayOpen() { return bekraeftOpen() || OVERLAYS.some(function (o) { return !$(o).hidden; }); }
@@ -248,22 +248,24 @@
 
   function nyRejse() {
     game = L.createGame();
-    slutVist = false; valgtVare = 'rom'; valgtHavn = null; sejler = false;
+    slutVist = false; valgtVare = 'rom'; valgtHavn = null; afgang = null; retning = 0; clearTimeout(kursTimer);
     view = 'havn'; fane = 'marked';
-    setBesked('Velkommen om bord! Du ligger i ' + havnNavn(game.state.havn) + ' med en lille slup. Køb billigt, sælg dyrt – og pas på sørøverne.');
+    setBesked('Velkommen om bord! Du ligger i ' + havnNavn(game.state.havn) + ' med en lille slup og ' + guld(game.state.guld) + '. Havet omkring dig ligger i tåge – sejl ud og find de andre havne.');
     saveGame(); hideOverlays();
     show('game'); refresh(); sfx('havn');
   }
   function fortsaet(gemt) {
     game = L.createGame(gemt);
-    slutVist = false; valgtHavn = null; sejler = false; fane = 'marked';
-    var st = game.state;
-    if (st.rejse && st.moede && !st.moede.slut) { view = 'moede'; moedeLog = intro(st.moede); }
-    else if (st.rejse) { ankomst(null); }
-    else { view = 'havn'; setBesked('Velkommen tilbage. Du ligger i ' + havnNavn(st.havn) + '.'); }
+    slutVist = false; valgtHavn = null; afgang = null; fane = 'marked'; clearTimeout(kursTimer);
+    var st = game.state, ny = st.migreret ? 'Kaperen er blevet opdateret: havet er nyt og ligger i tåge. ' : '';
+    delete st.migreret;
+    game.stopKurs();
+    if (st.moede && !st.moede.slut) { view = 'moede'; moedeLog = ny + intro(st.moede); }
+    else if (st.havn) { view = 'havn'; setBesked(ny + 'Velkommen tilbage. Du ligger i ' + havnNavn(st.havn) + '.'); }
+    else { if (st.moede) game.efterMoede(); view = 'hav'; setHavLog(ny + 'Velkommen tilbage. Du er til søs – dag ' + st.dag + '.'); }
     hideOverlays(); show('game'); refresh();
   }
-  function spilAktivt() { return current === 'game' && game && !game.state.over && !overlayOpen() && !sejler; }
+  function spilAktivt() { return current === 'game' && game && !game.state.over && !overlayOpen(); }
 
   function setView(v) {
     view = v;
@@ -276,7 +278,6 @@
   // ---------- Havnen ----------
   function setFane(f) { fane = f; layoutGame(); refresh(); }
   $$('.fane-btn[data-fane]').forEach(function (b) { b.addEventListener('click', function () { if (!spilAktivt()) return; sfx('click'); setFane(b.dataset.fane); }); });
-  onAct($('#btn-til-soes'), function () { if (!spilAktivt()) return; sfx('click'); aabnKort(); });
 
   // Varerne bygges én gang
   (function byggVarer() {
@@ -335,6 +336,9 @@
     } else if (hvad === 'skib') {
       r = game.koebSkib();
       t = r.ok ? 'Tillykke med din nye ' + r.skib.navn.toLowerCase() + '! Den gamle blev taget i bytte. Pris: ' + guld(r.pris) + '.' : r.grund === 'max' ? 'Du har allerede det største skib.' : 'Du mangler ' + guld(r.mangler) + ' til et større skib.';
+    } else if (hvad === 'kikkert') {
+      r = game.koebKikkert();
+      t = r.ok ? 'En ' + (game.kikkertPris() === null ? 'fin messingkikkert' : 'kikkert') + '! Nu kan du se ' + r.syn + ' felter ud over havet. Pris: ' + guld(r.pris) + '.' : r.grund === 'max' ? 'Du har allerede værftets bedste kikkert.' : 'Du mangler ' + guld(r.mangler) + ' til kikkerten.';
     }
     setBesked(t, r && r.ok ? 'ok' : 'err'); sfx(r && r.ok ? 'ok' : 'nej');
     saveGame(); refresh();
@@ -356,6 +360,12 @@
   }
   $$('[data-hyr]').forEach(function (b) { onAct(b, function () { hyr(b.dataset.hyr === 'alt' ? 'alt' : +b.dataset.hyr); }); });
   $$('[data-proviant]').forEach(function (b) { onAct(b, function () { proviant(b.dataset.proviant === 'alt' ? 'alt' : +b.dataset.proviant); }); });
+  onAct($('#btn-rygte'), function () {
+    if (!spilAktivt() || view !== 'havn') return;
+    var r = game.rygteHavn();
+    setBesked(r.ok ? 'For ' + guld(r.pris) + ' fortæller en gammel sømand om ' + havnNavn(r.havn) + '. Havnen er tegnet ind på dit søkort.' : r.grund === 'alle' ? 'Du kender allerede alle havne.' : 'Du mangler ' + guld(r.mangler || 0) + ' til et rygte.', r.ok ? 'ok' : 'err');
+    sfx(r.ok ? 'ok' : 'nej'); saveGame(); refresh();
+  });
 
   // Hvor mange kan man købe (prisen stiger 1 % pr. stk.)
   function kanKoebe(vare) {
@@ -414,7 +424,9 @@
       setKob('[data-vaerft="lastrum"]', 'Større lastrum', lp === null ? 'Største lastrum · ' + game.lastrum() : guld(lp) + ' · ' + game.lastrum() + ' → ' + Math.round(ty.last * (1 + 0.25 * (st.lastrum + 1))), lp === null, lp !== null && st.guld < lp);
       var ns = game.naesteSkib();
       setKob('[data-vaerft="skib"]', ns ? 'Køb ' + ns.skib.navn.toLowerCase() : 'Største skib', ns ? guld(ns.pris) + ' · bytter din ' + ty.navn.toLowerCase() : 'Du har en galeon', !ns, ns && st.guld < ns.pris);
-      $('#skib-kort').innerHTML = '<span><b>' + ty.navn + '</b> · fart ' + game.fart() + ' · lastrum ' + game.lastrum() + '</span>' +
+      var kk2 = game.kikkertPris(), sv = game.synsvidde();
+      setKob('[data-vaerft="kikkert"]', kk2 === null ? 'Bedste kikkert' : 'Kikkert', kk2 === null ? 'Synsvidde ' + sv + ' felter' : guld(kk2) + ' · syn ' + sv + ' → ' + (sv + 1), kk2 === null, kk2 !== null && st.guld < kk2);
+      $('#skib-kort').innerHTML = '<span><b>' + ty.navn + '</b> · fart ' + game.fart() + ' · lastrum ' + game.lastrum() + ' · syn ' + sv + '</span>' +
         '<span>Kanoner ' + st.kanoner + ' af ' + ty.kanoner + ' · mandskab ' + st.mandskab + ' af ' + ty.mandskab + '</span>' +
         '<span class="muted">Hver kanon skal bruge 2 mand. Skibets værdi: ' + guld(game.skibsvaerdi()) + '.</span>';
     } else {
@@ -424,9 +436,11 @@
       setKob('[data-hyr="alt"]', 'Hyr fuldt hold', plads <= 0 ? 'Fuldt hold' : plads + ' mand · ' + guld(hp * plads), plads <= 0, st.guld < hp);
       setKob('[data-proviant="5"]', 'Proviant 5 dage', pl <= 0 ? 'Fuldt lager' : guld(pp * Math.min(5, pl)) + ' · har ' + st.proviant, pl <= 0, st.guld < pp);
       setKob('[data-proviant="alt"]', 'Fyld proviant', pl <= 0 ? 'Fuldt: ' + L.PROVIANT_MAX + ' dage' : pl + ' dage · ' + guld(pp * pl), pl <= 0, st.guld < pp);
+      var rp = game.rygtePris();
+      setKob('#btn-rygte', 'Rygte om en havn', rp === null ? 'Du kender alle havne' : guld(rp) + ' · en ny havn på kortet', rp === null, rp !== null && st.guld < rp);
       var r = game.rygte(), rt = '';
       if (r && r.gevinst > 0) rt = '<span><b>Rygte på kroen:</b> ' + L.vareById(r.vare).navn + ' sælges for ' + tal(r.salg) + ' i ' + havnNavn(r.havn) + '. Her koster det ' + tal(r.koeb) + '.</span>';
-      else rt = '<span><b>Rygte på kroen:</b> Ingen gode handler herfra lige nu.</span>';
+      else rt = '<span><b>Rygte på kroen:</b> Ingen gode handler til de havne, du kender.</span>';
       if (st.beroemmelse >= 10) rt += '<span class="muted">Du er efterlyst – marinen jager dig. Hyren er billigst i Ravnsø, hvor ingen spørger.</span>';
       else rt += '<span class="muted">Mandskabet spiser for ' + guld(pp) + ' om dagen. Hyre her: ' + guld(hp) + ' pr. mand.</span>';
       $('#rygte').innerHTML = rt;
@@ -437,119 +451,269 @@
     b.disabled = !!max; b.classList.toggle('max', !!max); b.classList.toggle('dyr', !!dyr && !max);
   }
 
-  // ---------- Kortet ----------
-  var kortGeo = null;
-  (function byggHavne() {
-    var lag = $('#havne-lag');
-    L.HAVNE.forEach(function (h) {
-      var b = document.createElement('button');
-      b.className = 'btn option havn-btn'; b.dataset.havn = h.id;
-      b.innerHTML = '<span class="big">' + h.navn + '</span><span class="small"></span>';
-      b.addEventListener('click', function () { if (!spilAktivt() || view !== 'kort') return; vaelgHavn(h.id); });
-      lag.appendChild(b);
+  // ---------- Havet: ét felt er én dag ----------
+  // Skibet står midt i billedet. Rundt om det er havet, man kan se (synsvidden),
+  // det, man har set før (dunkelt), og tåge over det ukendte.
+  var RET_NAVN = ['nord', 'nordøst', 'øst', 'sydøst', 'syd', 'sydvest', 'vest', 'nordvest'];
+  var SLAGS_NAVN = { handel: 'Et handelsskib', pirat: 'En sørøver', marine: 'Et orlogsskib fra marinen' };
+  var retning = 0, havLog = { tekst: '', cls: '' }, afgang = null, kursTimer = 0, kortFra = 'hav', havGeo = null;
+  function setHavLog(t, cls) { havLog = { tekst: t, cls: cls || '' }; }
+  function kursAktiv() { return !!(game && game.state.kurs); }
+  function retningTil(dx, dy) {
+    if (!dx && !dy) return '';
+    var a = Math.round(Math.atan2(dx, -dy) / (Math.PI / 4));
+    return RET_NAVN[(a + 8) % 8];
+  }
+  function tilSoes() {
+    var st = game.state;
+    setHavLog(st.havn ? 'Du ligger i ' + havnNavn(st.havn) + '. Vælg en retning – hvert felt tager en dag – eller åbn kortet.' : '');
+    setView('hav');
+  }
+  onAct($('#btn-til-soes'), function () { if (!spilAktivt()) return; sfx('click'); tilSoes(); });
+  $$('[data-ret]').forEach(function (b) { onAct(b, function () { sejlRet(+b.dataset.ret); }); });
+  function sejlRet(i) {
+    if (!spilAktivt() || view !== 'hav' || kursAktiv()) return;
+    var d = L.RETNINGER[i], st = game.state, fra = st.havn, dag0 = st.dag;
+    var r = game.flyt(d[0], d[1]);
+    if (!r.ok) {
+      setHavLog(r.grund === 'land' ? 'Der er land mod ' + RET_NAVN[i] + '.' : r.grund === 'kant' ? 'Her ender søkortet. Længere mod ' + RET_NAVN[i] + ' kan du ikke sejle.' : 'Du kan ikke sejle lige nu.', 'err');
+      sfx('nej'); refresh(); return;
+    }
+    retning = Math.atan2(d[1], d[0]) * 180 / Math.PI;
+    if (fra && !st.havn) { afgang = { havn: fra, dag: dag0 }; sfx('boelger'); }
+    efterTrin(r);
+  }
+  function venDag() {
+    if (!spilAktivt() || view !== 'hav' || game.state.havn) return;
+    var r = game.vent();
+    if (!r.ok) { sfx('nej'); return; }
+    efterTrin(r, 'Du ligger stille en dag.');
+  }
+  onAct($('#btn-hav-ekstra'), function () {
+    if (!spilAktivt() || view !== 'hav') return;
+    if (kursAktiv()) { stopKurs('Du stopper og tager selv roret.'); return; }
+    if (game.state.havn) { sfx('click'); setBesked(''); fane = 'marked'; setView('havn'); return; }
+    venDag();
+  });
+  function sultTekst(s) { return 'Der er ingen proviant: ' + stk(s.tab, 'sømand', 'sømænd') + ' døde af sult.'; }
+  function skibTekst(ids) {
+    var st = game.state, t = [];
+    ids.forEach(function (id) {
+      var s = st.skibe.filter(function (x) { return x.id === id; })[0];
+      if (!s) return;
+      var farlig = s.slags === 'pirat' || (s.slags === 'marine' && st.beroemmelse >= 10);
+      t.push(SLAGS_NAVN[s.slags] + ' er i sigte mod ' + retningTil(s.x - st.pos[0], s.y - st.pos[1]) + '.' + (farlig ? ' Pas på!' : ''));
     });
-  })();
-  function aabnKort() { valgtHavn = null; setBesked(''); setView('kort'); }
+    return t.join(' ');
+  }
+  // Efter hver dag på havet: tekst, lyd, møde eller ankomst. Svarer 'over', 'moede', 'havn' eller null.
+  function efterTrin(r, foer) {
+    var st = game.state, t = [], cls = '';
+    if (foer) t.push(foer);
+    if (r.sult) { t.push(sultTekst(r.sult)); cls = 'err'; }
+    if (st.over) { setHavLog(t.join(' '), 'err'); saveGame(); refresh(); slutSpil(); return 'over'; }
+    if (r.nyeHavne && r.nyeHavne.length) { t.push('Land i sigte! Du har opdaget ' + liste(r.nyeHavne.map(havnNavn)) + '.'); cls = cls || 'ok'; sfx('ok'); }
+    if (r.moede) {
+      moedeLog = (t.length ? t.join(' ') + ' ' : '') + intro(r.moede);
+      sfx(r.moede.slags === 'storm' ? 'storm' : 'sejlISigte');
+      saveGame(); setView('moede'); return 'moede';
+    }
+    if (r.havn) {
+      var dage = afgang ? st.dag - afgang.dag : 0;
+      setBesked('Du lægger til i ' + havnNavn(r.havn) + (dage > 0 ? ' efter ' + stk(dage, 'dag', 'dage') : '') + '.' + (r.sult ? ' ' + sultTekst(r.sult) : ''), r.sult ? 'err' : '');
+      afgang = null; fane = 'marked'; sfx('havn');
+      saveGame(); setView('havn'); return 'havn';
+    }
+    if (r.nyeSkibe && r.nyeSkibe.length) { t.push(skibTekst(r.nyeSkibe)); sfx('sejlISigte'); }
+    if (!st.proviant) { if (!r.sult) t.push('Proviantet er sluppet op! Find en havn – ellers sulter mandskabet.'); cls = 'err'; }
+    else if (st.proviant <= 3) { t.push('Kun proviant til ' + stk(st.proviant, 'dag', 'dage') + ' mere.'); cls = cls || 'err'; }
+    setHavLog(t.length ? t.join(' ') : 'Dag ' + st.dag + '. Havet er roligt.', cls);
+    saveGame(); refresh();
+    return null;
+  }
+
+  // Kurs mod en kendt havn: skibet sejler selv over kendt hav, ét felt ad gangen,
+  // og stopper, hvis et skib kommer i sigte, en storm trækker op, eller proviantet slipper op.
+  var STOP_TEKST = {
+    skib: 'Du stopper og tager selv roret.',
+    proviant: 'Proviantet er sluppet op – du stopper.',
+    'ingen-vej': 'Der er ingen kendt vej videre. Sejl selv gennem tågen.',
+    blokeret: 'Vejen er spærret. Sejl selv udenom.',
+    havn: ''
+  };
+  function stopKurs(t) {
+    clearTimeout(kursTimer); kursTimer = 0;
+    if (game) game.stopKurs();
+    if (t) setHavLog(t);
+    sfx('click'); saveGame(); refresh();
+  }
+  function kursTrin() {
+    if (!game || !kursAktiv() || current !== 'game' || paused || overlayOpen() || view !== 'hav') return false;
+    var st = game.state, x0 = st.pos[0], y0 = st.pos[1], fra = st.havn, dag0 = st.dag;
+    var r = game.autoTrin();
+    if (!r) return false;
+    if (!r.ok) { setHavLog(STOP_TEKST[r.stop] || 'Kursen er stoppet.', 'err'); sfx('nej'); refresh(); return false; }
+    if (st.pos[0] !== x0 || st.pos[1] !== y0) retning = Math.atan2(st.pos[1] - y0, st.pos[0] - x0) * 180 / Math.PI;
+    if (fra && !st.havn) afgang = { havn: fra, dag: dag0 };
+    var res = efterTrin(r);
+    if (res) return false;
+    if (r.stop) {
+      var ekstra = STOP_TEKST[r.stop];
+      if (ekstra) { setHavLog((havLog.tekst ? havLog.tekst + ' ' : '') + ekstra, r.stop === 'skib' ? havLog.cls : 'err'); refresh(); }
+      return false;
+    }
+    return kursAktiv();
+  }
+  function koerKurs() {
+    clearTimeout(kursTimer); kursTimer = 0;
+    if (!animationOn()) {   // uden bevægelse: hele vejen på én gang (stopper stadig ved skibe m.m.)
+      for (var n = 0; n < 400 && kursTrin(); n++) { /* næste dag */ }
+      return;
+    }
+    if (kursTrin()) kursTimer = setTimeout(koerKurs, 380);
+  }
+
+  function syncHav() {
+    var st = game.state, kurs = kursAktiv();
+    var ek = $('#btn-hav-ekstra');
+    if (kurs) { $('.big', ek).textContent = 'Stop'; $('.small', ek).textContent = 'tag selv roret'; $('use', ek).setAttribute('href', '#kap-ikon-stop'); }
+    else if (st.havn) { $('.big', ek).textContent = 'Gå i havn'; $('.small', ek).textContent = havnNavn(st.havn); $('use', ek).setAttribute('href', '#kap-ikon-anker'); }
+    else { $('.big', ek).textContent = 'Vent en dag'; $('.small', ek).textContent = 'lig stille'; $('use', ek).setAttribute('href', '#kap-ikon-vent'); }
+    $$('.ret-btn[data-ret], .felt-btn').forEach(function (b) {
+      var d = L.RETNINGER[+b.dataset.ret], ft = game.felt(st.pos[0] + d[0], st.pos[1] + d[1]);
+      b.disabled = kurs || ft === 'land' || ft === 'ude';
+    });
+    $('#btn-hav-kort').disabled = kurs;
+    var info = '<span class="scene-chip navn">' + (st.havn ? 'I havn: ' + havnNavn(st.havn) : 'Til søs') + '</span>';
+    if (kurs) { var ki = game.kursInfo(st.kurs.til); info += '<span class="scene-chip vigtig">Kurs: ' + havnNavn(st.kurs.til) + (ki ? ' · ' + stk(ki.dage, 'dag', 'dage') : '') + '</span>'; }
+    info += '<span class="scene-chip">Synsvidde ' + game.synsvidde() + '</span><span class="scene-chip">Opdaget ' + Math.round(game.andelOpdaget() * 100) + ' %</span>';
+    $('#hav-info').innerHTML = info;
+    var lg = $('#hav-log'); lg.textContent = havLog.tekst; lg.className = 'scene-log' + (havLog.cls ? ' ' + havLog.cls : '');
+    tegnHav();
+  }
+  function havneData() {
+    var st = game.state;
+    return L.HAVNE.map(function (h) { var p = game.havnePos(h.id); return { id: h.id, x: p[0], y: p[1], navn: h.navn, kendt: !!st.kendt[h.id] }; });
+  }
+  function skibeData() {
+    var st = game.state;
+    return game.synligeSkibe().map(function (s) {
+      var dx = st.pos[0] - s.x, dy = st.pos[1] - s.y;
+      if (s.slags === 'handel') { dx = -dx; dy = -dy; }
+      return { x: s.x, y: s.y, slags: s.slags, retning: Math.atan2(dy, dx) * 180 / Math.PI };
+    });
+  }
+  function tegnHav() {
+    var box = $('#hav-boks'), W = box.clientWidth, H = box.clientHeight, st = game.state;
+    if (!W || !H) return;
+    var syn = game.synsvidde(), ts = Math.min(W, H) / (2 * (syn + 1) + 1);
+    ts = Math.min(ts, Math.max(W, H) / 7);
+    havGeo = { W: W, H: H, ts: ts };
+    T.felter($('#hav-svg'), {
+      w: W, h: H, ts: ts, cx: st.pos[0], cy: st.pos[1], felt: game.felt, sett: game.sett, iSyn: game.iSyn,
+      havne: havneData(), valgt: st.kurs ? st.kurs.til : null, skibe: skibeData(),
+      spiller: { x: st.pos[0], y: st.pos[1], retning: retning }, kurs: st.kurs ? game.sti(st.kurs.til) : null, syn: syn, kort: false
+    });
+    $$('#felt-lag .felt-btn').forEach(function (b) {
+      var d = L.RETNINGER[+b.dataset.ret];
+      b.style.left = Math.round(W / 2 + (d[0] - 0.5) * ts) + 'px'; b.style.top = Math.round(H / 2 + (d[1] - 0.5) * ts) + 'px';
+      b.style.width = Math.round(ts) + 'px'; b.style.height = Math.round(ts) + 'px';
+    });
+  }
+
+  // ---------- Søkortet: det, du har opdaget ----------
+  var valgtHavn = null;
+  function kortHavne() {
+    var st = game.state;
+    var ids = game.kendteHavne().filter(function (id) { return id !== st.havn; });
+    var info = {}; ids.forEach(function (id) { info[id] = game.kursInfo(id); });
+    ids.sort(function (a, b) { var A = info[a] ? info[a].dage : 999, B = info[b] ? info[b].dage : 999; return A - B; });
+    return ids;
+  }
+  function aabnKort() {
+    var ids = kortHavne();
+    kortFra = view === 'havn' ? 'havn' : 'hav';
+    valgtHavn = game.state.kurs ? game.state.kurs.til : (ids[0] || null);
+    setView('kort');
+  }
+  onAct($('#btn-hav-kort'), function () { if (!spilAktivt() || view !== 'hav' || kursAktiv()) return; sfx('click'); aabnKort(); });
   function vaelgHavn(id) {
-    if (id === game.state.havn) { sfx('nej'); valgtHavn = null; refresh(); return; }
+    if (!game || !game.state.kendt[id] || id === game.state.havn) { sfx('nej'); return; }
     sfx('click'); valgtHavn = id; refresh();
   }
-  onAct($('#btn-sejl'), function () { if (spilAktivt() && view === 'kort' && valgtHavn) saetSejl(); });
-  onAct($('#btn-kort-tilbage'), function () { if (!spilAktivt()) return; sfx('click'); valgtHavn = null; setView('havn'); });
-
-  function layoutKort() {
-    var box = $('#kort-boks'), W = box.clientWidth, H = box.clientHeight;
-    if (!W || !H) return;
-    var b = parseFloat(getComputedStyle($('#game')).getPropertyValue('--btn')) || 100;
-    var m = 8, gap = 8;
-    var hw = Math.min(b * 2.2, (W - 2 * m - 2 * gap) / 3), hh = Math.min(b, (H - 2 * m - 2 * gap) / 3);
-    var geo = { w: W, h: H, hw: hw, hh: hh, havne: [] };
-    function pos(px, row) { return { x: m + hw / 2 + px * (W - 2 * m - hw), y: m + hh / 2 + row * (H - 2 * m - hh) }; }
-    L.HAVNE.forEach(function (h, i) {
-      var row = Math.round((h.y - 0.17) / 0.33) / 2, p = pos((h.x - 1 / 6) / (4 / 6), row);
-      geo.havne.push({ id: h.id, cx: p.x, cy: p.y, bw: hw, bh: hh, oe: i % 4 });
-      var el = $('.havn-btn[data-havn="' + h.id + '"]');
-      el.style.left = Math.round(p.x - hw / 2) + 'px'; el.style.top = Math.round(p.y - hh / 2) + 'px';
-      el.style.width = Math.round(hw) + 'px'; el.style.height = Math.round(hh) + 'px';
-    });
-    $('#havne-lag').style.setProperty('--hh', Math.round(hh) + 'px');
-    $('#havne-lag').style.setProperty('--hw', Math.round(hw) + 'px');
-    var ps = Math.min(hw, hh) * 0.9;
-    geo.pynt = [[0, 0.5, 1], [0.5, 0.5, 3], [0.25, 0, 2], [0.75, 1, 0], [0.25, 1, 1], [0.75, 0, 3]].map(function (a) { var p = pos(a[0], a[1]); return { x: p.x, y: p.y, s: ps, oe: a[2] }; });
-    var kp = pos(1, 0.5);
-    geo.kompas = { x: kp.x + hw / 2 - Math.min(hh, hw) * 0.45, y: kp.y, r: Math.min(hh, hw) * 0.42 };
-    kortGeo = geo;
+  function skiftHavn(d) {
+    var ids = kortHavne(); if (!ids.length) return;
+    var i = ids.indexOf(valgtHavn);
+    vaelgHavn(ids[i < 0 ? 0 : (i + d + ids.length) % ids.length]);
   }
+  onAct($('#btn-havn-forrige'), function () { if (spilAktivt() && view === 'kort') skiftHavn(-1); });
+  onAct($('#btn-havn-naeste'), function () { if (spilAktivt() && view === 'kort') skiftHavn(1); });
+  onAct($('#btn-kurs'), function () { if (spilAktivt() && view === 'kort' && valgtHavn) saetKurs(); });
+  onAct($('#btn-kort-tilbage'), function () { if (!spilAktivt()) return; sfx('click'); setView(kortFra === 'havn' && game.state.havn ? 'havn' : 'hav'); });
+  // Klik på en havn på kortet vælger den
+  $('#kort-svg').addEventListener('click', function (e) {
+    if (!spilAktivt() || view !== 'kort' || !kortGeo) return;
+    var r = this.getBoundingClientRect(), g = kortGeo;
+    var x = Math.round(g.cx + (e.clientX - r.left - g.w / 2) / g.ts), y = Math.round(g.cy + (e.clientY - r.top - g.h / 2) / g.ts);
+    var best = null, bd = 2.5;
+    L.HAVNE.forEach(function (h) { var p = game.havnePos(h.id), d = Math.max(Math.abs(p[0] - x), Math.abs(p[1] - y)); if (game.state.kendt[h.id] && d < bd) { bd = d; best = h.id; } });
+    if (best) vaelgHavn(best);
+  });
+  function saetKurs() {
+    var st = game.state, fra = st.havn, dag0 = st.dag, til = valgtHavn;
+    var r = game.saetKurs(til);
+    if (!r.ok) {
+      $('#kort-info').innerHTML = '<span class="err">' + (r.grund === 'ingen-vej' ? 'Der er ingen kendt vej derhen endnu. Sejl selv gennem tågen.' : r.grund === 'ukendt' ? 'Den havn kender du ikke endnu.' : 'Du kan ikke sætte kurs lige nu.') + '</span>';
+      sfx('nej'); return;
+    }
+    if (fra) { afgang = { havn: fra, dag: dag0 }; }
+    var ki = game.kursInfo(til);
+    setHavLog('Kurs mod ' + havnNavn(til) + ': ' + stk(r.dage, 'dag', 'dage') + '. Skibet sejler selv og stopper, hvis et skib kommer i sigte.' + (ki && !ki.nok ? ' Proviantet rækker kun til ' + stk(st.proviant, 'dag', 'dage') + '!' : ''), ki && !ki.nok ? 'err' : '');
+    sfx('boelger');
+    setView('hav');
+    koerKurs();
+  }
+  var kortGeo = null;
   function tegnKort() {
-    if (!kortGeo) return;
-    T.kort($('#kort-svg'), { w: kortGeo.w, h: kortGeo.h, havne: kortGeo.havne, her: game.state.rejse ? null : game.state.havn, valgt: valgtHavn, pynt: kortGeo.pynt, kompas: kortGeo.kompas });
+    var box = $('#kort-boks'), W = box.clientWidth, H = box.clientHeight, st = game.state;
+    if (!W || !H) return;
+    // Zoom ind på den del af havet, man har opdaget (+ 1 felts kant), dog højst 8 felter på den korte led.
+    var x0 = st.pos[0], x1 = x0, y0 = st.pos[1], y1 = y0, x, y;
+    for (y = 0; y < L.HOEJDE; y++) for (x = 0; x < L.BREDDE; x++) if (game.sett(x, y)) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+    x0 = Math.max(-0.5, x0 - 1.5); x1 = Math.min(L.BREDDE - 0.5, x1 + 1.5); y0 = Math.max(-0.5, y0 - 1.5); y1 = Math.min(L.HOEJDE - 0.5, y1 + 1.5);
+    var ts = Math.min(W / (x1 - x0), H / (y1 - y0), Math.min(W, H) / 8);
+    kortGeo = { w: W, h: H, ts: ts, cx: (x0 + x1) / 2, cy: (y0 + y1) / 2 };
+    T.felter($('#kort-svg'), {
+      w: W, h: H, ts: ts, cx: kortGeo.cx, cy: kortGeo.cy, felt: game.felt, sett: game.sett, iSyn: null,
+      havne: havneData(), valgt: valgtHavn, skibe: skibeData(),
+      spiller: { x: st.pos[0], y: st.pos[1], retning: retning }, kurs: valgtHavn ? game.sti(valgtHavn) : null, syn: null, kort: true
+    });
   }
   function syncKort() {
-    var st = game.state;
-    $$('.havn-btn').forEach(function (b) {
-      var id = b.dataset.havn, her = id === st.havn;
-      b.setAttribute('aria-pressed', String(id === valgtHavn));
-      if (her) b.setAttribute('aria-current', 'location'); else b.removeAttribute('aria-current');
-      $('.small', b).textContent = her ? '⚓ du er her' : stk(game.rejseDage(id), 'dag', 'dage');
-      b.setAttribute('aria-label', L.havnById(id).navn + (her ? ', du er her' : ', ' + game.rejseDage(id) + ' dage'));
-    });
-    var titel = $('#kort-titel'), info = $('#kort-info');
+    var st = game.state, ids = kortHavne();
+    if (valgtHavn && ids.indexOf(valgtHavn) < 0) valgtHavn = ids[0] || null;
+    var titel = $('#kort-titel'), info = $('#kort-info'), ki = valgtHavn ? game.kursInfo(valgtHavn) : null;
+    $('#kort-chips').innerHTML = '<span class="scene-chip navn">Søkortet</span><span class="scene-chip">Opdaget ' + Math.round(game.andelOpdaget() * 100) + ' %</span>' +
+      '<span class="scene-chip">Havne ' + game.kendteHavne().length + ' af ' + L.HAVNE.length + '</span>';
     if (!valgtHavn) {
-      titel.textContent = 'Vælg en havn';
-      info.innerHTML = 'Du ligger i ' + havnNavn(st.havn) + '. Proviant til ' + stk(st.proviant, 'dag', 'dage') + '.';
+      titel.textContent = 'Ingen andre havne';
+      info.innerHTML = 'Du kender ingen andre havne endnu. Sejl ud i tågen, eller køb et rygte i værtshuset.';
     } else {
-      var h = L.havnById(valgtHavn), ri = game.rejseInfo(valgtHavn);
-      titel.textContent = h.navn + ' · ' + stk(ri.dage, 'dag', 'dage');
-      var t = (ri.nok ? '<span class="ok">Proviant nok (' + st.proviant + ').</span> ' : '<span class="err">For lidt proviant: ' + st.proviant + ' af ' + ri.dage + ' dage. Mandskabet sulter!</span> ') +
-        'Billigt: ' + liste(h.billig.map(vareNavn)) + '. Dyrt: ' + liste(h.dyr.map(vareNavn)) + '.';
+      var h = L.havnById(valgtHavn);
+      titel.textContent = h.navn + (ki ? ' · ' + stk(ki.dage, 'dag', 'dage') : '');
+      var t = ki ? (ki.nok ? '<span class="ok">Proviant nok (' + st.proviant + ').</span> ' : '<span class="err">For lidt proviant: ' + st.proviant + ' af ' + ki.dage + ' dage!</span> ')
+        : '<span class="err">Ingen kendt vej derhen endnu.</span> ';
+      t += 'Billigt: ' + liste(h.billig.map(vareNavn)) + '. Dyrt: ' + liste(h.dyr.map(vareNavn)) + '.';
       if (h.flaade) t += ' Marinens flådehavn.';
       if (h.skjul) t += ' Sørøvernes skjul.';
       info.innerHTML = t;
     }
-    $('#btn-sejl').disabled = !valgtHavn || sejler;
-    $('#btn-kort-tilbage').disabled = sejler;
+    $('#btn-havn-forrige').disabled = ids.length < 2;
+    $('#btn-havn-naeste').disabled = ids.length < 2;
+    $('#btn-kurs').disabled = !ki || !ki.dage;
+    $('#btn-kurs .small').textContent = ki ? stk(ki.dage, 'dag', 'dage') : valgtHavn ? 'ingen kendt vej' : '';
+    $('#btn-kort-tilbage .big').textContent = kortFra === 'havn' && st.havn ? 'Bliv i havnen' : 'Tilbage';
     tegnKort();
-  }
-  // Skibet sejler hen over kortet (eller springer straks frem uden animation)
-  function sejlAnim(fra, til, frac, done) {
-    var ship = $('#kortskib'), a = null, b = null;
-    if (kortGeo) kortGeo.havne.forEach(function (p) { if (p.id === fra) a = p; if (p.id === til) b = p; });
-    if (!a || !b || !animationOn()) { ship.hidden = true; done(); return; }
-    var ang = Math.atan2(b.cy - a.cy, b.cx - a.cx) * 180 / Math.PI, dur = 900 + 900 * frac, t0 = null;
-    ship.hidden = false;
-    $('svg', ship).style.transform = 'rotate(' + ang + 'deg)';
-    function step(ts) {
-      if (t0 === null) t0 = ts;
-      var k = Math.min(1, (ts - t0) / dur), e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2, f = e * frac;
-      ship.style.transform = 'translate(' + (a.cx + (b.cx - a.cx) * f) + 'px,' + (a.cy + (b.cy - a.cy) * f) + 'px)';
-      if (k < 1 && current === 'game') requestAnimationFrame(step); else setTimeout(function () { ship.hidden = true; done(); }, 250);
-    }
-    requestAnimationFrame(step);
-  }
-  function saetSejl() {
-    var fra = game.state.havn, til = valgtHavn, r = game.sejl(til);
-    if (!r) return;
-    sejler = true; sfx('boelger'); saveGame(); refresh();
-    var frac = r.moede ? Math.max(0.2, Math.min(0.8, r.moede.dagNr / r.dage)) : 1;
-    sejlAnim(fra, til, frac, function () {
-      sejler = false; valgtHavn = null;
-      if (game.state.over) { slutSpil(); return; }
-      if (r.moede) {
-        moedeLog = (r.sult ? sultTekst(r.sult) + ' ' : '') + intro(r.moede);
-        sfx(r.moede.slags === 'storm' ? 'storm' : 'sejlISigte');
-        setView('moede');
-      } else ankomst(r.sult);
-      saveGame();
-    });
-  }
-  function sultTekst(s) { return 'Proviantet slap op i ' + stk(s.dage, 'dag', 'dage') + ', og ' + stk(s.tab, 'sømand', 'sømænd') + ' døde af sult.'; }
-  function ankomst(sult) {
-    var st = game.state, dage = st.rejse ? st.rejse.dage : 0;
-    if (!game.ankom()) return;
-    setBesked('Du lægger til i ' + havnNavn(st.havn) + (dage ? ' efter ' + stk(dage, 'dag', 'dage') : '') + '.' + (sult ? ' ' + sultTekst(sult) : ''), sult ? 'err' : '');
-    fane = 'marked'; sfx('havn');
-    if (current === 'game') setView('havn'); else view = 'havn';
-    saveGame();
   }
 
   // ---------- Møder til søs ----------
@@ -641,8 +805,13 @@
   onAct($('#btn-videre'), function () {
     if (!spilAktivt() || view !== 'moede') return;
     var m = game.state.moede; if (!m || !m.slut) return;
-    sfx('click'); ankomst(null);
+    sfx('click'); videre();
   });
+  function videre() {
+    game.efterMoede();
+    setHavLog(game.state.havn ? '' : 'Du er tilbage på havet. Dag ' + game.state.dag + '.');
+    saveGame(); setView('hav');
+  }
   function bar(v, max) { var p = Math.max(0, Math.min(100, Math.round(100 * v / max))); return '<span class="bar' + (p < 35 ? ' lav' : '') + '"><i style="width:' + p + '%"></i></span>'; }
   function syncMoede() {
     var st = game.state, m = st.moede, knapper = $('#moede-knapper');
@@ -669,9 +838,8 @@
       setMoedeBtn('#btn-flygt', fred ? 'Sejl videre' : 'Flygt', fred ? 'Lad dem være' : Math.round(game.flugtChance(m) * 100) + ' % chance', false);
       $('#btn-flygt use').setAttribute('href', '#kap-ikon-' + (fred ? 'videre' : 'flygt'));
     } else if (fase === 'slut') {
-      var til = st.rejse ? havnNavn(st.rejse.til) : '';
       $('#btn-videre .big').textContent = st.over ? 'Rejsen er slut' : 'Sejl videre';
-      $('#btn-videre .small').textContent = st.over ? '' : 'til ' + til;
+      $('#btn-videre .small').textContent = st.over ? '' : 'tilbage til havet';
       $('#btn-videre').disabled = !!st.over;
     }
     tegnScene();
@@ -716,9 +884,9 @@
     syncHud();
     $$('#spil .view').forEach(function (el) { el.hidden = el.id !== 'v-' + view; });
     if (view === 'havn') syncHavn();
+    else if (view === 'hav') syncHav();
     else if (view === 'kort') syncKort();
     else syncMoede();
-    $('#btn-pause').disabled = sejler;
   }
 
   // ---------- Slut ----------
@@ -731,7 +899,7 @@
     $('#slut-kicker').textContent = over.grund === 'land' ? 'Du gik i land' : 'Rejsen er slut';
     $('#slut-title').textContent = tal(over.point) + ' point';
     $('#slut-grund').textContent = GRUND[over.grund] || '';
-    $('#slut-tal').textContent = stk(over.dage, 'dag', 'dage') + ' til søs med en ' + skibNavn(over.skib) + '. Formue ' + guld(over.formue) + (over.grund === 'land' ? ' (med skibet)' : '') + ' · berømmelse ' + over.beroemmelse + ' (×10).';
+    $('#slut-tal').textContent = stk(over.dage, 'dag', 'dage') + ' til søs med en ' + skibNavn(over.skib) + '. Formue ' + guld(over.formue) + (over.grund === 'land' ? ' (med skibet)' : '') + ' · berømmelse ' + over.beroemmelse + ' (×' + L.BEROEMMELSE_FAKTOR + ').';
     $('#slut-rank').textContent = rank ? (rank === 1 ? 'Ny rekord! Nummer 1 på listen.' : 'Nummer ' + rank + ' på top 10.') : '';
     setTimeout(function () {
       if (current !== 'game') return;
@@ -747,27 +915,28 @@
 
   // ---------- Pause ----------
   function setPaused(p) {
-    if (!game || game.state.over || sejler) return;
+    if (!game || game.state.over) return;
     paused = p;
     var ov = $('#pause-overlay');
     ov.hidden = !p;
-    var land = $('#btn-land');
-    land.disabled = !!game.state.rejse;
-    $('.small', land).textContent = game.state.rejse ? 'kun i en havn' : 'slut og gem point';
-    if (p) { fitScreen(ov); dwell.reset(); guardUnderGaze(ov); $('#btn-resume').focus({ preventScroll: true }); sfx('click'); }
-    else { releaseGuard(); dwell.reset(); guardUnderGaze($('#game')); }
+    var land = $('#btn-land'), iHavn = kanGaaILand();
+    land.disabled = !iHavn;
+    $('.small', land).textContent = iHavn ? 'slut og gem point' : 'kun i en havn';
+    if (p) { clearTimeout(kursTimer); fitScreen(ov); dwell.reset(); guardUnderGaze(ov); $('#btn-resume').focus({ preventScroll: true }); sfx('click'); }
+    else { releaseGuard(); dwell.reset(); guardUnderGaze($('#game')); if (kursAktiv() && view === 'hav') kursTimer = setTimeout(koerKurs, 300); }
   }
+  function kanGaaILand() { var st = game.state; return !!st.havn && !(st.moede && !st.moede.slut); }
   $('#btn-pause').addEventListener('click', function () { setPaused(true); });
   $('#btn-resume').addEventListener('click', function () { sfx('click'); setPaused(false); });
   $('#btn-pause-settings').addEventListener('click', function () { sfx('click'); openSettings('game'); });
   $('#btn-pause-menu').addEventListener('click', function () { sfx('click'); saveGame(); hideOverlays(); show('menu'); });
   $('#btn-land').addEventListener('click', function () {
-    if (!game || game.state.rejse) return;
+    if (!game || !kanGaaILand()) return;
     sfx('click');
     var f = game.formue(), b = game.state.beroemmelse;
     bekraeft({
       titel: 'Gå i land?', ikon: 'land', nej: 'Nej, sejl videre', ja: 'Ja, gå i land',
-      tekst: 'Du sælger skibet og går i land med en formue på ' + guld(f) + ' og ' + b + ' berømmelse. Det giver ' + tal(f + 10 * b) + ' point, og rejsen slutter.',
+      tekst: 'Du sælger skibet og går i land med en formue på ' + guld(f) + ' og ' + b + ' berømmelse. Det giver ' + tal(f + L.BEROEMMELSE_FAKTOR * b) + ' point (formue + ' + L.BEROEMMELSE_FAKTOR + ' point pr. berømmelse), og rejsen slutter.',
       paaJa: function () { hideOverlays(); game.gaaILand(); slutSpil(); }
     });
   });
@@ -844,20 +1013,25 @@
 
   // ---------- Tastatur ----------
   // Havnen: 1–5 vælger vare, K køber 1 (Skift: 5), S sælger 1 (Skift: 5), M/V/T skifter fane, Enter = til søs.
-  // Kortet: pilene vælger havn, Enter sætter sejl, Backspace = bliv i havnen.
+  // Havet: piletasterne sejler mod nord/syd/øst/vest, Home/PgUp/End/PgDn (eller numpad 7/9/1/3) på skrå,
+  //        mellemrum eller 5 = vent en dag, K = søkortet, Enter = gå i havn, Backspace = stop kursen.
+  // Kortet: piletasterne vælger havn, Enter sætter kurs, Backspace = tilbage.
   // Mødet: S skyder, N rykker nærmere, B entrer, F flygter/sejler videre; R/L i storm; Enter = sejl videre.
   // Esc eller P = pause.
+  var TAST_RET = { ArrowUp: 0, PageUp: 1, ArrowRight: 2, PageDown: 3, ArrowDown: 4, End: 5, ArrowLeft: 6, Home: 7,
+    '8': 0, '9': 1, '6': 2, '3': 3, '2': 4, '1': 5, '4': 6, '7': 7 };
   document.addEventListener('keydown', function (e) {
     if (e.altKey || e.ctrlKey || e.metaKey) return;
     if (bekraeftOpen()) { if (e.key === 'Escape') { e.preventDefault(); $('#btn-bekraeft-nej').click(); } return; }
     if (current !== 'game' || !game) return;
     if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') {
-      if (game.state.over || sejler) return;
+      if (game.state.over) return;
       e.preventDefault(); setPaused(!paused); return;
     }
-    if (overlayOpen() || sejler || game.state.over) return;
+    if (overlayOpen() || game.state.over) return;
     var k = e.key.length === 1 ? e.key.toLowerCase() : e.key, handled = true;
-    if (e.repeat && k !== 'ArrowLeft' && k !== 'ArrowRight' && k !== 'ArrowUp' && k !== 'ArrowDown') return;
+    var pil = k === 'ArrowLeft' || k === 'ArrowRight' || k === 'ArrowUp' || k === 'ArrowDown';
+    if (e.repeat && !pil && !(view === 'hav' && k in TAST_RET)) return;
     if (view === 'havn') {
       if (/^[1-5]$/.test(k)) { setFane('marked'); valgtVare = L.VARER[+k - 1].id; sfx('click'); refresh(); }
       else if (k === 'k' && fane === 'marked') koeb(e.shiftKey ? 5 : 1);
@@ -865,15 +1039,19 @@
       else if (k === 'm') setFane('marked');
       else if (k === 'v') setFane('vaerft');
       else if (k === 't') setFane('vaerthus');
-      else if (k === 'Enter' && document.activeElement === document.body) aabnKort();
+      else if (k === 'Enter' && document.activeElement === document.body) tilSoes();
+      else handled = false;
+    } else if (view === 'hav') {
+      if (k in TAST_RET) { if (!kursAktiv()) sejlRet(TAST_RET[k]); }
+      else if (k === ' ' || k === '5' || k === 'Clear') { if (!kursAktiv()) venDag(); }
+      else if (k === 'k') { if (!kursAktiv()) { sfx('click'); aabnKort(); } }
+      else if (k === 'Backspace') { if (kursAktiv()) stopKurs('Du stopper og tager selv roret.'); }
+      else if (k === 'Enter' && document.activeElement === document.body) { if (kursAktiv()) stopKurs('Du stopper og tager selv roret.'); else if (game.state.havn) $('#btn-hav-ekstra').click(); }
       else handled = false;
     } else if (view === 'kort') {
-      var ids = L.HAVNE.map(function (h) { return h.id; }).filter(function (id) { return id !== game.state.havn; });
-      if (k === 'ArrowRight' || k === 'ArrowDown' || k === 'ArrowLeft' || k === 'ArrowUp') {
-        var i = ids.indexOf(valgtHavn), d = (k === 'ArrowRight' || k === 'ArrowDown') ? 1 : -1;
-        vaelgHavn(ids[(i < 0 ? (d > 0 ? 0 : ids.length - 1) : (i + d + ids.length) % ids.length)]);
-      } else if (k === 'Enter' && document.activeElement === document.body) { if (valgtHavn) saetSejl(); }
-      else if (k === 'Backspace') { valgtHavn = null; setView('havn'); }
+      if (pil) skiftHavn(k === 'ArrowRight' || k === 'ArrowDown' ? 1 : -1);
+      else if (k === 'Enter' && document.activeElement === document.body) { if (!$('#btn-kurs').disabled) saetKurs(); }
+      else if (k === 'Backspace' || k === 'k') $('#btn-kort-tilbage').click();
       else handled = false;
     } else if (view === 'moede') {
       var m = game.state.moede;
@@ -881,7 +1059,7 @@
         if (k === 's') handling('skyd'); else if (k === 'n') handling('naermere'); else if (k === 'b') handling('bord'); else if (k === 'f' || k === 'v') handling('flygt'); else handled = false;
       } else if (m && !m.slut) {
         if (k === 'r') stormValg('ride'); else if (k === 'l') stormValg('laa'); else handled = false;
-      } else if (m && m.slut && (k === 'Enter' || k === 'v') && document.activeElement === document.body) ankomst(null);
+      } else if (m && m.slut && (k === 'Enter' || k === 'v') && document.activeElement === document.body) videre();
       else handled = false;
     } else handled = false;
     if (!handled) return;
@@ -928,7 +1106,7 @@
     var spil = $('#spil');
     spil.style.zoom = ''; gameEl.classList.remove('tight');
     $$('#spil .view').forEach(function (el) { el.hidden = el.id !== 'v-' + view; });
-    if (game) { if (view === 'havn') syncHavn(); else if (view === 'kort') syncKort(); else syncMoede(); }
+    if (game) { if (view === 'havn') syncHavn(); else if (view === 'hav') syncHav(); else if (view === 'kort') syncKort(); else syncMoede(); }
     applyGame(b, v);
     for (var i = 0; i < 16 && gameOverflow() && b > floor; i++) { b = Math.max(floor, b * 0.94); applyGame(b, v); }
     if (gameOverflow()) gameEl.classList.add('tight');
@@ -939,8 +1117,7 @@
       z = Math.max(0.5, z * r); spil.style.zoom = String(z);
     }
     gameEl.dataset.btn = Math.round(b);
-    layoutKort();
-    if (game) { if (view === 'kort') tegnKort(); if (view === 'moede') tegnScene(); }
+    if (game) { if (view === 'hav') tegnHav(); if (view === 'kort') tegnKort(); if (view === 'moede') tegnScene(); }
     $$('#game .overlay').forEach(function (o) { if (!o.hidden) fitScreen(o); });
     root.classList.toggle('kap-lille', small);
     fitHud();
@@ -1085,14 +1262,21 @@
 
   // Til test og fejlfinding
   window.Kaperen = {
-    get game() { return game; }, get view() { return view; }, get fane() { return fane; }, get sejler() { return sejler; },
+    get game() { return game; }, get view() { return view; }, get fane() { return fane; }, get sejler() { return kursAktiv(); },
+    get valgtHavn() { return valgtHavn; }, get havLog() { return havLog.tekst; },
     get paused() { return paused; }, get guard() { return gazeGuard ? gazeGuard.id : null; },
     settings: arkade, gameSettings: gset, records: records, dwell: dwell, audio: audio, lyd: lyd, logik: L,
-    nyRejse: nyRejse, show: show, setView: setView, setFane: setFane, vaelgHavn: vaelgHavn, sejl: saetSejl,
+    nyRejse: nyRejse, show: show, setView: setView, setFane: setFane, vaelgHavn: vaelgHavn, saetKurs: saetKurs,
+    sejlRet: sejlRet, vent: venDag, aabnKort: aabnKort, tilSoes: tilSoes, stopKurs: stopKurs,
     handling: handling, storm: stormValg, layout: layoutGame, refresh: refresh, setPaused: setPaused,
     vaelgVare: function (id) { valgtVare = id; refresh(); },
     // Til test: læg en gemt tilstand ind og vis den
-    setState: function (st, v) { game = L.createGame(st); slutVist = false; view = v || (st.moede && !st.moede.slut ? 'moede' : 'havn'); if (view === 'moede') moedeLog = intro(st.moede); hideOverlays(); show('game'); refresh(); },
+    setState: function (st, v) {
+      clearTimeout(kursTimer); game = L.createGame(st); slutVist = false;
+      view = v || (st.moede && !st.moede.slut ? 'moede' : st.havn ? 'havn' : 'hav');
+      if (view === 'moede') moedeLog = intro(st.moede);
+      hideOverlays(); show('game'); refresh();
+    },
     save: saveGame
   };
 })();

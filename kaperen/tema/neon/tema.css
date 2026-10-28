@@ -13,7 +13,8 @@
  * Konturer (fx ligne claire): --kap-kontur og --kap-kontur-w (0 i neon).
  * Bløde skygger (fx papirklip og ler): --kap-skygge (ét CSS drop-shadow-filter; usynligt i neon).
  * Glød: --kap-gloed-filter (ét CSS drop-shadow-filter). Begge sættes efter hinanden på grafikken.
- * Tekstur: havets bølgemønster (kap-hav-boelge) og --kap-hav-moenster-synlig. */
+ * Tekstur: havets bølgemønster (kap-hav-boelge) og --kap-hav-moenster-synlig,
+ * tågens slør (kap-taage-sloer) og --kap-taage-moenster-synlig. */
 
 :root, [data-theme] {
   /* Havet og kortet */
@@ -21,17 +22,32 @@
   --kap-hav-2: #160a3a;
   --kap-hav-boelge: rgba(34, 234, 255, 0.22);
   --kap-hav-moenster-synlig: 1;
+  --kap-taage-moenster-synlig: 1;
   --kap-himmel-1: #06041a;
   --kap-himmel-2: #3a0f52;
   --kap-horisont: #ff3fd8;
-  --kap-rute: rgba(246, 236, 255, 0.28);
-  --kap-rute-valgt: #ffe14d;
-  --kap-oe-strand: #3a2a14;
-  --kap-oe-strand-kant: #ffd23a;
-  --kap-oe-land: #0f3a2a;
-  --kap-oe-top: #39ff6a;
-  --kap-kompas: rgba(246, 236, 255, 0.55);
-  --kap-kompas-pil: #ff3fd8;
+  /* Havfelterne (havet set oppefra og søkortet) */
+  --kap-felt-land: #0f3a2a;
+  --kap-kyst: #ffd23a;
+  --kap-felt-top: #39ff6a;
+  --kap-felt-top-fyld: rgba(57, 255, 106, 0.16);
+  --kap-gitter: rgba(246, 236, 255, 0.07);
+  --kap-havn-mole: #c4b0de;
+  --kap-havn-hus: #ff3fd8;
+  --kap-havn-lys: #ffe14d;
+  --kap-havn-navn: #f6ecff;
+  --kap-havn-navn-valgt: #ffe14d;
+  --kap-kurs: #ffe14d;
+  --kap-maal: #ffe14d;
+  /* Tåge over det ukendte, dunkelt hav uden for synsvidden */
+  --kap-taage: #2b2442;
+  --kap-taage-sky: rgba(214, 204, 240, 0.06);
+  --kap-taage-sloer: rgba(214, 204, 240, 0.12);
+  --kap-dunkel: rgba(6, 4, 26, 0.5);
+  --kap-synsvidde: rgba(34, 234, 255, 0.5);
+  --kap-verdens-kant: #05030f;
+  --kap-felt-valg: rgba(34, 234, 255, 0.16);       /* nabofeltet under musen/blikket */
+  --kap-felt-valg-kant: #22eaff;
 
   /* Skibe */
   --kap-skrog: #2a0f40;
@@ -80,20 +96,24 @@
 [data-theme="solnedgang"] {
   --kap-hav-1: #160a2a; --kap-hav-2: #2a0b3d; --kap-hav-boelge: rgba(199, 125, 255, 0.24);
   --kap-horisont: #ff8a1f; --kap-skrog-kant: #ff8a1f; --kap-spiller-skrog-kant: #c77dff; --kap-flag-spiller: #c77dff;
-  --kap-kompas-pil: #ff8a1f; --kap-kortskib: #c77dff;
+  --kap-kortskib: #c77dff; --kap-havn-hus: #ff8a1f; --kap-synsvidde: rgba(199, 125, 255, 0.55); --kap-taage: #33233f;
 }
 [data-theme="cyberpunk"] {
   --kap-hav-1: #000a10; --kap-hav-2: #02201c; --kap-hav-boelge: rgba(42, 157, 255, 0.24);
   --kap-himmel-1: #000208; --kap-himmel-2: #04203a; --kap-horisont: #39ff6a;
-  --kap-skrog-kant: #39ff6a; --kap-spiller-skrog-kant: #2a9dff; --kap-flag-spiller: #2a9dff; --kap-kompas-pil: #39ff6a; --kap-kortskib: #2a9dff;
+  --kap-skrog-kant: #39ff6a; --kap-spiller-skrog-kant: #2a9dff; --kap-flag-spiller: #2a9dff; --kap-kortskib: #2a9dff;
+  --kap-havn-hus: #39ff6a; --kap-synsvidde: rgba(42, 157, 255, 0.55); --kap-taage: #1a2a2a;
 }
 [data-theme="kontrast"] {
   --kap-hav-1: #000000; --kap-hav-2: #000000; --kap-hav-boelge: rgba(255, 255, 255, 0.35);
   --kap-himmel-1: #000000; --kap-himmel-2: #000000; --kap-horisont: #ffffff;
-  --kap-oe-strand: #000000; --kap-oe-strand-kant: #ffffff; --kap-oe-land: #333333; --kap-oe-top: #ffffff;
+  --kap-felt-land: #333333; --kap-kyst: #ffffff; --kap-felt-top: #ffffff; --kap-felt-top-fyld: none; --kap-gitter: rgba(255, 255, 255, 0.15);
+  --kap-havn-mole: #ffffff; --kap-havn-hus: #00ffff; --kap-havn-lys: #ffff00; --kap-havn-navn: #ffffff; --kap-havn-navn-valgt: #ffff00;
+  --kap-kurs: #ffff00; --kap-maal: #ffff00; --kap-taage: #3a3a3a; --kap-taage-sky: rgba(255, 255, 255, 0.12); --kap-taage-sloer: rgba(255, 255, 255, 0.35); --kap-dunkel: rgba(0, 0, 0, 0.55); --kap-synsvidde: #ffff00;
+  --kap-felt-valg: rgba(255, 255, 0, 0.2); --kap-felt-valg-kant: #ffff00;
   --kap-skrog: #000000; --kap-skrog-kant: #ffffff; --kap-spiller-skrog-kant: #ffff00; --kap-sejl: #000000; --kap-sejl-kant: #ffffff;
   --kap-flag-spiller: #ffff00; --kap-flag-handel: #00ff00; --kap-flag-pirat: #ff6600; --kap-flag-marine: #00ffff;
-  --kap-rute: rgba(255, 255, 255, 0.5); --kap-rute-valgt: #ffff00; --kap-kortskib: #ffff00;
+  --kap-kortskib: #ffff00;
   --kap-ok: #00ff00; --kap-fejl: #ff6600; --kap-guld: #ffff00; --kap-billig: #00ff00; --kap-dyr: #ff6600;
   --kap-havn-bg: #000000; --kap-havn-her: #333300; --kap-bar: #00ff00; --kap-bar-lav: #ff6600; --kap-bar-tom: #555555;
 }
@@ -103,7 +123,8 @@
   --kap-kontur: #000000;
   --kap-kontur-w: 0;           /* sorte konturer (fx ligne claire) – 0 i neon */
   --kap-streg-w: 2.5;          /* streger i tegningerne (i SVG-enheder) */
-  --kap-rute-w: 3;
+  --kap-kurs-w: 3;
+  --kap-kyst-w: 3;
   --kap-ikon-w: 9;
   --kap-hall-ikon-w: 7;
   --kap-frame-w: 3px;
@@ -114,10 +135,8 @@
   --kap-radius-swatch: 6px;
   --kap-radius-bar: 4px;
   --kap-skygge: drop-shadow(0 0 0 transparent);   /* fx drop-shadow(4px 6px 0 rgba(0,0,0,.35)) i papirklip */
-  --kap-rute-valgt-w: 5;
   --kap-flag-w: 2;
   --kap-ikon-paa-fyld: var(--bg);
-  --kap-oe-top-fyld: none;
   --kap-gloed-filter: drop-shadow(0 0 4px var(--ui));
   --kap-gloed-filter-accent: drop-shadow(0 0 5px var(--accent));
   --kap-text-shadow: 0 1px 4px var(--kap-shadow);

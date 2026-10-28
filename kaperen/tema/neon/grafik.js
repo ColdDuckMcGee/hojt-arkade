@@ -5,17 +5,25 @@
  * window.KaperenTema. Her står INGEN farver, streger, glød eller skygger: alt
  * farves med klasser og CSS-variabler fra tema.css (--kap-...). Tegnelaget
  * (js/tegn.js) lægger elementerne ind som <symbol> og bruger dem ved navn:
- *   #kap-skib-<navn>, #kap-flag-<navn>, #kap-oe-<n>, #kap-ikon-<navn>,
- *   #kap-kortskib, #kap-kompas, #kap-plask, #kap-traef, #kap-roeg, #kap-storm
+ *   #kap-skib-<navn>, #kap-flag-<navn>, #kap-ikon-<navn>, #kap-felt-land,
+ *   #kap-felt-top-<n>, #kap-felt-havn, #kap-maal, #kap-kortskib, #kap-plask,
+ *   #kap-traef, #kap-roeg, #kap-storm og mønstrene #kap-hav-moenster og #kap-taage-moenster
  *
  * skibe (set fra siden, stævnen mod højre, 100 × 100, vandlinjen ved y = 80):
  *   slup, brig, fregat, galeon  – klasser kap-skrog, kap-skrog-kant, kap-mast,
  *   kap-sejl, kap-kanonport. `flagPunkt` angiver, hvor flaget sidder (toppen af masten).
  * flag (40 × 26): spiller, handel, pirat, marine – klasser kap-flag-dug, kap-flag-tegn.
  *   Flagene kan skelnes på tegnet, ikke kun på farven.
- * oeer (100 × 60): 4 former – klasser kap-oe-strand, kap-oe-land, kap-oe-top.
+ * felter (havfelterne set oppefra, 100 × 100):
+ *   land – et helt landfelt (må strækkes en anelse): kap-felt-land-flade.
+ *   top  – liste med pynt, der står på nogle landfelter (palme, bjerg, skov): kap-felt-top-streg, kap-felt-top-fyld.
+ *   havn – en havn i et vandfelt (mole, hus og fyr): kap-havn-mole, kap-havn-hus, kap-havn-lys.
+ *   Kystlinjen tegnes af tegnelaget (klassen kap-kyst), tågen af taage-mønstret.
+ * taage: indholdet af et <pattern> (40 × 40) med tågeskyer og slør over det ukendte hav
+ *   (kap-taage-sky, kap-taage-sloer).
+ * maal (100 × 100): ring om den valgte havn på kortet – kap-maal-ring.
  * kortskib (40 × 40, set oppefra, peger mod højre): kap-kortskib-krop, kap-kortskib-sejl.
- * kompas (100 × 100): kap-kompas-ring, kap-kompas-pil.
+ *   Bruges til alle skibe på havet; skibets slags vises med flaget ved siden af.
  * effekter (40 × 40): plask (vandsøjle ved forbier), traef (træf), roeg (krudtrøg),
  *   storm (100 × 60: sky, regn og et fast lyn – intet blinker).
  * havMoenster: indholdet af et <pattern> (60 × 30) med bølger til havet (klassen kap-hav-boelge).
@@ -76,26 +84,26 @@
     marine: '<rect class="kap-flag-dug" x="1" y="1" width="38" height="24"/><path class="kap-flag-tegn" d="M10 19 L10 8 L15 13 L20 6 L25 13 L30 8 L30 19 Z"/>'
   };
 
-  var OEER = [
-    '<path class="kap-oe-strand" d="M8 38 C6 22 26 10 48 12 C72 8 96 20 92 38 C90 52 64 56 46 54 C24 56 10 50 8 38 Z"/>' +
-      '<path class="kap-oe-land" d="M18 36 C18 26 32 18 48 20 C66 18 82 26 82 36 C80 46 62 48 46 46 C30 48 18 44 18 36 Z"/>' +
-      '<path class="kap-oe-top" d="M60 34 V18 M60 18 C54 14 48 16 46 20 M60 18 C66 12 72 14 74 18 M60 18 C58 10 62 8 66 10"/>',
-    '<path class="kap-oe-strand" d="M6 40 C4 28 18 14 38 16 C52 6 80 10 90 26 C98 40 84 54 60 52 C40 58 10 54 6 40 Z"/>' +
-      '<path class="kap-oe-land" d="M16 38 C16 30 26 22 40 24 C52 16 74 18 80 28 C86 38 74 44 58 44 C42 48 16 46 16 38 Z"/>' +
-      '<path class="kap-oe-top" d="M34 40 L48 20 L62 40 Z"/>',
-    '<path class="kap-oe-strand" d="M10 34 C10 20 30 14 50 18 C70 14 92 22 90 36 C88 50 70 52 50 50 C28 54 10 48 10 34 Z"/>' +
-      '<path class="kap-oe-land" d="M22 34 C22 26 36 22 50 24 C64 22 80 28 78 36 C76 44 64 44 50 44 C34 46 22 42 22 34 Z"/>' +
-      '<path class="kap-oe-top" d="M36 38 V24 M36 24 C30 20 26 22 24 26 M36 24 C42 18 48 20 50 24 M60 38 V26 M60 26 C56 22 52 24 50 28 M60 26 C64 20 70 22 72 26"/>',
-    '<path class="kap-oe-strand" d="M14 30 C14 18 40 10 58 16 C80 14 92 28 86 40 C78 52 52 50 36 48 C20 48 14 42 14 30 Z"/>' +
-      '<path class="kap-oe-land" d="M24 30 C24 22 42 18 56 22 C72 20 80 30 76 38 C70 44 52 42 40 42 C28 42 24 38 24 30 Z"/>' +
-      '<path class="kap-oe-top" d="M42 36 L52 22 L58 30 L64 24 L72 36 Z"/>'
-  ];
+  var FELTER = {
+    land: '<rect class="kap-felt-land-flade" x="0" y="0" width="100" height="100"/>',
+    top: [
+      // Palme
+      '<path class="kap-felt-top-streg" d="M50 88 C52 70 52 52 48 36 M48 36 C38 26 24 28 16 36 M48 36 C56 24 72 22 84 30 M48 36 C46 24 50 14 60 10 M48 36 C36 34 30 44 28 52"/>',
+      // Bjerg
+      '<path class="kap-felt-top-fyld" d="M10 84 L40 30 L54 52 L64 40 L90 84 Z"/><path class="kap-felt-top-streg" d="M32 44 L40 30 L48 44"/>',
+      // Skov
+      '<path class="kap-felt-top-fyld" d="M18 80 L32 40 L46 80 Z M46 82 L62 30 L78 82 Z"/><path class="kap-felt-top-streg" d="M32 80 V90 M62 82 V92"/>'
+    ],
+    havn: '<path class="kap-havn-mole" d="M8 74 H70 V86 H8 Z M70 86 V28 H84 V86 Z"/>' +
+      '<path class="kap-havn-hus" d="M16 70 V42 L32 28 L48 42 V70 Z"/><path class="kap-havn-hus" d="M50 70 V50 L60 42 L70 50 V70 Z"/>' +
+      '<circle class="kap-havn-lys" cx="77" cy="18" r="9"/>'
+  };
+  var TAAGE = '<ellipse class="kap-taage-sky" cx="14" cy="10" rx="13" ry="6"/><ellipse class="kap-taage-sky" cx="34" cy="30" rx="12" ry="5"/>' +
+    '<path class="kap-taage-sloer" d="M3 22 Q12 19 21 22 M24 6 H37 M6 36 Q12 34 18 36"/>';
+  var MAAL = '<circle class="kap-maal-ring" cx="50" cy="50" r="36"/><path class="kap-maal-ring" d="M50 2 V18 M50 82 V98 M2 50 H18 M82 50 H98"/>';
 
   var KORTSKIB = '<path class="kap-kortskib-krop" d="M4 20 C10 10 28 10 38 20 C28 30 10 30 4 20 Z"/>' +
     '<path class="kap-kortskib-sejl" d="M18 8 V32 M18 8 C26 12 26 28 18 32"/>';
-  var KOMPAS = '<circle class="kap-kompas-ring" cx="50" cy="50" r="40"/>' +
-    '<path class="kap-kompas-pil" d="M50 12 L58 50 L50 88 L42 50 Z"/><path class="kap-kompas-ring" d="M12 50 H88"/>' +
-    '<path class="kap-kompas-n" d="M44 0 V-14 L56 0 V-14" transform="translate(0 -2)"/>';
   var EFFEKTER = {
     plask: '<path class="kap-plask" d="M8 36 C10 24 14 18 14 10 C16 18 18 22 20 6 C22 22 24 18 26 10 C26 18 30 24 32 36 Z"/>',
     traef: '<path class="kap-traef" d="M20 2 L24 14 L36 10 L28 20 L38 28 L24 26 L20 38 L16 26 L2 28 L12 20 L4 10 L16 14 Z"/>',
@@ -135,17 +143,23 @@
     vaerthus: '<path class="ico-line" d="M24 26 H66 V84 C66 88 62 90 58 90 H32 C28 90 24 88 24 84 Z M66 40 H78 C84 40 86 44 86 50 V60 C86 66 84 70 78 70 H66"/><path class="ico-fill" d="M28 30 H62 V44 H28 Z"/>',
     anker: '<circle class="ico-line" cx="50" cy="18" r="8"/><path class="ico-line" d="M50 26 V88 M32 40 H68 M16 62 C18 80 34 88 50 88 C66 88 82 80 84 62"/>',
     menu: '<path class="ico-line" d="M18 26 H82 M18 50 H82 M18 74 H82"/>',
-    tilbage: '<path d="M44 22 L14 50 L44 78 V60 H86 V40 H44 Z"/>',
+    tilbage: '<path class="ico-fill" d="M44 22 L14 50 L44 78 V60 H86 V40 H44 Z"/>',
     rygte: '<path class="ico-line" d="M14 20 H86 V66 H44 L24 84 V66 H14 Z"/><path class="ico-line" d="M30 38 H70 M30 50 H58"/>',
     land: '<path class="ico-line" d="M10 80 C30 70 70 70 90 80"/><path class="ico-fill" d="M40 66 V30 H66 L58 40 L66 50 H44 V66 Z"/>',
     storm: '<path class="ico-line" d="M18 50 C8 50 8 32 20 32 C24 16 46 14 52 26 C60 18 82 22 80 38 C92 40 90 56 78 56 H24"/><path class="ico-fill" d="M50 56 L38 76 H50 L42 94 L64 70 H52 L60 56 Z"/>',
+    pil: '<path class="ico-fill" d="M50 6 L88 48 H62 V94 H38 V48 H12 Z"/>',
+    vent: '<path class="ico-line" d="M24 10 H76 M24 90 H76 M30 10 C30 40 70 50 70 90 M70 10 C70 40 30 50 30 90"/><path class="ico-fill" d="M38 80 H62 L50 66 Z"/>',
+    kikkert: '<path class="ico-fill" d="M8 60 L64 30 L74 48 L18 78 Z"/><path class="ico-line" d="M72 24 L88 54 M40 70 L30 94 M46 66 L62 94"/>',
+    kurs: '<path class="ico-line" d="M14 84 C26 58 44 70 54 46 C62 28 72 22 84 18"/><circle class="ico-fill" cx="84" cy="18" r="10"/><circle class="ico-fill" cx="14" cy="84" r="8"/>',
+    stop: '<rect class="ico-fill" x="20" y="20" width="60" height="60" rx="8"/>',
     laa: '<path class="ico-line" d="M8 70 C30 40 70 40 92 70"/><path class="ico-fill" d="M30 76 H70 L64 88 H36 Z"/><path class="ico-line" d="M50 76 V56"/>'
   };
 
   global.KaperenTema = {
     navn: 'neon',
-    skibe: SKIBE, flagPunkt: FLAGPUNKT, flag: FLAG, oeer: OEER,
-    kortskib: KORTSKIB, kompas: KOMPAS, effekter: EFFEKTER, havMoenster: HAV_MOENSTER,
+    skibe: SKIBE, flagPunkt: FLAGPUNKT, flag: FLAG,
+    felter: FELTER, taage: TAAGE, maal: MAAL,
+    kortskib: KORTSKIB, effekter: EFFEKTER, havMoenster: HAV_MOENSTER,
     ikoner: IKONER
   };
 })(typeof window !== 'undefined' ? window : globalThis);
