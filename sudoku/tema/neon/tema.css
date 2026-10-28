@@ -32,8 +32,6 @@
   --su-zoom-bg: rgba(255, 63, 216, 0.07);
   --su-dim: 0.55;                          /* felter uden for den valgte boks */
   --su-box-hover-bg: rgba(34, 234, 255, 0.14);
-  --su-heart: #ff3fd8;
-  --su-heart-off: rgba(196, 176, 222, 0.6);
   --su-ok: #39ff6a;
   --su-shadow: #000000;
   --su-overlay-bg: rgba(0, 0, 0, 0.62);
@@ -44,13 +42,13 @@
   --su-swatch-border: rgba(255, 255, 255, 0.5);
   --su-digit-outline: transparent;         /* kontur om tallene (fx sort i ligne claire) */
 }
-[data-theme="solnedgang"] { --su-frame: #c77dff; --su-placed: #ffb15c; --su-zoom: #ff8a1f; --su-zoom-bg: rgba(255, 138, 31, 0.08); --su-heart: #ff8a1f; --su-cursor: #22eaff; --su-same-bg: rgba(199, 125, 255, 0.3); --su-peer-bg: rgba(255, 138, 31, 0.09); --su-sel-bg: rgba(255, 138, 31, 0.3); }
-[data-theme="cyberpunk"] { --su-frame: #2a9dff; --su-grid: rgba(57, 255, 106, 0.2); --su-block: rgba(57, 255, 106, 0.6); --su-placed: #39ff6a; --su-tip: #2a9dff; --su-zoom: #39ff6a; --su-zoom-bg: rgba(57, 255, 106, 0.07); --su-heart: #39ff6a; --su-cursor: #ff3fd8; --su-same-bg: rgba(42, 157, 255, 0.32); --su-peer-bg: rgba(57, 255, 106, 0.08); --su-sel-bg: rgba(57, 255, 106, 0.26); }
+[data-theme="solnedgang"] { --su-frame: #c77dff; --su-placed: #ffb15c; --su-zoom: #ff8a1f; --su-zoom-bg: rgba(255, 138, 31, 0.08); --su-cursor: #22eaff; --su-same-bg: rgba(199, 125, 255, 0.3); --su-peer-bg: rgba(255, 138, 31, 0.09); --su-sel-bg: rgba(255, 138, 31, 0.3); }
+[data-theme="cyberpunk"] { --su-frame: #2a9dff; --su-grid: rgba(57, 255, 106, 0.2); --su-block: rgba(57, 255, 106, 0.6); --su-placed: #39ff6a; --su-tip: #2a9dff; --su-zoom: #39ff6a; --su-zoom-bg: rgba(57, 255, 106, 0.07); --su-cursor: #ff3fd8; --su-same-bg: rgba(42, 157, 255, 0.32); --su-peer-bg: rgba(57, 255, 106, 0.08); --su-sel-bg: rgba(57, 255, 106, 0.26); }
 [data-theme="kontrast"] {
   --su-board: #000000; --su-frame: #ffffff; --su-grid: rgba(255, 255, 255, 0.55); --su-block: #ffffff;
   --su-given: #ffffff; --su-placed: #00ffff; --su-tip: #00ff00; --su-err: #ff6600; --su-note: #ffffff; --su-note-same: #ffff00;
   --su-peer-bg: #1a1a1a; --su-same-bg: #4d004d; --su-same: #ffff00; --su-sel-bg: #003a3a; --su-cursor: #ffff00;
-  --su-zoom: #ff00ff; --su-zoom-bg: #0d000d; --su-dim: 0.75; --su-heart: #ffff00; --su-ok: #00ff00;
+  --su-zoom: #ff00ff; --su-zoom-bg: #0d000d; --su-dim: 0.75; --su-ok: #00ff00;
 }
 
 /* ---------- Skrift ---------- */
@@ -71,10 +69,8 @@
   --su-digit-outline-w: 0px;
   --su-err-line-w: 0.08em;  /* overstregning af et forkert tal */
   --su-stroke-ico: 8;       /* ikoner tegnes i 100 × 100 */
-  --su-stroke-heart: 6;
   --su-stroke-hall: 7;
   --su-hall-border-w: 2px;
-  --su-heart-off-dash: 8 6;
   --su-radius-board: 12px;
   --su-radius-hud: 14px;
   --su-radius-hud-small: 10px;
@@ -91,13 +87,12 @@
   --su-board-glow: 0 0 calc(20px * var(--glow)) color-mix(in srgb, var(--su-frame) 45%, transparent), inset 0 0 calc(10px * var(--glow)) color-mix(in srgb, var(--su-frame) 25%, transparent);
   --su-zoom-glow: 0 0 calc(16px * var(--glow)) color-mix(in srgb, var(--su-zoom) 60%, transparent);
   --su-digit-glow: 0 0 calc(10px * var(--glow)) color-mix(in srgb, var(--su-placed) 70%, transparent);
-  --su-heart-glow: drop-shadow(0 0 calc(4px * var(--glow)) var(--su-heart));
   --su-score-glow: 0 0 calc(18px * var(--glow)) var(--ui);
   --su-points-glow: 0 0 calc(12px * var(--glow)) color-mix(in srgb, var(--su-ok) 50%, transparent);
 }
 html[data-su-gloed="fra"], html[data-su-gloed="fra"] [data-theme] {
   --glow: 0;
-  --su-board-glow: none; --su-zoom-glow: none; --su-digit-glow: none; --su-heart-glow: none;
+  --su-board-glow: none; --su-zoom-glow: none; --su-digit-glow: none;
   --su-score-glow: none; --su-points-glow: none;
 }
 

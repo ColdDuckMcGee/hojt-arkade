@@ -6,12 +6,11 @@
  * CSS-variabler fra tema.css (ingen farver her):
  *   .ico-line  streg (farve: --ico-line, tykkelse: --su-stroke-ico)
  *   .ico-fill  flade (farve: --ico-fill)
- * Navne: liv, pause, tilbage, visk, noter, fortryd, tip, oversigt.
+ * Navne: pause, tilbage, visk, noter, fortryd, tip, oversigt.
  */
 (function (global) {
   'use strict';
   var IKONER = {
-    liv: '<path d="M50 86 L16 52 A20 20 0 0 1 50 22 A20 20 0 0 1 84 52 Z"/>',
     pause: '<rect x="24" y="20" width="18" height="60" rx="4"/><rect x="58" y="20" width="18" height="60" rx="4"/>',
     tilbage: '<path d="M44 22 L14 50 L44 78 V60 H86 V40 H44 Z"/>',
     visk: '<path class="ico-line" d="M30 80 H84"/><path class="ico-line" d="M16 60 L50 26 L78 54 L54 78 H36 Z"/><path class="ico-line" d="M34 42 L62 70"/>',

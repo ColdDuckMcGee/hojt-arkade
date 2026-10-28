@@ -4,9 +4,10 @@
 # vises som felt=..px; felterne i en zoomet boks skal være mindst ca. 72 px og bokseknapperne
 # i oversigten mindst 80 px), og ingen fejl i konsollen.
 #
-# Desuden spillet i browseren: vælg boks (zoom) → felt → tal med musen, forkert tal koster
-# et liv, noter, visk, fortryd, tip, tastaturet, glød fra, løst gåde, Næste gåde, bekræftelse
-# ved Afslut, game over efter tre fejl, rekorder og dwell (ét dwell = én handling).
+# Desuden spillet i browseren: fire sværheder i menuen, vælg boks (zoom) → felt → tal med musen,
+# forkert tal koster point (ingen liv, ingen game over), noter, visk, fortryd (uden refusion),
+# tip, tastaturet, glød fra, løst gåde, Næste gåde, Afslut serien → "Serien er slut",
+# rekorder (også Ekspert), en Ekspert-gåde og dwell (ét dwell = én handling).
 #
 # Kræver Python med Playwright og Chrome/Chromium:
 #   python3 sudoku/test/responsiv_test.py
@@ -114,14 +115,19 @@ def gameplay(pg, w, h, tag):
     if st(pg, "Sudoku.sel") != e[0]: fails.append(tag + ' feltet blev ikke valgt')
     pg.click('#pad [data-digit="%d"]' % sol(pg, e[0])); pg.wait_for_timeout(60)
     if st(pg, "Sudoku.run.state.grid[%d]" % e[0]) != sol(pg, e[0]): fails.append(tag + ' tallet blev ikke sat')
-    # Forkert tal: et liv mindre, vises som forkert
+    # Forkert tal: minuspoint (tydeligt i linjen, uden blink), vises som forkert, ingen liv
+    pg.evaluate("Sudoku.run.state.score = 30; Sudoku.refresh()")
     click_cell(pg, e[1]); pg.click('#pad [data-digit="%d"]' % wrong(pg, e[1])); pg.wait_for_timeout(60)
-    r = st(pg, "[Sudoku.run.state.lives, document.querySelectorAll('#hud-lives .on').length, document.querySelector('#board .cell[data-i=\"%d\"]').classList.contains('wrong'), document.getElementById('hint').className]" % e[1])
-    if r != [2, 2, True, 'hint err']: fails.append('%s fejl gav %s' % (tag, r))
-    check(pg, 'forkert tal', '#game', w, h)
-    # Fortryd giver livet igen
+    r = st(pg, """[Sudoku.run.state.score, document.getElementById('hud-score').textContent, document.getElementById('hud-errors').textContent,
+        document.querySelector('#board .cell[data-i=\"%d\"]').classList.contains('wrong'), document.getElementById('hint').className,
+        /−5 point/.test(document.getElementById('hint').textContent), getComputedStyle(document.getElementById('hint')).animationName,
+        'lives' in Sudoku.run.state, !!document.getElementById('hud-lives')]""" % e[1])
+    if r != [25, '25', '1', True, 'hint err', True, 'none', False, False]: fails.append('%s fejl gav %s' % (tag, r))
+    check(pg, 'forkert tal', '#game', w, h, (big or small) and tag + '-fejl.png')
+    # Fortryd fjerner tallet, men giver ikke point tilbage
     pg.click('#btn-undo'); pg.wait_for_timeout(60)
-    if st(pg, "[Sudoku.run.state.lives, Sudoku.run.state.undoLeft, document.getElementById('btn-undo').disabled]") != [3, 0, True]: fails.append(tag + ' fortryd virkede ikke')
+    if st(pg, "[Sudoku.run.state.score, Sudoku.run.state.errors, Sudoku.run.state.undoLeft, document.getElementById('btn-undo').disabled, Sudoku.run.state.wrong[%d]]" % e[1]) != [25, 1, 0, True, 0]: fails.append(tag + ' fortryd virkede ikke')
+    pg.evaluate("Sudoku.run.state.score = 0; Sudoku.refresh()")
     # Noter: blyantstal i feltet, Visk fjerner dem
     pg.click('#btn-notes'); pg.wait_for_timeout(40)
     click_cell(pg, e[1]); pg.click('#pad [data-digit="1"]'); pg.click('#pad [data-digit="5"]'); pg.wait_for_timeout(40)
@@ -170,7 +176,7 @@ def dwell_check(pg, w, h, tag):
     try: pg.wait_for_function("Sudoku.run.state.grid[%d] === %d" % (e[0], d), timeout=3000)
     except Exception: fails.append(tag + ' dwell på et tal satte det ikke')
     pg.wait_for_timeout(1600)
-    if st(pg, "[Sudoku.run.state.lives, Sudoku.run.state.errors]") != [3, 0]: fails.append(tag + ' dwell gentog handlingen')
+    if st(pg, "[Sudoku.run.state.errors, Sudoku.run.state.grid.filter(v => v).length - Sudoku.run.state.puzzle.givens.filter(v => v).length]") != [0, 1]: fails.append(tag + ' dwell gentog handlingen')
     pg.evaluate("Sudoku.settings.set('dwell', false)"); pg.mouse.move(1, 1)
     print('OK   %dx%d dwell' % (w, h) if not [f for f in fails if f.startswith(tag) and 'dwell' in f] else 'FEJL %dx%d dwell' % (w, h))
 
@@ -188,9 +194,11 @@ with sync_playwright() as p:
         check(pg,'start','#menu',w,h, big and 'startskaerm.png')
         hb = pg.evaluate("Math.round(Math.min(document.getElementById('btn-hall').getBoundingClientRect().width, document.getElementById('btn-hall').getBoundingClientRect().height))")
         if hb < MIN_BTN: fails.append('%s Tilbage til hallen er kun %s px' % (tag, hb))
-        for m in ['let', 'mellem', 'svaer']:
+        if pg.evaluate("[...document.querySelectorAll('#menu [data-mode]')].map(b => b.dataset.mode).join()") != 'let,mellem,svaer,ekspert': fails.append(tag + ' menuen har ikke fire sværheder')
+        for m in ['let', 'mellem', 'svaer', 'ekspert']:
             pg.click('#menu [data-mode=%s]' % m); pg.wait_for_timeout(30)
-        if st(pg, "Sudoku.gameSettings.get('mode')") != 'svaer': fails.append(tag + ' sværhed kunne ikke vælges')
+            if st(pg, "Sudoku.gameSettings.get('mode')") != m: fails.append(tag + ' sværhed %s kunne ikke vælges' % m)
+        check(pg,'start (Ekspert valgt)','#menu',w,h, small and tag+'-ekspert-valgt.png')
         pg.click('#menu [data-mode=let]')
         pg.evaluate("Sudoku.show('om')"); pg.wait_for_timeout(100)
         pages(pg, '#om', w, h, 'om', small and tag+'-om')
@@ -198,6 +206,8 @@ with sync_playwright() as p:
             pg.evaluate("Sudoku.show('settings')"); pg.click('[data-tab=%s]' % tab); pg.wait_for_timeout(80)
             pages(pg, '#settings', w, h, 'indstillinger/'+tab, small and '%s-indstillinger-%s' % (tag, tab))
         pg.evaluate("Sudoku.show('records')"); pg.wait_for_timeout(80); check(pg,'rekorder','#records',w,h)
+        pg.click('#records [data-rec-mode=ekspert]'); pg.wait_for_timeout(60); check(pg,'rekorder (Ekspert)','#records',w,h, big and 'rekorder.png')
+        pg.click('#records [data-rec-mode=let]'); pg.wait_for_timeout(40)
         pg.evaluate("Sudoku.show('menu')"); pg.click('#btn-start'); pg.wait_for_timeout(200)
         u = pg.evaluate("() => { const p = Sudoku.run.state.puzzle; return [Sudoku.run.state.diff, SudokuGame.countSolutions(p.givens, 2)]; }")
         if u != ['let', 1]: fails.append('%s gåden er forkert %s' % (tag, u))
@@ -207,7 +217,7 @@ with sync_playwright() as p:
         pg.evaluate("Sudoku.gameSettings.set('gloed', false)"); pg.wait_for_timeout(400)
         g = pg.evaluate("""() => [document.documentElement.dataset.suGloed, getComputedStyle(document.querySelector('#board')).boxShadow,
              getComputedStyle(document.querySelector('#board .cell.placed .v') || document.querySelector('#board .cell .v')).textShadow, document.querySelectorAll('[id^=su-ikon-]').length]""")
-        if g[0] != 'fra' or g[1] != 'none' or g[3] < 8: fails.append('%s glød fra gav %s' % (tag, g))
+        if g[0] != 'fra' or g[1] != 'none' or g[3] < 7: fails.append('%s glød fra gav %s' % (tag, g))
         check(pg,'spil uden glød','#game',w,h, small and tag+'-uden-gloed.png')
         pg.evaluate("Sudoku.gameSettings.set('gloed', true)"); pg.wait_for_timeout(40)
         # Et billede af et spil i gang: zoomet boks med valgt felt og noter
@@ -229,23 +239,43 @@ with sync_playwright() as p:
         pg.keyboard.press('Escape'); pg.wait_for_timeout(80)
         if pg.evaluate("[document.getElementById('confirm-overlay').hidden, document.getElementById('done-overlay').hidden]") != [True, False]: fails.append(tag + ' Esc i bekræftelsen gik ikke tilbage')
         pg.click('#btn-next'); pg.wait_for_timeout(150)
-        if pg.evaluate("[Sudoku.run.state.index, Sudoku.run.state.solvedCount, Sudoku.run.state.lives, Sudoku.run.state.undoLeft]") != [1, 1, 3, 1]: fails.append(tag + ' Næste gåde virkede ikke')
+        if pg.evaluate("[Sudoku.run.state.index, Sudoku.run.state.solvedCount, Sudoku.run.state.errors, Sudoku.run.state.undoLeft, document.getElementById('hud-errors').textContent]") != [1, 1, 0, 1, '0']: fails.append(tag + ' Næste gåde virkede ikke')
         check(pg,'gåde 2','#game',w,h)
-        # Game over: tre forkerte tal i samme gåde
-        pg.evaluate("""() => { const s = Sudoku.run.state; const e = s.grid.map((v, i) => v ? -1 : i).filter(i => i >= 0).slice(0, 3);
+        # To forkerte tal: kun minuspoint, ingen game over
+        pg.evaluate("""() => { const s = Sudoku.run.state; const e = s.grid.map((v, i) => v ? -1 : i).filter(i => i >= 0).slice(0, 2);
             e.forEach(i => { Sudoku.zoomTo(SudokuGame.box(i), i); Sudoku.digit(s.puzzle.sol[i] === 1 ? 2 : 1); }); }""")
-        pg.wait_for_timeout(300)
-        if big and SHOT: pg.screenshot(path=SHOT + tag + '-tre-fejl.png')
         pg.wait_for_timeout(1800)
-        if pg.evaluate("document.getElementById('gameover').hidden"): fails.append(tag + ' game over blev ikke vist')
-        rec = pg.evaluate("Sudoku.records.list('let').some(e => e.levels === 1 && e.score === %d)" % pts)
+        left = max(0, pts - 2 * 5)
+        r = pg.evaluate("[document.getElementById('gameover').hidden, Sudoku.run.state.score, Sudoku.run.state.errors, Sudoku.run.state.over, document.getElementById('btn-pause').disabled]")
+        if r != [True, left, 2, False, False]: fails.append('%s fire fejl gav %s (ventet %s)' % (tag, r, [True, left, 2, False, False]))
+        # Afslut serien → bekræft → "Serien er slut"
+        pg.click('#btn-pause'); pg.wait_for_timeout(80)
+        if 'Afslut serien' not in pg.inner_text('#btn-quit'): fails.append(tag + ' pauseknappen hedder ikke Afslut serien')
+        pg.click('#btn-quit'); pg.wait_for_timeout(80)
+        pg.click('#btn-confirm-yes'); pg.wait_for_timeout(200)
+        if pg.evaluate("document.getElementById('gameover').hidden"): fails.append(tag + ' slutskærmen blev ikke vist')
+        if pg.inner_text('#go-title').strip().lower() != 'serien er slut': fails.append(tag + ' slutskærmen siger %r' % pg.inner_text('#go-title'))
+        if 'liv' in pg.inner_text('#gameover').lower().split(): fails.append(tag + ' slutskærmen nævner liv')
+        rec = pg.evaluate("Sudoku.records.list('let').some(e => e.levels === 1 && e.score === %d)" % left) if left else True
         if not rec: fails.append(tag + ' rekorden blev ikke gemt')
         split = pg.evaluate("!document.getElementById('btn-go-rec').hidden")
-        check(pg,'game over' + (' (resultat)' if split else ''),'#gameover',w,h, big and 'game-over.png' or (small and tag+'-gameover.png'))
+        check(pg,'serien er slut' + (' (resultat)' if split else ''),'#gameover',w,h, big and 'serien-er-slut.png' or (small and tag+'-gameover.png'))
         if split:
             pg.click('#btn-go-rec'); pg.wait_for_timeout(80)
-            check(pg,'game over (rekorder)','#gameover',w,h, small and tag+'-gameover-trin2.png')
+            check(pg,'serien er slut (rekorder)','#gameover',w,h, small and tag+'-gameover-trin2.png')
             pg.click('#btn-go-rec'); pg.wait_for_timeout(60)
+        # Ekspert: start fra menuen; gåden kræver par (teknikniveau 4) og har én løsning
+        pg.evaluate("Sudoku.show('menu')"); pg.click('#menu [data-mode=ekspert]'); pg.wait_for_timeout(900)
+        pg.click('#btn-start'); pg.wait_for_timeout(200)
+        u = pg.evaluate("() => { const p = Sudoku.run.state.puzzle; return [Sudoku.run.state.diff, SudokuGame.countSolutions(p.givens, 2), SudokuGame.grade(p.givens)]; }")
+        if u[:2] != ['ekspert', 1] or u[2] < 4: fails.append('%s Ekspert-gåden er %s' % (tag, u))
+        check(pg,'spil (Ekspert)','#game',w,h, big and 'ekspert.png')
+        solve_all(pg); pg.wait_for_timeout(300)
+        if pg.evaluate("document.getElementById('done-points').textContent") != '+165 point': fails.append(tag + ' Ekspert gav ' + pg.evaluate("document.getElementById('done-points').textContent"))
+        pg.click('#btn-done-quit'); pg.wait_for_timeout(80); pg.click('#btn-confirm-yes'); pg.wait_for_timeout(200)
+        if not pg.evaluate("Sudoku.records.list('ekspert').some(e => e.score === 165 && e.levels === 1)"): fails.append(tag + ' Ekspert-rekorden blev ikke gemt')
+        check(pg,'serien er slut (Ekspert)','#gameover',w,h)
+        pg.evaluate("Sudoku.gameSettings.set('mode','let')")
         dwell_check(pg, w, h, tag)
         # Tilbage til hallen fra startskærmen
         if big:

@@ -129,13 +129,7 @@
       }
     }
     function notesList(m) { var a = []; for (var d = 1; d <= 9; d++) if (m & (1 << d)) a.push(d); return a.join(' '); }
-    function lives(el, left, max) {
-      if (el.dataset.v === String(left)) return;
-      var html = '';
-      for (var i = 0; i < max; i++) html += ikon('liv', i < left ? 'on' : 'off');
-      el.innerHTML = html; el.dataset.v = left;
-    }
-    return { build: build, board: board, lives: lives, get ready() { return built; } };
+    return { build: build, board: board, get ready() { return built; } };
   }
 
   global.SudokuTegn = { create: create, installerIkoner: installerIkoner, ikon: ikon, cssNum: cssNum, BOX_NAMES: BOX_NAMES };

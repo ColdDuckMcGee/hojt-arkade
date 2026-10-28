@@ -37,7 +37,6 @@ require(path.join(dir, 'tema/neon/grafik.js'));
 const T = globalThis.SudokuTema;
 const wanted = new Set([...html.matchAll(/#su-ikon-([a-z]+)/g)].map(m => m[1]));
 [...read('js/tegn.js').matchAll(/su-ikon-' *\+ *'?([a-z]*)|ikon\('([a-z]+)'/g)].forEach(m => { if (m[2]) wanted.add(m[2]); });
-wanted.add('liv');
 const missing = [...wanted].filter(n => !T.ikoner[n]);
 check('temaet leverer alle ikoner, spillet beder om (' + [...wanted].join(', ') + ')', missing.length === 0, missing.join(', '));
 // Alle --su-variabler, som layoutet bruger, skal findes i temaet (undtagen layout-tal fra JS)

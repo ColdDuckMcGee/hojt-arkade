@@ -29,14 +29,15 @@
       <img class="arkade-logo" src="../arkade/logo.svg" alt="Hojt Arkade">
       <h1 id="titel" class="neon-title">SUDOKU</h1>
     </div>
-    <p class="lead opt">Udfyld pladen, så tallene 1 til 9 står én gang i hver række, hver kolonne og hver boks. Vælg først en boks, så et felt, og så et tal. Der er intet ur. Et forkert tal koster et liv, og du har tre liv pr. gåde.</p>
+    <p class="lead opt">Udfyld pladen, så tallene 1 til 9 står én gang i hver række, hver kolonne og hver boks. Vælg først en boks, så et felt, og så et tal. Der er intet ur. Et forkert tal koster point, og gåderne fortsætter, til du selv afslutter.</p>
   </header>
   <section class="menu-group" aria-labelledby="mode-label">
     <h2 id="mode-label" class="group-label">Sværhed</h2>
     <div class="row" role="group" aria-labelledby="mode-label">
       <button class="btn option" data-mode="let" aria-pressed="false"><span class="big">Let</span><span class="small">ca. 38 tal</span></button>
       <button class="btn option" data-mode="mellem" aria-pressed="false"><span class="big">Mellem</span><span class="small">ca. 28 tal</span></button>
-      <button class="btn option" data-mode="svaer" aria-pressed="false"><span class="big">Svær</span><span class="small">ca. 26 tal</span></button>
+      <button class="btn option" data-mode="svaer" aria-pressed="false"><span class="big">Svær</span><span class="small">ca. 25 tal</span></button>
+      <button class="btn option" data-mode="ekspert" aria-pressed="false"><span class="big">Ekspert</span><span class="small">ca. 24 tal</span></button>
     </div>
   </section>
   <div class="row start-row">
@@ -56,7 +57,7 @@
   <section class="panel om-panel">
     <h2 id="om-title" class="neon-sub">Om Hojt Arkade</h2>
     <p data-trin>Hojt Arkade er udviklet af Jon Leismann Engsager, Hojt Design. Jon er IT- og IKT-konsulent i det specialiserede område og laver blandt andet gratis spil til voksne, der bruger øjenstyring.</p>
-    <p data-trin>Sudoku: vælg en boks, så den bliver stor, vælg et felt i boksen, og vælg så et tal på talpanelet. Med Noter skriver du små blyantstal. Et forkert tal koster et liv. Du har ét Fortryd pr. gåde, og et Tip udfylder et felt for nogle point. En fejlfri gåde uden tip giver bonus. Alle gåder har præcis én løsning.</p>
+    <p data-trin>Sudoku: vælg en boks, så den bliver stor, vælg et felt i boksen, og vælg så et tal på talpanelet. Med Noter skriver du små blyantstal. Et forkert tal trækker point fra (dine point bliver aldrig under 0). Gåderne fortsætter, til du vælger Afslut serien. Du har ét Fortryd pr. gåde, og et Tip udfylder et felt for nogle point. En fejlfri gåde uden tip giver bonus. Alle gåder har præcis én løsning.</p>
     <p data-trin>Koden er åben og frit tilgængelig under MIT-licensen, så alle kan bruge den og bygge videre på den.</p>
   </section>
   <div class="row" data-trin>
@@ -80,7 +81,7 @@
       <div class="hud-grid" aria-live="polite">
         <div class="hud"><div class="hud-label">Gåde</div><div class="hud-value" id="hud-puzzle">1</div></div>
         <div class="hud"><div class="hud-label">Point</div><div class="hud-value" id="hud-score">0</div></div>
-        <div class="hud hud-lives"><div class="hud-label">Liv</div><div class="lives" id="hud-lives" role="img" aria-label="3 liv"></div></div>
+        <div class="hud"><div class="hud-label">Fejl</div><div class="hud-value" id="hud-errors">0</div></div>
       </div>
       <p class="hint" id="hint" aria-live="polite">Vælg en boks</p>
       <div class="pad" id="pad" role="group" aria-label="Talpanel og værktøjer">
@@ -125,7 +126,7 @@
       <div class="row">
         <button class="btn" id="btn-pause-settings"><span class="icon" aria-hidden="true">⚙</span><span class="big">Indstillinger</span></button>
         <button class="btn js-fullscreen"><span class="icon" aria-hidden="true">⛶</span><span class="big js-fs-label">Fuld skærm</span></button>
-        <button class="btn" id="btn-quit"><span class="icon" aria-hidden="true">■</span><span class="big">Afslut</span><span class="small">gem point</span></button>
+        <button class="btn" id="btn-quit"><span class="icon" aria-hidden="true">■</span><span class="big">Afslut serien</span><span class="small">gem point</span></button>
       </div>
     </div>
   </div>
@@ -140,7 +141,7 @@
       </div>
       <div class="row done-row">
         <button class="btn primary wide" id="btn-next"><span class="big">Næste gåde</span><span class="small" id="btn-next-sub">Gåde 2</span></button>
-        <button class="btn" id="btn-done-quit"><span class="icon" aria-hidden="true">■</span><span class="big">Afslut</span><span class="small">gem point</span></button>
+        <button class="btn" id="btn-done-quit"><span class="icon" aria-hidden="true">■</span><span class="big">Afslut serien</span><span class="small">gem point</span></button>
       </div>
     </div>
   </div>
@@ -164,7 +165,7 @@
     <section class="go-result">
       <div class="go-head">
         <h2 id="go-title" class="neon-sub">Spillet er slut</h2>
-        <p class="go-reason" id="go-reason">Du mistede alle tre liv.</p>
+        <p class="go-reason" id="go-reason">Du afsluttede serien.</p>
         <div class="go-score"><span id="go-score">0</span><span class="go-unit">point</span></div>
         <p class="go-plates" id="go-levels">0 gåder løst</p>
         <p class="go-rank" id="go-rank"></p>
@@ -284,6 +285,7 @@
     <button class="btn option" data-rec-mode="let"><span class="big">Let</span></button>
     <button class="btn option" data-rec-mode="mellem"><span class="big">Mellem</span></button>
     <button class="btn option" data-rec-mode="svaer"><span class="big">Svær</span></button>
+    <button class="btn option" data-rec-mode="ekspert"><span class="big">Ekspert</span></button>
   </div>
   <section class="panel records-panel">
     <h2 class="group-label" id="rec-title">Rekorder</h2>

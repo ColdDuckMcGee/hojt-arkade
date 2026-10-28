@@ -4,8 +4,8 @@
  *
  * To trin, så målene bliver store: vælg en boks (pladen zoomer ind på den),
  * vælg et felt i boksen, og vælg så et tal på det store talpanel. Et forkert tal
- * koster et liv. Der er ingen tid. Gåder uden ende – spillet slutter, når man
- * mister alle tre liv i en gåde (eller selv vælger Afslut).
+ * og et tip trækker point fra (aldrig under 0). Der er ingen tid og ingen liv.
+ * Gåder uden ende – serien slutter, når spilleren vælger Afslut serien.
  */
 (function () {
   'use strict';
@@ -66,7 +66,7 @@
   // Lydene kommer fra det fælles lydmodul (alle rolige). Sudoku bruger disse navne:
   var SFX = {
     place: 'eat', note: 'move', erase: 'bonusGone', error: 'obstacle', unit: 'bonusSpawn', tip: 'bonusSpawn',
-    zoom: 'move', solved: 'bonus', lost: 'crash', record: 'record', click: 'click', pause: 'pause', undo: 'bonusGone'
+    zoom: 'move', solved: 'bonus', record: 'record', click: 'click', pause: 'pause', undo: 'bonusGone'
   };
   function sfx(name) { audio.play(SFX[name] || name); }
   function unlockAudio() { audio.unlock(); }
@@ -129,7 +129,6 @@
   function modeName(m) { return G.DIFFS[m] ? G.DIFFS[m].label : m; }
   function pointsText(n) { return n === 1 ? '1 point' : n + ' point'; }
   function puzzlesText(n) { return n === 1 ? '1 gåde' : n + ' gåder'; }
-  function livesText(n) { return n === 1 ? '1 liv' : n + ' liv'; }
   function cellName(i) { return 'række ' + (G.row(i) + 1) + ', kolonne ' + (G.col(i) + 1); }
   function currentMode() { return bset.get('mode'); }
 
@@ -138,6 +137,7 @@
     var mode = currentMode();
     $$('#menu [data-mode]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.mode === mode)); });
     if (current === 'menu') fitScreen($('#menu'));
+    if (current === 'menu') prepareFirst();
   }
   $$('#menu [data-mode]').forEach(function (b) {
     b.addEventListener('click', function () { bset.set('mode', b.dataset.mode); syncMenu(); sfx('click'); });
@@ -207,8 +207,21 @@
     select(i);
   });
 
+  // Første gåde laves i forvejen, mens menuen står stille (Svær og Ekspert kan tage
+  // et par hundrede ms), så Start spil reagerer med det samme.
+  var firstPuzzle = null, firstTimer = 0;
+  function prepareFirst() {
+    clearTimeout(firstTimer);
+    firstTimer = setTimeout(function () {
+      var m = currentMode();
+      if (current !== 'menu' || (firstPuzzle && firstPuzzle.diff === m)) return;
+      firstPuzzle = G.generate(m);
+    }, 700);
+  }
   function startGame() {
-    run = G.createRun(currentMode());
+    var m = currentMode(), pre = firstPuzzle && firstPuzzle.diff === m ? firstPuzzle : null;
+    firstPuzzle = null; clearTimeout(firstTimer);
+    run = G.createRun(m, pre ? { puzzle: pre } : undefined);
     paused = false; finished = false; zoom = -1; sel = -1; notesMode = false;
     lastNote = ''; noteCls = '';
     clearTimeout(doneTimer); clearTimeout(overTimer);
@@ -273,16 +286,8 @@
     if (!res.ok) { refresh(); return; }
     if (res.result === 'fejl') {
       var why = res.clash && res.clash.length ? ' (' + d + ' står allerede i samme ' + clashWhere(sel, res.clash[0]) + ')' : '';
-      if (res.over) {
-        sfx('lost');
-        setNote(d + ' passer ikke' + why + ', og du har ikke flere liv.', 'err');
-        refresh();
-        clearTimeout(overTimer);
-        overTimer = setTimeout(function () { finish('lost'); }, 1500);
-        return;
-      }
       sfx('error');
-      setNote(d + ' passer ikke her' + why + '. Du mistede et liv – ' + livesText(s.lives) + ' tilbage.', 'err');
+      setNote(d + ' passer ikke her' + why + '. −' + pointsText(res.cost) + '.', 'err');
       refresh();
       return;
     }
@@ -324,7 +329,7 @@
     var r = run.undo();
     if (!r.ok) { setNote(run.state.undoLeft ? 'Der er intet at fortryde endnu.' : 'Du har brugt dit fortryd i denne gåde.', ''); refresh(); return; }
     sfx('undo');
-    setNote(r.life ? 'Fortrudt – du fik livet igen.' : 'Sidste træk er fortrudt.', 'ok');
+    setNote('Sidste træk er fortrudt.', 'ok');
     refresh();
   }
   function tip() {
@@ -358,11 +363,6 @@
     tegn.board(run, { zoom: zoom, sel: sel, helpers: bset.get('helpers'), live: live() });
     if (gazeGuard && (gazeGuard.classList.contains('cell') || gazeGuard.classList.contains('boxbtn'))) gazeGuard.setAttribute('data-no-dwell', '');
   }
-  function renderLives() {
-    var el = $('#hud-lives');
-    tegn.lives(el, run.state.lives, G.RULES.lives);
-    el.setAttribute('aria-label', livesText(run.state.lives) + ' tilbage');
-  }
   function defaultHint() {
     if (zoom < 0) return sel >= 0 ? 'Vælg et tal til ' + cellName(sel) + ' – eller vælg en boks' : 'Vælg en boks';
     if (sel < 0) return 'Vælg et felt i boksen';
@@ -375,10 +375,9 @@
     var s = run.state, isLive = live();
     $('#hud-puzzle').textContent = s.index + 1;
     $('#hud-score').textContent = s.score;
-    renderLives();
+    $('#hud-errors').textContent = s.errors;
     var hint = $('#hint'), cls = noteCls, txt = lastNote;
     if (s.solved && !txt) { txt = 'Gåden er løst!'; cls = 'ok'; }
-    else if (s.over && !txt) { txt = 'Ingen flere liv'; cls = 'err'; }
     else if (!txt) txt = defaultHint();
     hint.textContent = txt;
     hint.className = 'hint' + (cls ? ' ' + cls : '');
@@ -412,12 +411,15 @@
     var s = run.state, pt = s.lastPoints;
     $('#done-kicker').textContent = modeName(s.diff);
     $('#done-title').textContent = 'Gåde ' + (s.index + 1) + ' løst';
-    $('#done-points').textContent = '+' + pointsText(pt.total);
+    $('#done-points').textContent = '+' + pointsText(pt.award);
     var parts = [pt.base + ' for gåden'];
     if (pt.bonus) parts.push(pt.bonus + ' i bonus for fejlfri uden tip');
-    if (pt.errorCost) parts.push('−' + pt.errorCost + ' for ' + (s.errors === 1 ? '1 fejl' : s.errors + ' fejl'));
-    if (pt.tipCost) parts.push('−' + pt.tipCost + ' for ' + (s.tips === 1 ? '1 tip' : s.tips + ' tip'));
-    $('#done-parts').textContent = parts.join(' · ') + '. I alt ' + pointsText(s.score) + '.';
+    var spent = [];
+    if (pt.errorCost) spent.push(pt.errorCost + ' for ' + (s.errors === 1 ? '1 fejl' : s.errors + ' fejl'));
+    if (pt.tipCost) spent.push(pt.tipCost + ' for ' + (s.tips === 1 ? '1 tip' : s.tips + ' tip'));
+    $('#done-parts').textContent = parts.join(' · ') + (spent.length ? ' (undervejs trukket fra: ' + spent.join(' og ') + ')' : '') + '. I alt ' + pointsText(s.score) + '.';
+    // Lav næste gåde, mens spilleren læser (så "Næste gåde" er øjeblikkelig)
+    setTimeout(function () { if (run && run.state.solved && !finished) run.prefetch(); }, 60);
     $('#btn-next-sub').textContent = 'Gåde ' + (s.index + 2) + ' · ' + modeName(s.diff);
     $('#done-overlay').hidden = false;
     fitScreen($('#done-overlay'));
@@ -506,12 +508,13 @@
       if (res.rank > 0) lastEntryId = res.entry.id;
     } else rankText = 'Ingen point denne gang';
     paused = false; hideOverlays();
-    $('#go-title').textContent = 'Spillet er slut';
-    if (why === 'lost') $('#go-reason').textContent = 'Du mistede alle tre liv i gåde ' + (s.index + 1) + '.';
-    else $('#go-reason').textContent = s.solved ? 'Du afsluttede efter gåde ' + (s.index + 1) + '.' : 'Du afsluttede på gåde ' + (s.index + 1) + '.';
+    $('#go-title').textContent = 'Serien er slut';
+    $('#go-reason').textContent = modeName(s.diff) + ': ' + (s.solved ? 'du afsluttede efter gåde ' + (s.index + 1) + '.' : 'du afsluttede på gåde ' + (s.index + 1) + '.');
     $('#go-score').textContent = s.score;
     var bits = [puzzlesText(s.solvedCount) + ' løst'];
     if (s.perfectCount) bits.push(s.perfectCount + ' fejlfri');
+    if (s.totalErrors) bits.push(s.totalErrors === 1 ? '1 fejl' : s.totalErrors + ' fejl');
+    if (s.totalTips) bits.push(s.totalTips === 1 ? '1 tip' : s.totalTips + ' tip');
     $('#go-levels').textContent = bits.join(' · ');
     $('#go-rank').textContent = rankText;
     $('#go-again-sub').textContent = modeName(s.diff);
