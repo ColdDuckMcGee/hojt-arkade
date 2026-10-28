@@ -28,7 +28,8 @@
   // mode: brættets størrelse ('6x6', '7x7' eller '8x8').
   // visMaal: naboer, der giver et gyldigt byt, lyser op, når en juvel er valgt.
   // gloed: temaets glød og lysskær (kan slås fra; spillet kan aflæses uden).
-  var bset = ArkadeSettings.create('juveler', { mode: '7x7', visMaal: true, gloed: true });
+  // introKort: et introkort forklarer hvert nyt element ved niveauskift (fra: kun en note i status).
+  var bset = ArkadeSettings.create('juveler', { mode: '7x7', visMaal: true, gloed: true, introKort: true });
   var records = ArkadeHighscores.create('juveler', { max: 10 });
 
   var THEMES = ['neon', 'solnedgang', 'cyberpunk', 'kontrast'];
@@ -515,13 +516,16 @@
     }
   };
   function levelReached(levels) {
-    levels.forEach(function (ev) { if (ev.element && INTRO[ev.element]) introQueue.push(ev); });
+    G.introEvents(levels, bset.get('introKort')).forEach(function (ev) { if (INTRO[ev.element]) introQueue.push(ev); });
     var last = levels[levels.length - 1];
     sfx('record');
     if (!introQueue.length) {
       var extra = [];
-      if (last.ice.length) extra.push('mere is');
-      if (last.stones.length) extra.push('flere sten');
+      // Introkort slået fra: de nye elementer nævnes kort (forklaringen står i Om)
+      var nye = levels.filter(function (ev) { return ev.element && INTRO[ev.element]; }).map(function (ev) { return INTRO[ev.element].titel.toLowerCase(); });
+      if (nye.length) extra.push('nyt: ' + nye.join(', '));
+      if (!nye.length && last.ice.length) extra.push('mere is');
+      if (!nye.length && last.stones.length) extra.push('flere sten');
       setNote('Niveau ' + last.level + '! +' + movesText(last.moves * levels.length) + (extra.length ? ' · ' + extra.join(' og ') : '') + (last.newBoard ? ' · nyt bræt' : ''), 'ok');
       refresh();
       return;
@@ -1043,7 +1047,7 @@
     if (pager) pager.reset();
     if (el === goEl) { if (resetPage) goShowRecords = false; setGoSplit(false); }
     var base = isOverlay ? (parseFloat(getComputedStyle(el).getPropertyValue('--btn')) || cssBtn(v.W, v.H)) : cssBtn(v.W, v.H);
-    var minB = small ? SMALL_MIN : 52;
+    var minB = small ? SMALL_MIN : 84;   // hellere flere sider end knapper under 80 px
     if (base < minB) { base = minB; el.style.setProperty('--btn', base + 'px'); }
     var fits = function () {
       if (overflows(box)) return false;

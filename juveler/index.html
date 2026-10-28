@@ -59,7 +59,7 @@
     <h2 id="om-title" class="neon-sub">Om Hojt Arkade</h2>
     <p data-trin>Hojt Arkade er udviklet af Jon Leismann Engsager, Hojt Design. Jon er IT- og IKT-konsulent i det specialiserede område og laver blandt andet gratis spil til voksne, der bruger øjenstyring.</p>
     <p data-trin>Juveler: vælg en juvel, og vælg så en af dens naboer for at bytte dem. Naboer, der giver tre på stribe, lyser op. Et byt koster et træk. Fire på stribe giver et træk tilbage, fem eller et L eller T giver to, og en kæde på tre led eller mere giver et ekstra træk for hvert led (højst to træk pr. byt). Vis et tip koster 20 point. Spillet slutter, når trækkene er brugt, eller når der ikke er flere mulige byt på brættet.</p>
-    <p data-trin>Niveauer: når du når pointmålet, kommer du til næste niveau og får 5 træk mere. Målet stiger for hvert niveau. Nye ting forklares på et kort, når de kommer med.</p>
+    <p data-trin>Niveauer: når du når pointmålet, kommer du til næste niveau og får 5 træk mere. Målet stiger for hvert niveau. Nye ting forklares på et kort, når de kommer med. Kortene kan slås fra under Indstillinger → Styring → Vis introkort for nye elementer; elementerne står også her.</p>
     <ul class="om-elementer">
       <li data-trin><span class="om-pic" data-om="lyn"></span><span><b>Niveau 2 – lynjuvel:</b> fire på stribe giver en lynjuvel. Er den med i en stribe, fjerner den hele rækken (vandret) eller kolonnen (lodret).</span></li>
       <li data-trin><span class="om-pic" data-om="stjerne"></span><span><b>Niveau 3 – stjernejuvel:</b> fem på stribe, L eller T giver en farveløs stjerne. Byt den med en nabo, så forsvinder alle juveler af naboens slags.</span></li>
@@ -220,6 +220,13 @@
       <div class="row" role="group">
         <button class="btn option" data-bset="visMaal" data-value="false"><span class="big">Skjul</span></button>
         <button class="btn option" data-bset="visMaal" data-value="true"><span class="big">Vis</span></button>
+      </div>
+    </div>
+    <div class="setting">
+      <div class="setting-label">Vis introkort for nye elementer<small>Et kort forklarer lynjuvel, stjerne, is, sten, opgaver og rav, når de kommer med. Fra: kun en kort note i status</small></div>
+      <div class="row" role="group">
+        <button class="btn option" data-bset="introKort" data-value="false"><span class="big">Fra</span></button>
+        <button class="btn option" data-bset="introKort" data-value="true"><span class="big">Til</span></button>
       </div>
     </div>
     <p class="note">Brug kun dwell her, hvis dit øjenstyringssystem ikke selv klikker. Har du dwell-klik i fx Tobii, så lad indstillingen være slået fra. Ét dwell på en juvel er én handling: vælg, byt eller fortryd. Tastaturet virker altid: piletasterne flytter markøren, Enter eller mellemrum vælger og bytter, Esc eller Delete fortryder valget, T viser et tip, og P giver pause.</p>

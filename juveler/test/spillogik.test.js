@@ -500,6 +500,30 @@ test('rekorder gemmer point, niveau og byt – gamle rekorder uden niveau virker
   assert.strictEqual(run.end().level, 3);
 });
 
+// ---------- Indstillingen "Vis introkort for nye elementer" ----------
+test('introkort: til viser et kort pr. nyt element, fra viser ingen (kun note)', function () {
+  var run = G.createRun('6x6', { seed: 51 });
+  var evs = run._level(3).concat(run._level(4));          // lyn, stjerne og is
+  var shown = G.introEvents(evs, true).map(function (e) { return e.element; });
+  assert.deepStrictEqual(shown, ['lyn', 'stjerne', 'is']);
+  assert.deepStrictEqual(G.introEvents(evs, false), []);
+  assert.deepStrictEqual(G.introEvents(run._level(8).slice(-1), true).map(function (e) { return e.element; }), ['rav']);
+  assert.ok(G.introEvents([{ level: 7, element: null }], true).length === 0, 'niveau uden nyt element: intet kort');
+  // spillet er det samme med og uden kort: niveau, træk og bræt påvirkes ikke
+  assert.strictEqual(run.state.level, 8);
+});
+test('introkort-indstillingen gemmes via arkade/settings.js (standard: til)', function () {
+  var store = {};
+  globalThis.window = globalThis;
+  globalThis.localStorage = { getItem: function (k) { return k in store ? store[k] : null; }, setItem: function (k, v) { store[k] = String(v); }, removeItem: function (k) { delete store[k]; } };
+  require('../../arkade/settings.js');
+  var a = globalThis.ArkadeSettings.create('juveler-introtest', { introKort: true });
+  assert.strictEqual(a.get('introKort'), true, 'standard: til');
+  a.set('introKort', false);
+  var b = globalThis.ArkadeSettings.create('juveler-introtest', { introKort: true });
+  assert.strictEqual(b.get('introKort'), false, 'valget huskes');
+});
+
 var fail = 0;
 tests.forEach(function (t) {
   try { t.fn(); console.log('ok   ' + t.name); }

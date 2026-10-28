@@ -79,6 +79,12 @@
     return sum;
   }
   var ELEMENTS = { 2: 'lyn', 3: 'stjerne', 4: 'is', 5: 'sten', 6: 'opgave' };
+  // De niveauskift, der skal have et introkort (et nyt element). Er introkort slået fra
+  // (indstillingen "Vis introkort for nye elementer"), ingen – så vises kun en note.
+  function introEvents(levels, show) {
+    if (show === false) return [];
+    return (levels || []).filter(function (ev) { return !!ev.element; });
+  }
 
   // ---------- Tilfældighed (kan sås, så testene kan gentages) ----------
   function rng(seed) {
@@ -531,7 +537,7 @@
     recordExtra: recordExtra, recordLabel: recordLabel,
     TYPES: TYPES, SIZES: SIZES, SIZE_ORDER: SIZE_ORDER, RULES: RULES, ELEMENTS: ELEMENTS,
     TOM: TOM, STJERNE: STJERNE, STEN: STEN, LYN: LYN, IS: IS,
-    rng: rng, adjacent: adjacent, neighbours: neighbours, fromRows: fromRows, parse: parse,
+    rng: rng, introEvents: introEvents, adjacent: adjacent, neighbours: neighbours, fromRows: fromRows, parse: parse,
     movable: movable, isJewel: isJewel, goal: goal,
     findRuns: findRuns, findGroups: findGroups, hasRun: hasRun, wouldMatch: wouldMatch,
     allMoves: allMoves, hasMove: hasMove, validTargets: validTargets,

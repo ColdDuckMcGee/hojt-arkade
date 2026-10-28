@@ -27,6 +27,9 @@ med. Det fortsætter, til trækkene er brugt, eller der ikke er flere mulige byt
   8 × 8: 900, 2150, 3900, 6350 … Kurven er valgt ved simulering (se Balance). Når et niveau bringer
   noget nyt, vises et roligt **introkort** med billede og forklaring; det lukkes med den store knap
   **Videre** (eller dwell, Enter, Esc). Intet ur, intet blink. Niveauer uden nyt giver bare en note.
+  Indstillinger → Styring → **Vis introkort for nye elementer** (Fra/Til, standard Til, gemt via
+  `arkade/settings.js` som `introKort` under `juveler`): er den Fra, vises kun en kort note i status
+  (fx "Niveau 3! +5 træk · nyt: stjernejuvel"); alle elementer står stadig forklaret i Om.
   Får brættet ved et niveauskift intet muligt byt, lægges et nyt bræt (et nyt niveau starter aldrig
   uden et muligt byt).
 - **Elementerne (regler):**
@@ -134,13 +137,15 @@ Lav en mappe `tema/<navn>/` med to filer, og skift de to linjer i `index.html`:
   is (kan ikke byttes, med i stribe, brydes ved siden af, falder), sten (falder, knuses: +1 træk og 30 point),
   mulige byt med is, sten og stjerner, opgaver (klaret +3, ikke klaret uden straf), niveau op (+5 træk, element),
   stigende mål, is/sten/rav ved de rigtige niveauer, aldrig et niveau uden muligt byt, maks. +2 træk pr. byt,
-  frosne nye juveler og rekorder med niveau (også gamle rekorder uden niveau).
+  frosne nye juveler og rekorder med niveau (også gamle rekorder uden niveau). Introkort til/fra
+  (`introEvents`) og at valget gemmes via `arkade/settings.js` med Til som standard.
 - `python3 juveler/test/responsiv_test.py` (Playwright og Chrome) – alle skærme ved 8 opløsninger:
   ingen rulning, intet klippet, ingen overlap, knapper ≥ 80 px, ingen konsolfejl; spillet med mus,
   tastatur og dwell, ugyldigt byt uden blink, tip og tip-pris, glød fra, alle fire farvesæt, pause, bekræft
   afslut, game over (begge årsager) og rekorder med niveau; introkortene for alle seks elementer ved
   alle opløsninger, niveauskift med kort i kø, et bræt med alle elementer, sten/is kan ikke vælges,
-  stjernebyt, opgaven i status og dwell på Videre. `JUVELER_SKAERMBILLEDER=/mappe` gemmer skærmbilleder.
+  stjernebyt, opgaven i status og dwell på Videre; indstillingen for introkort (standard Til, knapper
+  ≥ 80 px, gemmes, dwell, Fra giver kun en note). `JUVELER_SKAERMBILLEDER=/mappe` gemmer skærmbilleder.
 
 ### Balance
 Simuleret med en tilfældig spiller (vælger et vilkårligt muligt byt) og en grådig spiller (vælger

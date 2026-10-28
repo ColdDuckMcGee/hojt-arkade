@@ -9,7 +9,8 @@
 # Afslut, game over når trækkene er brugt, rekorder (med niveau) og dwell (ét dwell = én handling).
 # Niveauer: introkortene for hvert nyt element (lyn, stjerne, is, sten, opgave, rav) ved alle
 # opløsninger, niveauskift med kø af kort, et bræt med alle elementer, sten/is kan ikke vælges,
-# stjernebyt, opgaven i HUD og dwell på Videre.
+# stjernebyt, opgaven i HUD og dwell på Videre. Indstillingen "Vis introkort for nye elementer"
+# (standard til, gemmes, store knapper, dwell; fra = kun en note i status).
 #
 # Kræver Python med Playwright og Chrome/Chromium:
 #   python3 juveler/test/responsiv_test.py
@@ -135,7 +136,8 @@ def gameplay(pg, w, h, tag):
     # Tip: to juveler markeres; koster 20 point og intet træk (knappen siger prisen)
     lbl = st(pg, "[...document.querySelectorAll('#btn-tip .small')].filter(e => getComputedStyle(e).display !== 'none').map(e => e.textContent).join(' ')")
     if '20 point' not in lbl: fails.append('%s tip-knappen viser ikke prisen (%s)' % (tag, lbl))
-    pg.evaluate("() => { const r = Juveler.run; r._load(r.state.grid, undefined, 100); Juveler.refresh(); }")
+    # (målet sættes højt, så et stort byt ikke giver niveauskift midt i testen af byt og tastatur)
+    pg.evaluate("() => { const r = Juveler.run; r._load(r.state.grid, undefined, 100); r.state.goal = 1e9; Juveler.refresh(); }")
     pg.click('#btn-tip'); pg.wait_for_timeout(40)
     tp = st(pg, "Juveler.tip")
     if not tp or sorted(cls(pg, 'tip')) != sorted(tp) or st(pg, "Juveler.run.state.moves") != before[0]: fails.append('%s tip gav %s / %s' % (tag, tp, cls(pg, 'tip')))
@@ -252,6 +254,48 @@ def elements_check(pg, w, h, tag, main):
         except Exception: fails.append(tag + ' dwell lukkede ikke introkortet')
         pg.evaluate("Juveler.settings.set('dwell', false)"); pg.mouse.move(1, 1)
     print('OK   %dx%d niveauer og elementer' % (w, h) if not [f for f in fails if f.startswith(tag + ' ') and ('intro' in f or 'element' in f or 'stjern' in f or 'niveau' in f or 'opgave' in f)] else 'FEJL %dx%d niveauer og elementer' % (w, h))
+
+def intro_setting_check(pg, w, h, tag, main):
+    """Indstillingen 'Vis introkort for nye elementer': store knapper, gemmes, fra = kun note."""
+    pg.evaluate("Juveler.show('settings')"); pg.click('[data-tab=styring]'); pg.wait_for_timeout(80)
+    sel = '#settings [data-bset=introKort]'
+    for _ in range(8):
+        if pg.locator(sel + '[data-value=false]').is_visible(): break
+        nxt = pg.locator('#settings .trin-nav:not([hidden]) .trin-next')
+        if nxt.count() == 0 or nxt.is_disabled(): break
+        nxt.click(); pg.wait_for_timeout(60)
+    if not pg.locator(sel + '[data-value=false]').is_visible(): fails.append(tag + ' indstillingen for introkort kan ikke findes'); return
+    r = st(pg, "[...document.querySelectorAll('%s')].map(b => [b.getAttribute('aria-pressed'), Math.round(Math.min(b.getBoundingClientRect().width, b.getBoundingClientRect().height))])" % sel)
+    if r[1][0] != 'true' or r[0][0] != 'false': fails.append('%s introkort er ikke slået til som standard: %s' % (tag, r))
+    if min(x[1] for x in r) < MIN_BTN: fails.append('%s introkort-knapperne er kun %s px' % (tag, r))
+    pg.click(sel + '[data-value=false]'); pg.wait_for_timeout(60)
+    check(pg, 'indstilling introkort', '#settings', w, h, '%s-indstilling-introkort.png' % tag)
+    if main: shot(pg, 'indstilling-introkort.png')
+    saved = st(pg, "[Juveler.gameSettings.get('introKort'), JSON.stringify(localStorage).includes('introKort')]")
+    if saved != [False, True]: fails.append('%s introkort-valget blev ikke gemt: %s' % (tag, saved))
+    # Fra: niveauskift giver kun en kort note i status, intet kort
+    pg.evaluate("Juveler.gameSettings.set('mode', '6x6'); Juveler.start()"); pg.wait_for_timeout(120)
+    pg.evaluate("Juveler.levelUp(3)"); pg.wait_for_timeout(100)
+    n = st(pg, "[Juveler.introOpen, document.getElementById('hint').textContent, Juveler.run.state.level]")
+    if n[0] or 'Niveau 3' not in n[1] or 'stjernejuvel' not in n[1] or n[2] != 3: fails.append('%s introkort fra gav %s' % (tag, n))
+    check(pg, 'niveauskift uden introkort', '#game', w, h, main and 'niveauskift-uden-introkort.png')
+    # Dwell virker på knappen (én handling)
+    pg.evaluate("Juveler.show('settings')"); pg.wait_for_timeout(80)
+    pg.click('[data-tab=styring]'); pg.wait_for_timeout(60)
+    for _ in range(8):
+        if pg.locator(sel + '[data-value=true]').is_visible(): break
+        pg.locator('#settings .trin-nav:not([hidden]) .trin-next').click(); pg.wait_for_timeout(60)
+    if main:
+        pg.evaluate("Juveler.settings.set('dwellTime', 0.5)"); pg.mouse.move(1, 1)
+        pg.evaluate("Juveler.settings.set('dwell', true)")
+        x, y = center(pg, sel + '[data-value=true]'); pg.mouse.move(x, y, steps=3)
+        try: pg.wait_for_function("Juveler.gameSettings.get('introKort') === true", timeout=3000)
+        except Exception: fails.append(tag + ' dwell slog ikke introkort til')
+        pg.evaluate("Juveler.settings.set('dwell', false)"); pg.mouse.move(1, 1)
+    else:
+        pg.click(sel + '[data-value=true]'); pg.wait_for_timeout(40)
+    if st(pg, "Juveler.gameSettings.get('introKort')") is not True: fails.append(tag + ' introkort blev ikke slået til igen')
+    print('OK   %dx%d indstilling introkort' % (w, h) if not [f for f in fails if f.startswith(tag + ' ') and 'introkort' in f] else 'FEJL %dx%d indstilling introkort' % (w, h))
 
 def dwell_check(pg, w, h, tag):
     """Ét dwell = én handling: valget bliver stående, selv om blikket bliver."""
@@ -371,6 +415,7 @@ with sync_playwright() as p:
         check(pg, 'game over (ingen byt)', '#gameover', w, h, tag + '-gameover-ingen-byt.png')
         if main: shot(pg, 'game-over-ingen-byt.png')
         elements_check(pg, w, h, tag, main)
+        intro_setting_check(pg, w, h, tag, main)
         dwell_check(pg, w, h, tag)
         # Hallen med Juveler aktiv
         if main:
