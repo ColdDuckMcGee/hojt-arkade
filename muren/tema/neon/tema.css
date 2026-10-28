@@ -1,0 +1,154 @@
+/* Muren – tema "neon" (synthwave, neon på glas).
+ *
+ * Al grafik i spillet kommer herfra og fra grafik.js i samme mappe: farver, glød,
+ * skygger, konturer, stregtykkelser, hjørner og skrift på brættet. Spillets egen
+ * CSS (css/muren.css) og JS bruger kun variablerne nedenfor, så et nyt tema
+ * (fx tema/tegneserie/) skal levere de samme variabler og de samme navngivne
+ * tegnefunktioner og ikoner.
+ *
+ * Brættet tegnes på et canvas. js/tegn.js læser alle --muren-<navn>, som
+ * grafik.js nævner i MurenTema.farver, .tekster og .tal. Tal uden enhed er i
+ * brættets enheder (700 × 1000, felter à 100) eller i px for glød og skygger.
+ *
+ * Farvesættene følger Hojt Arkades fælles indstilling data-theme
+ * (neon, solnedgang, cyberpunk, kontrast). Glød slås fra med
+ * data-muren-gloed="fra" på <html> (Indstillinger → Udseende → Glød).
+ *
+ * Tallene på stenene er hvide med en kraftig mørk kant i alle farvesæt, og
+ * stenenes farver er mellemmørke, så tallene altid kan læses. */
+
+/* ---------- Farver på brættet ---------- */
+:root, [data-theme] {
+  --muren-flade: #120726;
+  --muren-flade-2: #1d0a35;
+  --muren-gitter: rgba(255, 63, 216, 0.08);
+  --muren-kant: #22eaff;
+  --muren-kant-inde: rgba(34, 234, 255, 0.35);
+  --muren-kontur: #000000;
+  --muren-fare: rgba(255, 90, 60, 0.12);
+  --muren-fare-streg: #ff7a3c;
+  /* Stenene fra svag (0) til stærk (4) */
+  --muren-sten-0: #1f6f8b;
+  --muren-sten-1: #2d55b8;
+  --muren-sten-2: #6a35c2;
+  --muren-sten-3: #a92a9c;
+  --muren-sten-4: #c4264f;
+  --muren-sten-kant: rgba(255, 255, 255, 0.55);
+  --muren-sten-lys: rgba(255, 255, 255, 0.14);
+  --muren-sten-tal: #ffffff;
+  --muren-sten-tal-kant: #0a0414;
+  --muren-ring: #39ff6a;
+  --muren-ring-tekst: #ffffff;
+  --muren-kugle: #ffffff;
+  --muren-kugle-kant: #b9a7ff;
+  --muren-kanon: #ff3fd8;
+  --muren-kanon-kant: #ffd0f4;
+  --muren-antal: #ffe14d;
+  --muren-antal-kant: #0a0414;
+  --muren-sigte: #ffe14d;
+  --muren-traef: #ffe14d;
+  --muren-landing: #22eaff;
+  --muren-gloed-farve: #ff3fd8;
+  --muren-skygge-farve: transparent;
+
+  /* Flader uden for brættet (status, bokse, knapper) */
+  --muren-frame: #22eaff;
+  --muren-ok: #39ff6a;
+  --muren-fejl: #ff7a3c;
+  --muren-shadow: #000000;
+  --muren-overlay-bg: rgba(0, 0, 0, 0.62);
+  --muren-overlay-soft: rgba(0, 0, 0, 0.4);
+  --muren-hall-bg: rgba(0, 0, 0, 0.45);
+  --muren-hall-bg-hover: rgba(255, 255, 255, 0.08);
+  --muren-hall-border: rgba(196, 176, 222, 0.7);
+  --muren-swatch-border: rgba(255, 255, 255, 0.5);
+  --muren-hud-bg: var(--panel);
+  --muren-hud-border: var(--ui-soft);
+  --muren-sigte-tekst: #ffe14d;
+}
+[data-theme="solnedgang"] {
+  --muren-flade: #1c0820; --muren-flade-2: #2e0c35; --muren-gitter: rgba(255, 138, 31, 0.08);
+  --muren-kant: #ff8a1f; --muren-kant-inde: rgba(255, 138, 31, 0.35);
+  --muren-sten-0: #8a4a17; --muren-sten-1: #a8401f; --muren-sten-2: #9c2a4f; --muren-sten-3: #7a2a8c; --muren-sten-4: #4f2aa8;
+  --muren-kanon: #c77dff; --muren-kanon-kant: #ecd6ff; --muren-landing: #ff8a1f; --muren-gloed-farve: #ff8a1f; --muren-frame: #ff8a1f;
+}
+[data-theme="cyberpunk"] {
+  --muren-flade: #00100c; --muren-flade-2: #021a14; --muren-gitter: rgba(57, 255, 106, 0.07);
+  --muren-kant: #2a9dff; --muren-kant-inde: rgba(42, 157, 255, 0.35);
+  --muren-sten-0: #0f6b4a; --muren-sten-1: #0f6a7a; --muren-sten-2: #1450a8; --muren-sten-3: #3a2fb0; --muren-sten-4: #7a1fa0;
+  --muren-ring: #ffe14d; --muren-kanon: #39ff6a; --muren-kanon-kant: #c8ffd6;
+  --muren-sigte: #39ff6a; --muren-traef: #39ff6a; --muren-antal: #39ff6a; --muren-sigte-tekst: #39ff6a;
+  --muren-landing: #2a9dff; --muren-gloed-farve: #39ff6a; --muren-frame: #2a9dff;
+}
+[data-theme="kontrast"] {
+  --muren-flade: #000000; --muren-flade-2: #000000; --muren-gitter: rgba(255, 255, 255, 0.16);
+  --muren-kant: #ffffff; --muren-kant-inde: #ffffff;
+  --muren-fare: #330000; --muren-fare-streg: #ff6600;
+  --muren-sten-0: #003a8c; --muren-sten-1: #00508c; --muren-sten-2: #5a008c; --muren-sten-3: #8c0060; --muren-sten-4: #8c0000;
+  --muren-sten-kant: #ffffff; --muren-sten-lys: transparent; --muren-sten-tal: #ffffff; --muren-sten-tal-kant: #000000;
+  --muren-ring: #00ff00; --muren-ring-tekst: #ffffff; --muren-kugle: #ffffff; --muren-kugle-kant: #000000;
+  --muren-kanon: #ffff00; --muren-kanon-kant: #000000; --muren-antal: #ffff00; --muren-antal-kant: #000000;
+  --muren-sigte: #ffff00; --muren-traef: #ffff00; --muren-landing: #00ffff; --muren-sigte-tekst: #ffff00;
+  --muren-frame: #ffffff; --muren-ok: #00ff00; --muren-fejl: #ff6600; --muren-hall-border: #ffffff;
+}
+
+/* ---------- Skrift, streger, prikker og hjørner ----------
+ * Tal uden enhed er i brættets enheder (700 × 1000), undtagen glød og skygger (px). */
+:root {
+  --muren-skrift: var(--font);
+  --muren-skrift-vaegt: 800;
+  --muren-kant-w: 8;
+  --muren-kant-inde-w: 2;
+  --muren-kontur-w: 0;              /* sorte konturer (fx ligne claire) – 0 i neon */
+  --muren-gitter-w: 1;
+  --muren-sten-kant-w: 3;
+  --muren-sten-radius: 12;
+  --muren-sten-tal-str: 46;         /* tallene på stenene (1–2 cifre); flere cifre bliver mindre */
+  --muren-sten-tal-kant-w: 7;
+  --muren-ring-w: 6;
+  --muren-kugle-kant-w: 2;
+  --muren-sigte-prik: 5;
+  --muren-sigte-afstand: 26;
+  --muren-traef-w: 4;
+  --muren-kanon-w: 18;
+  --muren-fare-w: 4;
+  --muren-gloed: 1;                 /* 0, når glød er slået fra */
+  --muren-gloed-blur: 14;           /* px */
+  --muren-skygge-x: 0;              /* blød skygge (fx papirklip, ler) – ingen i neon */
+  --muren-skygge-y: 0;
+  --muren-skygge-blur: 0;
+
+  /* Flader uden for brættet */
+  --muren-frame-w: 3px;
+  --muren-block-w: 2px;
+  --muren-stroke-ico: 9;
+  --muren-stroke-hall: 7;
+  --muren-hall-border-w: 2px;
+  --muren-radius-board: 14px;
+  --muren-radius-hud: 14px;
+  --muren-radius-hud-small: 10px;
+  --muren-radius-swatch: 6px;
+}
+[data-theme="kontrast"] { --muren-gloed: 0; --muren-sten-kant-w: 4; }
+
+/* ---------- Glød og skygger ----------
+ * --glow kommer fra arkade.css (0 i Høj kontrast). Uden glød tegnes alt fladt,
+ * og brættet kan aflæses lige så godt (sten adskilles af kant, farve og tal). */
+:root, [data-theme] {
+  --muren-text-shadow: 0 1px 4px var(--muren-shadow);
+  --muren-text-shadow-strong: 0 1px 6px var(--muren-shadow), 0 0 2px var(--muren-shadow);
+  --muren-board-glow: 0 0 calc(20px * var(--glow)) color-mix(in srgb, var(--muren-frame) 45%, transparent);
+  --muren-score-glow: 0 0 calc(18px * var(--glow)) var(--ui);
+  --muren-points-glow: 0 0 calc(12px * var(--glow)) color-mix(in srgb, var(--muren-ok) 50%, transparent);
+}
+html[data-muren-gloed="fra"], html[data-muren-gloed="fra"] [data-theme] {
+  --glow: 0;
+  --muren-gloed: 0;
+  --muren-board-glow: none; --muren-score-glow: none; --muren-points-glow: none;
+}
+
+/* ---------- Prøver på farvesættene i Indstillinger ---------- */
+.swatch[data-farver="neon"] { --a: #ff2fd2; --b: #22eaff; --c: #1a0b2a; }
+.swatch[data-farver="solnedgang"] { --a: #ff8a1f; --b: #c77dff; --c: #2a0b3d; }
+.swatch[data-farver="cyberpunk"] { --a: #39ff6a; --b: #2a8dff; --c: #000000; }
+.swatch[data-farver="kontrast"] { --a: #ffff00; --b: #00ffff; --c: #000000; }

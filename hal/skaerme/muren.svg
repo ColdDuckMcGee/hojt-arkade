@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 220">
+  <!-- Stillbillede af Muren til maskinens skærm: et bræt på højkant set forfra. Øverst hænger muren af farvede sten (blå til rød, jo stærkere sten jo varmere farve; små hvide streger antyder tallene), med to grønne +1-ringe imellem. Nederst står den pink kanon med en hvid kugle, og en salve af hvide kugler flyver op mod muren. Den prikkede gule sigtelinje går op til en sten. En orange bundlinje viser grænsen, muren ikke må nå, og cyan kanter omkranser brættet. Tegnet i SVG, ingen billeder og ingen skrifttyper. -->
+  <defs>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="240" height="220" fill="#0a0414"/>
+  <!-- brættet -->
+  <rect x="64" y="14" width="112" height="190" rx="5" fill="#120726"/>
+  <g stroke="#ff3fd8" stroke-opacity=".1" stroke-width="1">
+    <path d="M80 14V204M96 14V204M112 14V204M128 14V204M144 14V204M160 14V204M64 52H176M64 90H176M64 128H176M64 166H176"/>
+  </g>
+  <!-- bundlinjen -->
+  <rect x="64" y="185" width="112" height="19" fill="#ff5a3c" fill-opacity=".12"/>
+  <path d="M66 185H174" stroke="#ff7a3c" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <!-- muren -->
+  <g filter="url(#glow)">
+    <rect x="65.5" y="15.5" width="13" height="16" rx="2.5" fill="#c4264f" stroke="#ffffff" stroke-opacity=".55" stroke-width="1"/>
+    <path d="M66.0 20.5V26.5 M69.0 20.5V26.5 M72.0 20.5V26.5 M75.0 20.5V26.5 M78.0 20.5V26.5" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round"/>
+    <rect x="97.5" y="15.5" width="13" height="16" rx="2.5" fill="#6a35c2" stroke="#ffffff" stroke-opacity=".55" stroke-width="1"/>
+    <path d="M101.0 20.5V26.5 M104.0 20.5V26.5 M107.0 20.5V26.5" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round"/>
+    <rect x="113.5" y="15.5" width="13" height="16" rx="2.5" fill="#a92a9c" stroke="#ffffff" stroke-opacity=".55" stroke-width="1"/>
+    <path d="M115.5 20.5V26.5 M118.5 20.5V26.5 M121.5 20.5V26.5 M124.5 20.5V26.5" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round"/>
+    <rect x="161.5" y="15.5" width="13" height="16" rx="2.5" fill="#2d55b8" stroke="#ffffff" stroke-opacity=".55" stroke-width="1"/>
+    <path d="M166.5 20.5V26.5 M169.5 20.5V26.5" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round"/>
+    <rect x="81.5" y="34.5" width="13" height="16" rx="2.5" fill="#a92a9c" stroke="#ffffff" stroke-opacity=".55" stroke-width="1"/>
+    <path d="M83.5 39.5V45.5 M86.5 39.5V45.5 M89.5 39.5V45.5 M92.5 39.5V45.5" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round"/>
+    <rect x="129.5" y="34.5" width="13" height="16" rx="2.5" fill="#c4264f" stroke="#ffffff" stroke-opacity=".55" stroke-width="1"/>
+    <path d="M130.0 39.5V45.5 M133.0 39.5V45.5 M136.0 39.5V45.5 M139.0 39.5V45.5 M142.0 39.5V45.5" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round"/>
+    <rect x="145.5" y="34.5" width="13" height="16" rx="2.5" fill="#1f6f8b" stroke="#ffffff" stroke-opacity=".55" stroke-width="1"/>
+    <path d="M152.0 39.5V45.5" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round"/>
+    <rect x="65.5" y="53.5" width="13" height="16" rx="2.5" fill="#2d55b8" stroke="#ffffff" stroke-opacity=".55" stroke-width="1"/>
+    <path d="M70.5 58.5V64.5 M73.5 58.5V64.5" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round"/>
+    <rect x="113.5" y="53.5" width="13" height="16" rx="2.5" fill="#6a35c2" stroke="#ffffff" stroke-opacity=".55" stroke-width="1"/>
+    <path d="M117.0 58.5V64.5 M120.0 58.5V64.5 M123.0 58.5V64.5" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round"/>
+    <rect x="145.5" y="72.5" width="13" height="16" rx="2.5" fill="#6a35c2" stroke="#ffffff" stroke-opacity=".55" stroke-width="1"/>
+    <path d="M149.0 77.5V83.5 M152.0 77.5V83.5 M155.0 77.5V83.5" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round"/>
+    <rect x="161.5" y="72.5" width="13" height="16" rx="2.5" fill="#1f6f8b" stroke="#ffffff" stroke-opacity=".55" stroke-width="1"/>
+    <path d="M168.0 77.5V83.5" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round"/>
+    <rect x="97.5" y="91.5" width="13" height="16" rx="2.5" fill="#2d55b8" stroke="#ffffff" stroke-opacity=".55" stroke-width="1"/>
+    <path d="M102.5 96.5V102.5 M105.5 96.5V102.5" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round"/>
+  </g>
+  <!-- +1-ringe -->
+  <g filter="url(#glow)"><circle cx="136.0" cy="61.5" r="4.5" fill="none" stroke="#39ff6a" stroke-width="1.6"/><path d="M134.0 61.5h4M136.0 59.5v4" stroke="#39ff6a" stroke-width="1.2" stroke-linecap="round"/><circle cx="88.0" cy="80.5" r="4.5" fill="none" stroke="#39ff6a" stroke-width="1.6"/><path d="M86.0 80.5h4M88.0 78.5v4" stroke="#39ff6a" stroke-width="1.2" stroke-linecap="round"/></g>
+  <!-- sigtelinjen: fra kanonen op mod en sten -->
+  <g fill="#ffe14d" filter="url(#glow)">
+    <circle cx="117.6" cy="186.0" r="1.6"/><circle cx="115.7" cy="175.4" r="1.6"/><circle cx="113.7" cy="164.9" r="1.6"/><circle cx="111.8" cy="154.3" r="1.6"/><circle cx="109.8" cy="143.7" r="1.6"/><circle cx="107.9" cy="133.1" r="1.6"/><circle cx="105.9" cy="122.6" r="1.6"/><circle cx="104.0" cy="112.0" r="1.6"/>
+  </g>
+  <!-- salven: kugler på vej op -->
+  <g fill="#ffffff" stroke="#b9a7ff" stroke-width=".8" filter="url(#glow)">
+    <circle cx="142" cy="92" r="2.6"/><circle cx="136" cy="112" r="2.6"/><circle cx="130" cy="132" r="2.6"/><circle cx="151" cy="64" r="2.6"/>
+  </g>
+  <!-- kanonen -->
+  <g filter="url(#glow)">
+    <path d="M120 198 L117.3 184.3" stroke="#ff3fd8" stroke-width="5" stroke-linecap="round"/>
+    <circle cx="120" cy="199" r="6" fill="#ff3fd8" stroke="#ffd0f4" stroke-width="1.2"/>
+    <circle cx="120" cy="199" r="2.6" fill="#ffffff"/>
+  </g>
+  <!-- kanten -->
+  <rect x="64" y="14" width="112" height="190" rx="5" fill="none" stroke="#22eaff" stroke-width="3" filter="url(#glow)"/>
+</svg>
