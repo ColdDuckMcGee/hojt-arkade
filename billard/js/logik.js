@@ -43,6 +43,7 @@
     dt: 1 / 360,             // tidsskridt (s)
     maxSteps: 360 * 30,
     rec: 3,                  // gem kuglernes stilling hvert 3. skridt (til animationen)
+    helpOffset: 2,           // Næste kugle (Mod hul) sigter 2° ved siden af den perfekte linje
     mouthCorner: 34,         // åbning i banden ved hjørnehullerne (målt fra hjørnet)
     mouthMiddle: 28,         // halv bredde af åbningen ved midterhullerne
     headSpot: { x: 250, y: 250 },
@@ -306,6 +307,8 @@
     out.sort(function (a, b) { return b.ease - a.ease || a.id - b.id || a.pocket - b.pocket; });
     return out;
   }
+  // Næste kugle sigter så meget ved siden af den perfekte linje: skiftevis til hver side pr. kugle
+  function aimOffset(id) { return (id % 2 ? 1 : -1) * RULES.helpOffset; }
   // Den kraft, der lige når frem med lidt overskud
   function powerFor(dist, cut) {
     var need = dist * 1.35 + 120 + (cut || 0) * 6;
@@ -324,6 +327,8 @@
     else if (g && !ctx.onEight && groupOf(sim.first) !== g) { res.foul = true; res.reason = 'forkert'; }
     else if (ctx.onEight && sim.first !== 8) { res.foul = true; res.reason = 'ikke8'; }
     else if (!g && sim.first === 8 && !ctx.breakShot) { res.foul = true; res.reason = 'aaben8'; }
+    // Banderegel: efter det første lovlige sammenstød skal en kugle i hul, eller en kugle ramme en bande
+    if (!res.foul && sim.first !== null && !pk.length && !sim.cushionsAfterHit) { res.foul = true; res.reason = 'bande'; }
     if (cueIn) { res.foul = true; res.reason = res.reason || 'stoed'; res.cueIn = true; if (res.reason !== 'stoed') res.alsoCue = true; }
     res.eightIn = eightIn;
     // Gruppen tildeles ved første lovlige nedlægning
@@ -446,7 +451,9 @@
         st.targetIndex = (st.targetIndex + 1) % order.length;
         var id = order[st.targetIndex], o = seen[id], b = ballById(st.balls, id);
         var idx = st.targetIndex;
-        if (o && help !== false) { st.aim = Math.round(o.aim * 10) / 10; st.power = powerFor(o.dist, o.cut); }
+        // Mod hul: altid lidt ved siden af den perfekte linje (fast afvigelse pr. kugle), så spilleren selv
+        // finjusterer. Kraften røres ikke.
+        if (o && help !== false) { st.aim = normAngle(Math.round((o.aim + aimOffset(id)) * 10) / 10); }
         else st.aim = normAngle(Math.round(angleTo(c, b) * 10) / 10);
         st.targetIndex = idx;
         return { id: id, pocket: o ? o.pocket : null, count: order.length, index: idx };
@@ -529,7 +536,7 @@
     W: W, H: H, R: R, RULES: RULES, POCKETS: POCKETS, LEVELS: LEVELS, LEVEL_IDS: LEVEL_IDS, DEFAULT_LEVEL: 'normal',
     rng: rng, normAngle: normAngle, angleTo: angleTo, dirOf: dirOf, speedOf: speedOf, rollDistance: rollDistance,
     groupOf: groupOf, other: other, rack: rack, simulate: simulate, preview: preview, judge: judge,
-    shotOption: shotOption, shotOptions: shotOptions, powerFor: powerFor, segClear: segClear,
+    shotOption: shotOption, shotOptions: shotOptions, powerFor: powerFor, aimOffset: aimOffset, segClear: segClear,
     inMouth: inMouth, nearestPocket: nearestPocket, freeSpotNear: freeSpotNear, overlapsAny: overlapsAny,
     cloneBalls: cloneBalls, ballById: ballById, createSeries: createSeries
   };

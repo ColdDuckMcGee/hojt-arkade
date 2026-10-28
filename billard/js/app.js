@@ -170,8 +170,10 @@
     forkert: 'Stødbolden ramte først en forkert kugle',
     ikke8: 'Stødbolden skulle ramme 8\'eren først',
     aaben8: '8\'eren må ikke rammes først, så længe bordet er åbent',
-    stoed: 'Stødbolden gik i hul'
+    stoed: 'Stødbolden gik i hul',
+    bande: 'Ingen kugle ramte en bande efter sammenstødet'
   };
+  function cap(t) { return t.charAt(0).toUpperCase() + t.slice(1); }
   function pocketName(id) { var p = L.POCKETS[id]; return p ? p.navn : ''; }
 
   // ---------- Startmenu ----------
@@ -279,7 +281,10 @@
     if (!live()) return;
     var p = run.state.power;
     if (run.setPower(p + d) === p) { sfx('blocked'); setNote(d > 0 ? 'Kraften er allerede størst (10).' : 'Kraften er allerede mindst (1).', ''); refresh(); return; }
-    sfx('power'); setNote('', ''); refresh();
+    sfx('power');
+    // Banderegel: ved lav kraft mindes spilleren om den
+    setNote(run.state.power <= 3 && !run.state.breakShot ? 'Banderegel: efter sammenstødet skal en kugle i hul eller ramme en bande.' : '', '');
+    refresh();
   }
   function nextBall() {
     if (!live()) return;
@@ -287,7 +292,7 @@
     if (!r) return;
     sfx('aim');
     var t = r.id === 8 ? '8\'eren' : 'kugle ' + r.id;
-    if (r.pocket !== null && gset.get('hjaelp') !== false) setNote('Sigter på ' + t + ' mod hullet ' + pocketName(r.pocket) + ' (' + (r.index + 1) + ' af ' + r.count + ').', '');
+    if (r.pocket !== null && gset.get('hjaelp') !== false) setNote(cap(t) + ' nær hullet ' + pocketName(r.pocket) + ' (' + (r.index + 1) + ' af ' + r.count + '). Finjustér selv.', '');
     else setNote('Sigter på ' + t + ' (' + (r.index + 1) + ' af ' + r.count + ')' + (r.pocket === null && gset.get('hjaelp') !== false ? ': ingen fri vej til et hul.' : '.'), '');
     refresh();
   }
@@ -735,6 +740,8 @@
     var ctrlW = 2 * b + ig;
     var leftH = 100 + 4 * hudH + 3 * ig + 70 + b + 3 * ig;
     var rightH = hint + 2 * head + 5 * b + 8 * ig;
+    // wide: beskedlinjen står i en smal kolonne, så den får 4 linjer, når der er plads
+    if (rightH + 28 <= H - 2 * p) { res.hintWide = hint + 28; rightH += 28; } else res.hintWide = hint;
     res.sideW = sideW; res.ctrlW = ctrlW;
     res.wide = (rightH <= H - 2 * p && leftH <= H - 2 * p) ? fitBoard(W - 2 * p - sideW - ctrlW - 2 * g, H - 2 * p) : null;
     // side / below: status på én række (4 felter + pause), stødet i 4 kolonner (3 rækker knapper)
@@ -800,7 +807,7 @@
     st.setProperty('--game-gap', res.g + 'px');
     st.setProperty('--ig', res.ig + 'px');
     st.setProperty('--head-h', res.head + 'px');
-    st.setProperty('--hint-h', res.hint + 'px');
+    st.setProperty('--hint-h', (lay === 'wide' ? res.hintWide : res.hint) + 'px');
     st.setProperty('--side-w', Math.floor(res.sideW) + 'px');
     st.setProperty('--ctrl-w', Math.floor(res.ctrlW) + 'px');
     st.setProperty('--hud-h', Math.round(lay === 'wide' ? res.hudH : five ? res.hudHc5 : res.hudHc) + 'px');

@@ -127,7 +127,7 @@ test('forhåndslinjen og fysikken er enige om første kugle (300 stød)', functi
 });
 
 // ---------- Reglerne ----------
-function sim(first, pocketed) { return { first: first, pocketed: pocketed }; }
+function sim(first, pocketed, rails) { return { first: first, pocketed: pocketed, cushionsAfterHit: rails === undefined ? 1 : rails }; }
 test('gruppen tildeles ved første lovlige nedlægning', function () {
   var j = L.judge({ group: null, onEight: false, breakShot: false }, sim(3, [3]));
   assert.strictEqual(j.foul, false); assert.strictEqual(j.assign, 'hel'); assert.ok(j.continues);
@@ -144,6 +144,34 @@ test('fejlstød: ingen kugle ramt, forkert kugle først, 8\'eren for tidligt', f
   assert.strictEqual(L.judge({ group: 'hel', onEight: true }, sim(2, [])).reason, 'ikke8');
   assert.strictEqual(L.judge({ group: null, onEight: false, breakShot: false }, sim(8, [])).reason, 'aaben8');
   assert.strictEqual(L.judge({ group: 'hel', onEight: false }, sim(3, [])).foul, false);
+});
+test('banderegel: efter sammenstødet skal en kugle i hul eller ramme en bande', function () {
+  var j = L.judge({ group: 'hel', onEight: false }, sim(3, [], 0));
+  assert.ok(j.foul); assert.strictEqual(j.reason, 'bande');
+  assert.strictEqual(L.judge({ group: 'hel', onEight: false }, sim(3, [], 1)).foul, false, 'en bande er nok');
+  assert.strictEqual(L.judge({ group: 'hel', onEight: false }, sim(3, [3], 0)).foul, false, 'en kugle i hul er nok');
+  assert.strictEqual(L.judge({ group: 'hel', onEight: false }, sim(3, [12], 0)).foul, false, 'også modstanderens kugle i hul');
+  assert.strictEqual(L.judge({ group: 'hel', onEight: false }, sim(null, [], 0)).reason, 'ingen', 'ingen kugle ramt går forud');
+  assert.strictEqual(L.judge({ group: 'hel', onEight: false }, sim(11, [], 0)).reason, 'forkert', 'forkert kugle går forud');
+  // 8'eren uden bande efter sammenstødet: fejlstød, men 8'eren er ikke i hul, så partiet fortsætter
+  var j8 = L.judge({ group: 'hel', onEight: true }, sim(8, [], 0));
+  assert.ok(j8.foul); assert.strictEqual(j8.frame, null);
+});
+test('banderegel i fysikken: et blødt stød uden bande er fejlstød og giver kuglen i hånden', function () {
+  var run = L.createSeries('normal', 1);
+  run._setBalls(balls([[0, 400, 250], [2, 470, 250], [10, 800, 100], [8, 800, 400]]), { groups: { human: 'hel', cpu: 'halv' } });
+  run.setAim(0); run.setPower(1);
+  var sm = L.simulate(run.state.balls, 0, 1);
+  assert.strictEqual(sm.first, 2); assert.strictEqual(sm.cushionsAfterHit, 0); assert.strictEqual(sm.pocketed.length, 0);
+  var r = run.shoot();
+  assert.ok(r.judge.foul); assert.strictEqual(r.judge.reason, 'bande');
+  assert.strictEqual(run.state.turn, 'cpu'); assert.ok(run.state.ballInHand);
+  // Samme stød hårdt nok til at nå banden er lovligt
+  var run2 = L.createSeries('normal', 1);
+  run2._setBalls(balls([[0, 400, 250], [2, 470, 250], [10, 800, 100], [8, 800, 400]]), { groups: { human: 'hel', cpu: 'halv' } });
+  run2.setAim(0); run2.setPower(6);
+  var r2 = run2.shoot();
+  assert.strictEqual(r2.judge.foul, false, r2.judge.reason);
 });
 test('8\'eren: vinder kun, når egne er nedlagt og stødet er lovligt', function () {
   assert.strictEqual(L.judge({ group: 'hel', onEight: true }, sim(8, [8])).frame, 'win');
@@ -179,15 +207,40 @@ test('retning: ±1°/±10°, klik på bordet, kraft 1–10', function () {
 test('Næste kugle sigter på lovlige kugler og skifter mellem dem', function () {
   var run = L.createSeries('normal', 1);
   run._setBalls(balls([[0, 300, 250], [2, 500, 150], [10, 600, 350], [8, 800, 250]]), { groups: { human: 'hel', cpu: 'halv' } });
+  run.setPower(4);
+  var perfect = L.shotOptions(run.state.balls, [2])[0].aim;
   var a = run.nextTarget(true);
   assert.strictEqual(a.id, 2);
+  assert.strictEqual(run.state.power, 4, 'Næste kugle må ikke ændre kraften');
+  var dev = Math.abs(((run.state.aim - perfect + 540) % 360) - 180);
+  assert.ok(dev >= 1.5 && dev <= 3, 'afvigelse ' + dev + '°');
+  // Deterministisk: samme kugle giver samme sigte igen
+  var aim1 = run.state.aim; run.nextTarget(true); run.nextTarget(true); run.nextTarget(true);
+  assert.strictEqual(run.state.aim, aim1, 'samme kugle, samme sigte');
   var pv = run.preview();
   assert.strictEqual(pv.hit.id, 2);
+  // Spilleren finjusterer selv til den perfekte linje
+  run.setAim(Math.round(perfect * 10) / 10); run.setPower(6);
   var r = run.shoot();
   assert.ok(r.judge.own.indexOf(2) >= 0, 'Næste kugle + kraft nedlagde ikke kuglen');
   assert.strictEqual(run.state.turn, 'human');
   assert.deepStrictEqual(run.legalTargets('human'), [8]);
   assert.strictEqual(run.nextTarget(true).id, 8);
+});
+test('Næste kugle rammer aldrig perfekt: alle kugler, begge sider, kraften urørt', function () {
+  var run = L.createSeries('normal', 3), sides = {};
+  run._setBalls(balls([[0, 300, 250], [1, 500, 120], [2, 520, 380], [3, 650, 200], [4, 700, 330], [8, 850, 250], [12, 150, 100]]), { groups: { human: 'hel', cpu: 'halv' } });
+  run.setPower(7);
+  for (var k = 0; k < 4; k++) {
+    var r = run.nextTarget(true);
+    var opts = L.shotOptions(run.state.balls, [r.id]);
+    if (!opts.length) continue;
+    var best = opts[0].aim, dev = ((run.state.aim - best + 540) % 360) - 180;
+    assert.ok(Math.abs(dev) >= 1.5 && Math.abs(dev) <= 3, 'kugle ' + r.id + ': ' + dev + '°');
+    sides[dev > 0 ? 'plus' : 'minus'] = true;
+    assert.strictEqual(run.state.power, 7);
+  }
+  assert.ok(sides.plus && sides.minus, 'afvigelsen veksler mellem siderne');
 });
 test('fejlstød giver modstanderen kuglen i hånden (spilleren: lagt automatisk, kan flyttes)', function () {
   var run = L.createSeries('normal', 1);

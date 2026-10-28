@@ -136,11 +136,13 @@ def gameplay(pg, w, h, tag):
 def next_ball_check(pg, w, h, tag):
     setup(pg, [[0, 300, 250], [2, 500, 150], [5, 620, 400], [10, 600, 350], [8, 800, 250]], {'groups': GROUPS, 'turn': 'human'})
     pg.mouse.move(1, 1)
+    p0 = B(pg, "Billard.run.state.power")
     pg.click('#btn-next-ball'); pg.wait_for_timeout(40)
     a = B(pg, "[Billard.run.preview().hit.id, Billard.hint]")
+    if B(pg, "Billard.run.state.power") != p0: fails.append('%s Næste kugle ændrede kraften' % tag)
     pg.keyboard.press('n'); pg.wait_for_timeout(40)
     b = B(pg, "Billard.run.preview().hit.id")
-    if a[0] not in (2, 5) or b not in (2, 5) or a[0] == b or 'Sigter på kugle' not in a[1]: fails.append('%s Næste kugle gav %s / %s' % (tag, a, b))
+    if a[0] not in (2, 5) or b not in (2, 5) or a[0] == b or 'Kugle ' not in a[1] or 'Finjustér selv' not in a[1]: fails.append('%s Næste kugle gav %s / %s' % (tag, a, b))
 def hand_check(pg, w, h, tag):
     """Computerens fejlstød → du har kuglen i hånden, Flyt flytter den."""
     setup(pg, [[0, 300, 250], [2, 500, 150], [10, 600, 350], [8, 800, 250]], {'groups': {'human': 'halv', 'cpu': 'hel'}, 'turn': 'human'})
