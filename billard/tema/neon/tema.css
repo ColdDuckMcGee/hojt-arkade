@@ -1,0 +1,169 @@
+/* Billard – tema "neon" (synthwave, neon på glas).
+ *
+ * Al grafik i spillet kommer herfra og fra grafik.js i samme mappe: farver, glød,
+ * skygger, konturer, stregtykkelser, hjørner og skrift. Spillets egen CSS
+ * (css/billard.css) og JS bruger kun variablerne nedenfor, så et nyt tema
+ * (fx tema/ligne-claire/) skal levere de samme variabler og de samme
+ * navngivne tegnefunktioner og ikoner.
+ *
+ * Bordet tegnes på et canvas. js/tegn.js læser alle --billard-<navn>, som
+ * grafik.js nævner i BillardTema.farver, .tekster og .tal. Tal uden enhed er i
+ * bordets enheder (spillefladen er 1000 × 500, kuglerne har radius 12) eller i
+ * px for glød og skygger. Mål relativt til kuglen (kugle-tal-str, stribe, glans
+ * m.fl.) er brøkdele af radius.
+ *
+ * Farvesættene følger Hojt Arkades fælles indstilling data-theme
+ * (neon, solnedgang, cyberpunk, kontrast). Glød slås fra med
+ * data-billard-gloed="fra" på <html> (Indstillinger → Udseende → Glød). */
+
+/* ---------- Farver på bordet ---------- */
+:root, [data-theme] {
+  --billard-bord: #1a0b2e;
+  --billard-bord-2: #0d0518;
+  --billard-bord-kant: #ff3fd8;
+  --billard-diamant: #22eaff;
+  --billard-filt: #0f2a4a;
+  --billard-filt-2: #081530;
+  --billard-filt-moenster: rgba(34, 234, 255, 0.07);
+  --billard-linje: rgba(246, 236, 255, 0.35);
+  --billard-bande: #0a3a5c;
+  --billard-bande-kant: #22eaff;
+  --billard-hul: #000000;
+  --billard-hul-kant: #ff3fd8;
+  /* Kuglerne: 1–7 hele, 8, 9–15 halve (samme farve som 1–7) */
+  --billard-kugle-1: #ffd23a; --billard-kugle-2: #2f7dff; --billard-kugle-3: #ff3b4f; --billard-kugle-4: #a65bff;
+  --billard-kugle-5: #ff8a1f; --billard-kugle-6: #19c96a; --billard-kugle-7: #b5174f; --billard-kugle-8: #0b0b10;
+  --billard-kugle-9: #ffd23a; --billard-kugle-10: #2f7dff; --billard-kugle-11: #ff3b4f; --billard-kugle-12: #a65bff;
+  --billard-kugle-13: #ff8a1f; --billard-kugle-14: #19c96a; --billard-kugle-15: #b5174f;
+  --billard-kugle-stoed: #fbf8ff;
+  --billard-kugle-hvid: #f4f0fa;
+  --billard-kugle-tal: #120a1c;
+  --billard-kugle-tal-bund: #fbf8ff;
+  --billard-kugle-kant: rgba(0, 0, 0, 0.55);
+  --billard-kugle-glans: rgba(255, 255, 255, 0.45);
+  --billard-otte-ring: #ff3fd8;
+  --billard-maal: #39ff6a;
+  --billard-haand: #ffe14d;
+  --billard-koe: #f0d9a8;
+  --billard-koe-2: #ff3fd8;
+  --billard-koe-spids: #22eaff;
+  --billard-sigte: #ffe14d;
+  --billard-sigte-spoegelse: rgba(255, 255, 255, 0.85);
+  --billard-sigte-obj: #39ff6a;
+  --billard-sigte-stoed: rgba(246, 236, 255, 0.8);
+  --billard-sigte-advarsel: #ff7a3c;
+  --billard-gloed-farve: #ff3fd8;
+  --billard-skygge-farve: transparent;
+  --billard-kontur: #000000;
+  --billard-skrift: var(--font);
+
+  /* Flader uden for bordet (status, bokse, knapper) */
+  --billard-ok: #39ff6a;
+  --billard-fejl: #ff7a3c;
+  --billard-shadow: #000000;
+  --billard-overlay-bg: rgba(0, 0, 0, 0.62);
+  --billard-overlay-soft: rgba(0, 0, 0, 0.4);
+  --billard-hall-bg: rgba(0, 0, 0, 0.45);
+  --billard-hall-bg-hover: rgba(255, 255, 255, 0.08);
+  --billard-hall-kant: color-mix(in srgb, var(--muted) 70%, transparent);
+  --billard-swatch-border: rgba(255, 255, 255, 0.5);
+  --billard-hud-bg: var(--panel);
+  --billard-hud-border: var(--ui-soft);
+  --billard-hud-tur: var(--accent);
+  --billard-meter: #ffe14d;
+  --billard-meter-tom: rgba(206, 190, 232, 0.5);
+}
+[data-theme="solnedgang"] {
+  --billard-bord: #2a0b2a; --billard-bord-2: #14050f; --billard-bord-kant: #ff8a1f; --billard-diamant: #c77dff;
+  --billard-filt: #3a1440; --billard-filt-2: #1c0820; --billard-filt-moenster: rgba(255, 138, 31, 0.07);
+  --billard-bande: #4a1a3f; --billard-bande-kant: #ff8a1f; --billard-hul-kant: #c77dff; --billard-otte-ring: #ff8a1f;
+  --billard-koe-2: #ff8a1f; --billard-koe-spids: #c77dff; --billard-gloed-farve: #ff8a1f;
+}
+[data-theme="cyberpunk"] {
+  --billard-bord: #021a14; --billard-bord-2: #000a08; --billard-bord-kant: #2a9dff; --billard-diamant: #39ff6a;
+  --billard-filt: #04301f; --billard-filt-2: #011a10; --billard-filt-moenster: rgba(57, 255, 106, 0.07);
+  --billard-bande: #063a2a; --billard-bande-kant: #39ff6a; --billard-hul-kant: #2a9dff; --billard-otte-ring: #39ff6a;
+  --billard-koe-2: #2a9dff; --billard-koe-spids: #39ff6a; --billard-gloed-farve: #39ff6a;
+  --billard-maal: #ffe14d; --billard-sigte: #39ff6a; --billard-sigte-obj: #ffe14d; --billard-meter: #39ff6a;
+}
+[data-theme="kontrast"] {
+  --billard-bord: #000000; --billard-bord-2: #000000; --billard-bord-kant: #ffffff; --billard-diamant: #ffffff;
+  --billard-filt: #003a00; --billard-filt-2: #003a00; --billard-filt-moenster: transparent; --billard-linje: #ffffff;
+  --billard-bande: #000000; --billard-bande-kant: #ffffff; --billard-hul: #000000; --billard-hul-kant: #ffff00;
+  --billard-kugle-1: #ffff00; --billard-kugle-2: #0055ff; --billard-kugle-3: #ff0000; --billard-kugle-4: #aa00ff;
+  --billard-kugle-5: #ff8800; --billard-kugle-6: #00cc44; --billard-kugle-7: #990033; --billard-kugle-8: #000000;
+  --billard-kugle-9: #ffff00; --billard-kugle-10: #0055ff; --billard-kugle-11: #ff0000; --billard-kugle-12: #aa00ff;
+  --billard-kugle-13: #ff8800; --billard-kugle-14: #00cc44; --billard-kugle-15: #990033;
+  --billard-kugle-stoed: #ffffff; --billard-kugle-hvid: #ffffff; --billard-kugle-tal: #000000; --billard-kugle-tal-bund: #ffffff;
+  --billard-kugle-kant: #000000; --billard-kugle-glans: transparent; --billard-otte-ring: #ffffff;
+  --billard-maal: #00ff00; --billard-haand: #ffff00; --billard-koe: #ffffff; --billard-koe-2: #ffffff; --billard-koe-spids: #00ffff;
+  --billard-sigte: #ffff00; --billard-sigte-spoegelse: #ffffff; --billard-sigte-obj: #00ff00; --billard-sigte-stoed: #ffffff; --billard-sigte-advarsel: #ff6600;
+  --billard-ok: #00ff00; --billard-fejl: #ff6600; --billard-meter: #ffff00; --billard-meter-tom: #888888;
+}
+
+/* ---------- Streger, prikker og hjørner (bordets enheder) ---------- */
+:root {
+  --billard-kontur-w: 0;             /* sorte konturer (fx ligne claire) – 0 i neon */
+  --billard-bord-radius: 26;
+  --billard-bord-kant-w: 3;
+  --billard-bande-w: 22;             /* bandens dybde; resten af rammen (60) er træ */
+  --billard-bande-kant-w: 2.5;
+  --billard-diamant-r: 3.2;
+  --billard-linje-w: 2;
+  --billard-moenster-w: 1;
+  --billard-moenster-afstand: 62.5;  /* gitteret på filten; 0 = intet mønster */
+  --billard-hul-kant-w: 2.5;
+  --billard-kugle-kant-w: 1.5;
+  --billard-kugle-tal-str: 0.78;     /* tallets højde i forhold til radius */
+  --billard-kugle-tal-bund-r: 0.56;  /* den lyse cirkel bag tallet */
+  --billard-stribe: 0.6;             /* striben på de halve (halv højde i forhold til radius) */
+  --billard-glans: 0.18;
+  --billard-maal-w: 2.5;
+  --billard-haand-w: 2.5;
+  --billard-sigte-w: 3.5;
+  --billard-sigte-prik: 3;
+  --billard-sigte-afstand: 15;
+  --billard-koe-w: 7;
+  --billard-koe-laengde: 420;
+  --billard-koe-afstand: 8;
+  --billard-gloed: 1;                /* 0, når glød er slået fra */
+  --billard-gloed-blur: 12;          /* px */
+  --billard-skygge-x: 0;             /* blød skygge (fx papirklip, ler) – ingen i neon */
+  --billard-skygge-y: 0;
+  --billard-skygge-blur: 0;
+
+  /* Flader uden for bordet */
+  --billard-block-w: 2px;
+  --billard-stroke-ico: 9;
+  --billard-stroke-hall: 7;
+  --billard-hall-border-w: 2px;
+  --billard-radius-board: 18px;
+  --billard-radius-hud: 14px;
+  --billard-radius-hud-small: 10px;
+  --billard-radius-swatch: 6px;
+  --billard-radius-meter: 4px;
+  --billard-frame-w: 8px;           /* beskedlinjen på bordet holder denne afstand til kanten */
+}
+[data-theme="kontrast"] { --billard-gloed: 0; --billard-moenster-w: 0; --billard-kontur-w: 1.2; --billard-kontur: #000000; }
+
+/* ---------- Glød og skygger ----------
+ * --glow kommer fra arkade.css (0 i Høj kontrast). Uden glød tegnes alt fladt,
+ * og bordet kan aflæses lige så godt (kuglerne har tal og striber). */
+:root, [data-theme] {
+  --billard-text-shadow: 0 1px 4px var(--billard-shadow);
+  --billard-text-shadow-strong: 0 1px 6px var(--billard-shadow), 0 0 2px var(--billard-shadow);
+  --billard-board-glow: 0 0 calc(22px * var(--glow)) color-mix(in srgb, var(--billard-bord-kant) 40%, transparent);
+  --billard-score-glow: 0 0 calc(18px * var(--glow)) var(--ui);
+  --billard-points-glow: 0 0 calc(12px * var(--glow)) color-mix(in srgb, var(--billard-ok) 50%, transparent);
+}
+html[data-billard-gloed="fra"], html[data-billard-gloed="fra"] [data-theme] {
+  --glow: 0;
+  --billard-gloed: 0;
+  --billard-board-glow: none; --billard-score-glow: none; --billard-points-glow: none;
+}
+
+/* ---------- Prøver på farvesættene i Indstillinger ---------- */
+.swatch[data-farver="neon"] { --a: #ff2fd2; --b: #22eaff; --c: #1a0b2a; }
+.swatch[data-farver="solnedgang"] { --a: #ff8a1f; --b: #c77dff; --c: #2a0b3d; }
+.swatch[data-farver="cyberpunk"] { --a: #39ff6a; --b: #2a8dff; --c: #000000; }
+.swatch[data-farver="kontrast"] { --a: #ffff00; --b: #00ffff; --c: #000000; }

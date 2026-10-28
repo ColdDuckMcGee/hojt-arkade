@@ -1,0 +1,325 @@
+/* Billard – spillets egen opsætning. Bygger på ../arkade/arkade.css.
+ * Startmenu, overlays, game over, indstillinger, rekorder, Om og små skærme
+ * følger Blokke, så spillene ser ens ud og opfører sig ens. */
+
+/* Farver, glød, skygger, stregtykkelser og hjørner kommer fra temaet:
+ * tema/<navn>/tema.css (her: tema/neon/). Denne fil indeholder kun opbygning og mål. */
+
+.billard-ikoner { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+/* ---------- Startmenu ---------- */
+#menu { gap: calc(var(--gap) * 0.7); }
+.title-block { text-align: center; max-width: 1100px; }
+.title-row { display: flex; align-items: center; justify-content: center; gap: max(16px, 3vmin); flex-wrap: wrap; }
+.title-row .arkade-logo { height: clamp(100px, 18vh, 200px); }
+.neon-title { font-size: clamp(2.6rem, 8.5vmin, 5.5rem); letter-spacing: 0.1em; }
+.lead { text-shadow: var(--billard-text-shadow-strong); margin: 10px auto 0; max-width: 46em; color: var(--muted); font-size: 1.1rem; line-height: 1.5; }
+.menu-group { display: flex; flex-direction: column; align-items: center; }
+.size-note { margin: 0; min-height: 0; color: var(--accent); text-align: center; max-width: 40em; text-shadow: var(--billard-text-shadow); }
+.size-note:empty { display: none; }
+@media (max-height: 900px) {
+  .lead { display: none; }
+  .title-row .arkade-logo { height: clamp(80px, 14vh, 150px); }
+}
+
+/* Tilbage til hallen: fast i hjørnet, roligere stil end de andre knapper */
+.hall-btn {
+  position: absolute; top: max(16px, 2.5vmin); left: max(16px, 2.5vmin);
+  width: max(var(--btn), 7.5em); min-height: var(--btn); padding: 8px 10px;
+  border-width: var(--billard-hall-border-w); border-color: var(--billard-hall-kant);
+  background: var(--billard-hall-bg); box-shadow: none; color: var(--muted);
+}
+.hall-btn .big { font-size: 1.05rem; font-weight: 600; line-height: 1.2; text-align: center; }
+.hall-ico { width: 42%; height: auto; fill: none; stroke: var(--muted); stroke-width: var(--billard-stroke-hall); stroke-linejoin: round; }
+.hall-btn:hover, .hall-btn.arkade-dwelling { color: var(--ui-text); border-color: var(--muted); background: var(--billard-hall-bg-hover); box-shadow: none; }
+
+/* ---------- Hele vinduet, ingen rulning ---------- */
+html, body { height: 100%; height: 100dvh; }
+.screen { justify-content: safe center; align-items: safe center; }
+.screen > *, .overlay > .panel, .tab-panel > *, .go-result > * { flex-shrink: 0; }  /* intet presses sammen – hellere mindre knapper */
+/* Lave skærme: rekordlisten i to spalter */
+@media (max-height: 640px) and (min-width: 700px) {
+  .records { columns: 2; column-gap: 20px; }
+  .records li { break-inside: avoid; }
+}
+/* Tilbage til hallen flyttes ind i rækken, hvis den ellers ville ramme titlen */
+#menu.hall-inflow .hall-btn { position: static; align-self: flex-start; order: -1; flex: none; width: auto; min-height: calc(var(--btn) * 0.7); flex-direction: row; gap: 12px; padding: 8px 18px; }
+#menu.hall-inflow .hall-ico { width: 32px; }
+
+/* ---------- Spilleskærm ----------
+ * js/app.js vælger det layout, der giver det største bord, og sætter
+ * --btn, --board-w, --board-h, --side-w, --panel-w, --hud-cols m.fl. på #game:
+ *  lay-wide:  status til venstre, bordet i midten, stødet (2 kolonner knapper) til højre
+ *  lay-side:  bordet til venstre; status og stødet (4 kolonner, eller 5 med .ctl5) til højre (lav skærm)
+ *  lay-below: status øverst, bordet i midten, stødet (4 kolonner) under (højkant) */
+#game { padding: var(--game-pad, 12px); overflow: hidden; }
+.game-grid { display: grid; gap: var(--game-gap, 24px); align-items: center; justify-items: center; }
+.lay-wide { grid-template-columns: var(--side-w, 300px) auto var(--ctrl-w, 300px); grid-template-areas: "sideL board sideR"; }
+.lay-side { grid-template-columns: auto var(--panel-w, 400px); grid-template-areas: "board sideL" "board sideR"; }
+.lay-below { grid-template-columns: var(--panel-w, 360px); grid-template-areas: "sideL" "board" "sideR"; }
+.side-left { grid-area: sideL; }
+.lay-side .side-left { align-self: end; }
+.lay-side .side-right { align-self: start; }
+.side-right { grid-area: sideR; }
+.board-wrap { grid-area: board; position: relative; width: var(--board-w, 600px); height: var(--board-h, 360px); }
+
+.side { width: var(--side-w, 300px); display: flex; flex-direction: column; align-items: stretch; gap: var(--ig, 10px); align-self: center; }
+.lay-wide .side-right { width: var(--ctrl-w, 300px); }
+.side-logo { height: clamp(56px, 9vh, 100px); align-self: center; }
+.status-row { display: flex; flex-direction: column; gap: var(--ig, 10px); align-items: stretch; }
+.hud-grid { display: grid; grid-template-columns: repeat(var(--hud-cols, 1), minmax(0, 1fr)); gap: var(--ig, 10px); }
+.hud { padding: 6px 10px; text-align: center; background: var(--billard-hud-bg); border-radius: var(--billard-radius-hud); border: var(--billard-block-w) solid var(--billard-hud-border); height: var(--hud-h, 84px); display: flex; flex-direction: column; justify-content: center; min-width: 0; overflow: hidden; }
+.hud-label { font-size: 0.95rem; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; line-height: 1.1; }
+.hud-value { font-size: clamp(1.3rem, calc(var(--hud-h, 84px) * 0.42), 2.6rem); font-weight: 800; font-variant-numeric: tabular-nums; color: var(--ui-text); line-height: 1.1; }
+.hud-sub { font-size: 0.9rem; color: var(--muted); line-height: 1.1; white-space: nowrap; }
+.lay-wide .hud { flex-direction: row; justify-content: space-between; align-items: center; text-align: left; padding: 6px 16px; gap: 10px; }
+.lay-wide .hud-sub { margin-left: auto; }
+.lay-wide .hud-label { min-width: 3.6em; }
+/* Den, der har turen, får en tydelig kant og en lille trekant (ikke kun farve) */
+.hud-spiller { position: relative; }
+.hud.tur { border-color: var(--billard-hud-tur); border-width: calc(var(--billard-block-w) * 2); }
+.hud.tur .hud-label::before { content: "▶ "; color: var(--billard-hud-tur); }
+.points-note { margin: 0; min-height: 2.8em; font-size: 1.05rem; line-height: 1.4; color: var(--accent); text-align: center; font-weight: 700; text-shadow: var(--billard-text-shadow); }
+.pause-btn { align-self: center; width: var(--btn); height: var(--btn); padding: 6px; min-width: 0; min-height: 0; }
+.pause-btn svg { width: 46%; height: 46%; fill: var(--ui); }
+.pause-btn svg, .pause-btn .ico-fill { --ico-fill: var(--ui); }
+
+/* Bordet: et canvas, som js/tegn.js tegner på (læser temaets variabler) */
+.table { display: block; width: 100%; height: 100%; border-radius: var(--billard-radius-board); box-shadow: var(--billard-board-glow); cursor: crosshair; touch-action: none; }
+.table.locked { cursor: default; }
+
+/* Slaget: retning, kraft og Slå i et gitter med lige store knapper */
+.controls {
+  display: grid; gap: var(--ig, 10px);
+  grid-template-columns: repeat(2, var(--btn));
+  grid-template-areas: "dh dh" "d1 d4" "d2 d3" "nx mv" "ph ph" "pm pp" "go go";
+}
+.ctl4 .controls { justify-content: center; grid-template-columns: repeat(4, var(--btn)); grid-template-areas: "dh dh ph ph" "d1 d2 d3 d4" "nx mv pm pp" "go go go go"; }
+/* ctl5: lave skærme – 5 kolonner, 2 rækker knapper */
+.ctl4.ctl5 .controls { grid-template-columns: repeat(5, var(--btn)); grid-template-areas: "dh dh dh ph ph" "d1 d2 d3 d4 nx" "mv pm pp go go"; }
+.nx { grid-area: nx; } .mv { grid-area: mv; }
+.head-dir { grid-area: dh; } .head-pow { grid-area: ph; }
+.d1 { grid-area: d1; } .d2 { grid-area: d2; } .d3 { grid-area: d3; } .d4 { grid-area: d4; }
+.pm { grid-area: pm; } .pp { grid-area: pp; } .go-btn { grid-area: go; }
+.ctrl-head { height: var(--head-h, 40px); display: flex; align-items: center; gap: 10px; justify-content: space-between; padding: 0 12px; background: var(--billard-hud-bg); border: var(--billard-block-w) solid var(--billard-hud-border); border-radius: var(--billard-radius-hud-small); min-width: 0; overflow: hidden; }
+.ctrl-label { font-size: 0.95rem; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; }
+.ctrl-value { display: inline-flex; align-items: center; gap: 6px; font-size: 1.35rem; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--ui-text); }
+.dir-arrow { width: 1.3em; height: 1.3em; --ico-fill: var(--billard-sigte); transform-origin: 50% 50%; }
+.meter { display: flex; gap: 2px; align-items: flex-end; height: 60%; flex: 1 1 auto; max-width: 9em; min-width: 0; }
+.meter i { flex: 1 1 0; background: var(--billard-meter-tom); border-radius: var(--billard-radius-meter); height: calc(30% + var(--k) * 7%); }
+.meter i.on { background: var(--billard-meter); }
+.step-btn { width: var(--btn); height: var(--btn); min-width: 0; min-height: 0; padding: 4px; gap: 2px; }
+.step-btn svg { width: calc(var(--btn) * 0.42); height: calc(var(--btn) * 0.42); flex: none; }
+.step-btn .big { font-size: clamp(1rem, calc(var(--btn) * 0.19), 1.5rem); line-height: 1.05; }
+.go-btn { height: var(--btn); min-height: 0; min-width: 0; flex-direction: row; gap: 14px; padding: 6px 12px; --ico-line: var(--billard-sigte); --ico-fill: var(--billard-sigte); }
+.go-btn svg { width: calc(var(--btn) * 0.5); height: calc(var(--btn) * 0.5); flex: none; }
+.go-btn .big { font-size: clamp(1.3rem, calc(var(--btn) * 0.26), 2rem); }
+.controls .btn:disabled svg { opacity: .7; }
+.ico-line { fill: none; stroke: var(--ico-line, var(--accent)); stroke-width: var(--billard-stroke-ico); stroke-linecap: round; stroke-linejoin: round; }
+.ico-fill { fill: var(--ico-fill, var(--accent)); }
+
+.hint { margin: 0; height: var(--hint-h, 3.6em); display: flex; align-items: center; justify-content: center; overflow: hidden; font-size: 1.05rem; line-height: 1.3; text-align: center; color: var(--ui-text); text-shadow: var(--billard-text-shadow); }
+.hint.ok { color: var(--billard-ok); }
+.hint.err { color: var(--billard-fejl); }
+
+/* Lille stillbillede af bordet (startmenu, Parti vundet og game over) */
+.menu-demo { display: block; width: min(100%, calc(var(--btn) * 4.4)); aspect-ratio: 1120 / 620; height: auto; margin: 0 auto; }
+.tight .menu-demo, .billard-tvaers .menu-demo { display: none; }
+
+/* Kompakt: lay-side og lay-below. Status og pause på én række */
+.compact .side { width: var(--panel-w, 360px); }
+.compact .side-left .side-logo { display: none; }
+.compact .points-note { display: none; }
+.compact .status-row { flex-direction: row; align-items: center; }
+.compact .status-row .hud-grid { flex: 1 1 auto; min-width: 0; }
+.compact .hud { padding: 2px 4px; border-radius: var(--billard-radius-hud-small); }
+.compact .hud-label { font-size: 0.75rem; letter-spacing: 0.03em; }
+.compact .hud-sub { font-size: 0.72rem; }
+.compact .pause-btn { flex: none; }
+.compact .pause-btn .small { display: none; }
+.compact .hint { font-size: 0.95rem; line-height: 1.25; }
+/* Lav skærm: beskedlinjen ligger øverst på bordet (klik går igennem til bordet) */
+.board-wrap > .hint { position: absolute; left: 10%; right: 10%; top: var(--billard-frame-w); height: auto; height: auto; max-height: 3.9em; padding: 2px 10px; font-size: 0.95rem; background: var(--billard-hud-bg); border-radius: var(--billard-radius-hud-small); pointer-events: none; }
+.board-wrap > .hint:empty { display: none; }
+/* Kompakt status: én linje pr. felt; kun par står som undertekst */
+.compact .hud { flex-direction: row; align-items: baseline; justify-content: center; gap: 6px; flex-wrap: wrap; align-content: center; row-gap: 0; }
+.compact .hud-sub:not(.keep) { display: none; }
+.compact .hud-value { font-size: clamp(1.1rem, calc(var(--hud-h, 84px) * 0.48), 2.2rem); }
+.compact .ctrl-head { padding: 0 8px; gap: 6px; }
+.compact .ctrl-label { font-size: 0.8rem; letter-spacing: 0.03em; }
+.compact .ctrl-value { font-size: 1.15rem; }
+
+/* Overlays (pause og vundet parti) */
+.overlay {
+  position: absolute; inset: 0; z-index: 5;
+  display: flex; align-items: safe center; justify-content: safe center; overflow: hidden;
+  background: var(--billard-overlay-bg);
+}
+.overlay.soft { background: var(--billard-overlay-soft); }
+.overlay .panel { display: flex; flex-direction: column; align-items: center; gap: var(--gap); text-align: center; }
+.overlay .panel p { margin: 0; }
+
+/* ---------- Game over ---------- */
+.go-layout { display: flex; flex-wrap: wrap; gap: calc(var(--gap) * 1.4); align-items: center; justify-content: center; }
+.go-result { display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; }
+.go-head { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.go-actions { display: flex; flex-direction: column; align-items: center; gap: var(--gap); }
+.go-reason, .go-plates { margin: 0; font-size: 1.3rem; color: var(--muted); }
+.go-score { display: flex; align-items: baseline; gap: 12px; }
+#go-score { font-size: clamp(3rem, 10vmin, 5rem); font-weight: 800; color: var(--ui-text); text-shadow: var(--billard-score-glow); }
+.go-unit { font-size: 1.4rem; color: var(--muted); }
+.go-rank { margin: 0; min-height: 1.4em; font-size: 1.3rem; color: var(--accent); font-weight: 700; }
+.go-records { min-width: min(500px, 90vw); }
+.records li .plates { font-weight: 400; color: var(--muted); }
+
+/* ---------- Indstillinger ---------- */
+#settings { justify-content: flex-start; padding-top: max(20px, 4vmin); }
+.tabs { margin-bottom: 4px; }
+.tab-panel { display: flex; flex-direction: column; gap: calc(var(--gap) * 0.8); align-items: stretch; width: min(1100px, 100%); }
+.setting { display: grid; grid-template-columns: 13em 1fr; align-items: center; gap: var(--gap); }
+@media (max-width: 900px) { .setting { grid-template-columns: 1fr; justify-items: center; text-align: center; } .setting .row { justify-content: center !important; } }
+.setting-label { font-size: 1.35rem; font-weight: 700; display: flex; flex-direction: column; text-shadow: var(--billard-text-shadow); }
+.setting-label small { font-size: 0.95rem; font-weight: 400; color: var(--muted); margin-top: 4px; }
+.setting .row { justify-content: flex-start; }
+.value-box { min-width: 6em; text-align: center; font-size: 1.8rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.note { max-width: 44em; margin: 0 auto; color: var(--muted); line-height: 1.5; text-align: center; }
+.theme-btn .swatch {
+  width: 64px; height: 32px; border-radius: var(--billard-radius-swatch);
+  background: linear-gradient(90deg, var(--a) 0 33%, var(--b) 33% 66%, var(--c) 66% 100%);
+  border: var(--billard-block-w) solid var(--billard-swatch-border);
+}
+
+/* ---------- Rekorder ---------- */
+#records { justify-content: flex-start; padding-top: max(20px, 3vmin); gap: calc(var(--gap) * 0.6); }
+.records-panel { min-width: min(560px, 92vw); }
+
+/* ---------- Om ---------- */
+#om { gap: calc(var(--gap) * 0.7); }
+.om-logo { height: clamp(84px, 15vh, 200px); }
+@media (max-height: 740px) { .om-logo { height: 84px; } .om-panel p { font-size: 1.15rem; line-height: 1.45; } }
+.om-panel { max-width: 46em; text-align: center; }
+.om-panel h2 { margin-bottom: 12px; }
+.om-panel p { margin: 10px 0 0; font-size: 1.25rem; line-height: 1.55; }
+.link-btn { text-decoration: none; min-width: calc(var(--btn) * 2.4); }
+.link-btn .small { font-size: 0.95rem; }
+
+/* ---------- Sider (kun når der ikke er plads til det hele) ---------- */
+.trin-skjult { display: none !important; }
+.trin-nav { display: contents; }
+.trin-nav[hidden] { display: none; }
+.trin-label { align-self: center; min-width: 6.5em; text-align: center; font-size: 1.1rem; font-weight: 700; color: var(--muted); text-shadow: var(--billard-text-shadow); }
+.trin-nav .btn .icon { font-size: 2rem; }
+.tight .opt { display: none; }
+
+/* ---------- Små skærme (korteste side under 560 px) ----------
+ * Knapperne er mindst 84 px (sat i js/app.js), og der zoomes ikke.
+ * Brede knapper må gerne blive smallere, så flere kan stå på én række. */
+.billard-lille .btn { padding: 6px 12px; gap: 2px; }
+.billard-lille .btn .big { font-size: 1.2rem; }
+.billard-lille .btn.primary .big { font-size: 1.45rem; }
+.billard-lille .btn .icon { font-size: 1.3rem; }
+.billard-lille .btn .small { font-size: 0.9rem; }
+.billard-lille .btn.wide { min-width: calc(var(--btn) * 1.6); }
+/* Sideknapperne viser kun pilen på små skærme (teksten står i aria-label) */
+.billard-lille .trin-nav .btn .big { display: none; }
+.billard-lille .trin-nav .btn .icon { font-size: 2.4rem; }
+.billard-lille .trin-label { min-width: 0; font-size: 1rem; }
+/* Startmenu på højkant: de fire små knapper i to kolonner */
+.billard-lille:not(.billard-tvaers) #menu .more-row { display: grid; grid-template-columns: 1fr 1fr; width: min(100%, 26em); }
+/* Spillet på højkant: logoet gør plads til en stor pauseknap */
+.billard-lille .lay-below .side-logo { display: none; }
+.billard-lille .link-btn { min-width: calc(var(--btn) * 1.6); }
+.billard-lille .screen { padding: 12px; }
+.billard-lille .panel { padding: 14px 18px; }
+.billard-lille .overlay .panel { gap: 12px; }
+.billard-lille .records li { padding-top: 3px; padding-bottom: 3px; }
+.billard-lille #settings, .billard-lille #records { padding-top: 12px; }
+.billard-lille .setting-label { font-size: 1.2rem; }
+.billard-lille .setting .row { gap: 12px; }
+.billard-lille .theme-btn .swatch { width: 48px; height: 26px; }
+.billard-lille .overlay .panel { max-width: calc(100% - 16px); }
+.billard-lille #menu.hall-inflow .hall-btn { min-height: var(--btn); }
+
+/* Game over: knapperne på én række, der må ombrydes */
+.billard-lille .go-actions { flex-direction: row; flex-wrap: wrap; justify-content: center; }
+.billard-lille .go-actions > .row { display: contents; }
+.billard-lille .go-head { gap: 6px; }
+.billard-lille #go-score { font-size: clamp(2.4rem, 9vmin, 4rem); }
+.go-split .go-records { display: none; }
+.go-split.go-vis-rekorder .go-records { display: block; }
+.go-split.go-vis-rekorder .go-head { display: none; }
+
+/* Mobil på tværs: startmenuen som et gitter med tre rækker knapper */
+.billard-tvaers #menu {
+  display: grid; justify-content: safe center; align-content: safe center; justify-items: center; align-items: center;
+  grid-template-columns: auto auto auto;
+  grid-template-areas: "hall title title" "sizes sizes start" "note note note" "more more more";
+  column-gap: var(--gap); row-gap: calc(var(--gap) * 0.6);
+}
+.billard-tvaers #menu .hall-btn { grid-area: hall; position: static; justify-self: start; }
+.billard-tvaers #menu .title-block { grid-area: title; justify-self: start; }
+.billard-tvaers #menu .title-row .arkade-logo { height: calc(var(--btn) * 0.8); }
+.billard-tvaers #menu .neon-title { font-size: clamp(2rem, 11vh, 3.4rem); }
+.billard-tvaers #menu .lead { display: none; }
+.billard-tvaers #menu .menu-group { grid-area: sizes; }
+.billard-tvaers #menu .group-label { margin: 0 0 4px; }
+.billard-tvaers #menu .size-note { grid-area: note; }
+.billard-tvaers #menu .start-row { grid-area: start; align-self: end; }
+.billard-tvaers #menu .more-row { grid-area: more; }
+
+/* Mobil på tværs: indstillinger med teksten ved siden af knapperne */
+.billard-tvaers .setting { grid-template-columns: minmax(6em, 10em) auto; column-gap: 16px; justify-items: start; justify-content: center; text-align: left; }
+.billard-tvaers .setting .row { justify-content: flex-start !important; }
+.billard-tvaers #settings .tab-panel { gap: 10px; }
+.billard-tvaers .om-logo { height: 84px; }
+.billard-tvaers .om-panel p { font-size: 1.1rem; line-height: 1.45; }
+.billard-tvaers .go-layout { flex-wrap: nowrap; align-items: center; }
+.billard-lille #menu.tight .title-row .arkade-logo { height: 72px; }
+/* Game over på tværs: rekordlisten i fuld bredde (to spalter) over knapperne */
+.billard-tvaers .go-split.go-vis-rekorder .go-layout { flex-direction: column; flex-wrap: nowrap; gap: 12px; }
+.billard-tvaers .go-split.go-vis-rekorder .go-records { order: -1; width: min(820px, 100%); padding-top: 8px; padding-bottom: 8px; }
+.billard-tvaers .go-split.go-vis-rekorder .go-records .group-label { margin: 0 0 4px; }
+/* Indstillinger på små skærme: tætte faner; på højkant to faner pr. række */
+.billard-lille #settings .tabs { gap: 10px; }
+.billard-lille:not(.billard-tvaers) #settings .tabs { display: grid; grid-template-columns: 1fr 1fr; width: min(100%, 24em); }
+.billard-lille #settings .trin-bund { gap: 10px; margin-top: auto; }
+.billard-tvaers #menu .size-note { font-size: 0.9rem; line-height: 1.25; max-width: 52em; }
+.billard-lille .value-box { min-width: 4.2em; font-size: 1.5rem; }
+
+/* Rekordlister: point og partier på én linje, så listen ikke bliver dobbelt så høj */
+ol.records .score { white-space: nowrap; }
+.billard-tvaers ol.records .plates, .billard-lille ol.records .plates { font-size: .85em; }
+/* Mobil på langs: på game over er der kun plads til point og dato (partierne står under Rekorder) */
+.billard-tvaers #go-records .plates { display: none; }
+.billard-lille:not(.billard-tvaers) ol.records .score { white-space: normal; }
+/* Mobil: plads til fluebenet over teksten i niveauknapperne */
+.billard-lille #menu [data-level] { padding-top: 20px; }
+.billard-lille #menu [data-level][aria-pressed="true"]::after { top: 2px; right: 8px; font-size: 1rem; }
+
+/* Parti vundet: billedet, navnet og pointene */
+.done-panel { max-width: min(760px, 96vw); }
+.done-pic { display: block; width: calc(var(--pic, 160px) * 1.806); height: var(--pic, 160px); flex: none; }
+.done-text { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.done-kicker { font-size: 1.2rem; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
+.done-name { font-size: clamp(2.2rem, 7vmin, 3.6rem); }
+.done-points { font-size: clamp(1.6rem, 5vmin, 2.6rem); font-weight: 800; color: var(--billard-ok); text-shadow: var(--billard-points-glow); }
+.done-parts { font-size: 1.05rem; max-width: 34em; line-height: 1.45; }
+@media (max-height: 820px) { .done-panel { display: grid !important; grid-template-columns: auto 1fr; grid-template-areas: "pic text" "row row"; align-items: center; } .done-pic { grid-area: pic; } .done-text { grid-area: text; } .done-row { grid-area: row; } }
+.billard-lille .done-pic { --pic: 96px; }
+.billard-tvaers .done-panel { grid-template-columns: auto 1fr auto; grid-template-areas: "pic text row"; }
+.billard-tvaers .done-row { flex-direction: column; flex-wrap: nowrap; }
+.go-pic-row { display: flex; align-items: center; gap: 16px; justify-content: center; }
+.go-pic { display: block; width: calc(var(--gopic, 110px) * 1.806); height: var(--gopic, 110px); flex: none; }
+.go-reason { max-width: 20em; }
+.billard-lille .go-pic { --gopic: 72px; }
+@media (max-height: 450px) { .go-reason { max-width: 28em; font-size: 1.1rem; } .go-pic { --gopic: 60px; } }
+
+/* Bekræft Afslut: to lige store knapper med god afstand (mindst en halv knap) */
+.confirm-row { gap: max(calc(var(--btn) * 0.6), 48px); flex-wrap: nowrap; }
+.confirm-btn { min-width: calc(var(--btn) * 2); min-height: calc(var(--btn) * 1.1); }
+.confirm-btn .big { font-size: 1.5rem; }
+.confirm-text { font-size: 1.2rem; max-width: 30em; }
+.billard-lille .confirm-row { gap: 40px; }
+.billard-lille .confirm-btn { min-width: calc(var(--btn) * 1.5); }
+.billard-lille:not(.billard-tvaers) .confirm-row { flex-direction: column; gap: 32px; }
+.billard-lille:not(.billard-tvaers) .confirm-btn { width: min(100%, 16em); }

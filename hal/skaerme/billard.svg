@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 220">
+  <!-- Stillbillede af Billard til maskinens skærm: et poolbord set oppefra. Stødbolden (hvid) ligger til venstre med en pink kø bag sig, og den prikkede gule forhåndslinje går til en spøgelseskugle ved den gule 1'er, der har en pil mod hjørnehullet. Til højre står resten af kuglerne i trekanten (helfarvede og stribede, 8'eren sort med hvid ring). Seks huller og cyan bander omkranser den blå filt. Tegnet i SVG, ingen billeder og ingen skrifttyper. -->
+  <defs>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="240" height="220" fill="#0a0414"/>
+  <!-- bordet: ramme og filt -->
+  <rect x="10" y="46" width="220" height="128" rx="10" fill="#1a0b2e" stroke="#ff4fd8" stroke-width="2" filter="url(#glow)"/>
+  <rect x="22" y="58" width="196" height="104" rx="3" fill="#0b2a4a"/>
+  <g stroke="#7888ff" stroke-opacity=".14" stroke-width="1">
+    <path d="M22 84H218M22 110H218M22 136H218M61 58V162M100 58V162M140 58V162M179 58V162"/>
+  </g>
+  <path d="M71 60V160" stroke="#cfe8ff" stroke-opacity=".35" stroke-width="1" stroke-dasharray="3 3"/>
+  <!-- bander (med åbninger ved hullerne) -->
+  <g filter="url(#glow)" stroke="#22eaff" stroke-width="3" stroke-linecap="round">
+    <path d="M32 58H112M128 58H208M32 162H112M128 162H208M22 68V152M218 68V152"/>
+  </g>
+  <!-- huller -->
+  <g fill="#05020a" stroke="#22eaff" stroke-width="1.5">
+    <circle cx="22" cy="58" r="7"/><circle cx="120" cy="56" r="6"/><circle cx="218" cy="58" r="7"/>
+    <circle cx="22" cy="162" r="7"/><circle cx="120" cy="164" r="6"/><circle cx="218" cy="162" r="7"/>
+  </g>
+  <!-- trekanten -->
+  <g stroke="#0a0414" stroke-width=".8">
+    <circle cx="170" cy="110" r="4.6" fill="#ff5a5a"/>
+    <circle cx="178" cy="105.4" r="4.6" fill="#3fa9ff"/><circle cx="178" cy="114.6" r="4.6" fill="#ffffff"/>
+    <circle cx="186" cy="100.8" r="4.6" fill="#39e58c"/><circle cx="186" cy="110" r="4.6" fill="#05020a" stroke="#ffffff" stroke-width="1"/><circle cx="186" cy="119.2" r="4.6" fill="#b06bff"/>
+    <circle cx="194" cy="96.2" r="4.6" fill="#ffffff"/><circle cx="194" cy="105.4" r="4.6" fill="#ff9a3c"/><circle cx="194" cy="114.6" r="4.6" fill="#ffffff"/><circle cx="194" cy="123.8" r="4.6" fill="#ff4fd8"/>
+  </g>
+  <!-- striber på de halve -->
+  <g stroke-width="3.4">
+    <path d="M174.6 114.6H181.4" stroke="#ffd166"/>
+    <path d="M190.6 96.2H197.4" stroke="#39e58c"/>
+    <path d="M190.6 114.6H197.4" stroke="#ff5a5a"/>
+  </g>
+  <circle cx="186" cy="110" r="1.6" fill="#ffffff"/>
+  <!-- 1'eren og pilen mod hullet øverst til højre -->
+  <circle cx="150" cy="84" r="4.6" fill="#ffd166" stroke="#0a0414" stroke-width=".8"/>
+  <g filter="url(#glow)" stroke="#39e58c" stroke-width="2" stroke-linecap="round" fill="none">
+    <path d="M154 81L206 64"/><path d="M199 62L207 64L202 70"/>
+  </g>
+  <!-- forhåndslinje og spøgelseskugle -->
+  <g fill="#ffe14d" filter="url(#glow)">
+    <circle cx="57" cy="122" r="1.8"/><circle cx="68" cy="118" r="1.8"/><circle cx="79" cy="114" r="1.8"/><circle cx="90" cy="110" r="1.8"/>
+    <circle cx="101" cy="106" r="1.8"/><circle cx="112" cy="102" r="1.8"/><circle cx="123" cy="98" r="1.8"/><circle cx="134" cy="94" r="1.8"/>
+  </g>
+  <circle cx="142" cy="88" r="4.6" fill="none" stroke="#ffe14d" stroke-width="1.2" stroke-dasharray="2 2"/>
+  <!-- køen og stødbolden -->
+  <g filter="url(#glow)" stroke-linecap="round">
+    <path d="M14 142L42 131" stroke="#ff4fd8" stroke-width="4"/>
+    <path d="M40 131.8L43 130.6" stroke="#cfe8ff" stroke-width="4"/>
+  </g>
+  <circle cx="48" cy="126" r="4.8" fill="#ffffff" stroke="#cfd8ff" stroke-width="1" filter="url(#glow)"/>
+</svg>
