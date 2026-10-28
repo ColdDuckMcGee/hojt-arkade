@@ -5,7 +5,12 @@
  * Vælg en juvel (klik, tryk, dwell eller Enter), og vælg så en nabo for at bytte.
  * Naboer, der giver tre på stribe, lyser op. Et ugyldigt byt forklares og koster
  * intet. Vælg den valgte juvel igen (eller Fortryd valg) for at fortryde.
- * Der er ingen tid. Spillet slutter, når trækkene er brugt (eller man vælger Afslut).
+ * Der er ingen tid. Spillet slutter, når trækkene er brugt, når brættet ikke har flere
+ * mulige byt (eller man vælger Afslut).
+ *
+ * Spillet er endeløst med niveauer: når pointmålet nås, kommer næste niveau (+5 træk),
+ * og nye elementer forklares på et roligt kort (#niveau-overlay), der lukkes med en stor
+ * knap. Status viser Træk, Point (med målet), Niveau og Opgave.
  */
 (function () {
   'use strict';
@@ -229,6 +234,7 @@
   var curIdx = -1;               // tastaturets markør (−1 = skjult)
   var boardEl = $('#board');
   var lastNote = '', noteCls = '', overTimer = 0, animToken = 0;
+  var introQueue = [];           // niveau-kort, der venter på at blive vist
 
   // Tegningen af brættet ligger i js/tegn.js og læser kun spillets tilstand
   var tegn = JuvelerTegn.create(boardEl);
@@ -242,7 +248,7 @@
   function startGame() {
     animToken++;
     run = G.createRun(currentMode());
-    paused = false; finished = false; busy = false; shownHud = null;
+    paused = false; finished = false; busy = false; shownHud = null; introQueue = []; shownTask = null; shownPN = 0;
     sel = -1; targets = []; invalid = null; tipPair = null; gone = [];
     curIdx = -1; lastNote = ''; noteCls = '';
     clearTimeout(overTimer);
@@ -251,7 +257,7 @@
     show('game');
     refresh();
   }
-  var OVERLAYS = ['#pause-overlay', '#confirm-overlay'];
+  var OVERLAYS = ['#pause-overlay', '#confirm-overlay', '#niveau-overlay'];
   function hideOverlays() { OVERLAYS.forEach(function (o) { $(o).hidden = true; }); releaseGuard(); }
   function overlayOpen() { return OVERLAYS.some(function (o) { return !$(o).hidden; }); }
   function confirmOpen() { return !$('#confirm-overlay').hidden; }
@@ -264,21 +270,37 @@
     if (curIdx >= 0) curIdx = i;
     if (sel < 0) { select(i); return; }
     if (i === sel) { deselect(true); return; }
-    if (!G.adjacent(sel, i, run.n)) { select(i); return; }
+    if (!G.adjacent(sel, i, run.n)) { if (fixedNote(i)) return; select(i); return; }
     if (run.canSwap(sel, i)) { doSwap(sel, i); return; }
     // Ugyldigt byt: forklares roligt, koster intet, og valget bliver stående
     invalid = [sel, i];
     sfx('invalid');
-    setNote(run.state.grid[sel] === run.state.grid[i]
-      ? 'De to juveler er ens, så byttet ændrer ingenting. Det koster intet træk.'
+    var g = run.state.grid, fx = run.state.fx;
+    setNote(g[i] === G.STEN ? 'En sten kan ikke byttes. Den knuses, når en juvel ved siden af forsvinder.'
+      : (fx[i] & G.IS) ? 'En frossen juvel kan ikke byttes. Lav tre på stribe ved siden af den for at bryde isen.'
+      : g[sel] === g[i] ? 'De to juveler er ens, så byttet ændrer ingenting. Det koster intet træk.'
       : 'Det byt giver ikke tre på stribe. Det koster intet træk – prøv en anden nabo.', 'warn');
     refresh();
   }
+  // Sten og frosne juveler kan ikke vælges: forklar hvorfor (koster intet)
+  function fixedNote(i) {
+    var g = run.state.grid, fx = run.state.fx;
+    if (g[i] !== G.STEN && !(fx[i] & G.IS)) return false;
+    sel = -1; targets = []; invalid = null;
+    sfx('invalid');
+    setNote(g[i] === G.STEN
+      ? 'Sten kan ikke flyttes. En sten knuses, når en juvel ved siden af forsvinder: +1 træk.'
+      : 'Frosne juveler kan ikke flyttes, men kan godt være med i tre på stribe. Det bryder isen.', 'warn');
+    refresh();
+    return true;
+  }
   function select(i) {
+    if (fixedNote(i)) return;
     sel = i; invalid = null;
     targets = run.targets(i);
     sfx('select');
-    if (!targets.length) setNote('Denne juvel kan ikke give tre på stribe. Vælg en anden, eller fortryd.', 'warn');
+    if (!targets.length) setNote(run.state.grid[i] === G.STJERNE ? 'Stjernejuvelen har ingen nabo at bytte med. Vælg en anden, eller fortryd.' : 'Denne juvel kan ikke give tre på stribe. Vælg en anden, eller fortryd.', 'warn');
+    else if (run.state.grid[i] === G.STJERNE) setNote('Vælg en nabo: alle juveler af dens slags forsvinder', '');
     else if (bset.get('visMaal')) setNote(targets.length === 1 ? 'Vælg naboen, der lyser op' : 'Vælg en af de ' + targets.length + ' naboer, der lyser op', '');
     else setNote('Vælg en nabo at bytte med', '');
     refresh();
@@ -312,8 +334,22 @@
   var T_CALM_GONE = 450, T_CALM_FALL = 250;          // uden animation: faste skift med en kort pause
   function wait(ms, token) { return new Promise(function (res) { setTimeout(function () { res(token === animToken); }, ms); }); }
   var shownHud = null;
+  // Kort tekst om, hvad der sker i et led af opløsningen
+  function stepText(step) {
+    var t = [];
+    if (step.star) t.push('Stjernejuvel!');
+    if (step.fired && step.fired.length) t.push(step.fired.length > 1 ? step.fired.length + ' lyn!' : 'Lyn!');
+    if (step.crushed && step.crushed.length) t.push('Sten knust: +' + movesText(step.crushed.length));
+    if (step.broken && step.broken.length) t.push('Is brudt');
+    if (step.created && step.created.length) {
+      var star = step.created.some(function (c) { return c.kind === 'stjerne'; });
+      t.push(star ? 'Ny stjernejuvel' : 'Ny lynjuvel');
+    }
+    if (step.level > 1) t.push('Kæde: ' + step.level + ' led');
+    return t.join(' · ');
+  }
   function doSwap(a, b) {
-    var hudBefore = { moves: run.state.moves, score: run.state.score, chain: run.state.bestChain };
+    var hudBefore = hudNow();
     var res = run.swap(a, b);
     if (!res.ok) return;
     busy = true; sel = -1; targets = []; invalid = null; tipPair = null;
@@ -322,7 +358,7 @@
     var token = ++animToken, anim = animationOn();
     sfx('swap');
     setNote('', '');
-    refresh(res.before);
+    refresh(res.before, res.beforeFx);
     var p = Promise.resolve(true);
     if (anim) {
       tegn.animSwap(a, b, T_SWAP);
@@ -332,15 +368,15 @@
       p = p.then(function (ok) {
         if (!ok) return false;
         tegn.clearMotion();
-        gone = step.removed;
+        gone = step.removed.concat(step.crushed || []);
         sfx(step.level > 1 ? 'chain' : 'match');
-        setNote(step.level > 1 ? 'Kæde: ' + step.level + ' led' : '', step.level > 1 ? 'ok' : '');
-        refresh(step.before);
+        setNote(stepText(step), step.level > 1 || (step.fired && step.fired.length) || step.star ? 'ok' : '');
+        refresh(step.before, step.beforeFx);
         return wait(anim ? T_GONE : T_CALM_GONE, token);
       }).then(function (ok) {
         if (!ok) return false;
         gone = [];
-        refresh(step.grid);
+        refresh(step.grid, step.fx);
         if (anim) tegn.animFall(step, T_FALL);
         return wait(anim ? T_FALL : T_CALM_FALL, token);
       });
@@ -352,10 +388,15 @@
       var parts = ['+' + pointsText(res.points)];
       if (res.earned) parts.push('+' + movesText(res.earned));
       if (res.chain >= 2) parts.push('kæde på ' + res.chain);
+      if (res.crushed) parts.push((res.crushed === 1 ? '1 sten' : res.crushed + ' sten') + ' knust');
+      if (res.ice) parts.push('is brudt');
       var txt = parts.join(' · ');
-      if (res.earned) sfx('earn');
-      setNote(txt, res.earned ? 'ok' : '');
+      if (res.task && res.task.done) txt = 'Opgave klaret: +' + movesText(res.task.task.reward) + '! ' + txt;
+      else if (res.task && res.task.failed) txt = 'Ny opgave: ' + taskText(res.task.next) + '. ' + txt;
+      if (res.earned || (res.task && res.task.done)) sfx('earn');
+      setNote(txt, res.earned || (res.task && res.task.done) ? 'ok' : '');
       refresh();
+      if (res.levels && res.levels.length) levelReached(res.levels);
       if (res.over) {
         sfx('over');
         setNote(overText(res.overReason), 'warn');
@@ -367,35 +408,158 @@
   }
 
   // ---------- Tegning ----------
-  function renderBoard(grid) {
+  function renderBoard(grid, fx) {
     if (!run || !tegn.ready) return;
     tegn.draw(grid || run.state.grid, {
+      fx: grid ? (fx || run.state.fx) : run.state.fx,
       selected: sel, targets: bset.get('visMaal') ? targets : [], dim: bset.get('visMaal'),
       invalid: invalid, tip: tipPair, gone: gone, busy: busy, cursor: live() ? curIdx : -1
     });
   }
-  function refresh(grid) {
+  function hudNow() { var s = run.state; return { moves: s.moves, score: s.score, level: s.level, goal: s.goal }; }
+  function refresh(grid, fx) {
     if (!run) return;
-    var s = run.state, h = (busy && shownHud) || { moves: s.moves, score: s.score, chain: s.bestChain };
+    var s = run.state, h = (busy && shownHud) || hudNow();
     $('#hud-moves').textContent = h.moves;
     $('.hud-traek').classList.toggle('lav', h.moves <= 5);
     $('#hud-score').textContent = h.score;
-    $('#hud-chain').textContent = h.chain;
+    $('#hud-goal').textContent = 'mål ' + h.goal;
+    $('#hud-level').textContent = h.level;
+    renderTask();
+    renderPointsNote(h.level);
     var hint = $('#hint'), cls = noteCls, txt = lastNote;
     if (!txt) txt = busy ? '' : sel >= 0 ? 'Vælg en nabo at bytte med' : 'Vælg en juvel';
     hint.textContent = txt;
     hint.className = 'hint' + (cls ? ' ' + cls : '');
     $('#btn-tip').disabled = !live() || busy;
     $('#btn-undo').disabled = !live() || busy || sel < 0;
-    boardEl.setAttribute('aria-label', 'Bræt ' + sizeLabel(s.size) + ', ' + movesText(s.moves) + ' tilbage');
-    renderBoard(grid);
+    boardEl.setAttribute('aria-label', 'Bræt ' + sizeLabel(s.size) + ', niveau ' + s.level + ', ' + movesText(s.moves) + ' tilbage');
+    renderBoard(grid, fx);
     // Sikkerhedsnet: gør en ny tekst, at noget ikke kan være der, lægges skærmen om
     if (current === 'game' && !relayouting && (overflows(gameEl) || overflows(root))) { relayouting = true; layoutGame(); relayouting = false; }
   }
   var relayouting = false;
 
+  // ---------- Niveauer, elementer og opgaver ----------
+  var B = JuvelerTegn.brikHtml;
+  function taskText(t) {
+    if (!t) return '';
+    var what = t.kind === 'fjern' ? 'fjern ' + t.goal + ' ' + (t.goal === 1 ? JuvelerTegn.typeNavn(t.type) : JuvelerTegn.typeFlertal(t.type))
+      : t.kind === 'is' ? 'bryd ' + t.goal + ' is' : 'knus ' + t.goal + ' sten';
+    return what + ' inden for ' + movesText(t.moves);
+  }
+  function taskPic(t) {
+    if (!t) return JuvelerTegn.ikon('opgave');
+    if (t.kind === 'fjern') return B(t.type, 0, 'mini');
+    if (t.kind === 'is') return B(0, G.IS, 'mini');
+    return B(G.STEN, 0, 'mini');
+  }
+  var shownTask = null;
+  function renderTask() {
+    var t = run.state.task, box = $('.hud-opgave');
+    var key = t ? [t.id, t.progress, t.left, t.kind, t.type].join(':') : 'ingen:' + run.state.level;
+    if (shownTask === key) return;
+    shownTask = key;
+    box.classList.toggle('aktiv', !!t);
+    if (!t) {
+      $('#hud-task').innerHTML = '–';
+      $('#hud-task-sub').textContent = run.state.level < G.RULES.taskFrom ? 'fra niveau ' + G.RULES.taskFrom : '';
+      box.setAttribute('aria-label', 'Opgave: ingen endnu');
+      return;
+    }
+    $('#hud-task').innerHTML = taskPic(t) + '<span class="opg-tal">' + t.progress + '/' + t.goal + '</span>';
+    $('#hud-task-sub').textContent = t.left === 1 ? '1 træk' : t.left + ' træk';
+    box.setAttribute('aria-label', 'Opgave: ' + taskText(t) + '. ' + t.progress + ' af ' + t.goal + ', ' + movesText(t.left) + ' tilbage. Giver +' + movesText(t.reward) + '.');
+  }
+  var shownPN = 0;
+  function renderPointsNote(L) {
+    if (shownPN === L) return;
+    shownPN = L;
+    var lines = [];
+    lines.push(L >= G.RULES.lynFrom ? '4 ens: lynjuvel' : '4 på stribe: +1 træk');
+    lines.push(L >= G.RULES.starFrom ? '5, L eller T: stjerne' : '5, L eller T: +2 træk');
+    lines.push(L >= G.RULES.stoneFrom ? 'Knust sten: +1 træk' : 'Nyt niveau: +' + G.RULES.levelMoves + ' træk');
+    $('#points-note').innerHTML = lines.join('<br>');
+  }
+  // Kortene: billede og forklaring for hvert nyt element
+  var INTRO = {
+    lyn: {
+      titel: 'Lynjuvel',
+      pic: function () { return B(1, 0) + B(1, 0) + B(1, 0) + B(1, 0) + '<span class="pil" aria-hidden="true">→</span>' + B(1, G.LYN); },
+      tekst: 'Fire ens på stribe bliver nu til en lynjuvel med et lyn på. Kommer lynjuvelen selv med i tre eller flere på stribe, fjerner lynet hele rækken (vandret stribe) eller hele kolonnen (lodret stribe).'
+    },
+    stjerne: {
+      titel: 'Stjernejuvel',
+      pic: function () { return B(2, 0) + B(2, 0) + B(2, 0) + B(2, 0) + B(2, 0) + '<span class="pil" aria-hidden="true">→</span>' + B(G.STJERNE, 0); },
+      tekst: 'Fem på stribe, eller et L eller T, giver en stjernejuvel. Den har ingen farve og kan byttes med alle naboer. Så forsvinder alle juveler af naboens slags. To stjerner byttet med hinanden tømmer hele brættet.'
+    },
+    is: {
+      titel: 'Is',
+      pic: function () { return B(0, G.IS) + B(3, G.IS) + B(4, G.IS); },
+      tekst: 'Nogle juveler er frosne. De kan ikke byttes, men kan godt være med i tre på stribe. Forsvinder en juvel ved siden af, eller er den frosne selv med, brydes isen: +20 point.'
+    },
+    sten: {
+      titel: 'Sten',
+      pic: function () { return B(G.STEN, 0) + B(G.STEN, 0); },
+      tekst: 'Sten er faste blokke. De kan ikke byttes, men falder ned ligesom juvelerne. Forsvinder en juvel ved siden af en sten, eller rammer et lyn den, knuses stenen: +1 træk og 30 point.'
+    },
+    opgave: {
+      titel: 'Opgaver',
+      pic: function () { return '<span class="kort-ikon">' + JuvelerTegn.ikon('opgave') + '</span>' + B(1, 0) + '<span class="pil">8</span>'; },
+      tekst: 'Nu får du opgaver, fx at fjerne 8 safirer inden for 5 træk. Opgaven står i status. Klarer du den, får du +' + G.RULES.taskReward + ' træk. Klarer du den ikke, sker der ingenting – du får bare en ny opgave.'
+    },
+    rav: {
+      titel: 'Rav',
+      pic: function () { return B(6, 0) + B(6, 0) + B(6, 0); },
+      tekst: 'En syvende slags juvel er med fra nu af: rav, en orange dråbe. Med flere slags juveler er der færre mulige byt, så kig godt efter.'
+    }
+  };
+  function levelReached(levels) {
+    levels.forEach(function (ev) { if (ev.element && INTRO[ev.element]) introQueue.push(ev); });
+    var last = levels[levels.length - 1];
+    sfx('record');
+    if (!introQueue.length) {
+      var extra = [];
+      if (last.ice.length) extra.push('mere is');
+      if (last.stones.length) extra.push('flere sten');
+      setNote('Niveau ' + last.level + '! +' + movesText(last.moves * levels.length) + (extra.length ? ' · ' + extra.join(' og ') : '') + (last.newBoard ? ' · nyt bræt' : ''), 'ok');
+      refresh();
+      return;
+    }
+    showIntro(introQueue.shift());
+  }
+  function showIntro(ev) {
+    var info = INTRO[ev.element], ov = $('#niveau-overlay');
+    $('#niveau-title').textContent = 'Niveau ' + ev.level + ': ' + info.titel;
+    $('#niveau-pic').innerHTML = info.pic();
+    $('#niveau-text').textContent = info.tekst;
+    var more = '+' + movesText(ev.moves) + '. Næste mål: ' + run.state.goal + ' point.';
+    if (ev.element === 'opgave' && run.state.task) more = 'Første opgave: ' + taskText(run.state.task) + '. ' + more;
+    $('#niveau-more').textContent = more;
+    ov.dataset.element = ev.element;
+    ov.hidden = false;
+    fitScreen(ov);
+    dwell.reset();
+    guardUnderGaze(ov);
+    $('#btn-niveau-ok').focus({ preventScroll: true });
+    refresh();
+  }
+  function closeIntro() {
+    var ov = $('#niveau-overlay');
+    if (ov.hidden) return;
+    sfx('click');
+    ov.hidden = true;
+    releaseGuard(); dwell.reset();
+    if (introQueue.length) { showIntro(introQueue.shift()); return; }
+    if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
+    setNote('Niveau ' + run.state.level + ' · mål ' + run.state.goal + ' point', 'ok');
+    refresh();
+  }
+  $('#btn-niveau-ok').addEventListener('click', closeIntro);
+  function introOpen() { return !$('#niveau-overlay').hidden; }
+
   function setPaused(p) {
-    if (!run || finished || run.state.over) return;
+    if (!run || finished || run.state.over || introOpen()) return;
     paused = p;
     $('#pause-overlay').hidden = !p;
     if (p) fitScreen($('#pause-overlay'));
@@ -443,12 +607,13 @@
       ? 'Ingen flere mulige byt på brættet.'
       : 'Trækkene er brugt.';
   }
-  // Rekorder pr. brætstørrelse: point og antal byt.
+  // Rekorder pr. brætstørrelse: point, niveau og antal byt. (Gamle rekorder har kun
+  // point og byt i feltet levels – de vises uden niveau.)
   var lastEntryId = null;
   function saveRecord() {
     var s = run.state, out = run.end(), res = null;
     finished = true;
-    if (out.score > 0) res = records.add(s.size, out.score, { levels: out.swaps });
+    if (out.score > 0) res = records.add(s.size, out.score, G.recordExtra(out));
     return res;
   }
   function finish(why) {
@@ -467,12 +632,14 @@
     $('#go-title').textContent = 'Spillet er slut';
     $('#go-reason').textContent = why === 'over' ? overText(s.overReason) : 'Du afsluttede spillet.';
     var pic = '';
-    for (var t = 0; t < run.k; t++) pic += '<span class="jv" data-type="' + G.TYPES[t] + '">' + JuvelerTegn.juvelSvg(t) + '</span>';
+    for (var t = 0; t < run.k; t++) pic += B(t, 0);
     $('#go-pic').innerHTML = pic;
     $('#go-score').textContent = s.score;
+    $('#go-level').textContent = 'Niveau ' + s.level;
     var bits = [swapsText(s.swaps)];
     if (s.bestChain > 1) bits.push('bedste kæde ' + s.bestChain);
     if (s.earnedTotal) bits.push(movesText(s.earnedTotal) + ' optjent');
+    if (s.tasksDone) bits.push((s.tasksDone === 1 ? '1 opgave' : s.tasksDone + ' opgaver') + ' klaret');
     if (s.tips) bits.push((s.tips === 1 ? '1 tip' : s.tips + ' tip') + ' (−' + pointsText(s.tipPoints) + ')');
     $('#go-levels').textContent = bits.join(' · ');
     $('#go-rank').textContent = rankText;
@@ -497,7 +664,7 @@
         var sc = li.querySelector('.score');
         sc.appendChild(document.createTextNode(e.score + ' point'));
         var lv = document.createElement('span'); lv.className = 'plates';
-        lv.textContent = ' · ' + swapsText(typeof e.levels === 'number' ? e.levels : 0);
+        lv.textContent = G.recordLabel(e);
         sc.appendChild(lv);
         li.querySelector('.date').textContent = ArkadeHighscores.formatDate(e.date);
         if (e.id === highlightId) li.classList.add('new');
@@ -596,6 +763,7 @@
     if (e.altKey || e.ctrlKey || e.metaKey) return;
     if (current !== 'game') { if (KEYS[e.key]) e.preventDefault(); return; }
     if (confirmOpen()) { if (e.key === 'Escape') { e.preventDefault(); cancelQuit(); } return; } // Esc = Nej
+    if (introOpen()) { if (e.key === 'Escape') { e.preventDefault(); closeIntro(); } return; } // Enter virker på Videre
     if (e.key === 'Escape' && sel >= 0 && !paused && !overlayOpen()) { e.preventDefault(); deselect(true); return; }
     if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') { e.preventDefault(); setPaused(!paused); return; }
     if (overlayOpen()) return; // Enter og mellemrum virker på den fokuserede knap
@@ -634,7 +802,7 @@
     var res = { p: p, g: g, hudH: hudH, ig: ig };
     // wide: status | gitter | tekst og værktøjer
     var sideW = Math.min(380, Math.max(230, b * 2.2));
-    var leftH = 100 + 3 * hudH + 2 * ig + 70 + b + 3 * ig;
+    var leftH = 100 + 4 * hudH + 3 * ig + 70 + b + 3 * ig;
     var rightH = hint + 2 * b + 2 * ig;
     res.sideW = sideW;
     res.wide = (rightH <= H - 2 * p && leftH <= H - 2 * p) ? cell(W - 2 * p - 2 * sideW - 2 * g, H - 2 * p) : 0;
@@ -642,7 +810,7 @@
     res.side = 0;
     [1, 3].forEach(function (k) {
       var panelW = Math.max(k * b + (k - 1) * ig, k === 1 ? 150 : 0);
-      var hudCols = panelW >= 3 * 110 + 2 * ig ? 3 : 1, hudRows = 3 / hudCols;
+      var hudCols = panelW >= 4 * 110 + 3 * ig ? 4 : panelW >= 2 * 110 + ig ? 2 : 1, hudRows = 4 / hudCols;
       var rows = Math.ceil(NTOOLS / k);
       var panelH = hudRows * hudH + (hudRows - 1) * ig + g + hint + ig + rows * b + (rows - 1) * ig;
       if (panelH > H - 2 * p) return;
@@ -651,11 +819,12 @@
     });
     // below: status / gitter / tekst og værktøjer (på højkant ligger knapperne under gitteret)
     res.below = 0;
+    res.belowHud = (W - 2 * p) >= 4 * 120 + 3 * ig ? 4 : 2;
     [3].forEach(function (k) {
       var needW = k * b + (k - 1) * ig;
       if (needW > W - 2 * p) return;
-      var rows = Math.ceil(NTOOLS / k);
-      var extra = hudH + g + hint + ig + rows * b + (rows - 1) * ig + g;
+      var rows = Math.ceil(NTOOLS / k), hr = 4 / res.belowHud;
+      var extra = hr * hudH + (hr - 1) * ig + g + hint + ig + rows * b + (rows - 1) * ig + g;
       var c = cell(W - 2 * p, H - 2 * p - extra);
       if (c > res.below) { res.below = c; res.belowK = k; }
     });
@@ -714,7 +883,7 @@
     var panelW, toolCols, hudCols;
     if (lay === 'wide') { panelW = res.sideW; toolCols = 1; hudCols = 1; }
     else if (lay === 'side') { panelW = res.panelSide; toolCols = res.sideK; hudCols = res.hudColsSide; }
-    else { toolCols = res.belowK; panelW = Math.min(v.W - 2 * res.p, Math.max(bw, toolCols * b + (toolCols - 1) * res.ig)); hudCols = 3; }
+    else { toolCols = res.belowK; panelW = Math.min(v.W - 2 * res.p, Math.max(bw, toolCols * b + (toolCols - 1) * res.ig)); hudCols = res.belowHud; }
     st.setProperty('--panel-w', Math.floor(panelW) + 'px');
     st.setProperty('--tool-cols', toolCols);
     st.setProperty('--hud-cols', hudCols);
@@ -919,6 +1088,10 @@
 
   // ---------- Start ----------
   JuvelerTegn.installerGrafik();
+  // Billederne i Om-teksten (samme brikker som på brættet)
+  var OM_PIC = { lyn: function () { return B(1, G.LYN); }, stjerne: function () { return B(G.STJERNE, 0); }, is: function () { return B(0, G.IS); },
+    sten: function () { return B(G.STEN, 0); }, opgave: function () { return '<span class="kort-ikon">' + JuvelerTegn.ikon('opgave') + '</span>'; }, rav: function () { return B(6, 0); } };
+  $$('[data-om]').forEach(function (el) { el.innerHTML = OM_PIC[el.dataset.om](); });
   syncSmall();
   applyGlow();
   applyTheme();
@@ -937,6 +1110,15 @@
     settings: arkade, gameSettings: bset, records: records, dwell: dwell, audio: audio,
     start: startGame, show: show, act: act, tipAction: showTip, deselect: deselect,
     finish: finish, refresh: refresh, cellSizeFor: cellSizeFor,
-    setPaused: setPaused, layout: layoutGame
+    setPaused: setPaused, layout: layoutGame,
+    // Niveauer: spring til et niveau (viser kortene), vis ét kort, luk kortet
+    levelUp: function (L) { var evs = run._level(L); levelReached(evs); return evs; },
+    showIntro: function (element, level) { showIntro({ element: element, level: level || 2, moves: G.RULES.levelMoves }); },
+    closeIntro: closeIntro, get introOpen() { return introOpen(); },
+    // Læg et bræt ind i testnotation (se JuvelerGame.parse)
+    load: function (rows, moves, score, level) {
+      var p = G.parse(rows); run._load(p.grid, moves, score, p.fx);
+      if (level) { run.state.level = level; run.state.goal = G.goal(level, run.n); setNote('Niveau ' + level + ' · mål ' + run.state.goal + ' point', 'ok'); }
+      sel = -1; targets = []; invalid = null; tipPair = null; refresh(); }
   };
 })();

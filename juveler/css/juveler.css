@@ -73,6 +73,14 @@ html, body { height: 100%; height: 100dvh; }
 .lay-wide .hud { flex-direction: row; justify-content: space-between; align-items: center; text-align: left; padding: 6px 16px; gap: 10px; }
 .lay-wide .hud-sub { margin-left: auto; }
 .lay-wide .hud-label { min-width: 3.4em; }
+.hud-opgave .hud-value { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.lay-wide .hud-opgave .hud-value { justify-content: flex-start; }
+.lay-wide .hud-opgave .hud-label { min-width: 0; }
+.hud-opgave .hud-sub { white-space: nowrap; }
+.hud-opgave.aktiv { border-color: var(--jv-opgave); }
+.hud-opgave.aktiv .hud-label { color: var(--jv-opgave); }
+.hud .jv.mini, .hud .kort-ikon svg { width: calc(var(--hud-h, 84px) * 0.42); height: calc(var(--hud-h, 84px) * 0.42); flex: none; }
+.hud .kort-ikon { display: inline-flex; --ico-line: var(--jv-opgave); }
 .points-note { margin: 0; min-height: 2.8em; font-size: 1.1rem; line-height: 1.4; color: var(--accent); text-align: center; font-weight: 700; text-shadow: var(--jv-text-shadow); }
 .pause-btn { align-self: center; width: var(--btn); height: var(--btn); padding: 6px; min-width: 0; min-height: 0; }
 .pause-btn svg { width: 46%; height: 46%; --ico-fill: var(--ui); }
@@ -102,6 +110,30 @@ html, body { height: 100%; height: 100dvh; }
 .jv[data-type="topas"] { --jv-farve: var(--jv-topas); }
 .jv[data-type="ametyst"] { --jv-farve: var(--jv-ametyst); }
 .jv[data-type="opal"] { --jv-farve: var(--jv-opal); }
+.jv[data-type="rav"] { --jv-farve: var(--jv-rav); }
+/* Særlige brikker og mærker (niveau 2–5). Formen og mønsteret skelner dem, ikke kun farven */
+.jv[data-type="stjerne"] { --jv-farve: var(--jv-stjerne-kerne); }
+.jv-stjerne-1 { fill: var(--jv-stjerne-1); }
+.jv-stjerne-2 { fill: var(--jv-stjerne-2); }
+.jv-stjerne-3 { fill: var(--jv-stjerne-3); }
+.jv-stjerne-4 { fill: var(--jv-stjerne-4); }
+.jv-stjerne-kerne { fill: var(--jv-stjerne-kerne); }
+.jv[data-type="sten"] { --jv-farve: var(--jv-sten); width: 94%; height: 94%; }
+.jv[data-type="sten"] svg { filter: none; }
+.jv-sten-krop { fill: var(--jv-sten); }
+.jv-sten-lys { fill: var(--jv-sten-lys); }
+.jv-sten-revne { fill: none; stroke: var(--jv-sten-revne); stroke-width: var(--jv-sten-revne-w); stroke-linecap: round; stroke-linejoin: round; }
+.jv-sten-kant { fill: none; stroke: var(--jv-sten-kant); stroke-width: var(--jv-kant-w); }
+.jv .mark-lyn { position: absolute; left: calc((100% - var(--jv-lyn-str)) / 2); top: calc((100% - var(--jv-lyn-str)) / 2); width: var(--jv-lyn-str); height: var(--jv-lyn-str); filter: none; }
+.jv-lyn-krop { fill: var(--jv-lyn); }
+.jv-lyn-kant { fill: none; stroke: var(--jv-lyn-kant); stroke-width: var(--jv-lyn-kant-w); stroke-linejoin: round; }
+/* Isen dækker hele feltet (juvelen fylder --jv-juvel-str af feltet) */
+.jv .mark-is { position: absolute; left: -14%; top: -14%; width: 128%; height: 128%; filter: none; }
+.jv-is-flade { fill: var(--jv-is); }
+.jv-is-streg { fill: none; stroke: var(--jv-is-streg); stroke-width: var(--jv-is-streg-w); stroke-linecap: round; }
+.jv-is-kant { fill: none; stroke: var(--jv-is-kant); stroke-width: var(--jv-is-streg-w); stroke-linecap: round; }
+.cell.valgt .jv .mark-is { left: -7%; top: -7%; width: 114%; height: 114%; }
+.cell.sten, .cell.frossen { cursor: default; }
 .jv-krop { fill: var(--jv-farve); }
 .jv-lys { fill: var(--jv-lys-farve); opacity: var(--jv-lys-styrke); }
 .jv-skygge { fill: var(--jv-skygge-farve); opacity: var(--jv-skygge-styrke); }
@@ -192,11 +224,31 @@ html, body { height: 100%; height: 100dvh; }
 .overlay .panel { display: flex; flex-direction: column; align-items: center; gap: var(--gap); text-align: center; }
 .overlay .panel p { margin: 0; }
 
+/* Niveau-kortet: billede, forklaring og en stor Videre-knap */
+.niveau-kort { max-width: min(760px, 94vw); background: var(--jv-kort-bg); border: var(--jv-frame-w) solid var(--jv-kort-kant); }
+.niveau-pic { display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap; }
+.niveau-pic .jv { width: clamp(44px, 9vmin, 84px); height: clamp(44px, 9vmin, 84px); }
+.niveau-pic .pil, .niveau-pic .kort-ikon { font-size: clamp(1.6rem, 5vmin, 2.6rem); font-weight: 800; color: var(--accent); }
+.niveau-pic .kort-ikon svg { width: clamp(44px, 9vmin, 84px); height: clamp(44px, 9vmin, 84px); --ico-line: var(--jv-opgave); }
+.niveau-text { font-size: 1.25rem; line-height: 1.45; max-width: 36em; }
+.niveau-more { font-size: 1.1rem; }
+.jv-lille .niveau-text { font-size: 1.05rem; line-height: 1.35; }
+.jv-lille .niveau-pic .jv, .jv-lille .niveau-pic .kort-ikon svg { width: 40px; height: 40px; }
+/* Om: elementerne med billede */
+.om-elementer { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; text-align: left; }
+.om-elementer li { display: flex; align-items: center; gap: 12px; }
+.om-pic { flex: none; display: inline-flex; width: 48px; height: 48px; align-items: center; justify-content: center; }
+.om-pic .jv { width: 48px; height: 48px; }
+.om-pic .kort-ikon svg { width: 44px; height: 44px; --ico-line: var(--jv-opgave); }
+
 /* ---------- Game over ---------- */
 .go-layout { display: flex; flex-wrap: wrap; gap: calc(var(--gap) * 1.4); align-items: center; justify-content: center; }
 .go-result { display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; }
 .go-head { display: flex; flex-direction: column; align-items: center; gap: 14px; }
 .go-actions { display: flex; flex-direction: column; align-items: center; gap: var(--gap); }
+.go-stats { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.jv-lille .go-stats, .jv-tvaers .go-stats { flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: baseline; gap: 4px 16px; }
+.go-niveau { margin: 0; font-size: 1.5rem; font-weight: 800; color: var(--accent); }
 .go-reason, .go-plates { margin: 0; font-size: 1.3rem; color: var(--muted); }
 .go-score { display: flex; align-items: baseline; gap: 12px; }
 #go-score { font-size: clamp(3rem, 10vmin, 5rem); font-weight: 800; color: var(--ui-text); text-shadow: var(--jv-score-glow); }

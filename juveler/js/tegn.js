@@ -4,7 +4,10 @@
  * CSS-variabler i det aktive tema, og juveler og ikoner hentes ved navn fra
  * temaets grafik.js (window.JuvelerTema).
  *
- * Felterne (.cell) er knapper med én juvel (.jv[data-type=<navn>]).
+ * Felterne (.cell) er knapper med én juvel (.jv[data-type=<navn>]). Særlige brikker:
+ * stjernejuvel (data-type="stjerne"), sten (data-type="sten"). Mærker lægges oven på
+ * juvelen i samme .jv: lyn (.jv.lyn med #jv-mark-lyn) og is (.jv.frossen med #jv-mark-is).
+ * Felter med sten eller is får klasserne sten / frossen.
  * Klasser på felterne: valgt · maal (gyldigt byt med den valgte) · daempet
  * (kan ikke byttes med den valgte) · ugyldig (forsøgt byt uden tre på stribe) ·
  * tip (et muligt byt) · cur (tastaturets markør) · vaek (forsvinder).
@@ -16,7 +19,7 @@
   'use strict';
   var T = global.JuvelerTema;
   var SVGNS = 'http://www.w3.org/2000/svg';
-  var TYPES = global.JuvelerGame.TYPES;
+  var GAME = global.JuvelerGame, TYPES = GAME.TYPES;
 
   // Temaets grafik lægges ind som <symbol id="jv-juvel-<navn>"> og <symbol id="jv-ikon-<navn>">
   function installerGrafik(doc) {
@@ -31,25 +34,52 @@
     Object.keys(T.juveler).forEach(function (navn) {
       html += '<symbol id="jv-juvel-' + navn + '" viewBox="0 0 100 100">' + T.juveler[navn] + '</symbol>';
     });
+    Object.keys(T.maerker || {}).forEach(function (navn) {
+      html += '<symbol id="jv-mark-' + navn + '" viewBox="0 0 100 100">' + T.maerker[navn] + '</symbol>';
+    });
     Object.keys(T.ikoner).forEach(function (navn) {
       html += '<symbol id="jv-ikon-' + navn + '" viewBox="0 0 100 100">' + T.ikoner[navn] + '</symbol>';
     });
     svg.innerHTML = '<defs>' + html + '</defs>';
     doc.body.insertBefore(svg, doc.body.firstChild);
   }
-  function juvelSvg(type) {
-    var navn = TYPES[type];
-    return '<svg viewBox="0 0 100 100" aria-hidden="true"><use href="#jv-juvel-' + navn + '"/></svg>';
+  // Navnet på brikken i et felt (en juveltype, 'stjerne', 'sten' eller '' for tomt)
+  function brikNavn(t) { return t >= 0 ? TYPES[t] : t === GAME.STJERNE ? 'stjerne' : t === GAME.STEN ? 'sten' : ''; }
+  // Hele tegningen af en brik: juvel/stjerne/sten + evt. lyn- og is-mærke
+  function juvelSvg(type, fx) {
+    var navn = brikNavn(type);
+    if (!navn) return '';
+    var h = '<svg viewBox="0 0 100 100" aria-hidden="true"><use href="#jv-juvel-' + navn + '"/></svg>';
+    if (fx & GAME.LYN) h += '<svg class="mark-lyn" viewBox="0 0 100 100" aria-hidden="true"><use href="#jv-mark-lyn"/></svg>';
+    if (fx & GAME.IS) h += '<svg class="mark-is" viewBox="0 0 100 100" aria-hidden="true"><use href="#jv-mark-is"/></svg>';
+    return h;
+  }
+  // En lille brik til tekster, kort og status: <span class="jv ..." data-type=...>
+  function brikHtml(type, fx, cls) {
+    var navn = brikNavn(type);
+    return '<span class="jv' + (cls ? ' ' + cls : '') + (fx & GAME.LYN ? ' lyn' : '') + (fx & GAME.IS ? ' frossen' : '') + '" data-type="' + navn + '">' + juvelSvg(type, fx) + '</span>';
   }
   function cssNum(name, fallback) {
     var v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name));
     return isNaN(v) ? fallback : v;
   }
   // Danske navne til skærmlæser og beskeder
-  var NAVNE = { rubin: 'rubin', safir: 'safir', smaragd: 'smaragd', topas: 'topas', ametyst: 'ametyst', opal: 'opal' };
-  var FORMER = { rubin: 'rombe', safir: 'cirkel', smaragd: 'ottekant', topas: 'trekant', ametyst: 'sekskant', opal: 'stjerne' };
+  var NAVNE = { rubin: 'rubin', safir: 'safir', smaragd: 'smaragd', topas: 'topas', ametyst: 'ametyst', opal: 'opal', rav: 'rav' };
+  var FLERTAL = { rubin: 'rubiner', safir: 'safirer', smaragd: 'smaragder', topas: 'topaser', ametyst: 'ametyster', opal: 'opaler', rav: 'rav' };
+  var FORMER = { rubin: 'rombe', safir: 'cirkel', smaragd: 'ottekant', topas: 'trekant', ametyst: 'sekskant', opal: 'stjerne', rav: 'dråbe' };
   function typeNavn(t) { return NAVNE[TYPES[t]] || ''; }
+  function typeFlertal(t) { return FLERTAL[TYPES[t]] || ''; }
   function typeForm(t) { return FORMER[TYPES[t]] || ''; }
+  // Skærmlæserens navn på et felt
+  function feltNavn(t, fx) {
+    if (t === GAME.STEN) return 'sten';
+    if (t === GAME.STJERNE) return 'stjernejuvel';
+    if (t < 0) return 'tomt';
+    var s = typeNavn(t) + ' (' + typeForm(t) + ')';
+    if (fx & GAME.LYN) s = 'lyn-' + s;
+    if (fx & GAME.IS) s = 'frossen ' + s;
+    return s;
+  }
 
   function create(boardEl) {
     var cells = [], jewels = [], n = 0, shown = [];
@@ -75,15 +105,21 @@
         cells.push(b); jewels.push(j); shown.push(null);
       }
     }
-    function setJewel(i, t) {
-      if (shown[i] === t) return;
-      shown[i] = t;
-      var j = jewels[i];
-      if (t < 0) { j.innerHTML = ''; j.removeAttribute('data-type'); return; }
-      j.dataset.type = TYPES[t];
-      j.innerHTML = juvelSvg(t);
+    function setJewel(i, t, f) {
+      f = f || 0;
+      var key = t + ':' + f;
+      if (shown[i] === key) return;
+      shown[i] = key;
+      var j = jewels[i], navn = brikNavn(t);
+      j.classList.toggle('lyn', !!(f & GAME.LYN));
+      j.classList.toggle('frossen', !!(f & GAME.IS));
+      cells[i].classList.toggle('frossen', !!(f & GAME.IS));
+      cells[i].classList.toggle('sten', t === GAME.STEN);
+      if (!navn) { j.innerHTML = ''; j.removeAttribute('data-type'); return; }
+      j.dataset.type = navn;
+      j.innerHTML = juvelSvg(t, f);
     }
-    // view: { selected, targets: [], dim: bool, invalid: [a, b] | null, tip: [a, b] | null, cursor, gone: [], busy }
+    // view: { selected, targets: [], dim: bool, invalid: [a, b] | null, tip: [a, b] | null, cursor, gone: [], busy, fx: [] }
     function draw(grid, view) {
       view = view || {};
       var targets = view.targets || [], gone = view.gone || [], invalid = view.invalid || [], tip = view.tip || [];
@@ -91,7 +127,7 @@
       boardEl.classList.toggle('har-valg', sel >= 0);
       boardEl.classList.toggle('travl', !!view.busy);
       for (var i = 0; i < cells.length; i++) {
-        setJewel(i, grid[i]);
+        setJewel(i, grid[i], view.fx ? view.fx[i] : 0);
         var cl = cells[i].classList, isT = targets.indexOf(i) >= 0;
         cl.toggle('valgt', i === sel);
         cl.toggle('maal', isT);
@@ -101,7 +137,7 @@
         cl.toggle('cur', i === view.cursor);
         cl.toggle('vaek', gone.indexOf(i) >= 0);
         var x = i % n, y = Math.floor(i / n);
-        var st = grid[i] >= 0 ? typeNavn(grid[i]) + ' (' + typeForm(grid[i]) + ')' : 'tomt';
+        var st = feltNavn(grid[i], view.fx ? view.fx[i] : 0);
         if (i === sel) st += ', valgt';
         else if (isT) st += ', kan byttes';
         var label = 'Række ' + (y + 1) + ', kolonne ' + (x + 1) + ': ' + st;
@@ -149,5 +185,8 @@
   }
   function ikon(navn) { return '<svg viewBox="0 0 100 100" aria-hidden="true"><use href="#jv-ikon-' + navn + '"/></svg>'; }
 
-  global.JuvelerTegn = { create: create, installerGrafik: installerGrafik, juvelSvg: juvelSvg, ikon: ikon, cssNum: cssNum, typeNavn: typeNavn, typeForm: typeForm };
+  global.JuvelerTegn = {
+    create: create, installerGrafik: installerGrafik, juvelSvg: juvelSvg, brikHtml: brikHtml, brikNavn: brikNavn, ikon: ikon, cssNum: cssNum,
+    typeNavn: typeNavn, typeFlertal: typeFlertal, typeForm: typeForm, feltNavn: feltNavn
+  };
 })(typeof window !== 'undefined' ? window : globalThis);

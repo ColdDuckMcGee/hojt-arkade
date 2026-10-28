@@ -30,7 +30,7 @@
       <img class="arkade-logo" src="../arkade/logo.svg" alt="Hojt Arkade">
       <h1 id="titel" class="neon-title">JUVELER</h1>
     </div>
-    <p class="lead opt">Byt om på to juveler, der ligger ved siden af hinanden, så der kommer tre eller flere ens på stribe. De forsvinder, og nye falder ned. Hvert byt koster et træk, og store kombinationer giver træk tilbage. Der er ingen tid.</p>
+    <p class="lead opt">Byt om på to juveler, der ligger ved siden af hinanden, så der kommer tre eller flere ens på stribe. Hvert byt koster et træk, og store kombinationer giver træk tilbage. Nå pointmålet for at komme til næste niveau med nye juveler og forhindringer. Der er ingen tid.</p>
   </header>
   <section class="menu-group" aria-labelledby="mode-label">
     <h2 id="mode-label" class="group-label">Bræt</h2>
@@ -58,7 +58,16 @@
   <section class="panel om-panel">
     <h2 id="om-title" class="neon-sub">Om Hojt Arkade</h2>
     <p data-trin>Hojt Arkade er udviklet af Jon Leismann Engsager, Hojt Design. Jon er IT- og IKT-konsulent i det specialiserede område og laver blandt andet gratis spil til voksne, der bruger øjenstyring.</p>
-    <p data-trin>Juveler: vælg en juvel, og vælg så en af dens naboer for at bytte dem. Naboer, der giver tre på stribe, lyser op. Et byt koster et træk. Fire på stribe giver et træk tilbage, fem eller et L eller T giver to, og en kæde på tre led eller mere giver et ekstra træk for hvert led. Vis et tip koster 20 point. Spillet slutter, når trækkene er brugt, eller når der ikke er flere mulige byt på brættet.</p>
+    <p data-trin>Juveler: vælg en juvel, og vælg så en af dens naboer for at bytte dem. Naboer, der giver tre på stribe, lyser op. Et byt koster et træk. Fire på stribe giver et træk tilbage, fem eller et L eller T giver to, og en kæde på tre led eller mere giver et ekstra træk for hvert led (højst to træk pr. byt). Vis et tip koster 20 point. Spillet slutter, når trækkene er brugt, eller når der ikke er flere mulige byt på brættet.</p>
+    <p data-trin>Niveauer: når du når pointmålet, kommer du til næste niveau og får 5 træk mere. Målet stiger for hvert niveau. Nye ting forklares på et kort, når de kommer med.</p>
+    <ul class="om-elementer">
+      <li data-trin><span class="om-pic" data-om="lyn"></span><span><b>Niveau 2 – lynjuvel:</b> fire på stribe giver en lynjuvel. Er den med i en stribe, fjerner den hele rækken (vandret) eller kolonnen (lodret).</span></li>
+      <li data-trin><span class="om-pic" data-om="stjerne"></span><span><b>Niveau 3 – stjernejuvel:</b> fem på stribe, L eller T giver en farveløs stjerne. Byt den med en nabo, så forsvinder alle juveler af naboens slags.</span></li>
+      <li data-trin><span class="om-pic" data-om="is"></span><span><b>Niveau 4 – is:</b> frosne juveler kan ikke byttes, men kan være med i en stribe. En stribe ved siden af eller med den frosne bryder isen.</span></li>
+      <li data-trin><span class="om-pic" data-om="sten"></span><span><b>Niveau 5 – sten:</b> faste blokke, der falder ned med juvelerne. En stribe ved siden af eller et lyn knuser stenen: +1 træk.</span></li>
+      <li data-trin><span class="om-pic" data-om="opgave"></span><span><b>Niveau 6 – opgaver:</b> fx fjern 8 safirer inden for 5 træk. Klaret giver +3 træk. Ingen straf, hvis den ikke klares.</span></li>
+      <li data-trin><span class="om-pic" data-om="rav"></span><span><b>Niveau 7 og op:</b> mere is og sten, sværere opgaver, og nye juveler kan falde ned frosne. Fra niveau 8 er rav (orange dråbe) med som syvende juvel.</span></li>
+    </ul>
     <p data-trin>Koden er åben og frit tilgængelig under MIT-licensen, så alle kan bruge den og bygge videre på den.</p>
   </section>
   <div class="row" data-trin>
@@ -78,8 +87,9 @@
       <img class="arkade-logo side-logo" src="../arkade/logo.svg" alt="Hojt Arkade">
       <div class="hud-grid" aria-live="polite">
         <div class="hud hud-traek"><div class="hud-label">Træk</div><div class="hud-value" id="hud-moves">25</div></div>
-        <div class="hud"><div class="hud-label">Point</div><div class="hud-value" id="hud-score">0</div></div>
-        <div class="hud"><div class="hud-label">Kæde</div><div class="hud-value" id="hud-chain">0</div><div class="hud-sub">bedste</div></div>
+        <div class="hud hud-point"><div class="hud-label">Point</div><div class="hud-value" id="hud-score">0</div><div class="hud-sub" id="hud-goal">mål 500</div></div>
+        <div class="hud hud-niveau"><div class="hud-label">Niveau</div><div class="hud-value" id="hud-level">1</div></div>
+        <div class="hud hud-opgave" role="group"><div class="hud-label">Opgave</div><div class="hud-value" id="hud-task">–</div><div class="hud-sub" id="hud-task-sub">fra niveau 6</div></div>
       </div>
       <p class="points-note" id="points-note">4 på stribe: +1 træk<br>5, L eller T: +2 træk<br>Kæde på 3+: +1 pr. led</p>
       <button class="btn pause-btn" id="btn-pause" aria-label="Pause">
@@ -121,6 +131,20 @@
   </div>
 
 
+  <!-- Nyt niveau: et roligt kort med billede og forklaring. Lukkes kun med den store knap
+       (eller Enter/Esc). Ingen tidsgrænse, og knappen kan ikke dwelles, før blikket har forladt den. -->
+  <div class="overlay" id="niveau-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="niveau-title" aria-describedby="niveau-text">
+    <div class="panel niveau-kort">
+      <h2 id="niveau-title" class="neon-sub">Niveau 2</h2>
+      <div class="niveau-pic" id="niveau-pic" aria-hidden="true"></div>
+      <p class="niveau-text" id="niveau-text"></p>
+      <p class="muted niveau-more" id="niveau-more"></p>
+      <div class="row">
+        <button class="btn primary wide" id="btn-niveau-ok" data-autofocus><span class="icon" aria-hidden="true">▶</span><span class="big">Videre</span></button>
+      </div>
+    </div>
+  </div>
+
   <!-- Bekræft Afslut: to store knapper med god afstand. "Nej" står først og har fokus. -->
   <div class="overlay" id="confirm-overlay" hidden role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-text">
     <div class="panel">
@@ -143,7 +167,7 @@
         <div class="go-pic" id="go-pic" aria-hidden="true"></div>
         <p class="go-reason" id="go-reason">Trækkene er brugt.</p>
         <div class="go-score"><span id="go-score">0</span><span class="go-unit">point</span></div>
-        <p class="go-plates" id="go-levels">0 byt</p>
+        <div class="go-stats"><p class="go-niveau" id="go-level">Niveau 1</p><p class="go-plates" id="go-levels">0 byt</p></div>
         <p class="go-rank" id="go-rank"></p>
       </div>
       <div class="go-actions">

@@ -20,6 +20,7 @@
   --jv-topas: #ffd23a;
   --jv-ametyst: #b65cff;
   --jv-opal: #e8f4ff;
+  --jv-rav: #ff8a1f;                       /* syvende type (dråbe), fra niveau 8 */
   --jv-kant: rgba(255, 255, 255, 0.85);    /* juvelernes kontur */
   --jv-lys-farve: #ffffff;
   --jv-skygge-farve: #000000;
@@ -28,8 +29,42 @@
   --jv-glans-farve: #ffffff;
 }
 [data-theme="kontrast"] {
-  --jv-rubin: #ff2a2a; --jv-safir: #3f9bff; --jv-smaragd: #00ff44; --jv-topas: #ffff00; --jv-ametyst: #d070ff; --jv-opal: #ffffff;
+  --jv-rubin: #ff2a2a; --jv-safir: #3f9bff; --jv-smaragd: #00ff44; --jv-topas: #ffff00; --jv-ametyst: #d070ff; --jv-opal: #ffffff; --jv-rav: #ff9900;
   --jv-kant: #ffffff; --jv-lys-styrke: 0.2; --jv-skygge-styrke: 0.35;
+}
+
+/* ---------- Særlige brikker og mærker (niveau 2–5) ---------- */
+:root, [data-theme] {
+  /* Stjernejuvel: farveløs stjerne, takkerne i fire farver og en hvid kerne */
+  --jv-stjerne-1: #ff3fd8;
+  --jv-stjerne-2: #22eaff;
+  --jv-stjerne-3: #ffd23a;
+  --jv-stjerne-4: #39ff6a;
+  --jv-stjerne-kerne: #ffffff;
+  /* Sten: grå blok med revner */
+  --jv-sten: #5d5a6e;
+  --jv-sten-lys: rgba(255, 255, 255, 0.16);
+  --jv-sten-revne: #24212f;
+  --jv-sten-kant: #a8a4bd;
+  /* Lyn-mærket på en lynjuvel */
+  --jv-lyn: #ffffff;
+  --jv-lyn-kant: #120820;
+  /* Is: lys blå flade med frost-striber */
+  --jv-is: rgba(190, 235, 255, 0.42);
+  --jv-is-streg: rgba(255, 255, 255, 0.85);
+  --jv-is-kant: #dff6ff;
+  /* Opgaven i status */
+  --jv-opgave: #ffd23a;
+  /* Niveau-kortet */
+  --jv-kort-bg: rgba(14, 6, 28, 0.96);
+  --jv-kort-kant: var(--jv-frame);
+}
+[data-theme="kontrast"] {
+  --jv-stjerne-1: #ff00ff; --jv-stjerne-2: #00ffff; --jv-stjerne-3: #ffff00; --jv-stjerne-4: #00ff00;
+  --jv-sten: #808080; --jv-sten-lys: rgba(255, 255, 255, 0.25); --jv-sten-revne: #000000; --jv-sten-kant: #ffffff;
+  --jv-lyn: #ffffff; --jv-lyn-kant: #000000;
+  --jv-is: rgba(200, 240, 255, 0.5); --jv-is-streg: #ffffff; --jv-is-kant: #ffffff;
+  --jv-opgave: #ffff00; --jv-kort-bg: #000000;
 }
 
 /* ---------- Brættet og markeringer ---------- */
@@ -76,6 +111,10 @@
   --jv-grid-w: 1px;
   --jv-swatch-w: 2px;
   --jv-kant-w: 3.5;         /* juvelernes kontur (i 100 × 100) */
+  --jv-lyn-kant-w: 9;       /* lynets mørke kant (i 100 × 100) */
+  --jv-is-streg-w: 5;
+  --jv-sten-revne-w: 4;
+  --jv-lyn-str: 62%;        /* lynets størrelse på juvelen */
   --jv-mark-w: 5px;         /* ringen om valgt juvel og mål */
   --jv-cursor-w: 4px;
   --jv-ugyldig-dash: 10px;  /* stiplet ramme ved ugyldigt byt (form, ikke kun farve) */

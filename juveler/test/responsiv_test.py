@@ -6,7 +6,10 @@
 # Desuden spillet i browseren: vælg en juvel (gyldige naboer lyser op), fortryd valg,
 # ugyldigt byt (forklares roligt, intet blink, koster intet træk), gyldigt byt med fald,
 # tip, tastatur, glød fra, temaskift (alle fire farvetemaer), pause, bekræftelsen ved
-# Afslut, game over når trækkene er brugt, rekorder og dwell (ét dwell = én handling).
+# Afslut, game over når trækkene er brugt, rekorder (med niveau) og dwell (ét dwell = én handling).
+# Niveauer: introkortene for hvert nyt element (lyn, stjerne, is, sten, opgave, rav) ved alle
+# opløsninger, niveauskift med kø af kort, et bræt med alle elementer, sten/is kan ikke vælges,
+# stjernebyt, opgaven i HUD og dwell på Videre.
 #
 # Kræver Python med Playwright og Chrome/Chromium:
 #   python3 juveler/test/responsiv_test.py
@@ -22,6 +25,7 @@ CHROME = os.environ.get('CHROME', '/usr/bin/google-chrome')
 SIZES = [(1920,1080),(1366,768),(1280,720),(1024,768),(1024,1366),(1366,1024),(390,844),(844,390)]
 MOBIL = [(390,844),(844,390)]   # her kan 6 × 6 ikke nå 80 px felter (kendt begrænsning)
 MIN_BTN = 80
+SHOT_INTRO = True   # introkortene gemmes ved alle opløsninger
 errs=[]; fails=[]; summary={}
 CHECK = """(sel) => {
   const se = document.scrollingElement, W = se.clientWidth, H = se.clientHeight;
@@ -175,6 +179,80 @@ def gameplay(pg, w, h, tag):
     if st(pg, "Juveler.run.state.over"):
         pg.wait_for_timeout(2500); pg.evaluate("Juveler.start()"); pg.wait_for_timeout(150)
 
+ELEM_BOARD = ['b2#340', '2A4053', '4*5#21', '3C1250', '051*42', '1E6025']   # lyn, is, sten, stjerner og rav
+INTROS = [('lyn', 2), ('stjerne', 3), ('is', 4), ('sten', 5), ('opgave', 6), ('rav', 8)]
+def elements_check(pg, w, h, tag, main):
+    """Niveauer og nye elementer: introkort, elementerne på brættet, niveau i HUD og opgaven."""
+    pg.evaluate("Juveler.gameSettings.set('mode', '6x6'); Juveler.start()"); pg.wait_for_timeout(150)
+    # Introkortene: rolige, med billede, én stor knap – ingen rulning ved nogen opløsning
+    for el, lv in INTROS:
+        pg.evaluate("a => Juveler.showIntro(a[0], a[1])", [el, lv]); pg.wait_for_timeout(80)
+        r = st(pg, "[Juveler.introOpen, document.getElementById('niveau-title').textContent, document.querySelectorAll('#niveau-pic svg').length, document.getElementById('niveau-overlay').getAnimations({subtree: true}).length]")
+        if not r[0] or ('Niveau %d' % lv) not in r[1] or r[2] < 1: fails.append('%s introkort %s gav %s' % (tag, el, r[:3]))
+        if r[3]: fails.append('%s introkort %s blinker/animerer' % (tag, el))
+        check(pg, 'introkort ' + el, '#niveau-overlay', w, h, (SHOT_INTRO or main) and '%s-intro-%s.png' % (tag, el))
+        if main: shot(pg, 'intro-%s.png' % el)
+        pg.keyboard.press('Escape'); pg.wait_for_timeout(60)
+        if st(pg, "Juveler.introOpen"): fails.append('%s Esc lukkede ikke introkortet %s' % (tag, el))
+    # Rigtigt niveauskift: kort for hvert nyt element i kø, Videre lukker, niveauet vises i HUD
+    pg.evaluate("Juveler.levelUp(3)"); pg.wait_for_timeout(100)
+    t1 = st(pg, "document.getElementById('niveau-title').textContent")
+    pg.click('#btn-niveau-ok'); pg.wait_for_timeout(80)
+    t2 = st(pg, "[Juveler.introOpen, document.getElementById('niveau-title').textContent]")
+    pg.click('#btn-niveau-ok'); pg.wait_for_timeout(80)
+    hud = st(pg, "[Juveler.introOpen, document.getElementById('hud-level').textContent, Juveler.run.state.level, JuvelerGame.hasMove(Juveler.run.state.grid, Juveler.run.n, Juveler.run.state.fx)]")
+    if 'Lynjuvel' not in t1 or not t2[0] or 'Stjernejuvel' not in t2[1] or hud[0] or hud[1] != '3' or hud[2] != 3 or not hud[3]:
+        fails.append('%s niveauskift gav %s %s %s' % (tag, t1, t2, hud))
+    # Pause kan ikke åbnes oven på et introkort
+    pg.evaluate("Juveler.levelUp(4)"); pg.wait_for_timeout(80)
+    pg.evaluate("Juveler.setPaused(true)"); pg.wait_for_timeout(40)
+    if not st(pg, "document.getElementById('pause-overlay').hidden"): fails.append(tag + ' pause åbnede oven på introkortet')
+    pg.keyboard.press('Enter'); pg.wait_for_timeout(80)
+    if st(pg, "Juveler.introOpen"): fails.append(tag + ' Enter lukkede ikke introkortet')
+    # Alle elementer på ét bræt (niveau 8, rav med)
+    pg.evaluate("r => Juveler.load(r, 20, 3000, 8)", ELEM_BOARD); pg.wait_for_timeout(100)
+    r = st(pg, """() => { const b = document.getElementById('board');
+        return [b.querySelectorAll('.cell.sten').length, b.querySelectorAll('.cell.frossen').length, b.querySelectorAll('.jv.lyn').length,
+                b.querySelectorAll('.jv[data-type=stjerne], .jv-stjerne, [data-type="-2"]').length, b.querySelectorAll('.jv[data-type=rav]').length,
+                document.getElementById('hud-level').textContent]; }""")
+    if r[0] != 2 or r[1] != 3 or r[2] != 1 or r[4] != 1 or r[5] != '8': fails.append('%s elementbræt gav %s' % (tag, r))
+    check(pg, 'elementer på brættet', '#game', w, h, '%s-elementer.png' % tag)
+    if main: shot(pg, 'elementer.png')
+    # Sten og is kan ikke vælges – det forklares roligt
+    click_cell(pg, 2); pg.wait_for_timeout(40)
+    n1 = st(pg, "[Juveler.selected, document.getElementById('hint').textContent]")
+    click_cell(pg, 7); pg.wait_for_timeout(40)
+    n2 = st(pg, "[Juveler.selected, document.getElementById('hint').textContent]")
+    if n1[0] != -1 or 'sten' not in n1[1].lower() or n2[0] != -1 or 'is' not in n2[1].lower(): fails.append('%s sten/is valg gav %s %s' % (tag, n1, n2))
+    # Stjernejuvelen: alle frie naboer er mulige mål
+    click_cell(pg, 13); pg.wait_for_timeout(40)
+    tg = sorted(st(pg, "Juveler.targets"))
+    if tg != [12, 14]: fails.append('%s stjernens mål %s' % (tag, tg))
+    if main: shot(pg, 'stjerne-valgt.png')
+    pg.keyboard.press('Escape'); pg.wait_for_timeout(40)
+    # Byt stjernen: alle juveler af naboens slags forsvinder
+    before = st(pg, "Juveler.run.state.grid.filter(v => v === 4).length")
+    pg.evaluate("Juveler.act(13); Juveler.act(12)"); wait_idle(pg)
+    after = st(pg, "[Juveler.run.state.swaps, Juveler.run.state.grid.filter(v => v === 4).length]")
+    if after[0] != 1 or before < 3: fails.append('%s stjernebyt gav %s (før %s)' % (tag, after, before))
+    # Opgaven vises i HUD fra niveau 6
+    pg.evaluate("Juveler.start(); Juveler.levelUp(6)"); pg.wait_for_timeout(100)
+    while st(pg, "Juveler.introOpen"): pg.evaluate("Juveler.closeIntro()"); pg.wait_for_timeout(40)
+    t = st(pg, "[document.getElementById('hud-task').closest('.hud-opgave').classList.contains('aktiv'), document.getElementById('hud-task').closest('.hud-opgave').getAttribute('aria-label') || '']")
+    if not t[0] or 'opgave' not in t[1].lower(): fails.append('%s opgaven vises ikke i HUD: %s' % (tag, t))
+    check(pg, 'spil med opgave', '#game', w, h, '%s-opgave.png' % tag)
+    if main: shot(pg, 'opgave-hud.png')
+    # Introkortet lukkes også med dwell
+    if main or (w, h) == (390, 844):
+        pg.evaluate("Juveler.settings.set('dwellTime', 0.5); Juveler.showIntro('lyn', 2)"); pg.wait_for_timeout(80)
+        bb = pg.locator('#btn-niveau-ok').bounding_box(); pg.mouse.move(1, 1)
+        pg.evaluate("Juveler.settings.set('dwell', true)")
+        pg.mouse.move(bb['x'] + bb['width'] / 2, bb['y'] + bb['height'] / 2, steps=3)
+        try: pg.wait_for_function("!Juveler.introOpen", timeout=3000)
+        except Exception: fails.append(tag + ' dwell lukkede ikke introkortet')
+        pg.evaluate("Juveler.settings.set('dwell', false)"); pg.mouse.move(1, 1)
+    print('OK   %dx%d niveauer og elementer' % (w, h) if not [f for f in fails if f.startswith(tag + ' ') and ('intro' in f or 'element' in f or 'stjern' in f or 'niveau' in f or 'opgave' in f)] else 'FEJL %dx%d niveauer og elementer' % (w, h))
+
 def dwell_check(pg, w, h, tag):
     """Ét dwell = én handling: valget bliver stående, selv om blikket bliver."""
     pg.evaluate("Juveler.start(); Juveler.settings.set('dwellTime', 0.5)"); pg.wait_for_timeout(150)
@@ -237,7 +315,7 @@ with sync_playwright() as p:
             const sh = e => e ? getComputedStyle(e).boxShadow : 'none', filt = e => e ? getComputedStyle(e.querySelector('svg') || e).filter : 'none';
             return [document.documentElement.dataset.jvGloed, getComputedStyle(document.querySelector('#board')).boxShadow, filt(t), !!t, !!v,
                     t ? getComputedStyle(t).outlineStyle + '/' + getComputedStyle(t).borderStyle : '']; }""")
-        if g[0] != 'fra' or g[1] != 'none' or g[2] not in ('none', '') or not g[3] or not g[4]: fails.append('%s glød fra gav %s' % (tag, g))
+        if g[0] != 'fra' or g[1] != 'none' or g[2] not in ('none', '') or not g[3] or not g[4]: fails.append('%s glød fra gav %s %s' % (tag, g, st(pg, "[Juveler.introOpen, Juveler.run.state.over, Juveler.run.state.level, Juveler.selected, Juveler.busy]")))
         check(pg,'spil uden glød','#game',w,h, (main or (w,h) == (390,844)) and tag + '-uden-gloed.png')
         if main: shot(pg, 'uden-gloed.png')
         pg.evaluate("Juveler.gameSettings.set('gloed', true)"); pg.wait_for_timeout(40)
@@ -260,7 +338,8 @@ with sync_playwright() as p:
         # Game over: sidste træk bruges
         # (giver det sidste træk et ekstra træk, prøves igen med ét træk tilbage)
         for _ in range(10):
-            pg.evaluate("() => { const r = Juveler.run; r._load(r.state.grid, 1); Juveler.refresh(); }")
+            while st(pg, "Juveler.introOpen"): pg.evaluate("Juveler.closeIntro()")   # et niveauskift undervejs
+            pg.evaluate("() => { const r = Juveler.run; r._load(r.state.grid, 1, undefined, r.state.fx); Juveler.refresh(); }")
             m = st(pg, "Juveler.run.hint()")
             pg.evaluate("m => { Juveler.act(m[0]); Juveler.act(m[1]); }", m)
             wait_idle(pg)
@@ -270,7 +349,8 @@ with sync_playwright() as p:
             except Exception: fails.append(tag + ' game over blev ikke vist')
             pts = st(pg, "Juveler.run.state.score")
             mode = st(pg, "Juveler.run.state.size")
-            if not st(pg, "Juveler.records.list('%s').some(e => e.score === %d)" % (mode, pts)): fails.append(tag + ' rekorden blev ikke gemt')
+            if not st(pg, "Juveler.records.list('%s').some(e => e.score === %d && e.niveau >= 1)" % (mode, pts)): fails.append(tag + ' rekorden blev ikke gemt (med niveau)')
+            if 'niv. ' not in st(pg, "document.getElementById('gameover').textContent") or not st(pg, "document.getElementById('go-level').textContent").startswith('Niveau '): fails.append(tag + ' game over/rekorder viser ikke niveau')
             split = st(pg, "!document.getElementById('btn-go-rec').hidden")
             check(pg,'game over' + (' (resultat)' if split else ''),'#gameover',w,h, tag + '-gameover.png')
             if main: shot(pg, 'game-over.png')
@@ -290,6 +370,7 @@ with sync_playwright() as p:
         if 'Ingen flere mulige byt' not in st(pg, "document.getElementById('go-reason').textContent"): fails.append(tag + ' ingen-byt forklares ikke')
         check(pg, 'game over (ingen byt)', '#gameover', w, h, tag + '-gameover-ingen-byt.png')
         if main: shot(pg, 'game-over-ingen-byt.png')
+        elements_check(pg, w, h, tag, main)
         dwell_check(pg, w, h, tag)
         # Hallen med Juveler aktiv
         if main:
