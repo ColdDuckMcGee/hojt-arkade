@@ -13,6 +13,7 @@ Fra et spil i sin egen mappe (fx `slangen/index.html`):
 <script src="../arkade/highscores.js"></script>
 <script src="../arkade/highscore.js"></script>
 <script src="../arkade/dwell.js"></script>
+<script src="../arkade/taster.js"></script>
 <script src="../arkade/audio.js"></script>
 <script src="../arkade/background.js"></script>
 ```
@@ -56,6 +57,15 @@ OK og Spring over. Sidste navn foreslås. Derefter top 10 med fanerne **Verden**
   `localStorage['hojtArkade.hsTest'] = '1'`.
 - Mens dialogen er åben, er resten af siden `inert`, og tastetryk når ikke spillet.
 - Server: se `api/README.md`. Statistiksiden ligger på `/statistik/` (kræver nøglen).
+
+## Taster (taster.js) – kontakter og Smartbox Grid 3
+Ingen API; indlæses bare. Piletasterne flytter fokus mellem knapperne i menuer, dialoger
+og bokse (nærmeste knap i retningen, ellers næste/forrige rundt). Under spillet (`#game`
+uden åben boks) styrer spillet selv piletasterne, og i hallen skifter venstre/højre
+spil (op/ned flytter fokus); sæt
+`data-arkade-pilefokus` på skærmen, hvis piletasterne også dér skal flytte fokus.
+Enter aktiverer altid knappen med synligt fokus (`:focus-visible`), også i spil hvor
+Enter ellers er en spilhandling. Mellemrum er uændret.
 
 ## ArkadeDwell (dwell.js)
 ```js
