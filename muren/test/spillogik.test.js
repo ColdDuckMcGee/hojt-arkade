@@ -5,6 +5,8 @@
 'use strict';
 var assert = require('assert');
 var path = require('path');
+var fs = require('fs');
+var vm = require('vm');
 var L = require(path.join(__dirname, '..', 'js', 'logik.js'));
 
 var n = 0, failed = 0;
@@ -125,21 +127,21 @@ test('træf tæller stenens tal ét ned og giver 1 point', function () {
   assert.strictEqual(s.score, L.RULES.hitPoints);
   assert.strictEqual(s.lastVolley.hits, 1);
 });
-test('ved 0 forsvinder stenen og giver bonus', function () {
+test('ved 0 forsvinder stenen og giver bonus (10 + tallet 1)', function () {
   var run = board({ bricks: [{ c: 3, r: 4, n: 1 }] });
   run.fire(); run.finish();
   var s = run.state;
   assert.strictEqual(mine(s.bricks).length, 0, 'stenen er der stadig');
   assert.strictEqual(s.broken, 1);
-  assert.strictEqual(s.score, L.RULES.hitPoints + L.RULES.breakBonus);
+  assert.strictEqual(s.score, L.RULES.hitPoints + L.RULES.breakBonus + 1);
 });
-test('en salve med 3 kugler knuser en 3-sten: 3 træf + bonus', function () {
+test('en salve med 3 kugler knuser en 3-sten: 3 træf + bonus 10 + 3', function () {
   var run = board({ bricks: [{ c: 3, r: 4, n: 3 }], balls: 3 });
   run.fire(); run.finish();
   var s = run.state;
   assert.strictEqual(s.lastVolley.hits, 3);
   assert.strictEqual(s.lastVolley.broken, 1);
-  assert.strictEqual(s.score, 3 * L.RULES.hitPoints + L.RULES.breakBonus);
+  assert.strictEqual(s.score, 3 * L.RULES.hitPoints + L.RULES.breakBonus + 3);
 });
 test('kuglerne sendes af sted én ad gangen med fast afstand', function () {
   var run = board({ balls: 4 }), s = run.state;
@@ -162,6 +164,60 @@ test('en ring, der glider ud under bundlinjen, samles automatisk op', function (
   assert.strictEqual(mine(s.rings).length, 0, 'ringen er der stadig');
   assert.strictEqual(s.balls, 2);
   assert.strictEqual(s.lastVolley.autoRings, 1);
+});
+
+// ---------- Smagsvalg: bonus, ringe ved bundlinjen og standardfart ----------
+test('bonus for en knust sten = 10 + stenens OPRINDELIGE tal; træf giver stadig 1 point', function () {
+  // En 4-sten: to kugler i tur 1 (tallet bliver 2), to mere i tur 2 knuser den
+  var run = board({ bricks: [{ c: 3, r: 4, n: 4 }], balls: 2 }), s = run.state;
+  run.fire(); run.finish();
+  assert.strictEqual(mine(s.bricks)[0].n, 2);
+  assert.strictEqual(mine(s.bricks)[0].n0, 4, 'det oprindelige tal skal huskes');
+  assert.strictEqual(s.score, 2, 'to træf = 2 point');
+  s.balls = 2; run.fire(); run.finish();
+  assert.strictEqual(mine(s.bricks).length, 0, 'stenen er ikke knust');
+  assert.strictEqual(s.lastVolley.points, 2 * L.RULES.hitPoints + 10 + 4, 'bonus skal regnes af 4, ikke af 2');
+  assert.strictEqual(s.score, 4 + 10 + 4);
+  assert.strictEqual(L.breakPoints({ n: 0, n0: 12 }), 22);
+});
+test('nye sten gemmer deres oprindelige tal (n0 = n), også de dobbelte', function () {
+  var run = L.createRun({ seed: 7 }), s = run.state;
+  for (var t = 0; t < 6 && !s.over; t++) { run.setAim(t % 2 ? 30 : -30); run.fire(); run.finish(); }
+  assert.ok(!s.over && s.turn >= 5, 'tur ' + s.turn);
+  var nye = s.bricks.filter(function (b) { return b.r === 0; });
+  assert.ok(nye.length > 0);
+  nye.forEach(function (b) { assert.strictEqual(b.n0, b.n); });
+  s.bricks.forEach(function (b) { assert.ok(b.n0 >= b.n && b.n0 > 0, 'n0 ' + b.n0 + ' n ' + b.n); });
+});
+test('ringe, der glider ud under bundlinjen, samles op og tæller med i næste salve', function () {
+  // To ringe i bundrækken (glider ud ved turens slutning) + én, kuglen flyver igennem
+  var run = board({ rings: [{ c: 0, r: L.ROWS - 1 }, { c: 6, r: L.ROWS - 1 }, { c: 3, r: 5 }] }), s = run.state;
+  run.setAim(0); run.fire(); run.finish();
+  assert.strictEqual(mine(s.rings).length, 0, 'en ring er der stadig');
+  assert.strictEqual(s.lastVolley.autoRings, 2);
+  assert.strictEqual(s.lastVolley.gained, 3);
+  assert.strictEqual(s.balls, 4, '1 + 3 kugler');
+  run.fire();
+  assert.strictEqual(s.volley.balls.length, 4, 'næste salve skal have 4 kugler');
+  run.finish();
+});
+test('salvens fart er Normal som standard, også ved første start uden gemte indstillinger', function () {
+  assert.strictEqual(L.SETTINGS.fart, 'normal');
+  assert.ok(L.FART.rolig < L.FART.normal && L.FART.normal < L.FART.hurtig);
+  assert.strictEqual(L.fartAf(undefined), 'normal');
+  assert.strictEqual(L.fartAf('lynhurtig'), 'normal', 'ukendt værdi skal blive Normal');
+  assert.strictEqual(L.fartAf('rolig'), 'rolig');
+  // Arkadens rigtige settings.js med et tomt lager (som ved første start)
+  var lager = {}, win = { localStorage: { getItem: function (k) { return k in lager ? lager[k] : null; }, setItem: function (k, v) { lager[k] = String(v); }, removeItem: function (k) { delete lager[k]; } } };
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname, '..', '..', 'arkade', 'settings.js'), 'utf8'), { window: win });
+  var g = win.ArkadeSettings.create('muren', L.SETTINGS);
+  assert.strictEqual(g.get('fart'), 'normal');
+  assert.strictEqual(L.SETTINGS.fart, 'normal', 'standardværdierne må ikke ændres');
+  // Et gemt valg huskes, og et ødelagt gemt valg falder tilbage til Normal
+  g.set('fart', 'hurtig');
+  assert.strictEqual(win.ArkadeSettings.create('muren', L.SETTINGS).get('fart'), 'hurtig');
+  lager['hojtArkade.muren.indstillinger'] = JSON.stringify({ fart: 'x' });
+  assert.strictEqual(L.fartAf(win.ArkadeSettings.create('muren', L.SETTINGS).get('fart')), 'normal');
 });
 
 // ---------- Tur, række ned og næste affyringspunkt ----------
@@ -230,7 +286,7 @@ test('knuses stenen ved bundlinjen i sidste øjeblik, fortsætter spillet', func
 test('end() giver point, ture og knuste sten', function () {
   var run = board({ bricks: [{ c: 3, r: 4, n: 1 }] });
   run.fire(); run.finish();
-  assert.deepStrictEqual(run.end(), { score: 11, turns: 2, broken: 1 });
+  assert.deepStrictEqual(run.end(), { score: 1 + 10 + 1, turns: 2, broken: 1 });
   assert.strictEqual(run.live(), false);
 });
 

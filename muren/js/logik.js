@@ -36,9 +36,18 @@
     maxAngle: 80,      // største vinkel fra lodret (grader)
     maxSteps: 40000,   // sikkerhedsnet: salven afsluttes, hvis den aldrig lander
     hitPoints: 1,      // point pr. træf
-    breakBonus: 10,    // bonus pr. knust sten
+    breakBonus: 10,    // grundbonus pr. knust sten; hertil lægges stenens OPRINDELIGE tal (n0)
     startBalls: 1
   };
+
+  // Bonus for en knust sten: grundbonus + stenens oprindelige tal
+  function breakPoints(b) { return RULES.breakBonus + (b.n0 !== undefined ? b.n0 : b.n); }
+
+  // Spillets egne indstillinger og deres standardværdier (bruges af app.js).
+  // fart: tidsskridt pr. sekund for salven; standard er Normal.
+  var SETTINGS = { fart: 'normal', gloed: true };
+  var FART = { rolig: 50, normal: 80, hurtig: 130 };
+  function fartAf(v) { return FART[v] ? v : SETTINGS.fart; }
 
   // ---------- Seedet tilfældighed (mulberry32) ----------
   function rand(state) {
@@ -158,13 +167,15 @@
     var R = RULES.ballR;
     if (v.launched < v.balls.length && v.step % RULES.launchGap === 0) { v.balls[v.launched].st = 1; v.launched++; }
     var onHit = function (b) {
+      if (b.n0 === undefined) b.n0 = b.n;   // det oprindelige tal (til bonussen)
       b.n -= 1; ev.hits++; v.hits++; state.hits++;
       v.points += RULES.hitPoints; state.score += RULES.hitPoints;
       if (b.n <= 0) {
         var i = state.bricks.indexOf(b);
         if (i >= 0) state.bricks.splice(i, 1);
         ev.breaks++; v.broken++; state.broken++;
-        v.points += RULES.breakBonus; state.score += RULES.breakBonus;
+        var bonus = breakPoints(b);
+        v.points += bonus; state.score += bonus;
       }
     };
     for (var i = 0; i < v.balls.length; i++) {
@@ -258,6 +269,7 @@
 
   var api = {
     W: W, H: H, COLS: COLS, ROWS: ROWS, CELL: CELL, RULES: RULES,
+    SETTINGS: SETTINGS, FART: FART, fartAf: fartAf, breakPoints: breakPoints,
     brickRect: brickRect, ringPos: ringPos, dirOf: dirOf, clampAngle: clampAngle,
     newState: newState, spawnRow: spawnRow, preview: preview, createRun: createRun,
     startVolley: startVolley, stepVolley: stepVolley, endTurn: endTurn

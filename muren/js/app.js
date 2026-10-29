@@ -27,9 +27,10 @@
   });
   // fart: hvor hurtigt salven flyver ('rolig', 'normal', 'hurtig').
   // gloed: temaets glød og lysskær (kan slås fra; spillet kan aflæses uden).
-  var gset = ArkadeSettings.create('muren', { fart: 'normal', gloed: true });
-  var FART = { rolig: 50, normal: 80, hurtig: 130 };   // tidsskridt pr. sekund
-  if (!FART[gset.get('fart')]) gset.set('fart', 'normal');
+  // Standardværdierne (fart: Normal) ligger i logik.js, så de kan testes.
+  var gset = ArkadeSettings.create('muren', L.SETTINGS);
+  var FART = L.FART;   // tidsskridt pr. sekund
+  if (L.fartAf(gset.get('fart')) !== gset.get('fart')) gset.set('fart', L.SETTINGS.fart);
   var records = ArkadeHighscores.create('muren', { max: 10 });
   var REC = 'muren';
 
@@ -358,7 +359,7 @@
     $('#hud-turn').textContent = s.turn;
     $('#hud-balls').textContent = v ? (v.balls.length - v.landed) + '/' + v.balls.length : s.balls;
     $('#hud-score').textContent = s.score;
-    $('#points-note').textContent = 'Træf giver 1 point. En knust sten giver 10 point ekstra.';
+    $('#points-note').textContent = 'Træf giver 1 point. En knust sten giver 10 point + det tal, den startede med.';
     var a = Math.round(s.aim);
     $('#dir-value').textContent = (a > 0 ? '+' : '') + a + '°';
     $('#dir-arrow').style.transform = 'rotate(' + a + 'deg)';

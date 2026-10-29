@@ -196,10 +196,13 @@ html, body { height: 100%; height: 100dvh; }
 /* ---------- Om ---------- */
 #om { gap: calc(var(--gap) * 0.7); }
 .om-logo { height: clamp(84px, 15vh, 200px); }
-@media (max-height: 740px) { .om-logo { height: 84px; } .om-panel p { font-size: 1.15rem; line-height: 1.45; } }
 .om-panel { max-width: 46em; text-align: center; }
+/* Brede skærme: et bredere tekstfelt giver færre linjer, så Om kan stå på én side */
+@media (min-aspect-ratio: 4/3) { .om-panel { max-width: min(66em, 90vw); } }
 .om-panel h2 { margin-bottom: 12px; }
 .om-panel p { margin: 10px 0 0; font-size: 1.25rem; line-height: 1.55; }
+/* Lave skærme: lidt mindre tekst (skal stå EFTER grundreglen for at virke) */
+@media (max-height: 800px) { .om-logo { height: 84px; } .om-panel h2 { font-size: 2.2rem; margin-bottom: 6px; } .om-panel p { font-size: 1.15rem; line-height: 1.45; } }
 .link-btn { text-decoration: none; min-width: calc(var(--btn) * 2.4); }
 .link-btn .small { font-size: 0.95rem; }
 

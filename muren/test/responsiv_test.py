@@ -23,6 +23,7 @@ if SHOT: os.makedirs(SHOT + 'ekstra', exist_ok=True)
 CHROME = os.environ.get('CHROME', '/usr/bin/google-chrome')
 SIZES = [(1920,1080),(1366,768),(1280,720),(1024,768),(1024,1366),(1366,1024),(390,844),(844,390)]
 MIN_BTN = 84   # hver knap (og link) skal være mindst 84 px i både højde og bredde
+OM = {}        # antal sider på Om-skærmen pr. opløsning
 MAAL = {}      # alle målte knapper: {opløsning: {skærm: [(navn, b, h)]}}
 errs=[]; fails=[]; summary={}
 CHECK = """(sel) => {
@@ -158,10 +159,17 @@ with sync_playwright() as p:
         pg.on('console', lambda m: errs.append(m.type+': '+m.text) if m.type in ('error','warning') else None)
         pg.on('pageerror', lambda e: errs.append('pageerror: '+str(e)))
         pg.goto(URL); pg.wait_for_timeout(400)
+        # Første start uden gemte indstillinger: salvens fart er Normal (og vises valgt)
+        fs0 = st(pg, """[localStorage.getItem('hojtArkade.muren.indstillinger'), Muren.gameSettings.get('fart'),
+                  (Muren.show('settings'), document.querySelector('[data-tab=styring]').click(), document.querySelector('[data-gset=fart][data-value=normal]').getAttribute('aria-pressed'))]""")
+        st(pg, "Muren.show('menu')"); pg.wait_for_timeout(100)
+        if fs0[1] != 'normal' or fs0[2] != 'true': fails.append('%s standardfart ved første start: %s' % (tag, fs0))
         check(pg,'start','#menu',w,h, tag+'-start.png')
         if big and SHOT: pg.screenshot(path=SHOT + 'startskaerm.png')
         pg.evaluate("Muren.show('om')"); pg.wait_for_timeout(100)
-        pages(pg, '#om', w, h, 'om', small and tag+'-om')
+        om_sider = pages(pg, '#om', w, h, 'om', small and tag+'-om')
+        if not small and om_sider > 1: fails.append('%s Om-skærmen kræver %d sider' % (tag, om_sider))
+        OM[tag] = om_sider
         for tab in ['styring','udseende','lyd']:
             pg.evaluate("Muren.show('settings')"); pg.click('[data-tab=%s]' % tab); pg.wait_for_timeout(80)
             pages(pg, '#settings', w, h, 'indstillinger/'+tab, small and '%s-indstillinger-%s' % (tag, tab))
@@ -239,6 +247,7 @@ with sync_playwright() as p:
 print()
 print('MINDSTE KNAP PR. OPLØSNING:')
 for k, v in summary.items(): print('  %-10s %s px' % (k, min(x[1] for x in v if x[1] is not None)))
+print('OM-SKÆRMEN (sider):', ', '.join('%s=%d' % (k.replace('responsiv-', ''), v) for k, v in OM.items()))
 print('TILBAGE TIL HALLEN (b x h):')
 for k, v in MAAL.items():
     hb = [x for x in v.get('start', []) if x[0] == 'btn-hall']
