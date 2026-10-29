@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="da" data-theme="neon">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0c0612">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Kælderen – Hojt Arkade</title>
+<link rel="icon" href="../arkade/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../arkade/arkade.css">
+<link rel="stylesheet" href="css/kaelderen.css">
+<!-- Temaet: al grafik (farver, lys, tåge, glød, teksturer, figurer og ikoner). Et andet tema leverer de samme navne. -->
+<link rel="stylesheet" href="tema/neon/tema.css">
+</head>
+<body>
+<canvas id="baggrund" aria-hidden="true"></canvas>
+
+<!-- Ikonerne kommer fra temaet (tema/neon/grafik.js) og lægges ind af js/tegn.js som #kaelder-ikon-<navn>. -->
+
+<!-- ================= STARTMENU ================= -->
+<main id="menu" class="screen" aria-labelledby="titel">
+  <button class="btn hall-btn" id="btn-hall" data-href="../index.html">
+    <svg class="hall-ico" viewBox="0 0 100 100" aria-hidden="true"><use href="#kaelder-ikon-hal"/></svg>
+    <span class="big">Tilbage til hallen</span>
+  </button>
+  <header class="title-block">
+    <div class="title-row">
+      <img class="arkade-logo" src="../arkade/logo.svg" alt="Hojt Arkade">
+      <h1 id="titel" class="neon-title">KÆLDEREN</h1>
+    </div>
+    <p class="guide" id="guide">Find nøglekortet, åbn den låste dør, og gå ned ad trappen. Alt står stille, til du gør noget – hvert skridt, drej og skud er én tur.</p>
+    <p class="lead opt">Gå med de store knapper, eller peg på en dør, en ting eller en fjende i billedet for at gå derhen. Handling åbner døre, skyder og går ned ad trappen. Saml skat, og køb bedre udstyr mellem etagerne. Hvor dybt kommer du?</p>
+  </header>
+  <canvas class="menu-demo" id="menu-demo" aria-hidden="true"></canvas>
+  <div class="row start-row">
+    <button class="btn primary wide" id="btn-start"><span class="big">Start spil</span><span class="small">Ned i kælderen</span></button>
+  </div>
+  <div class="row more-row">
+    <button class="btn" id="btn-settings"><span class="icon" aria-hidden="true">⚙</span><span class="big">Indstillinger</span></button>
+    <button class="btn" id="btn-records"><span class="icon" aria-hidden="true">★</span><span class="big">Rekorder</span></button>
+    <button class="btn js-fullscreen"><span class="icon" aria-hidden="true">⛶</span><span class="big js-fs-label">Fuld skærm</span></button>
+    <button class="btn" id="btn-om"><span class="icon" aria-hidden="true">ⓘ</span><span class="big">Om</span></button>
+  </div>
+</main>
+
+<!-- ================= OM ================= -->
+<main id="om" class="screen" hidden aria-labelledby="om-title">
+  <img class="arkade-logo om-logo opt" data-trin src="../arkade/logo.svg" alt="Hojt Arkade">
+  <section class="panel om-panel">
+    <h2 id="om-title" class="neon-sub">Om Hojt Arkade</h2>
+    <p data-trin>Hojt Arkade er udviklet af Jon Leismann Engsager, Hojt Design. Jon er IT- og IKT-konsulent i det specialiserede område og laver blandt andet gratis spil til voksne, der bruger øjenstyring.</p>
+    <p data-trin>Kælderen: gå med Frem, Tilbage og sidetrin, og drej med Drej venstre og Drej højre. Handling gør det, der står på knappen: åbn en dør, saml op, skyd, slå eller gå ned ad trappen. Peg på en dør, en ting, en fjende eller et sted på gulvet i billedet for at gå derhen. Kortet viser det, du har set, og et tryk på kortet går derhen.</p>
+    <p data-trin>Fjenderne flytter sig kun, når du gør noget. Bjælken over en fjende viser dens liv, og en rød ramme viser, at den kan ramme dig i næste tur. Skud rammer sjældnere på lang afstand, og ammunitionen slipper op – så kan du slå tæt på. Du får 1000 point for hver etage og 1 point for hver skat.</p>
+    <p data-trin>Koden er åben og frit tilgængelig under MIT-licensen, så alle kan bruge den og bygge videre på den.</p>
+  </section>
+  <div class="row" data-trin>
+    <a class="btn link-btn" id="link-hojt" href="https://hojt.dk" target="_blank" rel="noopener"><span class="big">Hojt Design</span><span class="small">hojt.dk</span></a>
+    <a class="btn link-btn" id="link-github" href="https://github.com/ColdDuckMcGee/hojt-arkade" target="_blank" rel="noopener"><span class="big">Koden på GitHub</span><span class="small">github.com/ColdDuckMcGee/hojt-arkade</span></a>
+  </div>
+  <div class="row om-back-row">
+    <button class="btn primary wide" id="btn-om-back"><span class="icon" aria-hidden="true">←</span><span class="big">Tilbage</span></button>
+    <a class="btn" id="link-alle-spil" href="../index.html"><span class="icon" aria-hidden="true">▦</span><span class="big">Alle spil</span></a>
+  </div>
+</main>
+
+<!-- ================= SPIL ================= -->
+<main id="game" class="screen" hidden aria-label="Spillet">
+  <div class="game-grid" id="game-grid">
+    <aside class="status" id="status" aria-label="Status">
+      <div class="hud-grid" aria-live="polite">
+        <div class="hud hud-etage"><svg class="hud-ico" viewBox="0 0 100 100" aria-hidden="true"><use href="#kaelder-ikon-etage"/></svg><div class="hud-tekst"><div class="hud-label">Etage</div><div class="hud-value" id="hud-etage">1</div></div><svg class="hud-noegle" id="hud-noegle" viewBox="0 0 100 100" hidden aria-label="Du har nøglekortet"><use href="#kaelder-ikon-noegle"/></svg></div>
+        <div class="hud hud-liv"><svg class="hud-ico" viewBox="0 0 100 100" aria-hidden="true"><use href="#kaelder-ikon-liv"/></svg><div class="hud-tekst"><div class="hud-label">Liv</div><div class="hud-value" id="hud-liv">10</div></div></div>
+        <div class="hud hud-ammo"><svg class="hud-ico" viewBox="0 0 100 100" aria-hidden="true"><use href="#kaelder-ikon-ammo"/></svg><div class="hud-tekst"><div class="hud-label">Ammo</div><div class="hud-value" id="hud-ammo">8</div></div></div>
+        <div class="hud hud-skat"><svg class="hud-ico" viewBox="0 0 100 100" aria-hidden="true"><use href="#kaelder-ikon-skat"/></svg><div class="hud-tekst"><div class="hud-label">Skat</div><div class="hud-value" id="hud-skat">0</div></div></div>
+      </div>
+      <button class="btn pause-btn" id="btn-pause" aria-label="Pause">
+        <svg viewBox="0 0 100 100" aria-hidden="true"><use href="#kaelder-ikon-pause"/></svg>
+        <span class="small">Pause</span>
+      </button>
+    </aside>
+
+    <div class="view-wrap" id="view-wrap">
+      <canvas class="view" id="view" role="img" aria-label="Kælderen set gennem dine øjne"></canvas>
+      <p class="besked" id="besked" aria-live="polite"></p>
+    </div>
+
+    <div class="controls" id="controls" role="group" aria-label="Gå, drej og handling">
+      <button class="btn ctl c-drejv" data-act="drejV" aria-label="Drej venstre"><svg aria-hidden="true"><use href="#kaelder-ikon-drej-v"/></svg><span class="big">Drej venstre</span></button>
+      <button class="btn ctl c-frem" data-act="frem" aria-label="Frem"><svg aria-hidden="true"><use href="#kaelder-ikon-frem"/></svg><span class="big">Frem</span></button>
+      <button class="btn ctl c-drejh" data-act="drejH" aria-label="Drej højre"><svg aria-hidden="true"><use href="#kaelder-ikon-drej-h"/></svg><span class="big">Drej højre</span></button>
+      <button class="btn ctl c-sidev" data-act="venstre" aria-label="Sidetrin til venstre"><svg aria-hidden="true"><use href="#kaelder-ikon-side-v"/></svg><span class="big">Til siden</span></button>
+      <button class="btn ctl c-tilbage" data-act="tilbage" aria-label="Tilbage"><svg aria-hidden="true"><use href="#kaelder-ikon-tilbage"/></svg><span class="big">Tilbage</span></button>
+      <button class="btn ctl c-sideh" data-act="hoejre" aria-label="Sidetrin til højre"><svg aria-hidden="true"><use href="#kaelder-ikon-side-h"/></svg><span class="big">Til siden</span></button>
+      <button class="btn ctl c-kort" id="btn-kort" aria-label="Kort" aria-pressed="false"><svg aria-hidden="true"><use href="#kaelder-ikon-kort"/></svg><span class="big" id="kort-label">Kort</span></button>
+      <button class="btn primary ctl c-handling" id="btn-handling" data-act="handling"><svg aria-hidden="true"><use id="handling-ico" href="#kaelder-ikon-vent"/></svg><span class="handling-tekst"><span class="big" id="handling-label">Vent</span><span class="small" id="handling-sub"></span></span></button>
+    </div>
+  </div>
+
+  <div class="overlay" id="pause-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="pause-title">
+    <div class="panel">
+      <h2 id="pause-title" class="neon-sub">Pause</h2>
+      <p class="muted">Spillet venter på dig. Intet sker, før du vælger.</p>
+      <div class="row">
+        <button class="btn primary wide" id="btn-resume"><span class="big">Fortsæt</span></button>
+      </div>
+      <div class="row">
+        <button class="btn" id="btn-pause-settings"><span class="icon" aria-hidden="true">⚙</span><span class="big">Indstillinger</span></button>
+        <button class="btn js-fullscreen"><span class="icon" aria-hidden="true">⛶</span><span class="big js-fs-label">Fuld skærm</span></button>
+        <button class="btn" id="btn-quit"><span class="icon" aria-hidden="true">■</span><span class="big">Afslut</span><span class="small">gem point</span></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="confirm-overlay" hidden role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-text">
+    <div class="panel">
+      <h2 id="confirm-title" class="neon-sub">Vil du afslutte?</h2>
+      <p class="muted confirm-text" id="confirm-text">Dine point gemmes i rekorderne.</p>
+      <div class="row confirm-row">
+        <button class="btn primary confirm-btn" id="btn-confirm-no"><span class="icon" aria-hidden="true">▶</span><span class="big">Nej, spil videre</span></button>
+        <button class="btn confirm-btn" id="btn-confirm-yes"><span class="icon" aria-hidden="true">■</span><span class="big">Ja, afslut</span><span class="small">gem point</span></button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ================= BUTIK (mellem etagerne) ================= -->
+<main id="butik" class="screen" hidden aria-labelledby="butik-title">
+  <header class="butik-head">
+    <h2 id="butik-title" class="neon-sub">Butikken</h2>
+    <p class="butik-skat"><svg class="butik-skat-ico" viewBox="0 0 100 100" aria-hidden="true"><use href="#kaelder-ikon-skat"/></svg><span>Skat: <strong id="butik-skat">0</strong></span></p>
+    <p class="butik-status" id="butik-status">Liv 10/10 · Ammo 8/12</p>
+  </header>
+  <div class="butik-varer" id="butik-varer" role="group" aria-label="Varer"></div>
+  <p class="butik-besked" id="butik-besked" aria-live="polite"></p>
+  <div class="row">
+    <button class="btn primary wide" id="btn-videre"><span class="icon" aria-hidden="true">▼</span><span class="big" id="videre-label">Gå ned til etage 2</span></button>
+  </div>
+</main>
+
+<!-- ================= SLUT ================= -->
+<main id="gameover" class="screen" hidden aria-labelledby="go-title">
+  <div class="go-layout">
+    <section class="go-result">
+      <div class="go-head">
+        <h2 id="go-title" class="neon-sub">Spillet er slut</h2>
+        <p class="go-reason" id="go-reason">Du nåede etage 1.</p>
+        <div class="go-score"><span id="go-score">0</span><span class="go-unit">point</span></div>
+        <p class="go-plates" id="go-detaljer">Etage 1 · 0 skat</p>
+        <p class="go-rank" id="go-rank"></p>
+      </div>
+      <div class="go-actions">
+        <div class="row">
+          <button class="btn primary wide" id="btn-again" data-autofocus><span class="big">Nyt spil</span><span class="small">En ny kælder</span></button>
+        </div>
+        <div class="row">
+          <button class="btn" id="btn-go-menu"><span class="icon" aria-hidden="true">⌂</span><span class="big">Til menuen</span></button>
+          <a class="btn" id="link-go-alle" href="../index.html"><span class="icon" aria-hidden="true">▦</span><span class="big">Alle spil</span></a>
+          <button class="btn go-toggle" id="btn-go-rec" hidden><span class="icon" aria-hidden="true" id="go-rec-icon">★</span><span class="big" id="go-rec-label">Rekorder</span></button>
+        </div>
+      </div>
+    </section>
+    <section class="go-records panel">
+      <h3 class="group-label" id="go-records-title">Rekorder</h3>
+      <ol class="records" id="go-records"></ol>
+    </section>
+  </div>
+</main>
+
+<!-- ================= INDSTILLINGER ================= -->
+<main id="settings" class="screen" hidden aria-labelledby="set-title">
+  <h2 id="set-title" class="sr-only">Indstillinger</h2>
+  <div class="row tabs" role="tablist">
+    <button class="btn" id="btn-settings-back"><span class="icon" aria-hidden="true">←</span><span class="big">Tilbage</span></button>
+    <button class="btn option tab" data-tab="styring" role="tab"><span class="big">Styring</span></button>
+    <button class="btn option tab" data-tab="udseende" role="tab"><span class="big">Udseende</span></button>
+    <button class="btn option tab" data-tab="grafik" role="tab"><span class="big">Grafik</span></button>
+    <button class="btn option tab" data-tab="lyd" role="tab"><span class="big">Lyd</span></button>
+  </div>
+
+  <section class="tab-panel" data-panel="styring">
+    <div class="setting">
+      <div class="setting-label">Dwell<small>Kig på en knap for at vælge den</small></div>
+      <div class="row" role="group">
+        <button class="btn option" data-set="dwell" data-value="false"><span class="big">Fra</span></button>
+        <button class="btn option" data-set="dwell" data-value="true"><span class="big">Til</span></button>
+      </div>
+    </div>
+    <div class="setting">
+      <div class="setting-label">Dwell-tid<small>Hvor længe du skal kigge</small></div>
+      <div class="row">
+        <button class="btn" id="dwell-minus" aria-label="Kortere dwell-tid"><span class="big">−</span><span class="small">Kortere</span></button>
+        <div class="value-box" id="dwell-value" aria-live="polite">1,2 sek.</div>
+        <button class="btn" id="dwell-plus" aria-label="Længere dwell-tid"><span class="big">+</span><span class="small">Længere</span></button>
+      </div>
+    </div>
+    <div class="setting">
+      <div class="setting-label">Dwell i billedet<small>Kig på en dør, ting eller fjende for at gå derhen</small></div>
+      <div class="row" role="group">
+        <button class="btn option" data-gset="dwell3d" data-value="false"><span class="big">Fra</span></button>
+        <button class="btn option" data-gset="dwell3d" data-value="true"><span class="big">Til</span></button>
+      </div>
+    </div>
+    <p class="note">Brug kun dwell her, hvis dit øjenstyringssystem ikke selv klikker. Med dwell i billedet virker kun døre, ting, fjender og trappen – gulv og vægge gør intet, så du kan kigge roligt rundt. Et klik på gulvet går derhen. Tastatur: pilene eller W, A, S, D går og drejer, Q og E går til siden, mellemrum eller Enter er Handling, M er kortet, og Esc eller P giver pause.</p>
+  </section>
+
+  <section class="tab-panel" data-panel="udseende" hidden>
+    <div class="setting">
+      <div class="setting-label">Tema</div>
+      <div class="row" role="group">
+        <button class="btn option theme-btn" data-set="theme" data-value="neon"><span class="swatch" data-farver="neon"></span><span class="small">Pink og cyan</span></button>
+        <button class="btn option theme-btn" data-set="theme" data-value="solnedgang"><span class="swatch" data-farver="solnedgang"></span><span class="small">Orange og lilla</span></button>
+        <button class="btn option theme-btn" data-set="theme" data-value="cyberpunk"><span class="swatch" data-farver="cyberpunk"></span><span class="small">Grøn og blå</span></button>
+        <button class="btn option theme-btn" data-set="theme" data-value="kontrast"><span class="swatch" data-farver="kontrast"></span><span class="small">Høj kontrast</span></button>
+      </div>
+    </div>
+    <div class="setting">
+      <div class="setting-label">Baggrund</div>
+      <div class="row" role="group">
+        <button class="btn option" data-set="background" data-value="mork"><span class="big">Mørk</span></button>
+        <button class="btn option" data-set="background" data-value="solnedgang"><span class="big">Solnedgang</span></button>
+        <button class="btn option" data-set="background" data-value="neonby"><span class="big">Neonby</span></button>
+      </div>
+    </div>
+    <div class="setting">
+      <div class="setting-label">Animation<small id="motion-note">Skridt og drej glider blødt</small></div>
+      <div class="row" role="group">
+        <button class="btn option" data-set="animation" data-value="false"><span class="big">Fra</span></button>
+        <button class="btn option" data-set="animation" data-value="true"><span class="big">Til</span></button>
+      </div>
+    </div>
+  </section>
+
+  <section class="tab-panel" data-panel="grafik" hidden>
+    <div class="setting">
+      <div class="setting-label">Neon-glød<small>Lysende neon, glorie og scanlines</small></div>
+      <div class="row" role="group">
+        <button class="btn option" data-gset="gloed" data-value="false"><span class="big">Fra</span></button>
+        <button class="btn option" data-gset="gloed" data-value="true"><span class="big">Til</span></button>
+      </div>
+    </div>
+    <div class="setting">
+      <div class="setting-label">Billedkvalitet<small id="kvalitet-note">Auto tilpasser sig computeren</small></div>
+      <div class="row" role="group">
+        <button class="btn option" data-gset="kvalitet" data-value="lav"><span class="big">Lav</span><span class="small">hurtig</span></button>
+        <button class="btn option" data-gset="kvalitet" data-value="auto"><span class="big">Auto</span></button>
+        <button class="btn option" data-gset="kvalitet" data-value="hoej"><span class="big">Høj</span><span class="small">skarp</span></button>
+      </div>
+    </div>
+    <div class="setting">
+      <div class="setting-label">Minikort<small>Lille kort i hjørnet af billedet</small></div>
+      <div class="row" role="group">
+        <button class="btn option" data-gset="minikort" data-value="false"><span class="big">Fra</span></button>
+        <button class="btn option" data-gset="minikort" data-value="true"><span class="big">Til</span></button>
+      </div>
+    </div>
+  </section>
+
+  <section class="tab-panel" data-panel="lyd" hidden>
+    <div class="setting">
+      <div class="setting-label">Lydeffekter</div>
+      <div class="row" role="group">
+        <button class="btn option" data-set="sound" data-value="false"><span class="big">Fra</span></button>
+        <button class="btn option" data-set="sound" data-value="true"><span class="big">Til</span></button>
+      </div>
+    </div>
+    <div class="setting">
+      <div class="setting-label">Musik</div>
+      <div class="row" role="group">
+        <button class="btn option" data-set="music" data-value="false"><span class="big">Fra</span></button>
+        <button class="btn option" data-set="music" data-value="true"><span class="big">Til</span></button>
+      </div>
+    </div>
+  </section>
+  <div class="row trin-bund" hidden></div>
+</main>
+
+<!-- ================= REKORDER ================= -->
+<main id="records" class="screen" hidden aria-labelledby="rec-title">
+  <div class="row tabs">
+    <button class="btn" id="btn-records-back"><span class="icon" aria-hidden="true">←</span><span class="big">Tilbage</span></button>
+  </div>
+  <section class="panel records-panel">
+    <h2 class="group-label" id="rec-title">Rekorder</h2>
+    <ol class="records" id="rec-list"></ol>
+  </section>
+</main>
+
+<!-- Dwell-ring til 3D-billedet (samme udseende som arkadens) -->
+<div class="arkade-dwell-ring kaelder-ring" id="view-ring" aria-hidden="true"><svg viewBox="0 0 100 100"><circle class="arkade-dwell-track" cx="50" cy="50" r="40"/><circle class="arkade-dwell-progress" cx="50" cy="50" r="40" pathLength="100"/></svg></div>
+
+<script src="../arkade/settings.js"></script>
+<script src="../arkade/highscores.js"></script>
+<script src="../arkade/dwell.js"></script>
+<script src="../arkade/audio.js"></script>
+<script src="../arkade/background.js"></script>
+<script src="js/logik.js"></script>
+<script src="js/lyd.js"></script>
+<script src="tema/neon/grafik.js"></script>
+<script src="js/tegn.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

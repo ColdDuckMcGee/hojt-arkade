@@ -1,0 +1,346 @@
+/* Kælderen – spillets egen opsætning. Bygger på ../arkade/arkade.css.
+ * Startmenu, overlays, game over, indstillinger, rekorder, Om og små skærme
+ * følger Muren, Golf og Blokke, så spillene ser ens ud og opfører sig ens. */
+
+/* Farver, glød, skygger, stregtykkelser og hjørner kommer fra temaet:
+ * tema/<navn>/tema.css (her: tema/neon/). Denne fil indeholder kun opbygning og mål. */
+
+.kaelder-ikoner { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+/* ---------- Startmenu ---------- */
+#menu { gap: calc(var(--gap) * 0.7); }
+.title-block { text-align: center; max-width: 1100px; }
+.title-row { display: flex; align-items: center; justify-content: center; gap: max(16px, 3vmin); flex-wrap: wrap; }
+.title-row .arkade-logo { height: clamp(100px, 18vh, 200px); }
+.neon-title { font-size: clamp(2.6rem, 8.5vmin, 5.5rem); letter-spacing: 0.1em; }
+.lead { text-shadow: var(--kaelder-text-shadow-strong); margin: 10px auto 0; max-width: 46em; color: var(--muted); font-size: 1.1rem; line-height: 1.5; }
+.menu-group { display: flex; flex-direction: column; align-items: center; }
+.size-note { margin: 0; min-height: 0; color: var(--accent); text-align: center; max-width: 40em; text-shadow: var(--kaelder-text-shadow); }
+.size-note:empty { display: none; }
+@media (max-height: 900px) {
+  .lead { display: none; }
+  .title-row .arkade-logo { height: clamp(80px, 14vh, 150px); }
+}
+
+/* Tilbage til hallen: fast i hjørnet, roligere stil end de andre knapper */
+.hall-btn {
+  position: absolute; top: max(16px, 2.5vmin); left: max(16px, 2.5vmin);
+  width: max(var(--btn), 7.5em); min-height: var(--btn); padding: 8px 10px;
+  border-width: var(--kaelder-hall-border-w); border-color: var(--kaelder-hall-border);
+  background: var(--kaelder-hall-bg); box-shadow: none; color: var(--muted);
+}
+.hall-btn .big { font-size: 1.05rem; font-weight: 600; line-height: 1.2; text-align: center; }
+.hall-ico { width: 42%; height: auto; fill: none; stroke: var(--muted); stroke-width: var(--kaelder-stroke-hall); stroke-linejoin: round; }
+.hall-btn:hover, .hall-btn.arkade-dwelling { color: var(--ui-text); border-color: var(--muted); background: var(--kaelder-hall-bg-hover); box-shadow: none; }
+
+/* ---------- Hele vinduet, ingen rulning ---------- */
+html, body { height: 100%; height: 100dvh; }
+.screen { justify-content: safe center; align-items: safe center; }
+.screen > *, .overlay > .panel, .tab-panel > *, .go-result > * { flex-shrink: 0; }  /* intet presses sammen – hellere mindre knapper */
+/* Lave skærme: rekordlisten i to spalter */
+@media (max-height: 640px) and (min-width: 700px) {
+  .records { columns: 2; column-gap: 20px; }
+  .records li { break-inside: avoid; }
+}
+/* Tilbage til hallen flyttes ind i rækken, hvis den ellers ville ramme titlen */
+#menu.hall-inflow .hall-btn { position: static; align-self: flex-start; order: -1; flex: none; width: auto; min-height: max(84px, calc(var(--btn) * 0.7)); flex-direction: row; gap: 12px; padding: 8px 18px; }
+#menu.hall-inflow .hall-ico { width: 32px; }
+
+/* ---------- Spilleskærm ----------
+ * js/app.js vælger det layout, der giver det største 3D-billede, og sætter
+ * --btn, --view-w, --view-h, --status-w, --ctl-w m.fl. på #game:
+ *  lay-wide:  status (lodret) til venstre, billedet i midten, styrekrydset (3 × 3) til højre
+ *  lay-side:  billedet til venstre; status og styrekrydset til højre
+ *  lay-below: status øverst, billedet i midten, styrekrydset under (højkant) */
+#game { padding: var(--game-pad, 12px); overflow: hidden; }
+.game-grid { display: grid; gap: var(--game-gap, 20px); align-items: center; justify-items: center; }
+.lay-wide { grid-template-columns: var(--status-w, 200px) auto var(--ctl-w, 360px); grid-template-areas: "status view ctl"; }
+.lay-side { grid-template-columns: auto var(--ctl-w, 360px); grid-template-areas: "view status" "view ctl"; }
+.lay-below { grid-template-columns: var(--col-w, 360px); grid-template-areas: "status" "view" "ctl"; }
+.status { grid-area: status; display: flex; gap: var(--ig, 10px); align-items: stretch; }
+.lay-wide .status { flex-direction: column; width: var(--status-w, 200px); }
+.lay-side .status, .lay-below .status { flex-direction: row; width: 100%; align-self: end; }
+.hud-grid { display: grid; gap: var(--ig, 10px); flex: 1 1 auto; min-width: 0; }
+.lay-wide .hud-grid { grid-template-columns: 1fr; }
+.lay-side .hud-grid { grid-template-columns: 1fr 1fr; }
+.lay-below .hud-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.hud {
+  display: flex; align-items: center; gap: 8px; min-width: 0; overflow: hidden; height: var(--hud-h, 64px);
+  padding: 4px 10px; background: var(--kaelder-hud-bg); border-radius: var(--kaelder-radius-hud); border: var(--kaelder-block-w) solid var(--kaelder-hud-border);
+}
+.hud-ico { width: calc(var(--hud-h, 64px) * 0.5); height: calc(var(--hud-h, 64px) * 0.5); flex: none; }
+.hud-tekst { display: flex; flex-direction: column; min-width: 0; }
+.hud-label { font-size: 0.9rem; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; line-height: 1.1; }
+.hud-value { font-size: clamp(1.15rem, calc(var(--hud-h, 64px) * 0.4), 2.3rem); font-weight: 800; font-variant-numeric: tabular-nums; color: var(--ui-text); line-height: 1.1; white-space: nowrap; }
+.hud-noegle { width: calc(var(--hud-h, 64px) * 0.5); height: calc(var(--hud-h, 64px) * 0.5); margin-left: auto; flex: none; }
+.hud.lav .hud-value { color: var(--kaelder-fejl); }
+.pause-btn { align-self: center; width: var(--btn); height: var(--btn); padding: 6px; min-width: 0; min-height: 0; flex: none; }
+.pause-btn svg { width: 46%; height: 46%; }
+.pause-btn svg, .pause-btn .ico-fill { --ico-fill: var(--ui); --ico-line: var(--ui); }
+/* Lille status (side og below): kun tal og ikon, etiketten i skærmlæserteksten */
+.compact .hud { padding: 2px 6px; gap: 6px; justify-content: center; }
+.compact .hud-label { font-size: 0.72rem; letter-spacing: 0.02em; }
+.compact .hud-value { font-size: clamp(13px, calc(var(--hud-h, 64px) * 0.34), 28px); }
+.compact .pause-btn .small { display: none; }
+.lay-wide .pause-btn { width: 100%; height: var(--btn); flex-direction: row; gap: 10px; }
+
+/* 3D-billedet: et canvas, som js/tegn.js tegner på */
+.view-wrap { grid-area: view; position: relative; width: var(--view-w, 640px); height: var(--view-h, 400px); }
+.view {
+  display: block; width: 100%; height: 100%; border-radius: var(--kaelder-radius-view);
+  border: var(--kaelder-frame-w) solid var(--kaelder-ramme); box-shadow: var(--kaelder-view-glow);
+  cursor: pointer; touch-action: none; box-sizing: border-box;
+}
+.view.peg { cursor: crosshair; }
+.besked {
+  position: absolute; left: 6%; right: 6%; bottom: calc(var(--kaelder-frame-w) + 8px); margin: 0;
+  padding: 4px 12px; font-size: var(--besked-str, 1.05rem); line-height: 1.3; text-align: center; color: var(--ui-text);
+  background: var(--kaelder-besked-bg); border-radius: var(--kaelder-radius-hud); text-shadow: var(--kaelder-text-shadow);
+  pointer-events: none; max-height: 2.8em; overflow: hidden;
+}
+.besked:empty { display: none; }
+.besked .foran { color: var(--accent); font-weight: 700; }
+.besked.fejl { color: var(--kaelder-fejl); }
+
+/* Styrekrydset: 3 × 3 lige store knapper. Handling fylder to felter */
+.controls {
+  grid-area: ctl; display: grid; gap: var(--ig, 10px);
+  grid-template-columns: repeat(3, var(--btn)); grid-template-rows: repeat(3, var(--btn));
+  grid-template-areas: "dv fr dh" "sv tb sh" "kt ha ha";
+}
+.c-drejv { grid-area: dv; } .c-frem { grid-area: fr; } .c-drejh { grid-area: dh; }
+.c-sidev { grid-area: sv; } .c-tilbage { grid-area: tb; } .c-sideh { grid-area: sh; }
+.c-kort { grid-area: kt; } .c-handling { grid-area: ha; }
+.ctl { width: 100%; height: 100%; min-width: 0; min-height: 0; padding: 4px; gap: 2px; }
+.ctl svg { width: calc(var(--btn) * 0.44); height: calc(var(--btn) * 0.44); flex: none; }
+.ctl .big { font-size: clamp(0.85rem, calc(var(--btn) * 0.15), 1.3rem); line-height: 1.05; }
+.c-handling { flex-direction: row; gap: 10px; padding: 6px 10px; --ico-line: var(--kaelder-aktion-tekst); --ico-fill: var(--kaelder-aktion-tekst); }
+.c-handling svg { width: calc(var(--btn) * 0.5); height: calc(var(--btn) * 0.5); }
+.handling-tekst { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; text-align: left; }
+.c-handling .big { font-size: clamp(1.05rem, calc(var(--btn) * 0.2), 1.8rem); line-height: 1.1; }
+.c-handling .small { font-size: clamp(0.8rem, calc(var(--btn) * 0.13), 1.1rem); line-height: 1.1; }
+.c-handling .small:empty { display: none; }
+.controls .btn:disabled svg { opacity: .55; }
+.c-kort[aria-pressed="true"] { border-color: var(--accent); }
+.ico-line { fill: none; stroke: var(--ico-line, var(--accent)); stroke-width: var(--kaelder-stroke-ico); stroke-linecap: round; stroke-linejoin: round; }
+.ico-fill { fill: var(--ico-fill, var(--accent)); }
+
+/* Dwell-ringen over 3D-billedet (arkadens ring) */
+.kaelder-ring { width: 84px; height: 84px; }
+
+/* Lille stillbillede fra kælderen på startmenuen */
+.menu-demo { display: block; height: min(26vh, calc(var(--btn) * 2.2)); aspect-ratio: 16 / 9; width: auto; margin: 0 auto; border-radius: var(--kaelder-radius-view); border: var(--kaelder-block-w) solid var(--kaelder-ramme); box-shadow: var(--kaelder-view-glow); }
+.tight .menu-demo, .kaelder-tvaers .menu-demo { display: none; }
+.guide { margin: 8px auto 0; max-width: 42em; font-size: 1.15rem; line-height: 1.4; color: var(--ui-text); font-weight: 600; text-shadow: var(--kaelder-text-shadow-strong); }
+
+/* ---------- Butik ---------- */
+#butik { gap: calc(var(--gap) * 0.6); }
+.butik-head { display: flex; align-items: center; gap: 8px 28px; flex-wrap: wrap; justify-content: center; text-align: center; }
+.butik-head h2 { margin: 0; }
+.butik-skat { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 1.5rem; color: var(--ui-text); }
+.butik-skat strong { font-variant-numeric: tabular-nums; }
+.butik-skat-ico { width: 1.6em; height: 1.6em; }
+.butik-status { margin: 0; font-size: 1.1rem; color: var(--muted); }
+.butik-varer { display: grid; grid-template-columns: repeat(var(--vare-cols, 4), minmax(calc(var(--btn) * 1.45), 15em)); gap: var(--ig, 12px); }
+.vare { min-height: var(--btn); padding: 6px 10px; gap: 2px; flex-direction: row; justify-content: flex-start; text-align: left; }
+.vare svg { width: calc(var(--btn) * 0.4); height: calc(var(--btn) * 0.4); flex: none; }
+.vare-tekst { display: flex; flex-direction: column; min-width: 0; }
+.vare .big { font-size: 1.15rem; line-height: 1.15; }
+.vare .small { font-size: 0.9rem; line-height: 1.2; }
+.vare .pris { font-weight: 800; color: var(--accent); font-size: 1.05rem; }
+.vare:disabled .pris { color: var(--muted); }
+.butik-besked { margin: 0; min-height: 1.4em; font-size: 1.15rem; color: var(--kaelder-ok); text-align: center; text-shadow: var(--kaelder-text-shadow); }
+.butik-besked.fejl { color: var(--kaelder-fejl); }
+
+/* Overlays (pause og bekræft) */
+.overlay {
+  position: absolute; inset: 0; z-index: 5;
+  display: flex; align-items: safe center; justify-content: safe center; overflow: hidden;
+  background: var(--kaelder-overlay-bg);
+}
+.overlay.soft { background: var(--kaelder-overlay-soft); }
+.overlay .panel { display: flex; flex-direction: column; align-items: center; gap: var(--gap); text-align: center; }
+.overlay .panel p { margin: 0; }
+
+/* ---------- Game over ---------- */
+.go-layout { display: flex; flex-wrap: wrap; gap: calc(var(--gap) * 1.4); align-items: center; justify-content: center; }
+.go-result { display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; }
+.go-head { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.go-actions { display: flex; flex-direction: column; align-items: center; gap: var(--gap); }
+.go-reason, .go-plates { margin: 0; font-size: 1.3rem; color: var(--muted); }
+.go-score { display: flex; align-items: baseline; gap: 12px; }
+#go-score { font-size: clamp(3rem, 10vmin, 5rem); font-weight: 800; color: var(--ui-text); text-shadow: var(--kaelder-score-glow); }
+.go-unit { font-size: 1.4rem; color: var(--muted); }
+.go-rank { margin: 0; min-height: 1.4em; font-size: 1.3rem; color: var(--accent); font-weight: 700; }
+.go-records { min-width: min(500px, 90vw); }
+.records li .plates { font-weight: 400; color: var(--muted); }
+
+/* ---------- Indstillinger ---------- */
+#settings { justify-content: flex-start; padding-top: max(20px, 4vmin); }
+.tabs { margin-bottom: 4px; }
+.tab-panel { display: flex; flex-direction: column; gap: calc(var(--gap) * 0.8); align-items: stretch; width: min(1100px, 100%); }
+.setting { display: grid; grid-template-columns: 13em 1fr; align-items: center; gap: var(--gap); }
+@media (max-width: 900px) { .setting { grid-template-columns: 1fr; justify-items: center; text-align: center; } .setting .row { justify-content: center !important; } }
+.setting-label { font-size: 1.35rem; font-weight: 700; display: flex; flex-direction: column; text-shadow: var(--kaelder-text-shadow); }
+.setting-label small { font-size: 0.95rem; font-weight: 400; color: var(--muted); margin-top: 4px; }
+.setting .row { justify-content: flex-start; }
+.value-box { min-width: 6em; text-align: center; font-size: 1.8rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.note { max-width: 44em; margin: 0 auto; color: var(--muted); line-height: 1.5; text-align: center; }
+.theme-btn .swatch {
+  width: 64px; height: 32px; border-radius: var(--kaelder-radius-swatch);
+  background: linear-gradient(90deg, var(--a) 0 33%, var(--b) 33% 66%, var(--c) 66% 100%);
+  border: var(--kaelder-block-w) solid var(--kaelder-swatch-border);
+}
+
+/* ---------- Rekorder ---------- */
+#records { justify-content: flex-start; padding-top: max(20px, 3vmin); gap: calc(var(--gap) * 0.6); }
+.records-panel { min-width: min(560px, 92vw); }
+
+/* ---------- Om ---------- */
+#om { gap: calc(var(--gap) * 0.7); }
+.om-logo { height: clamp(84px, 15vh, 200px); }
+@media (max-height: 740px) { .om-logo { height: 84px; } .om-panel p { font-size: 1.15rem; line-height: 1.45; } }
+.om-panel { max-width: 46em; text-align: center; }
+.om-panel h2 { margin-bottom: 12px; }
+.om-panel p { margin: 10px 0 0; font-size: 1.25rem; line-height: 1.55; }
+.link-btn { text-decoration: none; min-width: calc(var(--btn) * 2.4); }
+.link-btn .small { font-size: 0.95rem; }
+
+/* ---------- Sider (kun når der ikke er plads til det hele) ---------- */
+.trin-skjult { display: none !important; }
+.trin-nav { display: contents; }
+.trin-nav[hidden] { display: none; }
+.trin-label { align-self: center; min-width: 6.5em; text-align: center; font-size: 1.1rem; font-weight: 700; color: var(--muted); text-shadow: var(--kaelder-text-shadow); }
+.trin-nav .btn .icon { font-size: 2rem; }
+.tight .opt { display: none; }
+
+/* ---------- Små skærme (korteste side under 560 px) ----------
+ * Knapperne er mindst 84 px (sat i js/app.js), og der zoomes ikke.
+ * Brede knapper må gerne blive smallere, så flere kan stå på én række. */
+.kaelder-lille .btn { padding: 6px 12px; gap: 2px; }
+.kaelder-lille .btn .big { font-size: 1.2rem; }
+.kaelder-lille .btn.primary .big { font-size: 1.45rem; }
+.kaelder-lille .btn .icon { font-size: 1.3rem; }
+.kaelder-lille .btn .small { font-size: 0.9rem; }
+.kaelder-lille .btn.wide { min-width: calc(var(--btn) * 1.6); }
+/* Sideknapperne viser kun pilen på små skærme (teksten står i aria-label) */
+.kaelder-lille .trin-nav .btn .big { display: none; }
+.kaelder-lille .trin-nav .btn .icon { font-size: 2.4rem; }
+.kaelder-lille .trin-label { min-width: 0; font-size: 1rem; }
+/* Startmenu på højkant: de fire små knapper i to kolonner */
+.kaelder-lille:not(.kaelder-tvaers) #menu .more-row { display: grid; grid-template-columns: 1fr 1fr; width: min(100%, 26em); }
+/* Spillet på højkant: logoet gør plads til en stor pauseknap */
+.kaelder-lille .lay-below .side-logo { display: none; }
+.kaelder-lille .link-btn { min-width: calc(var(--btn) * 1.6); }
+.kaelder-lille .screen { padding: 12px; }
+.kaelder-lille .panel { padding: 14px 18px; }
+.kaelder-lille .overlay .panel { gap: 12px; }
+.kaelder-lille .records li { padding-top: 3px; padding-bottom: 3px; }
+.kaelder-lille #settings, .kaelder-lille #records { padding-top: 12px; }
+.kaelder-lille .setting-label { font-size: 1.2rem; }
+.kaelder-lille .setting .row { gap: 12px; }
+.kaelder-lille .theme-btn .swatch { width: 48px; height: 26px; }
+.kaelder-lille .overlay .panel { max-width: calc(100% - 16px); }
+.kaelder-lille #menu.hall-inflow .hall-btn { min-height: var(--btn); }
+
+/* Game over: knapperne på én række, der må ombrydes */
+.kaelder-lille .go-actions { flex-direction: row; flex-wrap: wrap; justify-content: center; }
+.kaelder-lille .go-actions > .row { display: contents; }
+.kaelder-lille .go-head { gap: 6px; }
+.kaelder-lille #go-score { font-size: clamp(2.4rem, 9vmin, 4rem); }
+.go-split .go-records { display: none; }
+.go-split.go-vis-rekorder .go-records { display: block; }
+.go-split.go-vis-rekorder .go-head { display: none; }
+
+/* Mobil på tværs: startmenuen som et gitter med tre rækker knapper */
+.kaelder-tvaers #menu {
+  display: grid; justify-content: safe center; align-content: safe center; justify-items: center; align-items: center;
+  grid-template-columns: auto auto auto;
+  grid-template-areas: "hall title title" "sizes sizes start" "note note note" "more more more";
+  column-gap: var(--gap); row-gap: calc(var(--gap) * 0.6);
+}
+.kaelder-tvaers #menu .hall-btn { grid-area: hall; position: static; justify-self: start; }
+.kaelder-tvaers #menu .title-block { grid-area: title; justify-self: start; }
+.kaelder-tvaers #menu .title-row .arkade-logo { height: calc(var(--btn) * 0.8); }
+.kaelder-tvaers #menu .neon-title { font-size: clamp(2rem, 11vh, 3.4rem); }
+.kaelder-tvaers #menu .lead { display: none; }
+.kaelder-tvaers #menu .menu-group { grid-area: sizes; }
+.kaelder-tvaers #menu .group-label { margin: 0 0 4px; }
+.kaelder-tvaers #menu .size-note { grid-area: note; }
+.kaelder-tvaers #menu .start-row { grid-area: start; align-self: end; }
+.kaelder-tvaers #menu .more-row { grid-area: more; }
+
+/* Mobil på tværs: indstillinger med teksten ved siden af knapperne */
+.kaelder-tvaers .setting { grid-template-columns: minmax(6em, 10em) auto; column-gap: 16px; justify-items: start; justify-content: center; text-align: left; }
+.kaelder-tvaers .setting .row { justify-content: flex-start !important; }
+.kaelder-tvaers #settings .tab-panel { gap: 10px; }
+.kaelder-tvaers .om-logo { height: 84px; }
+.kaelder-tvaers .om-panel p { font-size: 1.1rem; line-height: 1.45; }
+.kaelder-tvaers .go-layout { flex-wrap: nowrap; align-items: center; }
+.kaelder-lille #menu.tight .title-row .arkade-logo { height: 72px; }
+/* Game over på tværs: rekordlisten i fuld bredde (to spalter) over knapperne */
+.kaelder-tvaers .go-split.go-vis-rekorder .go-layout { flex-direction: column; flex-wrap: nowrap; gap: 12px; }
+.kaelder-tvaers .go-split.go-vis-rekorder .go-records { order: -1; width: min(820px, 100%); padding-top: 8px; padding-bottom: 8px; }
+.kaelder-tvaers .go-split.go-vis-rekorder .go-records .group-label { margin: 0 0 4px; }
+/* Indstillinger på små skærme: tætte faner; på højkant to faner pr. række */
+.kaelder-lille #settings .tabs { gap: 10px; }
+.kaelder-lille:not(.kaelder-tvaers) #settings .tabs { display: grid; grid-template-columns: 1fr 1fr; width: min(100%, 24em); }
+.kaelder-lille #settings .trin-bund { gap: 10px; margin-top: auto; }
+.kaelder-tvaers #menu .size-note { font-size: 0.9rem; line-height: 1.25; max-width: 52em; }
+.kaelder-lille .value-box { min-width: 4.2em; font-size: 1.5rem; }
+
+/* Rekordlister: point og ture på én linje, så listen ikke bliver dobbelt så høj */
+ol.records .score { white-space: nowrap; }
+.kaelder-tvaers ol.records .plates, .kaelder-lille ol.records .plates { font-size: .85em; }
+/* Mobil på langs: på game over er der kun plads til point og dato (turene står under Rekorder) */
+.kaelder-tvaers #go-records .plates { display: none; }
+.kaelder-lille:not(.kaelder-tvaers) ol.records .score { white-space: normal; }
+/* Mobil: plads til fluebenet over teksten i størrelsesknapperne */
+.kaelder-lille #menu [data-mode] { padding-top: 20px; }
+.kaelder-lille #menu [data-mode][aria-pressed="true"]::after { top: 2px; right: 8px; font-size: 1rem; }
+
+/* Game over: billede af muren ved siden af grunden */
+.go-pic-row { display: flex; align-items: center; gap: 16px; justify-content: center; }
+.go-pic { display: block; width: calc(var(--gopic, 150px) * 0.7); height: var(--gopic, 150px); flex: none; }
+.go-reason { max-width: 20em; }
+.kaelder-lille .go-pic { --gopic: 96px; }
+.kaelder-tvaers .go-pic, #gameover.tight .go-pic { display: none; }
+
+/* Bekræft Afslut: to lige store knapper med god afstand (mindst en halv knap) */
+.confirm-row { gap: max(calc(var(--btn) * 0.6), 48px); flex-wrap: nowrap; }
+.confirm-btn { min-width: calc(var(--btn) * 2); min-height: calc(var(--btn) * 1.1); }
+.confirm-btn .big { font-size: 1.5rem; }
+.confirm-text { font-size: 1.2rem; max-width: 30em; }
+.kaelder-lille .confirm-row { gap: 40px; }
+.kaelder-lille .confirm-btn { min-width: calc(var(--btn) * 1.5); }
+.kaelder-lille:not(.kaelder-tvaers) .confirm-row { flex-direction: column; gap: 32px; }
+.kaelder-lille:not(.kaelder-tvaers) .confirm-btn { width: min(100%, 16em); }
+
+/* ---------- Små skærme: spilleskærm og butik ---------- */
+/* Styrekrydset: teksten skal kunne stå i knappen (pixels, ikke rem, så den følger knapstørrelsen) */
+.kaelder-lille .ctl { padding: 3px; }
+.kaelder-lille .ctl .big { font-size: clamp(11px, calc(var(--btn) * 0.145), 17px); line-height: 1.05; }
+.kaelder-lille .ctl svg { width: calc(var(--btn) * 0.38); height: calc(var(--btn) * 0.38); }
+.kaelder-lille .c-handling .big { font-size: clamp(15px, calc(var(--btn) * 0.22), 24px); }
+.kaelder-lille .c-handling .small { font-size: clamp(11px, calc(var(--btn) * 0.13), 15px); }
+/* Status under/over billedet: ikon over tallet, etiketten kun for skærmlæsere */
+.lay-below .hud { flex-direction: column; justify-content: center; gap: 2px; padding: 2px 4px; }
+.lay-below .hud-ico { width: calc(var(--hud-h, 64px) * 0.34); height: calc(var(--hud-h, 64px) * 0.34); }
+.lay-below .hud-tekst { align-items: center; }
+.lay-below .hud-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.lay-below .hud-value { font-size: clamp(14px, calc(var(--hud-h, 64px) * 0.24), 22px); }
+.lay-below .hud-noegle { position: absolute; top: 4px; right: 4px; width: calc(var(--hud-h, 64px) * 0.24); height: calc(var(--hud-h, 64px) * 0.24); margin: 0; }
+.lay-below .hud { position: relative; }
+/* Butikken: kun navn og pris på små skærme (detaljerne læses op) */
+.kaelder-lille .butik-varer { grid-template-columns: repeat(var(--vare-cols, 2), minmax(0, 1fr)); width: 100%; }
+.kaelder-lille .vare { min-height: var(--btn); padding: 4px 8px; gap: 6px; }
+.kaelder-lille .vare svg { width: calc(var(--btn) * 0.34); height: calc(var(--btn) * 0.34); }
+.kaelder-lille .vare .small { display: none; }
+.kaelder-lille .vare .big { font-size: 1rem; }
+.kaelder-lille .vare .pris { font-size: 0.95rem; }
+.kaelder-lille .butik-head { gap: 4px 18px; }
+.kaelder-lille .butik-head h2 { font-size: 1.35rem; }
+.kaelder-lille .butik-skat { font-size: 1.2rem; }
+.kaelder-lille .butik-status { font-size: 0.95rem; }
+.kaelder-lille .butik-besked { font-size: 1rem; min-height: 1.3em; }
+

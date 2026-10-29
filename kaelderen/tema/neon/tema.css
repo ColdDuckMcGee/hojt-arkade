@@ -1,0 +1,137 @@
+/* Kælderen – tema "neon" (cyberpunk-kælder, synthwave).
+ *
+ * Al grafik i spillet kommer herfra og fra grafik.js i samme mappe: farver,
+ * lys, tåge, glød, scanlines, konturer, stregtykkelser, hjørner og skrift.
+ * css/kaelderen.css og spillets JS bruger kun variablerne nedenfor, så et nyt
+ * tema (fx tema/tegneserie/) skal levere de samme variabler og de samme
+ * navngivne teksturer, sprites, tegnefunktioner og ikoner.
+ *
+ * Farvesættene følger Hojt Arkades fælles data-theme (neon, solnedgang,
+ * cyberpunk, kontrast). Glød og scanlines slås fra med
+ * data-kaelder-gloed="fra" på <html>; spillet kan aflæses lige så godt uden. */
+
+/* ---------- 3D-kælderen: vægge, gulve og lofter ---------- */
+:root, [data-theme] {
+  --kaelder-vaeg-a: #3a3550; --kaelder-vaeg-b: #232036; --kaelder-vaeg-fuge: #110e1c; --kaelder-vaeg-neon: #ff3fd8;
+  --kaelder-rum-a: #2f2f5c; --kaelder-rum-b: #1e1c3d; --kaelder-rum-fuge: #4a4a86; --kaelder-rum-lys: #22eaff;
+  --kaelder-doer-a: #5a5f78; --kaelder-doer-b: #3a3e52; --kaelder-doer-lys: #39ff6a; --kaelder-laas: #ff3fd8;
+  --kaelder-gulv-a: #2a2733; --kaelder-gulv-b: #3a3646; --kaelder-gulv-fuge: #14121b;
+  --kaelder-rumgulv-a: #262445; --kaelder-rumgulv-b: #1d1b36; --kaelder-rumgulv-neon: #22eaff;
+  --kaelder-trappe-a: #4a4030; --kaelder-trappe-neon: #ffe14d;
+  --kaelder-loft-a: #1c1a26; --kaelder-loft-b: #2a2736; --kaelder-rumloft-a: #1c1a30; --kaelder-rumloft-neon: #ff7bd8;
+
+  /* Fjender og ting */
+  --kaelder-kravler: #8f97b3; --kaelder-kravler-oeje: #ff3b5c;
+  --kaelder-skytte: #b9c1dc; --kaelder-skytte-visir: #22eaff;
+  --kaelder-kolos: #8a6a5a; --kaelder-kolos-kerne: #ff8a1f;
+  --kaelder-metal-lys: #ffffff; --kaelder-metal-moerk: #15131f;
+  --kaelder-ammo: #2c6b7a; --kaelder-ammo-lys: #22eaff;
+  --kaelder-liv: #e8f1f4; --kaelder-liv-kors: #19c37d;
+  --kaelder-skat: #d9a520; --kaelder-skat-lys: #ffe14d;
+  --kaelder-noegle: #7a1f70; --kaelder-noegle-lys: #ff7bd8;
+  --kaelder-skilt: #ffe14d; --kaelder-lampe: #ff9ae8;
+
+  /* Lys og tåge (3D) */
+  --kaelder-taage: #07040e;
+  --kaelder-moerke: #4a4466;      /* svagt lys overalt */
+  --kaelder-lampe-lys: #ff7bd8;   /* lamperne i rummene */
+  --kaelder-lygte-lys: #d8ecff;   /* spillerens lommelygte */
+
+  /* Overlays i 3D-billedet */
+  --kaelder-livbar: #39ff6a; --kaelder-livbar-lav: #ff8a1f; --kaelder-livbar-bund: rgba(0, 0, 0, 0.7); --kaelder-livbar-kant: #ffffff;
+  --kaelder-trussel: #ff4f6d; --kaelder-sover: #a7b4ff; --kaelder-markering: #ffe14d; --kaelder-sigte: #ffffff;
+  --kaelder-skade: rgba(255, 40, 70, 0.75); --kaelder-skud: #ffe9a8;
+  --kaelder-scanline: #000000; --kaelder-tekst: #ffffff; --kaelder-tekst-kant: #07040e;
+  --kaelder-vaaben: #3c4058; --kaelder-vaaben-lys: #ffffff; --kaelder-vaaben-moerk: #191826; --kaelder-vaaben-neon: #22eaff;
+
+  /* Kortet */
+  --kaelder-kort-bund: rgba(7, 4, 14, 0.92); --kaelder-kort-gulv: #3d3a5c; --kaelder-kort-rum: #4c4980; --kaelder-kort-vaeg: #9a8cff;
+  --kaelder-kort-doer: #39ff6a; --kaelder-kort-laast: #ff3fd8; --kaelder-kort-trappe: #ffe14d; --kaelder-kort-spiller: #22eaff;
+  --kaelder-kort-fjende: #ff4f6d; --kaelder-kort-ting: #ffe14d; --kaelder-kort-noegle: #ff7bd8; --kaelder-kort-rute: #ffe14d; --kaelder-kort-kant: #22eaff;
+
+  /* Flader uden for 3D-billedet */
+  --kaelder-ramme: #22eaff;
+  --kaelder-hud-bg: var(--panel); --kaelder-hud-border: var(--ui-soft);
+  --kaelder-ok: #39ff6a; --kaelder-fejl: #ff4f6d; --kaelder-advarsel: #ff8a1f;
+  --kaelder-ikon-fill: var(--ui-text); --kaelder-ikon-line: var(--ui);
+  --kaelder-shadow: #000000;
+  --kaelder-overlay-bg: rgba(0, 0, 0, 0.66); --kaelder-overlay-soft: rgba(0, 0, 0, 0.45);
+  --kaelder-hall-bg: rgba(0, 0, 0, 0.45); --kaelder-hall-bg-hover: rgba(255, 255, 255, 0.08); --kaelder-hall-border: rgba(196, 176, 222, 0.7);
+  --kaelder-swatch-border: rgba(255, 255, 255, 0.5);
+  --kaelder-besked-bg: rgba(7, 4, 14, 0.72);
+  --kaelder-vare-bg: rgba(0, 0, 0, 0.55);
+  --kaelder-aktion-tekst: #ffe14d;
+}
+[data-theme="solnedgang"] {
+  --kaelder-vaeg-neon: #ff8a1f; --kaelder-rum-lys: #c77dff; --kaelder-rumgulv-neon: #c77dff; --kaelder-rumloft-neon: #ff8a1f;
+  --kaelder-lampe: #ffb36b; --kaelder-lampe-lys: #ff9a4a; --kaelder-moerke: #5a4050; --kaelder-taage: #100508;
+  --kaelder-vaeg-a: #4a3240; --kaelder-vaeg-b: #2c1c28; --kaelder-rum-a: #43284a; --kaelder-rum-b: #2a1830;
+  --kaelder-ramme: #ff8a1f; --kaelder-kort-kant: #ff8a1f; --kaelder-kort-spiller: #ffb36b; --kaelder-vaaben-neon: #ff8a1f;
+}
+[data-theme="cyberpunk"] {
+  --kaelder-aktion-tekst: #39ff6a;
+  --kaelder-vaeg-neon: #39ff6a; --kaelder-rum-lys: #2a9dff; --kaelder-rumgulv-neon: #39ff6a; --kaelder-rumloft-neon: #2a9dff;
+  --kaelder-lampe: #8fffb0; --kaelder-lampe-lys: #39ff6a; --kaelder-moerke: #2e4a44; --kaelder-taage: #000604;
+  --kaelder-vaeg-a: #24363a; --kaelder-vaeg-b: #142226; --kaelder-rum-a: #1c3040; --kaelder-rum-b: #101e2a;
+  --kaelder-ramme: #2a9dff; --kaelder-kort-kant: #2a9dff; --kaelder-kort-spiller: #39ff6a; --kaelder-vaaben-neon: #39ff6a;
+}
+[data-theme="kontrast"] {
+  --kaelder-aktion-tekst: #ffff00;
+  --kaelder-vaeg-a: #6a6a6a; --kaelder-vaeg-b: #4a4a4a; --kaelder-vaeg-fuge: #000000; --kaelder-vaeg-neon: #ffffff;
+  --kaelder-rum-a: #5a5a7a; --kaelder-rum-b: #3a3a5a; --kaelder-rum-fuge: #ffffff; --kaelder-rum-lys: #ffff00;
+  --kaelder-doer-a: #00a000; --kaelder-doer-b: #006000; --kaelder-doer-lys: #ffffff; --kaelder-laas: #ffff00;
+  --kaelder-gulv-a: #303030; --kaelder-gulv-b: #3a3a3a; --kaelder-rumgulv-a: #303048; --kaelder-rumgulv-b: #262636; --kaelder-rumgulv-neon: #ffffff;
+  --kaelder-trappe-a: #806000; --kaelder-trappe-neon: #ffff00;
+  --kaelder-moerke: #8a8a8a; --kaelder-taage: #000000; --kaelder-lampe-lys: #ffffff; --kaelder-lygte-lys: #ffffff;
+  --kaelder-kravler: #ff6600; --kaelder-skytte: #00ffff; --kaelder-kolos: #ff00ff;
+  --kaelder-trussel: #ff0000; --kaelder-markering: #ffff00; --kaelder-livbar: #00ff00; --kaelder-livbar-lav: #ff6600;
+  --kaelder-ramme: #ffffff; --kaelder-kort-kant: #ffffff; --kaelder-kort-gulv: #555555; --kaelder-kort-rum: #777777; --kaelder-kort-vaeg: #ffffff;
+  --kaelder-ok: #00ff00; --kaelder-fejl: #ff3030; --kaelder-hall-border: #ffffff;
+}
+
+/* ---------- Tal, skrift og effekter ---------- */
+:root {
+  --kaelder-skrift: var(--font);
+  --kaelder-skrift-vaegt: 800;
+  --kaelder-gloed: 1;            /* selvlysende neon (0 = kun farven) */
+  --kaelder-bloom: 0.22;         /* blød glorie om lyse ting */
+  --kaelder-scanlines: 0.16;     /* striber som på en gammel skærm */
+  --kaelder-vignet: 0.55;        /* mørke hjørner i billedet */
+  --kaelder-taage-start: 0.15;   /* tåge fra (andel af synsvidden) */
+  --kaelder-taage-slut: 1.25;    /* fuld tåge ved (andel af synsvidden) */
+  --kaelder-lys-omgivelse: 0.32; /* svagt lys overalt */
+  --kaelder-lys-lampe: 1.1;      /* lampernes styrke */
+  --kaelder-lys-lygte: 0.95;     /* lommelygtens styrke */
+  --kaelder-flimmer: 0.06;       /* blød variation i lampelyset (aldrig blink) */
+  --kaelder-kontur-w: 1;         /* konturer om livbjælker (fx tykkere i ligne claire) */
+  --kaelder-kort-streg: 0.18;
+
+  --kaelder-frame-w: 3px;
+  --kaelder-block-w: 2px;
+  --kaelder-stroke-ico: 8;
+  --kaelder-stroke-hall: 7;
+  --kaelder-hall-border-w: 2px;
+  --kaelder-radius-view: 14px;
+  --kaelder-radius-hud: 12px;
+  --kaelder-radius-swatch: 6px;
+}
+[data-theme="kontrast"] { --kaelder-gloed: 0.6; --kaelder-bloom: 0; --kaelder-scanlines: 0; --kaelder-vignet: 0.25; --kaelder-lys-omgivelse: 0.55; --kaelder-kontur-w: 2; }
+
+/* ---------- Glød og skygger i siden ---------- */
+:root, [data-theme] {
+  --kaelder-text-shadow: 0 1px 4px var(--kaelder-shadow);
+  --kaelder-text-shadow-strong: 0 1px 6px var(--kaelder-shadow), 0 0 2px var(--kaelder-shadow);
+  --kaelder-view-glow: 0 0 calc(22px * var(--glow)) color-mix(in srgb, var(--kaelder-ramme) 45%, transparent);
+  --kaelder-score-glow: 0 0 calc(18px * var(--glow)) var(--ui);
+}
+html[data-kaelder-gloed="fra"], html[data-kaelder-gloed="fra"] [data-theme] {
+  --glow: 0;
+  --kaelder-gloed: 0.55; --kaelder-bloom: 0; --kaelder-scanlines: 0;
+  --kaelder-view-glow: none; --kaelder-score-glow: none;
+}
+
+/* ---------- Prøver på farvesættene i Indstillinger ---------- */
+.swatch[data-farver="neon"] { --a: #ff2fd2; --b: #22eaff; --c: #1a0b2a; }
+.swatch[data-farver="solnedgang"] { --a: #ff8a1f; --b: #c77dff; --c: #2a0b3d; }
+.swatch[data-farver="cyberpunk"] { --a: #39ff6a; --b: #2a8dff; --c: #000000; }
+.swatch[data-farver="kontrast"] { --a: #ffff00; --b: #00ffff; --c: #000000; }
