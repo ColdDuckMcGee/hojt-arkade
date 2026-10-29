@@ -719,7 +719,8 @@
         if (!ok) continue;
         var sEff = Math.min(s, bw), pause = v.pauseFull ? s : topH;
         var score = Math.min(sEff, CM3) / CM3 + 1.3 * (fw * fh) / (W * H) +
-          0.05 * Math.min(sEff, 160) / 160 + 0.3 * Math.min(pause, CM3) / CM3;
+          0.05 * Math.min(sEff, 160) / 160 + 0.3 * Math.min(pause, CM3) / CM3 +
+          (Math.min(sEff, pause) >= 84 ? 1 : 0);  // kan alle knapper (også pause) være mindst 84 px, vinder det
         var vk = v.mode + (v.inline ? '+inline' : '') + (v.pair ? '+pair' : '') + (v.pauseFull ? '+pause' : '');
         if (!perVariant[vk] || score > perVariant[vk].score) perVariant[vk] = { score: +score.toFixed(3), s: s, fw: Math.round(fw) };
         if (!best || score > best.score) {
