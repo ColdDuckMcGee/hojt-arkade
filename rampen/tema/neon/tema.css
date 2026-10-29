@@ -89,6 +89,28 @@
   --rampen-taage: rgba(20, 8, 38, 0.82);
   --rampen-taage-2: rgba(20, 8, 38, 0);
 
+  /* v1.5: liv i bil og landskab */
+  --rampen-fjern-forstad: #160830;    --rampen-forgrund-forstad: #39ff6a;  --rampen-partikel-forstad: rgba(255, 138, 31, 0.7);
+  --rampen-fjern-oerken: #2e1024;     --rampen-forgrund-oerken: #6a3418;   --rampen-partikel-oerken: rgba(255, 196, 120, 0.55);
+  --rampen-fjern-bjerge: #0e1640;     --rampen-forgrund-bjerge: #c8f6ff;   --rampen-partikel-bjerge: rgba(246, 250, 255, 0.8);
+  --rampen-fjern-skyer: rgba(246, 236, 255, 0.12); --rampen-forgrund-skyer: rgba(246, 236, 255, 0.35); --rampen-partikel-skyer: transparent;
+  --rampen-fjern-rummet: #2a1c55;     --rampen-forgrund-rummet: rgba(167, 139, 255, 0.6); --rampen-partikel-rummet: rgba(246, 236, 255, 0.7);
+  --rampen-sol-1: #ffe14d;            --rampen-sol-2: #ff3fd8;
+  --rampen-stjerne: #f6ecff;
+  --rampen-sky: rgba(255, 170, 230, 0.16);
+  --rampen-fugl: rgba(246, 236, 255, 0.75);
+  --rampen-rampe-lys: #ffe14d;
+  --rampen-skilt: #22eaff;            --rampen-skilt-flade: rgba(10, 4, 24, 0.85);
+  --rampen-bil-lys: rgba(255, 244, 200, 0.28); --rampen-bil-lys-2: rgba(255, 244, 200, 0);
+  --rampen-bil-lygte: #fff4c8;
+  --rampen-bil-krom: #d8d0e8;
+  --rampen-bil-panser: #6a5a8a;
+  --rampen-bil-skade: rgba(20, 8, 30, 0.85);
+  --rampen-roeg: rgba(200, 190, 220, 0.6);
+  --rampen-roeg-moerk: rgba(40, 30, 50, 0.75);
+  --rampen-stoev: rgba(255, 210, 160, 0.6);
+  --rampen-gnist: #ffe14d;
+
   /* Flader uden for banen */
   --rampen-ok: #39ff6a;
   --rampen-fejl: #ff7a3c;
@@ -108,6 +130,7 @@
   --rampen-font: var(--font);
 }
 [data-theme="solnedgang"] {
+  --rampen-sol-1: #ffd23f; --rampen-sol-2: #ff8a1f; --rampen-skilt: #c77dff;
   --rampen-jord-forstad-kant: #ff8a1f; --rampen-gloed-farve: #ff8a1f; --rampen-bil-krop: #ff8a1f; --rampen-bil-krop-2: #c77dff;
   --rampen-rampe-kant: #c77dff; --rampen-vinge: #c77dff; --rampen-forhaand-med: #c77dff;
   --rampen-felt-1-kant: #ffe14d; --rampen-felt-2-kant: #c77dff; --rampen-felt-3-kant: #ff8a1f;
@@ -115,6 +138,7 @@
   --rampen-taage: rgba(42, 11, 61, 0.82); --rampen-taage-2: rgba(42, 11, 61, 0);
 }
 [data-theme="cyberpunk"] {
+  --rampen-sol-1: #39ff6a; --rampen-sol-2: #2a9dff; --rampen-skilt: #39ff6a; --rampen-rampe-lys: #39ff6a;
   --rampen-himmel-forstad-1: #000208; --rampen-himmel-forstad-2: #04203a; --rampen-jord-forstad: #00100c; --rampen-jord-forstad-kant: #39ff6a;
   --rampen-gloed-farve: #39ff6a; --rampen-bil-krop: #39ff6a; --rampen-bil-krop-2: #2a9dff; --rampen-rampe-kant: #2a9dff;
   --rampen-bil-kant: #e8fff0; --rampen-forhaand-uden: #39ff6a; --rampen-forhaand-start: #39ff6a; --rampen-meter: #39ff6a;
@@ -166,6 +190,14 @@ html[data-rampen-taage="fra"], html[data-rampen-taage="fra"] [data-theme] { --ra
   --rampen-radius-meter: 4px;
 }
 [data-theme="kontrast"] { --rampen-gloed: 0; }
+/* Kontrast: pynten dæmpes, så banen og bilen står klart */
+[data-theme="kontrast"] {
+  --rampen-fjern-forstad: #111111; --rampen-fjern-oerken: #111111; --rampen-fjern-bjerge: #111111; --rampen-fjern-skyer: #111111; --rampen-fjern-rummet: #111111;
+  --rampen-forgrund-forstad: #555555; --rampen-forgrund-oerken: #555555; --rampen-forgrund-bjerge: #555555; --rampen-forgrund-skyer: #555555; --rampen-forgrund-rummet: #555555;
+  --rampen-partikel-forstad: transparent; --rampen-partikel-oerken: transparent; --rampen-partikel-bjerge: transparent; --rampen-partikel-rummet: transparent;
+  --rampen-sol-1: #333333; --rampen-sol-2: #222222; --rampen-stjerne: #777777; --rampen-sky: transparent; --rampen-fugl: #777777;
+  --rampen-bil-lys: transparent; --rampen-bil-lys-2: transparent; --rampen-rampe-lys: #ffffff; --rampen-skilt: #ffffff; --rampen-skilt-flade: #000000;
+}
 
 /* ---------- Glød og skygger i siden ---------- */
 :root, [data-theme] {

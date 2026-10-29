@@ -185,7 +185,7 @@
 
   // ---------- Startmenu ----------
   function drawCars() {
-    var st = game.stats(), opts = { type: game.bilType(), vinger: st.vinger, raket: game.p.upg.raket > 0 };
+    var st = game.stats(), opts = { type: game.bilType(), vinger: st.vinger, raket: game.p.upg.raket > 0, opg: game.p.upg };
     if (current === 'menu' && $('#menu-bil').offsetParent) RampenTegn.bilBillede($('#menu-bil'), opts);
     if (current === 'shop' && $('#shop-bil').offsetParent) RampenTegn.bilBillede($('#shop-bil'), opts);
   }
@@ -492,7 +492,8 @@
       course: game.course, taken: game.flight ? game.flight.taken : {}, tNow: lastCar ? lastCar.t : 0,
       angle: game.p.angle, type: game.bilType(), vinger: st.vinger, raket: game.p.upg.raket > 0,
       trail: trail, previews: [], felter: [],
-      udsyn: (game.st || st).udsyn
+      udsyn: (game.st || st).udsyn,
+      opg: game.p.upg, maxHp: (game.st || st).maxHp          // kun til tegningen (synlige opgraderinger og slid)
     };
     return sceneCache;
   }
@@ -510,7 +511,7 @@
       sc.lim = sc.udsyn;
     } else if (phase === 'freeze' && opts) {
       var f = game.flight;
-      sc.car = { x: f.x, y: f.y, vx: f.vx, vy: f.vy, ground: f.ground, nose: f.nose };
+      sc.car = { x: f.x, y: f.y, vx: f.vx, vy: f.vy, ground: f.ground, nose: f.nose, hp: f.hp };
       sc.tNow = f.t; sc.fit = true;
       sc.lim = f.x + sc.udsyn;
       // Hvert kort: den skønnede vej (inden for udsyn) og det usikre landingsfelt

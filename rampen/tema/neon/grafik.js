@@ -48,8 +48,10 @@
     'bil-krop', 'bil-krop-2', 'bil-kant', 'bil-rude', 'hjul', 'hjul-nav', 'vinge', 'raket', 'flamme', 'flamme-kerne', 'skaerm', 'skaerm-snor',
     'spor', 'forhaand-uden', 'forhaand-med', 'forhaand-start', 'landing',
     'forhaand-kort-1', 'forhaand-kort-2', 'forhaand-kort-3',
-    'felt-1', 'felt-1-kant', 'felt-2', 'felt-2-kant', 'felt-3', 'felt-3-kant', 'taage', 'taage-2'];
-  ZONER.forEach(function (z) { FARVER.push('himmel-' + z + '-1', 'himmel-' + z + '-2', 'jord-' + z, 'jord-' + z + '-kant', 'kulisse-' + z, 'kulisse-' + z + '-2'); });
+    'felt-1', 'felt-1-kant', 'felt-2', 'felt-2-kant', 'felt-3', 'felt-3-kant', 'taage', 'taage-2',
+    'bil-lys', 'bil-lys-2', 'bil-lygte', 'bil-krom', 'bil-panser', 'bil-skade', 'roeg', 'roeg-moerk', 'stoev', 'gnist',
+    'sol-1', 'sol-2', 'stjerne', 'sky', 'fugl', 'rampe-lys', 'skilt', 'skilt-flade'];
+  ZONER.forEach(function (z) { FARVER.push('himmel-' + z + '-1', 'himmel-' + z + '-2', 'jord-' + z, 'jord-' + z + '-kant', 'kulisse-' + z, 'kulisse-' + z + '-2', 'fjern-' + z, 'forgrund-' + z, 'partikel-' + z); });
   var TAL = ['gloed', 'gloed-blur', 'skygge-x', 'skygge-y', 'skygge-blur', 'kontur-w', 'streg-w', 'forhaand-w', 'spor-w', 'jord-kant-w', 'tekst-str', 'radius'];
 
   function glow(ctx, s, color, k) {
@@ -79,6 +81,8 @@
   function px(v, m, min) { return Math.max(m * v.k, min); }
   // Fast "tilfældig" værdi pr. heltal (kulisser)
   function rnd(i) { var x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); }
+  // Horisont for fjerne lag: følger jorden, men kun en del af vejen, når kameraet går op
+  function horisont(v, f) { var g = v.h * 0.86; return g + (v.sy(0) - g) * f; }
   function mix(a, b, f) { return f <= 0 ? a : f >= 1 ? b : null; }
 
   var tegn = {
@@ -97,7 +101,7 @@
     },
     kulisse: function (ctx, d, v, s) {
       noFx(ctx);
-      var z = d.zone, base = v.sy(0), par = 0.25;     // bevæger sig langsommere end jorden
+      var z = d.zone, base = horisont(v, 0.7), par = 0.25;     // bevæger sig langsommere end jorden
       var off = v.x0 * v.k * par, c1 = s['kulisse-' + z], c2 = s['kulisse-' + z + '-2'];
       var step = 90, i0 = Math.floor(off / step) - 1, i1 = i0 + Math.ceil(v.w / step) + 3;
       for (var i = i0; i < i1; i++) {
@@ -162,6 +166,20 @@
       ctx.fillStyle = s['rampe']; ctx.fill();
       glow(ctx, s, s['rampe-kant']);
       ctx.strokeStyle = s['rampe-kant']; ctx.lineWidth = s['streg-w'] * 1.5; ctx.stroke();
+      noFx(ctx);
+      // Lyskæde langs rampen og stivere i siden (fast lys, intet blink)
+      var qx0 = x0 - 30, qy0 = top - 40, qx1 = x0 + (x1 - x0) * 0.6, qy1 = top + 10, qx2 = x1 - 2.2 * v.k, qy2 = top;
+      var nL = Math.max(4, Math.round((qx2 - qx0) / 26)), lr = Math.max(2, Math.min(4, v.k * 0.12));
+      ctx.strokeStyle = s['rampe-kant']; ctx.globalAlpha = 0.35; ctx.lineWidth = s['streg-w'];
+      ctx.beginPath();
+      for (var si = 1; si < 6; si++) { var sx = qx0 + (x1 - qx0) * si / 6; ctx.moveTo(sx, y0); ctx.lineTo(sx + (x1 - qx0) / 12, y0 - (y0 - top) * 0.7); }
+      ctx.stroke(); ctx.globalAlpha = 1;
+      glow(ctx, s, s['rampe-lys'], 0.7); ctx.fillStyle = s['rampe-lys'];
+      for (var li = 0; li <= nL; li++) {
+        var tq = li / nL, mt = 1 - tq;
+        var lx = mt * mt * qx0 + 2 * mt * tq * qx1 + tq * tq * qx2, ly = mt * mt * qy0 + 2 * mt * tq * qy1 + tq * tq * qy2;
+        ctx.beginPath(); ctx.arc(lx, ly + lr * 2.2, lr, 0, Math.PI * 2); ctx.fill();
+      }
       noFx(ctx);
       // Vinkelpil ved kanten
       var a = d.vinkel * Math.PI / 180, L = Math.max(40, 5 * v.k);
@@ -244,25 +262,57 @@
       ctx.beginPath(); ctx.moveTo(x - r * 0.3, y); ctx.lineTo(x + r * 0.3, y); ctx.moveTo(x, y - r * 0.3); ctx.lineTo(x, y + r * 0.3); ctx.stroke();
     },
     // ---------- Bilen ----------
+    // b: {x, y, vinkel, type, vinger, raket, flamme, skaerm, naese,
+    //     hjul (hjulenes drejning i radianer), saet (meter karrosseriet sætter sig ved landing),
+    //     opg {daek, karrosseri, aero, motor, instrumenter, faldskaerm} (synlige opgraderinger),
+    //     slid 0–1 (skade-look), lys (kørelys), tid (sekunder, til en rolig flamme)}
     bil: function (ctx, b, v, s) {
       var k = Math.max(v.k, 16);            // bilen er altid mindst ca. 50 px lang
-      var x = v.sx(b.x), y = v.sy(b.y);
+      var x = v.sx(b.x), y = v.sy(b.y), o = b.opg || {};
+      var FRONT = { saebekasse: 1.2, folkevogn: 1.5, sportsvogn: 1.7, raketbil: 2.1 }[b.type] || 1.5;
+      var BAG = { saebekasse: -1.4, folkevogn: -1.5, sportsvogn: -1.6, raketbil: -1.7 }[b.type] || -1.5;
+      var hr = 0.35 + 0.018 * Math.min(6, o.daek || 0), lift = -(hr - 0.35) + Math.max(0, Math.min(0.2, b.saet || 0));
       ctx.save(); ctx.translate(x, y); ctx.rotate(-b.vinkel); ctx.scale(k, k);
       var lw = s['streg-w'] / k;
+      // Kørelys: en svag lyskegle foran bilen
+      if (b.lys) {
+        noFx(ctx);
+        var g = ctx.createLinearGradient(FRONT, 0, FRONT + 5, 0);
+        g.addColorStop(0, s['bil-lys']); g.addColorStop(1, s['bil-lys-2']);
+        ctx.beginPath(); ctx.moveTo(FRONT, -0.62 + lift); ctx.lineTo(FRONT + 5, -1.2 + lift); ctx.lineTo(FRONT + 5, 0.1 + lift); ctx.lineTo(FRONT, -0.48 + lift); ctx.closePath();
+        ctx.fillStyle = g; ctx.fill();
+      }
       // Faldskærm (når den tager af en landing)
       if (b.skaerm) {
         noFx(ctx); ctx.strokeStyle = s['skaerm-snor']; ctx.lineWidth = lw;
         ctx.beginPath(); ctx.moveTo(-1.2, -1); ctx.lineTo(-2.6, -4.2); ctx.moveTo(0.4, -1); ctx.lineTo(1.2, -4.2); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(-3.2, -4); ctx.quadraticCurveTo(-0.7, -6.6, 1.8, -4); ctx.closePath(); ctx.fillStyle = s['skaerm']; ctx.fill();
       }
-      // Raketflamme bagved
+      ctx.save(); ctx.translate(0, lift);
+      // Raketflamme bagved (længden ånder roligt, ingen blink)
       if (b.flamme) {
+        var fl = 1 + 0.12 * Math.sin((b.tid || 0) * 5);
         glow(ctx, s, s['flamme'], 1.2);
-        ctx.beginPath(); ctx.moveTo(-1.7, -0.75); ctx.lineTo(-4.2, -0.6); ctx.lineTo(-1.7, -0.25); ctx.closePath(); ctx.fillStyle = s['flamme']; ctx.fill();
-        ctx.beginPath(); ctx.moveTo(-1.7, -0.65); ctx.lineTo(-3, -0.55); ctx.lineTo(-1.7, -0.4); ctx.closePath(); ctx.fillStyle = s['flamme-kerne']; ctx.fill();
+        ctx.beginPath(); ctx.moveTo(-1.7, -0.78); ctx.lineTo(-1.7 - 2.6 * fl, -0.6); ctx.lineTo(-1.7, -0.22); ctx.closePath(); ctx.fillStyle = s['flamme']; ctx.fill();
+        ctx.beginPath(); ctx.moveTo(-1.7, -0.66); ctx.lineTo(-1.7 - 1.4 * fl, -0.55); ctx.lineTo(-1.7, -0.38); ctx.closePath(); ctx.fillStyle = s['flamme-kerne']; ctx.fill();
         noFx(ctx);
       }
       if (b.raket) { rr(ctx, -2, -0.85, 1.1, 0.5, 0.2); ctx.fillStyle = s['raket']; ctx.fill(); kontur(ctx, s, lw); }
+      // Udstødning (Motor 3+, to rør ved 6+)
+      if ((o.motor || 0) >= 3) {
+        noFx(ctx); ctx.fillStyle = s['bil-krom'];
+        ctx.fillRect(BAG - 0.3, -0.5, 0.35, 0.1); if (o.motor >= 6) ctx.fillRect(BAG - 0.25, -0.38, 0.3, 0.08);
+      }
+      // Faldskærmspakke på ryggen
+      if ((o.faldskaerm || 0) >= 1 && !b.skaerm) { rr(ctx, BAG + 0.15, -1.3, 0.5, 0.35, 0.1); ctx.fillStyle = s['skaerm']; ctx.fill(); kontur(ctx, s, lw); }
+      // Antenne (Instrumenter): længere for hvert niveau, parabol fra niveau 3
+      if ((o.instrumenter || 0) >= 1) {
+        var ah = 0.45 + 0.12 * o.instrumenter, ax = BAG + 0.45, ay = b.type === 'saebekasse' ? -0.95 : -1.15;
+        noFx(ctx); ctx.strokeStyle = s['bil-krom']; ctx.lineWidth = lw;
+        ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(ax - 0.15, ay - ah); ctx.stroke();
+        glow(ctx, s, s['bil-lygte'], 0.4); ctx.beginPath(); ctx.arc(ax - 0.15, ay - ah, 0.07, 0, Math.PI * 2); ctx.fillStyle = s['bil-lygte']; ctx.fill(); noFx(ctx);
+        if (o.instrumenter >= 3) { ctx.beginPath(); ctx.arc(ax + 0.3, ay - 0.12, 0.18, Math.PI * 0.9, Math.PI * 1.9); ctx.fillStyle = s['bil-krom']; ctx.fill(); }
+      }
       // Karrosseri pr. biltype (y er negativ opad, fordi y-aksen på skærmen vender nedad)
       shadow(ctx, s);
       ctx.fillStyle = s['bil-krop']; ctx.strokeStyle = s['bil-kant']; ctx.lineWidth = lw;
@@ -287,6 +337,34 @@
         ctx.beginPath(); ctx.moveTo(-1.7, -1.0); ctx.lineTo(-2.1, -1.7); ctx.lineTo(-1.2, -1.05); ctx.closePath(); ctx.fillStyle = s['bil-krop-2']; ctx.fill();   // halefinne
         ctx.beginPath(); ctx.ellipse(0.5, -1.12, 0.55, 0.22, 0, Math.PI, 0); ctx.fillStyle = s['bil-rude']; ctx.fill();
       }
+      // Panser (Karrosseri 2+): plader med nitter langs siden, ekstra bøjle fra 4
+      if ((o.karrosseri || 0) >= 2) {
+        noFx(ctx); ctx.fillStyle = s['bil-panser'];
+        var px0 = BAG + 0.15, px1 = FRONT - 0.35, n = 3;
+        for (var pi = 0; pi < n; pi++) { var pa = px0 + (px1 - px0) * pi / n; rr(ctx, pa + 0.03, -0.62, (px1 - px0) / n - 0.06, 0.2, 0.05); ctx.fill(); }
+        ctx.fillStyle = s['bil-krom'];
+        for (var ni = 0; ni <= n * 2; ni++) ctx.fillRect(px0 + (px1 - px0) * ni / (n * 2) - 0.02, -0.54, 0.04, 0.04);
+        if (o.karrosseri >= 4) { ctx.strokeStyle = s['bil-panser']; ctx.lineWidth = lw * 1.6; ctx.beginPath(); ctx.moveTo(FRONT - 0.1, -0.5); ctx.lineTo(FRONT + 0.12, -0.5); ctx.lineTo(FRONT + 0.12, -0.75); ctx.stroke(); }
+      }
+      // Aero: spoiler (2+) på biler uden, splitter foran (4+)
+      if ((o.aero || 0) >= 2 && (b.type === 'saebekasse' || b.type === 'folkevogn')) {
+        noFx(ctx); ctx.fillStyle = s['bil-krop-2'];
+        ctx.fillRect(BAG - 0.2, b.type === 'saebekasse' ? -1.15 : -1.25, 0.5, 0.1); ctx.fillRect(BAG + 0.05, b.type === 'saebekasse' ? -1.05 : -1.15, 0.08, 0.25);
+      }
+      if ((o.aero || 0) >= 4) { noFx(ctx); ctx.fillStyle = s['bil-krop-2']; ctx.fillRect(FRONT - 0.35, -0.4, 0.55, 0.06); }
+      // Luftindtag på motorhjelmen (Motor 5+)
+      if ((o.motor || 0) >= 5) { ctx.beginPath(); ctx.moveTo(0.55, -1.0 - (b.type === 'saebekasse' ? -0.05 : 0.1)); ctx.lineTo(0.75, -1.25); ctx.lineTo(1.05, -1.25); ctx.lineTo(1.05, -1.05); ctx.closePath(); ctx.fillStyle = s['bil-krom']; ctx.fill(); }
+      // Kørelygte foran
+      glow(ctx, s, s['bil-lygte'], 0.5); ctx.beginPath(); ctx.arc(FRONT - 0.05, -0.6, 0.09, 0, Math.PI * 2); ctx.fillStyle = s['bil-lygte']; ctx.fill(); noFx(ctx);
+      // Slid: ridser, en bule og en revne i ruden, når bilen er medtaget
+      var sl = b.slid || 0;
+      if (sl > 0.3) {
+        ctx.strokeStyle = s['bil-skade']; ctx.lineWidth = lw * 1.2;
+        ctx.beginPath(); ctx.moveTo(BAG + 0.4, -0.75); ctx.lineTo(BAG + 0.75, -0.6); ctx.moveTo(BAG + 0.55, -0.82); ctx.lineTo(BAG + 0.85, -0.7);
+        if (sl > 0.55) { ctx.moveTo(0.6, -0.8); ctx.lineTo(0.95, -0.66); ctx.moveTo(0.1, -0.5); ctx.lineTo(0.35, -0.42); }
+        ctx.stroke();
+        if (sl > 0.55 && b.type !== 'saebekasse') { ctx.beginPath(); ctx.moveTo(0.25, -1.2); ctx.lineTo(0.4, -1.05); ctx.lineTo(0.35, -0.98); ctx.moveTo(0.4, -1.05); ctx.lineTo(0.55, -1.08); ctx.stroke(); }
+      }
       // Vinger
       if (b.vinger) {
         var t = b.naese === 'op' ? -0.12 : b.naese === 'ned' ? 0.12 : 0;
@@ -296,10 +374,22 @@
         ctx.fillStyle = s['vinge']; ctx.fill(); noFx(ctx); kontur(ctx, s, lw);
         ctx.restore();
       }
-      // Hjul
+      ctx.restore();
+      // Hjul (står ved jorden, også når karrosseriet sætter sig) med fælge, der drejer efter farten
+      var rot = b.hjul || 0;
       [-0.95, 0.95].forEach(function (hx) {
-        ctx.beginPath(); ctx.arc(hx, -0.35, 0.35, 0, Math.PI * 2); ctx.fillStyle = s['hjul']; ctx.fill();
+        var cy = -hr;
+        ctx.beginPath(); ctx.arc(hx, cy, hr, 0, Math.PI * 2); ctx.fillStyle = s['hjul']; ctx.fill();
         ctx.lineWidth = lw; ctx.strokeStyle = s['hjul-nav']; ctx.stroke();
+        ctx.beginPath(); ctx.arc(hx, cy, hr * 0.55, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath();
+        for (var e = 0; e < 3; e++) { var an = rot + e * Math.PI * 2 / 3; ctx.moveTo(hx, cy); ctx.lineTo(hx + Math.cos(an) * hr * 0.55, cy + Math.sin(an) * hr * 0.55); }
+        ctx.stroke();
+        if ((o.daek || 0) >= 3) {      // grove dæk: knaster rundt om
+          ctx.beginPath();
+          for (var m = 0; m < 10; m++) { var am = rot + m * Math.PI / 5; ctx.moveTo(hx + Math.cos(am) * hr * 0.82, cy + Math.sin(am) * hr * 0.82); ctx.lineTo(hx + Math.cos(am) * hr, cy + Math.sin(am) * hr); }
+          ctx.stroke();
+        }
       });
       ctx.restore();
     },
@@ -340,6 +430,163 @@
       var ty = d.under ? y + h + 4 + s['tekst-str'] + (d.raekke || 0) * (s['tekst-str'] + 6)
         : y - h * 2 - 4 - (d.raekke || 0) * (s['tekst-str'] + 6);
       tekst(ctx, d.tekst, tx, ty, s, 'center');
+    },
+    // ---------- v1.5: lag og liv i landskabet ----------
+    // Solen går ned over turen (døgnrytme): høj i Forstaden, lav i Ørkenen, væk i
+    // Skyerne, hvor der kommer stjerner. d.afstand = meter midt i billedet.
+    sol: function (ctx, d, v, s) {
+      noFx(ctx);
+      var p = Math.max(0, Math.min(1, d.afstand / 1500)), hz = horisont(v, 0.15);
+      var r = Math.min(v.w, v.h) * 0.1, x = v.w * 0.8 - (v.x0 * v.k * 0.01) % (v.w * 0.2);
+      var y = hz - v.h * (0.5 - 0.75 * p);
+      if (p > 0.55) {      // stjerner tones frem, når solen er nede (faste, ingen blink)
+        ctx.globalAlpha = Math.min(1, (p - 0.55) * 2.5) * 0.8; ctx.fillStyle = s['stjerne'];
+        for (var j = 0; j < 60; j++) ctx.fillRect(rnd(j * 3.1) * v.w, rnd(j * 5.7) * hz * 0.8, 1.6, 1.6);
+        ctx.globalAlpha = 1;
+      }
+      if (y - r > hz || d.zone === 'rummet') return;
+      ctx.save();
+      ctx.beginPath(); ctx.rect(0, 0, v.w, hz); ctx.clip();
+      glow(ctx, s, s['sol-1'], 1.5);
+      var g = ctx.createLinearGradient(0, y - r, 0, y + r);
+      g.addColorStop(0, s['sol-1']); g.addColorStop(1, s['sol-2']);
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill(); noFx(ctx);
+      // Synthwave-striber i den nederste halvdel (inden for solen)
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.clip();
+      ctx.fillStyle = s['himmel-' + d.zone + '-2'];
+      for (var i = 0; i < 5; i++) { var by = y + r * (0.15 + i * 0.18), bh = r * (0.03 + i * 0.022); ctx.fillRect(x - r - 2, by, r * 2 + 4, bh); }
+      ctx.restore();
+    },
+    // Fjerneste lag (bevæger sig næsten ikke): by, mesaer, bjergkæde, skybanker, en stor måne
+    fjern: function (ctx, d, v, s) {
+      noFx(ctx);
+      var z = d.zone, base = horisont(v, 0.25), off = v.x0 * v.k * 0.06, c = s['fjern-' + z];
+      ctx.fillStyle = c; ctx.beginPath();
+      if (z === 'rummet') {
+        var span = v.w * 1.6, mx = v.w * 1.3 - ((off % span) + span) % span, my = v.h * 0.3, mr = Math.min(v.w, v.h) * 0.16;
+        ctx.arc(mx, my, mr, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = s['kulisse-rummet-2']; ctx.globalAlpha = 0.35; ctx.lineWidth = s['streg-w'];
+        ctx.beginPath(); ctx.ellipse(mx, my, mr * 1.7, mr * 0.35, -0.25, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 1;
+        return;
+      }
+      var step = z === 'forstad' ? 34 : 120, i0 = Math.floor(off / step) - 2, i1 = i0 + Math.ceil(v.w / step) + 4;
+      ctx.moveTo(-10, base);
+      for (var i = i0; i < i1; i++) {
+        var x = i * step - off, r = rnd(i + 900), h;
+        if (z === 'forstad') {        // byens skyline langt væk
+          h = 30 + r * 90 + (rnd(i * 3) > 0.85 ? 60 : 0);
+          ctx.lineTo(x, base - h); ctx.lineTo(x + step * 0.8, base - h); ctx.lineTo(x + step * 0.8, base - h * 0.4); ctx.lineTo(x + step, base - h * 0.4);
+        } else if (z === 'oerken') {  // flade mesaer
+          h = 40 + r * 70;
+          ctx.lineTo(x + step * 0.15, base - h); ctx.lineTo(x + step * 0.6, base - h); ctx.lineTo(x + step * 0.8, base - 10);
+        } else if (z === 'bjerge') {  // fjern bjergkæde
+          h = 140 + r * 160; ctx.lineTo(x + step * 0.5, base - h); ctx.lineTo(x + step, base - 40 - r * 40);
+        } else {                      // skybanker
+          h = 50 + r * 60; ctx.quadraticCurveTo(x + step * 0.5, base - h * 1.6, x + step, base - h * 0.4);
+        }
+      }
+      ctx.lineTo(v.w + 10, base); ctx.lineTo(v.w + 10, v.h); ctx.lineTo(-10, v.h); ctx.closePath(); ctx.fill();
+      if (z === 'forstad') {          // få faste vinduer i skylinen (ingen blink)
+        ctx.fillStyle = s['kulisse-forstad-2']; ctx.globalAlpha = 0.5;
+        for (var w = i0; w < i1; w++) if (rnd(w * 7) > 0.6) ctx.fillRect(w * step - off + 8, base - 20 - rnd(w * 11) * 40, 3, 3);
+        ctx.globalAlpha = 1;
+      }
+    },
+    // Skyer og fugle, der driver roligt (fast tempo, uafhængigt af den skjulte vind).
+    // d.tid = sekunder (står stille ved mindre bevægelse).
+    skyer: function (ctx, d, v, s) {
+      var z = d.zone; if (z === 'rummet') return;
+      noFx(ctx);
+      var base = horisont(v, 0.4), off = v.x0 * v.k * 0.12 - d.tid * 6, step = 260;
+      var i0 = Math.floor(off / step) - 1, i1 = i0 + Math.ceil(v.w / step) + 3;
+      ctx.fillStyle = s['sky'];
+      for (var i = i0; i < i1; i++) {
+        var r = rnd(i + 400); if (z === 'oerken' && r < 0.6) continue;
+        var x = i * step - off + r * 80, y = base - v.h * (0.42 + r * 0.25), w = 50 + r * 60;
+        ctx.beginPath(); ctx.ellipse(x, y, w, w * 0.22, 0, 0, Math.PI * 2); ctx.ellipse(x + w * 0.35, y - w * 0.14, w * 0.45, w * 0.22, 0, 0, Math.PI * 2); ctx.fill();
+      }
+      if (z !== 'forstad' && z !== 'bjerge') return;
+      // Fugle: små V'er, der flyver i en flok og slår roligt med vingerne
+      ctx.strokeStyle = s['fugl']; ctx.lineWidth = Math.max(1.2, s['streg-w'] * 0.7); ctx.lineCap = 'round';
+      var fx = (v.w * 1.2 - (d.tid * 18 + v.x0 * v.k * 0.18) % (v.w * 1.6)), fy = base - v.h * 0.5;
+      for (var f = 0; f < 5; f++) {
+        var bx = fx + f * 22 + rnd(f) * 10, by = fy + (f % 2) * 10 + rnd(f + 5) * 8, a = 4 + 2 * Math.sin(d.tid * 2 + f);
+        ctx.beginPath(); ctx.moveTo(bx - 6, by - a); ctx.lineTo(bx, by); ctx.lineTo(bx + 6, by - a); ctx.stroke();
+      }
+      ctx.lineCap = 'butt';
+    },
+    // Forgrund i jordbåndet: græs og blomster (eng), sten og knogler (ørken),
+    // klipper og sne (bjerge), skydotter (skyer), kratere (rummet)
+    forgrund: function (ctx, d, v, s) {
+      var z = d.zone, y0 = v.sy(0); if (y0 >= v.h - 4) return;
+      noFx(ctx);
+      var c = s['forgrund-' + z], step = 26, off = v.x0 * v.k * 1.15;
+      var i0 = Math.floor(off / step) - 1, i1 = i0 + Math.ceil(v.w / step) + 2, band = v.h - y0;
+      ctx.fillStyle = c; ctx.strokeStyle = c; ctx.lineWidth = Math.max(1.2, s['streg-w'] * 0.8); ctx.lineCap = 'round';
+      for (var i = i0; i < i1; i++) {
+        var r = rnd(i + 77); if (r < 0.45) continue;
+        var x = i * step - off, y = y0 + 6 + rnd(i + 3) * Math.min(band - 8, 50), q = 0.6 + r;
+        ctx.beginPath();
+        if (z === 'forstad') {
+          ctx.moveTo(x, y); ctx.lineTo(x - 3 * q, y - 8 * q); ctx.moveTo(x, y); ctx.lineTo(x + 1, y - 11 * q); ctx.moveTo(x, y); ctx.lineTo(x + 4 * q, y - 7 * q); ctx.stroke();
+          if (r > 0.85) { ctx.fillStyle = s['kulisse-forstad-2']; ctx.beginPath(); ctx.arc(x + 1, y - 12 * q, 2, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = c; }
+        } else if (z === 'oerken') {
+          ctx.ellipse(x, y, 4 * q, 2 * q, 0, 0, Math.PI * 2); ctx.fill();
+        } else if (z === 'bjerge') {
+          ctx.moveTo(x - 6 * q, y); ctx.lineTo(x - 1, y - 7 * q); ctx.lineTo(x + 6 * q, y); ctx.closePath(); ctx.fill();
+        } else if (z === 'skyer') {
+          ctx.ellipse(x, y, 9 * q, 3 * q, 0, 0, Math.PI * 2); ctx.fill();
+        } else {
+          ctx.ellipse(x, y, 7 * q, 2.2 * q, 0, 0, Math.PI * 2); ctx.stroke();
+        }
+      }
+      ctx.lineCap = 'butt';
+    },
+    // Stemningspartikler i hele billedet: blade, sand, sne, stjernestøv.
+    // Kun når der er bevægelse (tegnelaget kalder den ikke ved mindre bevægelse).
+    stemning: function (ctx, d, v, s) {
+      var z = d.zone; if (z === 'skyer') return;
+      noFx(ctx); ctx.fillStyle = s['partikel-' + z];
+      var n = 16, t = d.tid, W = v.w + 40, H = v.h + 40, drift = v.x0 * v.k * 0.6;
+      for (var i = 0; i < n; i++) {
+        var a = rnd(i * 9.3), b = rnd(i * 4.1), sp = 10 + a * 18;
+        var fall = z === 'bjerge' ? 26 : z === 'forstad' ? 14 : z === 'oerken' ? 4 : 0;
+        var x = ((a * W - drift - t * (z === 'oerken' ? 30 : sp)) % W + W) % W - 20;
+        var y = ((b * H + t * (fall + a * 8)) % H + H) % H - 20;
+        x += Math.sin(t * 0.8 + i) * 6;
+        if (z === 'forstad') { ctx.save(); ctx.translate(x, y); ctx.rotate(t * 0.6 + i); ctx.beginPath(); ctx.ellipse(0, 0, 4, 2, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore(); }
+        else if (z === 'bjerge') { ctx.beginPath(); ctx.arc(x, y, 1.5 + a * 1.5, 0, Math.PI * 2); ctx.fill(); }
+        else ctx.fillRect(x, y, 1.5 + a, 1.5 + a);
+      }
+    },
+    // Partikler fra bilen (tegnelaget styrer dem): slags = roeg | stoev | gnist | glod
+    // {x, y (meter), alder 0–1, r (meter), vx, vy}
+    partikel: function (ctx, p, v, s) {
+      var x = v.sx(p.x), y = v.sy(p.y), a = 1 - p.alder, k = Math.max(v.k, 16);
+      if (p.slags === 'gnist') {
+        glow(ctx, s, s['gnist'], 0.6);
+        ctx.strokeStyle = s['gnist']; ctx.globalAlpha = a; ctx.lineWidth = Math.max(1.5, 0.06 * k);
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - p.vx * 0.03 * k, y + p.vy * 0.03 * k); ctx.stroke();
+        ctx.globalAlpha = 1; noFx(ctx); return;
+      }
+      noFx(ctx);
+      var r = p.r * k * (0.6 + p.alder * 1.4);
+      ctx.globalAlpha = a * (p.slags === 'glod' ? 0.9 : 0.55);
+      ctx.fillStyle = s[p.slags === 'glod' ? 'flamme-kerne' : p.slags === 'stoev' ? 'stoev' : p.slags === 'skaderoeg' ? 'roeg-moerk' : 'roeg'];
+      ctx.beginPath(); ctx.arc(x, y, Math.max(1, r), 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 1;
+    },
+    // Afstandsskilt for hver 100 m (stolpe med skilt)
+    skilt: function (ctx, d, v, s) {
+      var x = v.sx(d.x), y = v.sy(0), h = Math.max(34, 3.2 * v.k), str = Math.round(s['tekst-str'] * 0.8);
+      noFx(ctx);
+      ctx.strokeStyle = s['skilt']; ctx.lineWidth = s['streg-w'];
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y - h); ctx.stroke();
+      ctx.font = '700 ' + str + 'px ' + s.font;
+      var w = ctx.measureText(d.tekst).width + 10;
+      rr(ctx, x - w / 2, y - h - str - 6, w, str + 8, s['radius'] * 0.3);
+      ctx.fillStyle = s['skilt-flade']; ctx.fill(); glow(ctx, s, s['skilt'], 0.4); ctx.stroke(); noFx(ctx);
+      ctx.fillStyle = s['skilt']; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(d.tekst, x, y - h - str / 2 - 2);
     },
     // Tåge fra udsynets grænse: blød overgang og så dækkende
     taage: function (ctx, d, v, s) {
