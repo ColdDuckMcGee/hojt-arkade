@@ -122,7 +122,7 @@
     var fit = 1;
     rootEl.style.setProperty('--fit', '1');
     if (layer) {
-      while (fit > MIN_FIT && overflowing(layer)) {
+      for (var guard = 0; guard < 40 && fit > MIN_FIT && overflowing(layer); guard++) {
         fit = Math.round((fit - 0.03) * 100) / 100;
         rootEl.style.setProperty('--fit', String(fit));
       }
@@ -467,10 +467,15 @@
   function chooseLayout(AW, AH, W, H) {
     var ideal = Math.max(CM3, Math.min(0.15 * Math.min(W, H), CM42));
     var minBoard = Math.max(140, 0.42 * Math.min(AW, AH));
+    // Knapstørrelser der prøves: den ideelle, derefter hele pixels nedad til 44.
+    // NB: listen bygges med en tæller, så løkken altid slutter – også når den
+    // ideelle størrelse er et helt tal (fx 1280×800: 15 % af 800 = 120).
+    var sizes = [ideal];
+    for (var n = 0, s0 = Math.ceil(ideal) - 1; n < 200 && s0 >= 44; n++, s0--) sizes.push(s0);
     for (var pass = 0; pass < 2; pass++) {
       var best = {};
-      for (var b = ideal; b >= 44; b = (b === ideal ? Math.floor(ideal) : b - 1)) {
-        gameLayouts(AW, AH, b, minBoard).forEach(function (c) { if (!best[c.name]) best[c.name] = c; });
+      for (var i = 0; i < sizes.length; i++) {
+        gameLayouts(AW, AH, sizes[i], minBoard).forEach(function (c) { if (!best[c.name]) best[c.name] = c; });
         if (best.rundt && best.under && best.siden) break;
       }
       var list = Object.keys(best).map(function (k) { return best[k]; });
@@ -483,7 +488,17 @@
       }
       minBoard = 60;  // meget lille skærm: accepter et mindre bræt
     }
-    return gameLayouts(AW, AH, 44, 0)[0];
+    // Nødløsning: pile rundt om et lille bræt, så spillet altid kan startes
+    return gameLayouts(AW, AH, 44, 0)[0] || fallbackLayout(AW, AH);
+  }
+  function fallbackLayout(AW, AH) {
+    var b = Math.max(24, Math.min(44, Math.floor(Math.min(AW, AH) / 5)));
+    var board = Math.max(40, Math.floor(Math.min(AW - 2 * b - 8, AH - 2 * b - 8)));
+    var x = b + 4, y = b + 4;
+    return { name: 'rundt', b: b, board: board, w: board + 2 * b + 8, h: board + 2 * b + 8, el: {
+      pause: [0, 0, b, b], up: [x, 0, board, b], down: [x, y + board + 4, board, b],
+      left: [0, y, b, board], right: [x + board + 4, y, b, board], board: [x, y, board, board],
+      score: [x + board + 4, 0, b, b], record: [0, y + board + 4, b, b], bonus: [x + board + 4, y + board + 4, b, b] } };
   }
   var gameEls = null;
   function layoutGame() {
