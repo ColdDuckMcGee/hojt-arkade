@@ -137,6 +137,13 @@
         cl.toggle('cur', i === view.cursor);
         cl.toggle('vaek', gone.indexOf(i) >= 0);
         var x = i % n, y = Math.floor(i / n);
+        // Klikbare felter (TD Browse' Color Links): uden valg kun hver anden juvel i skakmønster –
+        // ethvert byt har netop én juvel af hver farve i mønstret, så alle byt kan stadig startes –
+        // og efter et valg kun de 4 naboer (fortryd med Fortryd valg). Resten er inert; musen
+        // rammer dem stadig via pladens klik-handler, så mus og berøring virker som før.
+        // Med spillets egen dwell slået til (view.alle) er alle felter mål som før.
+        var on = view.alle ? true : sel >= 0 ? Math.abs(x - sel % n) + Math.abs(y - Math.floor(sel / n)) === 1 : (x + y) % 2 === 0;
+        if (cells[i].inert !== !on) cells[i].inert = !on;
         var st = feltNavn(grid[i], view.fx ? view.fx[i] : 0);
         if (i === sel) st += ', valgt';
         else if (isT) st += ', kan byttes';

@@ -122,7 +122,7 @@
     if (key === 'theme') applyTheme();
     if (key === 'background') applyBackground();
     if (key === 'animation') applyAnimation();
-    if (key === 'dwell') dwell.setEnabled(value);
+    if (key === 'dwell') { dwell.setEnabled(value); renderBoard(); } // felternes klikbarhed følger dwell (tegn.js)
     if (key === 'dwellTime') dwell.setTime(value * 1000);
     if (key === 'sound') audio.setSfx(value);
     if (key === 'music') { audio.unlock(); audio.setMusic(value); }
@@ -243,10 +243,17 @@
 
   boardEl.addEventListener('click', function (e) {
     var c = e.target.closest('.cell');
+    // Inerte felter (se tegn.js) får ikke selv klikket: find feltet under musen
+    if (!c && e.target === boardEl && (e.clientX || e.clientY)) c = cellAt(e.clientX, e.clientY);
     if (!c || swallowed(c)) return;
     act(+c.dataset.i);
   });
 
+  function cellAt(x, y) {
+    var cs = boardEl.querySelectorAll('.cell');
+    for (var i = 0; i < cs.length; i++) { var r = cs[i].getBoundingClientRect(); if (x >= r.left && x < r.right && y >= r.top && y < r.bottom) return cs[i]; }
+    return null;
+  }
   function startGame() {
     if (window.ArkadeHighscore) ArkadeHighscore.start();
     animToken++;
@@ -416,7 +423,8 @@
     tegn.draw(grid || run.state.grid, {
       fx: grid ? (fx || run.state.fx) : run.state.fx,
       selected: sel, targets: bset.get('visMaal') ? targets : [], dim: bset.get('visMaal'),
-      invalid: invalid, tip: tipPair, gone: gone, busy: busy, cursor: live() ? curIdx : -1
+      invalid: invalid, tip: tipPair, gone: gone, busy: busy, cursor: live() ? curIdx : -1,
+      alle: !!arkade.get('dwell')
     });
   }
   function hudNow() { var s = run.state; return { moves: s.moves, score: s.score, level: s.level, goal: s.goal }; }
