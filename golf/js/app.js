@@ -613,7 +613,10 @@
     return { w: Math.floor(L.W * kl), h: Math.floor(L.H * kl), k: kl };
   }
   function candidates(b, W, H, small) {
-    var d = spacing(W, H), p = d.p, g = d.g, ig = 10;
+    var d = spacing(W, H), p = d.p, g = d.g;
+    // Mindst ca. 132 px mellem knappernes midter, når der er plads (TD Browse' farveprikker
+    // viser ellers flere valg på én gang). Små skærme beholder den smalle afstand.
+    var ig = small ? 10 : Math.max(10, Math.min(48, 132 - b));
     var hudH = Math.max(50, Math.min(84, b * 0.62)), hint = small ? 44 : 58, head = small ? 32 : 40;
     var res = { p: p, g: g, hudH: hudH, ig: ig, head: head, hint: hint };
     // wide: status | bane | slaget (2 kolonner)
