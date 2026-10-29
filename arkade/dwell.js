@@ -16,10 +16,66 @@
  *    hvis blikket bliver på den (bruges til pileknapper). Ellers skal blikket
  *    forlade knappen, før den kan aktiveres igen.
  *  - Touch ignoreres (der virker almindeligt tryk). Almindeligt klik virker altid.
+ *  - TD Browse (Tobii Dynavox, en Electron-browser) flytter ikke musen efter blikket,
+ *    så dwell kan ikke virke dér. Er dwell slået til, og er browseren TD Browse/Electron
+ *    (user agent), eller kommer der klik uden en eneste musebevægelse i 10 s efter, at
+ *    dwell er slået til, vises én gang pr. session en venlig besked om at bruge
+ *    TD Browse' Click Mode (farveprikkerne) i stedet. Se ArkadeDwell.isTdBrowse().
  * Aktivering sker med element.click(), så spillets egne click-handlere bruges.
  */
 (function (global) {
   'use strict';
+
+  // ---------- TD Browse / Electron ----------
+  var TD_UA = /Electron\/|TD ?Browse|Tobii|Dynavox/i;
+  var NOTICE_KEY = 'hojtArkade.tdBrowseNotice';
+  function isTdBrowse() {
+    try { return TD_UA.test(global.navigator.userAgent || ''); } catch (e) { return false; }
+  }
+  function noticeSeen() { try { return global.sessionStorage.getItem(NOTICE_KEY) === '1'; } catch (e) { return false; } }
+  function markNotice() { try { global.sessionStorage.setItem(NOTICE_KEY, '1'); } catch (e) { /* ignore */ } }
+  var noticeEl = null;
+  function css(el, o) { for (var k in o) el.style[k] = o[k]; }
+  function showTdNotice() {
+    if (noticeEl || noticeSeen() || !document.body) return;
+    markNotice();
+    var wrap = document.createElement('div');
+    wrap.id = 'arkade-td-besked';
+    wrap.setAttribute('role', 'dialog');
+    wrap.setAttribute('aria-modal', 'true');
+    wrap.setAttribute('aria-labelledby', 'arkade-td-titel');
+    css(wrap, { position: 'fixed', inset: '0', zIndex: '2147483646', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: '16px', boxSizing: 'border-box', background: 'rgba(0,0,0,.72)' });
+    var box = document.createElement('div');
+    css(box, { maxWidth: '640px', width: '100%', maxHeight: '100%', overflow: 'auto', boxSizing: 'border-box', padding: '22px 24px',
+      background: '#10162b', color: '#fff', border: '3px solid #3ee0ff', borderRadius: '18px', textAlign: 'left',
+      font: '19px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif', boxShadow: '0 8px 40px rgba(0,0,0,.6)' });
+    var h = document.createElement('div');
+    h.id = 'arkade-td-titel';
+    css(h, { fontWeight: '800', fontSize: '24px', marginBottom: '10px' });
+    h.textContent = 'Bruger du TD Browse?';
+    var p1 = document.createElement('p');
+    css(p1, { margin: '0 0 10px' });
+    p1.textContent = 'Hojt Arkades egen dwell (kig på en knap for at vælge den) virker ikke i TD Browse, fordi musen ikke følger blikket dér.';
+    var p2 = document.createElement('p');
+    css(p2, { margin: '0 0 18px' });
+    p2.textContent = 'Brug i stedet TD Browse\u2019 Click Mode: kig på en knap, og vælg den farvede prik ved knappen. Du kan slå Hojt-dwell fra under Indstillinger.';
+    var ok = document.createElement('button');
+    ok.type = 'button';
+    ok.textContent = 'OK';
+    css(ok, { display: 'block', width: '100%', minHeight: '84px', margin: '0', padding: '0 18px', cursor: 'pointer',
+      background: '#3ee0ff', color: '#00141a', border: '0', borderRadius: '14px', font: '800 24px/1 system-ui, -apple-system, "Segoe UI", sans-serif' });
+    ok.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (noticeEl && noticeEl.parentNode) noticeEl.parentNode.removeChild(noticeEl);
+      noticeEl = null;
+    });
+    box.appendChild(h); box.appendChild(p1); box.appendChild(p2); box.appendChild(ok);
+    wrap.appendChild(box);
+    document.body.appendChild(wrap);
+    noticeEl = wrap;
+    try { ok.focus({ preventScroll: true }); } catch (e) { /* ignore */ }
+  }
 
   function create(opts) {
     opts = opts || {};
@@ -109,8 +165,24 @@
     }
     function loop() { if (!raf && enabled) raf = requestAnimationFrame(tick); }
 
+    // Overvågning: klik uden en eneste musebevægelse, efter dwell er slået til, tyder på
+    // TD Browse (eller en anden browser, hvor markøren ikke følger blikket).
+    var watchTimer = 0, sawMove = false, sawClick = false, sawTouch = false;
+    function watchStart() {
+      clearTimeout(watchTimer);
+      if (isTdBrowse()) { showTdNotice(); return; }
+      sawMove = false; sawClick = false;
+      watchTimer = setTimeout(function () {
+        watchTimer = 0;
+        if (enabled && !sawMove && sawClick && !sawTouch) showTdNotice();
+      }, opts.tdWatchMs || 10000);
+    }
+    function onDown(e) { if (e.pointerType === 'touch') sawTouch = true; }
+    function onClick() { if (watchTimer) sawClick = true; }
+
     function onMove(e) {
       if (e.pointerType === 'touch') return;
+      sawMove = true;
       lastX = e.clientX; lastY = e.clientY; inside = true;
       loop();
     }
@@ -121,20 +193,25 @@
     document.addEventListener('pointerover', onMove, { passive: true });
     document.addEventListener('pointerout', onOut, { passive: true });
     global.addEventListener('blur', onBlur);
+    document.addEventListener('pointerdown', onDown, { passive: true, capture: true });
+    document.addEventListener('click', onClick, true);
+    if (enabled) watchStart();
 
     return {
       setEnabled: function (v) {
         enabled = !!v;
         locked = null;
-        if (!enabled) { clearTarget(); if (raf) { cancelAnimationFrame(raf); raf = 0; } }
-        else loop();
+        if (!enabled) { clearTarget(); clearTimeout(watchTimer); watchTimer = 0; if (raf) { cancelAnimationFrame(raf); raf = 0; } }
+        else { loop(); watchStart(); }
       },
       isEnabled: function () { return enabled; },
       setTime: function (ms) { timeMs = Math.max(200, Number(ms) || 1200); },
       getTime: function () { return timeMs; },
       reset: function () { locked = null; clearTarget(); },
       destroy: function () {
-        enabled = false; clearTarget();
+        enabled = false; clearTarget(); clearTimeout(watchTimer);
+        document.removeEventListener('pointerdown', onDown, true);
+        document.removeEventListener('click', onClick, true);
         document.removeEventListener('pointermove', onMove);
         document.removeEventListener('pointerover', onMove);
         document.removeEventListener('pointerout', onOut);
@@ -144,5 +221,5 @@
     };
   }
 
-  global.ArkadeDwell = { create: create };
+  global.ArkadeDwell = { create: create, isTdBrowse: isTdBrowse, showTdNotice: showTdNotice };
 })(window);
