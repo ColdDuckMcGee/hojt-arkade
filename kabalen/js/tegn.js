@@ -121,6 +121,12 @@
       if (on) el.removeAttribute('data-no-dwell'); else el.setAttribute('data-no-dwell', '');
     }
     function rectSlot(el, r) { place(el, r.x, r.y, r.w, r.h); el.style.zIndex = '1'; }
+    // En plads, der er dækket af kort, kan ikke ses eller rammes. Den gøres inert og skjult for
+    // hjælpemidler (fx TD Browse' farveprikker), så kun kortet ovenpå tilbydes.
+    function cover(el, covered) {
+      if (el.inert !== covered) el.inert = covered;
+      if (covered) { el.tabIndex = -1; el.setAttribute('aria-hidden', 'true'); } else el.removeAttribute('aria-hidden');
+    }
 
     // view: { sel: { cards: [k…] } | null, targets: [{k:'t',col}|{k:'f',s}], hint: { cards, dest } | null,
     //         movable: { kort: true }, live, fresh (ny tilstand: ingen glidende bevægelse) }
@@ -155,6 +161,7 @@
         if (o.label) label = o.label;
         if (el.getAttribute('aria-label') !== label) el.setAttribute('aria-label', label);
         if (o.hidden) el.setAttribute('aria-hidden', 'true'); else el.removeAttribute('aria-hidden');
+        if (el.inert !== !!o.hidden) el.inert = !!o.hidden; // skjulte kort (bunken, under vendte kort)
         pos[k] = x + ',' + y;
       }
       var sl = geo.slots, i, k;
@@ -173,6 +180,7 @@
       var wo = sl.waste, wtop = s.w - 1, fanN = s.draw === 3 ? Math.min(3, s.w) : 1;
       rectSlot(slots.vendt, wo);
       target(slots.vendt, false);
+      cover(slots.vendt, s.w > 0);
       slots.vendt.classList.toggle('maal', false);
       for (i = 0; i < s.w; i++) {
         k = s.talon[i];
@@ -188,6 +196,7 @@
         el.classList.toggle('maal', !!tg.f[su]);
         el.classList.toggle('tip', !!(hd && hd.k === 'f' && hd.s === su));
         target(el, live && (!!tg.f[su] || (!n && false)));
+        cover(el, n > 0);
         for (var r = 0; r < 13; r++) {
           k = L.kort(su, r);
           if (r >= n) continue;
@@ -204,6 +213,7 @@
         slotEl.classList.toggle('tip', emptyT && !!(hd && hd.k === 't' && hd.col === c));
         slotEl.setAttribute('aria-label', 'Bunke ' + (c + 1) + (emptyT ? ' (tom)' : ''));
         target(slotEl, live && emptyT && !!tg.t[c]);
+        cover(slotEl, !emptyT);
         var mv = {};
         for (i = p.d; i < p.c.length; i++) if (view.movable && view.movable[p.c[i]]) mv[i] = true;
         var al = allocate(p, to.h, geo, mv);

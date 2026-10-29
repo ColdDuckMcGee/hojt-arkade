@@ -115,6 +115,11 @@
         var target = inZoom && view.live;
         el.tabIndex = target ? 0 : -1;
         if (target) el.removeAttribute('data-no-dwell'); else el.setAttribute('data-no-dwell', '');
+        // I oversigten ligger boks-knapperne oven på felterne. Felterne er da hverken klikbare
+        // eller synlige for hjælpemidler (fx TD Browse' farveprikker), så kun boksene tilbydes.
+        var covered = zoom < 0;
+        if (el.inert !== covered) el.inert = covered;
+        if (covered) el.setAttribute('aria-hidden', 'true'); else el.removeAttribute('aria-hidden');
         var st = given[i] ? 'givet ' + v : v ? (s.tipped[i] ? 'tip ' : '') + v : s.wrong[i] ? 'tomt, forkert ' + s.wrong[i] : (nm ? 'tomt, noter ' + notesList(nm) : 'tomt');
         var label = 'Række ' + (G.row(i) + 1) + ', kolonne ' + (G.col(i) + 1) + ': ' + st;
         if (el.getAttribute('aria-label') !== label) el.setAttribute('aria-label', label);
@@ -126,6 +131,8 @@
         b.tabIndex = active ? 0 : -1;
         b.setAttribute('aria-hidden', active ? 'false' : 'true');
         if (active) b.removeAttribute('data-no-dwell'); else b.setAttribute('data-no-dwell', '');
+        // Når en boks er zoomet, er boks-knapperne gennemsigtige for klik (pointer-events: none)
+        if (b.inert !== (zoom >= 0)) b.inert = zoom >= 0;
       }
     }
     function notesList(m) { var a = []; for (var d = 1; d <= 9; d++) if (m & (1 << d)) a.push(d); return a.join(' '); }
