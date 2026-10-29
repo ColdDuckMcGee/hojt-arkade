@@ -50,7 +50,7 @@
   <section class="panel om-panel">
     <h2 id="om-title" class="neon-sub">Om Hojt Arkade</h2>
     <p data-trin>Hojt Arkade er udviklet af Jon Leismann Engsager, Hojt Design. Jon er IT- og IKT-konsulent i det specialiserede område og laver blandt andet gratis spil til voksne, der bruger øjenstyring.</p>
-    <p data-trin>Rampen: vælg vinkel og kraft, og send bilen afsted. Når bilen er på toppen af et hop, stopper spillet og spørger, om raketten skal tændes. To linjer viser, hvor bilen lander med og uden boost. Med vinger vælger du også næsen: op svæver længere, men lander hårdere (mere skade); ned giver et kortere hop, men en blød landing, der bevarer farten. Skaden står ved landingen.</p>
+    <p data-trin>Rampen: vælg vinkel og kraft, og send bilen afsted. Du kan kun se et stykke frem, og banen er ny på hver tur. På toppen af hvert hop stopper spillet og viser 2–3 valgkort, fx boost, gem boostet, tag ballonen eller næse op/ned. Hvert kort viser et usikkert landingsfelt ("ca. 60–90 m"), for vinden og vindstødene er skjulte. Instrumenter gør felterne smallere og udsynet lidt længere.</p>
     <p data-trin>Trampoliner, balloner, vindstød, ramper og olie hjælper bilen videre. Sten, kaktusser og kegler bremser den eller giver skade. Afstanden og mønterne bliver til opgraderinger i værkstedet, og du kan køre så mange ture, du vil.</p>
     <p data-trin>Koden er åben og frit tilgængelig under MIT-licensen, så alle kan bruge den og bygge videre på den.</p>
   </section>
@@ -96,13 +96,13 @@
         <button class="btn step-btn km p-launch" data-pow="-1" aria-label="Mindre kraft"><svg aria-hidden="true"><use href="#rampen-ikon-kraft-ned"/></svg><span class="big">−</span></button>
         <button class="btn step-btn kp p-launch" data-pow="1" aria-label="Mere kraft"><svg aria-hidden="true"><use href="#rampen-ikon-kraft-op"/></svg><span class="big">+</span></button>
         <button class="btn primary act-btn go p-launch" id="btn-launch"><svg aria-hidden="true"><use href="#rampen-ikon-send"/></svg><span class="big">Send afsted</span></button>
-        <!-- Beslutningspunkt -->
-        <div class="ctrl-head head-freeze p-freeze"><span class="ctrl-label" id="freeze-label">Boost nu?</span><span class="ctrl-value" id="freeze-value"></span></div>
-        <button class="btn step-btn no p-freeze p-wings" data-nose="op" aria-label="Næsen op"><svg aria-hidden="true"><use href="#rampen-ikon-naese-op"/></svg><span class="big">Op</span></button>
-        <button class="btn step-btn nl p-freeze p-wings" data-nose="lige" aria-label="Næsen lige"><svg aria-hidden="true"><use href="#rampen-ikon-naese-lige"/></svg><span class="big">Lige</span></button>
-        <button class="btn step-btn nn p-freeze p-wings" data-nose="ned" aria-label="Næsen ned"><svg aria-hidden="true"><use href="#rampen-ikon-naese-ned"/></svg><span class="big">Ned</span></button>
-        <button class="btn primary act-btn ja p-freeze p-boost" id="btn-boost"><svg aria-hidden="true"><use href="#rampen-ikon-boost"/></svg><span class="big">Ja, boost</span></button>
-        <button class="btn act-btn ve p-freeze" id="btn-wait"><svg aria-hidden="true"><use href="#rampen-ikon-vent"/></svg><span class="big" id="btn-wait-label">Vent</span></button>
+        <!-- Beslutningspunkt: 2–3 valgkort med hvert sit usikre landingsfelt -->
+        <div class="ctrl-head head-freeze p-freeze"><span class="ctrl-label" id="freeze-label">Vælg et kort</span><span class="ctrl-value" id="freeze-value"></span></div>
+        <div class="kort-liste p-freeze" id="kort-liste" role="group" aria-label="Valgkort">
+          <button class="btn valg-kort k1" data-kort="0" hidden><span class="kort-nr" aria-hidden="true">1</span><svg aria-hidden="true"><use href="#rampen-ikon-vent"/></svg><span class="kort-tekst"><span class="kort-titel"></span><span class="kort-effekt"></span><span class="kort-felt"></span><span class="kort-skade"></span></span></button>
+          <button class="btn valg-kort k2" data-kort="1" hidden><span class="kort-nr" aria-hidden="true">2</span><svg aria-hidden="true"><use href="#rampen-ikon-vent"/></svg><span class="kort-tekst"><span class="kort-titel"></span><span class="kort-effekt"></span><span class="kort-felt"></span><span class="kort-skade"></span></span></button>
+          <button class="btn valg-kort k3" data-kort="2" hidden><span class="kort-nr" aria-hidden="true">3</span><svg aria-hidden="true"><use href="#rampen-ikon-vent"/></svg><span class="kort-tekst"><span class="kort-titel"></span><span class="kort-effekt"></span><span class="kort-felt"></span><span class="kort-skade"></span></span></button>
+        </div>
         <!-- Flyvetur -->
         <div class="ctrl-head head-fly p-fly"><span class="ctrl-label">Visning</span><span class="ctrl-value" id="fly-value">Rolig</span></div>
         <button class="btn act-btn hu p-fly" id="btn-speed" aria-pressed="false"><svg aria-hidden="true"><use href="#rampen-ikon-hurtig"/></svg><span class="big" id="btn-speed-label">Hurtigere</span></button>
@@ -237,6 +237,13 @@
       <div class="row" role="group">
         <button class="btn option" data-gset="gloed" data-value="false"><span class="big">Fra</span></button>
         <button class="btn option" data-gset="gloed" data-value="true"><span class="big">Til</span></button>
+      </div>
+    </div>
+    <div class="setting">
+      <div class="setting-label">Tåge<small>Pynt ud over udsynet. Tingene derude er skjulte uanset</small></div>
+      <div class="row" role="group">
+        <button class="btn option" data-gset="taage" data-value="false"><span class="big">Fra</span></button>
+        <button class="btn option" data-gset="taage" data-value="true"><span class="big">Til</span></button>
       </div>
     </div>
     <div class="setting">

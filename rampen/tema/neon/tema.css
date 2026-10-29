@@ -12,7 +12,8 @@
  *
  * Farvesættene følger Hojt Arkades fælles indstilling data-theme
  * (neon, solnedgang, cyberpunk, kontrast). Glød slås fra med
- * data-rampen-gloed="fra" på <html> (Indstillinger → Udseende → Glød). */
+ * data-rampen-gloed="fra" på <html> (Indstillinger → Udseende → Glød), og tågen
+ * med data-rampen-taage="fra" (Indstillinger → Udseende → Tåge). */
 
 :root, [data-theme] {
   /* Zonerne: himmel (top/bund), jord (flade/kant) og kulisse (flade/streg) */
@@ -74,6 +75,19 @@
   --rampen-forhaand-med: #22eaff;
   --rampen-forhaand-start: #ffe14d;
   --rampen-landing: #ffe14d;
+  /* Valgkortenes usikre landingsfelter (1–3) og deres skønnede veje */
+  --rampen-felt-1-kant: #ffe14d;
+  --rampen-felt-2-kant: #22eaff;
+  --rampen-felt-3-kant: #ff3fd8;
+  --rampen-felt-1: rgba(255, 225, 77, 0.3);
+  --rampen-felt-2: rgba(34, 234, 255, 0.3);
+  --rampen-felt-3: rgba(255, 63, 216, 0.3);
+  --rampen-forhaand-kort-1: var(--rampen-felt-1-kant);
+  --rampen-forhaand-kort-2: var(--rampen-felt-2-kant);
+  --rampen-forhaand-kort-3: var(--rampen-felt-3-kant);
+  /* Tåge ud over udsynet (pynt – tingene derude tegnes slet ikke). transparent = ingen tåge */
+  --rampen-taage: rgba(20, 8, 38, 0.82);
+  --rampen-taage-2: rgba(20, 8, 38, 0);
 
   /* Flader uden for banen */
   --rampen-ok: #39ff6a;
@@ -96,11 +110,17 @@
 [data-theme="solnedgang"] {
   --rampen-jord-forstad-kant: #ff8a1f; --rampen-gloed-farve: #ff8a1f; --rampen-bil-krop: #ff8a1f; --rampen-bil-krop-2: #c77dff;
   --rampen-rampe-kant: #c77dff; --rampen-vinge: #c77dff; --rampen-forhaand-med: #c77dff;
+  --rampen-felt-1-kant: #ffe14d; --rampen-felt-2-kant: #c77dff; --rampen-felt-3-kant: #ff8a1f;
+  --rampen-felt-1: rgba(255, 225, 77, 0.3); --rampen-felt-2: rgba(199, 125, 255, 0.3); --rampen-felt-3: rgba(255, 138, 31, 0.3);
+  --rampen-taage: rgba(42, 11, 61, 0.82); --rampen-taage-2: rgba(42, 11, 61, 0);
 }
 [data-theme="cyberpunk"] {
   --rampen-himmel-forstad-1: #000208; --rampen-himmel-forstad-2: #04203a; --rampen-jord-forstad: #00100c; --rampen-jord-forstad-kant: #39ff6a;
   --rampen-gloed-farve: #39ff6a; --rampen-bil-krop: #39ff6a; --rampen-bil-krop-2: #2a9dff; --rampen-rampe-kant: #2a9dff;
   --rampen-bil-kant: #e8fff0; --rampen-forhaand-uden: #39ff6a; --rampen-forhaand-start: #39ff6a; --rampen-meter: #39ff6a;
+  --rampen-felt-1-kant: #39ff6a; --rampen-felt-2-kant: #2a9dff; --rampen-felt-3-kant: #ff3fd8;
+  --rampen-felt-1: rgba(57, 255, 106, 0.3); --rampen-felt-2: rgba(42, 157, 255, 0.3); --rampen-felt-3: rgba(255, 63, 216, 0.3);
+  --rampen-taage: rgba(0, 4, 12, 0.85); --rampen-taage-2: rgba(0, 4, 12, 0);
 }
 [data-theme="kontrast"] {
   --rampen-himmel-forstad-1: #000000; --rampen-himmel-forstad-2: #000000; --rampen-himmel-oerken-1: #000000; --rampen-himmel-oerken-2: #000000;
@@ -112,7 +132,12 @@
   --rampen-bil-krop: #ffff00; --rampen-bil-krop-2: #00ffff; --rampen-bil-kant: #ffffff; --rampen-forhaand-uden: #ffff00; --rampen-forhaand-med: #00ffff;
   --rampen-forhaand-start: #ffff00; --rampen-ballon: #00ff00; --rampen-sten: #888888; --rampen-kaktus: #ff6600; --rampen-kegle: #ff6600;
   --rampen-ok: #00ff00; --rampen-fejl: #ff6600; --rampen-meter: #ffff00; --rampen-meter-tom: #888888;
+  --rampen-felt-1-kant: #ffff00; --rampen-felt-2-kant: #00ffff; --rampen-felt-3-kant: #ff00ff;
+  --rampen-felt-1: rgba(255, 255, 0, 0.35); --rampen-felt-2: rgba(0, 255, 255, 0.35); --rampen-felt-3: rgba(255, 0, 255, 0.35);
+  --rampen-taage: rgba(0, 0, 0, 0.9); --rampen-taage-2: rgba(0, 0, 0, 0);
 }
+/* Tågen er pynt og kan slås fra (Indstillinger → Udseende → Tåge). Tingene er stadig skjulte. */
+html[data-rampen-taage="fra"], html[data-rampen-taage="fra"] [data-theme] { --rampen-taage: transparent; --rampen-taage-2: transparent; }
 
 /* ---------- Streger, tekst og hjørner ---------- */
 :root {

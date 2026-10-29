@@ -2,9 +2,12 @@
 # Tjekker: ingen rulning, intet klippet af, ingen overlap, tekst inden i knapperne,
 # mindste knap >= 80 px og ingen fejl eller advarsler i konsollen.
 #
-# Desuden spillet i browseren: vinkel og kraft med knapper og tastatur, Send afsted,
-# beslutningspunktet "Boost nu?" (spillet står stille, indtil der er valgt), næse
-# op/ned med vinger (og at op lander hårdere), Vent/Boost med tastatur, egne lyde, turens resultat og rekord, værkstedet
+# Desuden spillet i browseren: vinkel og kraft med knapper og tastatur, Send afsted
+# (forhåndslinjen viser kun starten af buen), beslutningspunktet med 2–3 valgkort
+# (spillet står stille, indtil der er valgt; kortene er >= 80 px og >= 3 cm, når der er
+# plads; hvert kort viser et interval og aldrig et præcist landingstal), udsyn (intet
+# tegnes ud over udsynet), kort med tastatur (1/2/3, J, V), en afbrudt tur fortsætter
+# efter genindlæsning, tåge fra, egne lyde, turens resultat og rekord, værkstedet
 # (køb), Ny bil med bekræftelse, pause, glød fra, dwell (ét dwell på Send afsted =
 # én tur) og straks slutresultat ved prefers-reduced-motion. Til sidst hallen.
 #
@@ -22,6 +25,7 @@ if SHOT: os.makedirs(SHOT + 'ekstra', exist_ok=True)
 CHROME = os.environ.get('CHROME', '/usr/bin/google-chrome')
 SIZES = [(1920,1080),(1366,768),(1280,720),(1024,768),(1024,1366),(1366,1024),(390,844),(844,390)]
 MIN_BTN = 80
+CM3 = 113   # 3 cm ved 96 css-px pr. tomme
 errs=[]; fails=[]; summary={}
 CHECK = """(sel) => {
   const se = document.scrollingElement, W = se.clientWidth, H = se.clientHeight;
@@ -37,7 +41,7 @@ CHECK = """(sel) => {
   });
   const bs = [...scr.querySelectorAll('button, a.btn')].filter(vis).filter(e => true);
   const cv = scr.querySelector('#course'); out.board = cv && vis(cv) ? [Math.round(cv.getBoundingClientRect().width), Math.round(cv.getBoundingClientRect().height)] : null;
-  const name = e => e.id || e.dataset.slot || e.dataset.tab || e.dataset.mode || e.dataset.recMode || e.dataset.ang && ('vinkel' + e.dataset.ang) || e.dataset.pow && ('kraft' + e.dataset.pow) || e.dataset.nose && ('naese-' + e.dataset.nose) || e.dataset.upg || e.getAttribute('aria-label') || e.textContent.trim().replace(/\\s+/g,' ').slice(0,16);
+  const name = e => e.id || e.dataset.slot || e.dataset.tab || e.dataset.mode || e.dataset.recMode || e.dataset.ang && ('vinkel' + e.dataset.ang) || e.dataset.pow && ('kraft' + e.dataset.pow) || e.dataset.id && ('kort-' + e.dataset.id) || e.dataset.upg || e.getAttribute('aria-label') || e.textContent.trim().replace(/\\s+/g,' ').slice(0,16);
   for (let i = 0; i < bs.length; i++) for (let j = i + 1; j < bs.length; j++) { const a = bs[i].getBoundingClientRect(), b = bs[j].getBoundingClientRect();
      if (a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1 && !bs[i].contains(bs[j]) && !bs[j].contains(bs[i]) && bs[i].closest('.overlay') === bs[j].closest('.overlay')) out.overlap.push(name(bs[i]) + '/' + name(bs[j])); }
   // Hvis et overlay er åbent, tæller kun dets knapper (resten ligger bag det)
@@ -87,6 +91,49 @@ RIG = """() => { const L = Rampen.logik, p = L.newProgress(1);
   Object.assign(p.upg, {motor: 3, daek: 2, karrosseri: 2, aero: 2, vinger: 1, raket: 1, braendstof: 1});
   Rampen.setProgress(p); }"""
 
+CARDS = """() => { const g = Rampen, f = g.game.flight, lim = f.x + g.udsyn;
+  const bs = [...document.querySelectorAll('#kort-liste .valg-kort')].filter(b => !b.hidden);
+  const txt = document.getElementById('game').innerText + ' ' + bs.map(b => b.getAttribute('aria-label')).join(' ') + ' ' + (document.getElementById('course').getAttribute('aria-label') || '');
+  return { n: bs.length, ids: g.cards.map(c => c.id), size: bs.map(b => { const r = b.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; }),
+    interval: bs.every(b => /ca\\. \\d+–\\d+ m/.test(b.textContent) && /ca\\. \\d+–\\d+ m/.test(b.getAttribute('aria-label'))),
+    widths: g.cards.map(c => c.felt.til - c.felt.fra),
+    exact: /(lander|holder|smadrer) (ved|på) \\d/i.test(txt),
+    beyond: g.tegn.drawn.filter(o => o.x - o.r > lim + 0.01).length, drawn: g.tegn.drawn.length,
+    hidden: g.game.course.range(lim + 1, lim + 400).length, lim: Math.round(lim) }; }"""
+def cards_check(pg, w, h, tag):
+    c = st(pg, CARDS)
+    room = min(w, h) >= 700
+    small = [s for s in c['size'] if min(s) < (CM3 if room else MIN_BTN)]
+    bad = []
+    if not 2 <= c['n'] <= 3 or c['n'] != len(c['ids']): bad.append('antal kort %s' % c['n'])
+    if small: bad.append('for små kort %s' % small)
+    if not c['interval']: bad.append('kort uden interval')
+    if c['exact']: bad.append('præcist landingstal i teksten')
+    if any(x < 10 for x in c['widths']): bad.append('felt under 10 m %s' % c['widths'])
+    if c['beyond']: bad.append('%d ting tegnet ud over udsynet' % c['beyond'])
+    print('%s %dx%d valgkort %s størrelser %s felter %s m, udsyn til %s m, %d tegnet, %d skjult derude' % ('OK  ' if not bad else 'FEJL', w, h, c['ids'], c['size'], c['widths'], c['lim'], c['drawn'], c['hidden']))
+    if bad: fails.append('%s valgkort: %s' % (tag, '; '.join(bad)))
+
+def resume_check(pg, w, h, tag):
+    """En tur, der afbrydes ved et valg, fortsætter efter genindlæsning med samme kort."""
+    pg.evaluate(RIG); pg.evaluate("Rampen.settings.set('animation', false); Rampen.start(); Rampen.game.setAngle(40); Rampen.refresh()"); pg.wait_for_timeout(60)
+    pg.evaluate("Rampen.launch()"); idle(pg)
+    before = st(pg, "[Rampen.game.flight.x, Rampen.cards.map(c => c.id + c.felt.fra + '-' + c.felt.til).join(',')]")
+    pg.reload(); pg.wait_for_timeout(400)
+    lbl = st(pg, "document.getElementById('btn-start-label').textContent")
+    pg.evaluate("Rampen.start()"); pg.wait_for_timeout(120)
+    after = st(pg, "[Rampen.phase, Rampen.game.flight && Rampen.game.flight.x, Rampen.cards.map(c => c.id + c.felt.fra + '-' + c.felt.til).join(',')]")
+    ok = lbl == 'Fortsæt turen' and after == ['freeze'] + before
+    print('%s %dx%d fortsæt turen: %s -> %s (%s)' % ('OK  ' if ok else 'FEJL', w, h, before, after, lbl))
+    if not ok: fails.append('%s turen fortsatte ikke: %s -> %s (%s)' % (tag, before, after, lbl))
+    # Tåge fra: kun pynt, tingene derude er stadig skjulte
+    pg.evaluate("Rampen.gameSettings.set('taage', false)"); pg.wait_for_timeout(80)
+    fog = st(pg, "[document.documentElement.dataset.rampenTaage, getComputedStyle(document.documentElement).getPropertyValue('--rampen-taage').trim()]")
+    c = st(pg, CARDS)
+    if fog[0] != 'fra' or fog[1] not in ('transparent', 'rgba(0, 0, 0, 0)') or c['beyond']: fails.append('%s tåge fra gav %s, %s ting ud over udsynet' % (tag, fog, c['beyond']))
+    check(pg, 'uden tåge', '#game', w, h, tag + '-uden-taage.png')
+    pg.evaluate("Rampen.gameSettings.set('taage', true)")
+
 def gameplay(pg, w, h, tag, shots):
     pg.evaluate(RIG)
     pg.evaluate("Rampen.settings.set('animation', false)")
@@ -104,31 +151,31 @@ def gameplay(pg, w, h, tag, shots):
     if st(pg, "[Rampen.game.p.power, document.querySelectorAll('#pow-meter i.on').length]") != [10, 10]: fails.append(tag + ' kraft + virkede ikke')
     pg.evaluate("Rampen.game.setAngle(40); Rampen.refresh()")
     check(pg, 'opsendelse', '#game', w, h, tag + '-opsendelse.png')
+    if shots and SHOT: pg.screenshot(path=SHOT + 'opsendelse.png')
+    pv = st(pg, "(() => { const v = Rampen.game.launchPreview(), p = v.pts; return [p.length ? Math.round(p[p.length - 1].x) : 0, v.x === undefined]; })()")
+    if pv[0] > 30 or not pv[1]: fails.append('%s opsendelsen viser for meget af buen (%s)' % (tag, pv))
     pg.click('#btn-launch'); idle(pg)
     if st(pg, "Rampen.phase") != 'freeze': fails.append('%s intet beslutningspunkt (fase %s)' % (tag, st(pg, "Rampen.phase"))); return
     # Spillet står stille, til der vælges
     x0 = st(pg, "Rampen.game.flight.x"); pg.wait_for_timeout(500)
     if st(pg, "Rampen.game.flight.x") != x0: fails.append(tag + ' bilen flyttede sig under beslutningspunktet')
-    o = st(pg, "[Rampen.options.uden.x, Rampen.options.med && Rampen.options.med.x, /Vent/.test(document.getElementById('hint').textContent)]")
-    if not o[1] or o[1] <= o[0]: fails.append('%s forhåndslinjer %s' % (tag, o))
-    # Næse op/ned flytter Vent-landingen
-    pg.click('#controls [data-nose="op"]'); up = st(pg, "Rampen.options.uden.x")
-    pg.click('#controls [data-nose="ned"]'); dn = st(pg, "Rampen.options.uden.x")
-    if not up > dn: fails.append('%s næse op/ned ændrede ikke landingen (%s / %s)' % (tag, up, dn))
-    if 'hårdere landing' not in st(pg, "document.getElementById('hint').textContent"): fails.append(tag + ' ulempen ved næse op forklares ikke')
-    pg.mouse.move(1, 1); pg.keyboard.press('ArrowUp'); pg.keyboard.press('ArrowUp')
-    if st(pg, "Rampen.game.flight.nose") != 'op': fails.append(tag + ' pil op satte ikke næsen op')
+    cards_check(pg, w, h, tag)
     check(pg, 'beslutningspunkt', '#game', w, h, tag + '-beslutning.png')
     if shots and SHOT: pg.screenshot(path=SHOT + 'beslutningspunkt.png')
     b0 = st(pg, "Rampen.game.flight.boosts")
-    pg.keyboard.press('j'); idle(pg)
+    pg.mouse.move(1, 1); pg.keyboard.press('j'); idle(pg)
     used = st(pg, "Rampen.game.flight ? Rampen.game.flight.boostsUsed : Rampen.game.lastResult.boostsUsed")
     if used != 1: fails.append('%s J gav ikke boost (%s brugt, %s før)' % (tag, used, b0))
+    # Et kort vælges også med tallet: 1 = første kort
+    if st(pg, "Rampen.phase") == 'freeze':
+        n0 = st(pg, "Rampen.game.flight.t"); pg.keyboard.press('1'); idle(pg)
+        if st(pg, "Rampen.game.flight && Rampen.game.flight.t") == n0: fails.append(tag + ' tasten 1 valgte ikke kort 1')
     k = 0
     while st(pg, "Rampen.phase") == 'freeze' and k < 40:
         top = st(pg, "[Rampen.game.flight.vy <= 0, Rampen.game.flight.y >= 3]")
         if top != [True, True]: fails.append('%s beslutningspunkt uden for toppen af et hop (%s)' % (tag, top))
-        pg.keyboard.press('v'); idle(pg); k += 1
+        has_v = st(pg, "Rampen.cards.some(c => c.id === 'vent')")
+        pg.keyboard.press('v' if has_v else '1'); idle(pg); k += 1
     if st(pg, "Rampen.phase") != 'done' or st(pg, "document.getElementById('result-overlay').hidden"): fails.append(tag + ' turens resultat blev ikke vist'); return
     d = st(pg, "Rampen.game.lastResult.dist")
     hd = st(pg, "parseInt(document.getElementById('hud-dist').textContent.replace(/\\D/g, ''), 10)")
@@ -183,7 +230,7 @@ def sound_check(pg, w, h, tag):
     pg.evaluate("Rampen.launch()"); idle(pg)
     k = 0
     while st(pg, "Rampen.phase") == 'freeze' and k < 40:
-        pg.evaluate("Rampen.decide(Rampen.game.flight.boosts > 0)"); idle(pg); k += 1
+        pg.evaluate("Rampen.decide(Rampen.game.flight.boosts > 0 ? 'boost' : Rampen.cards[0].id)"); idle(pg); k += 1
     heard = st(pg, "[...new Set(window.__lyde)]")
     for n in ['motor', 'opsendelse', 'boost', 'landing']:
         if n not in heard: fails.append('%s lyden %s blev ikke spillet på en tur (%s)' % (tag, n, heard))
@@ -248,6 +295,7 @@ with sync_playwright() as p:
         gameplay(pg, w, h, tag, big)
         dwell_check(pg, w, h, tag)
         if big or small: sound_check(pg, w, h, tag)
+        resume_check(pg, w, h, tag)
         # Hovedbilledet for opløsningen: beslutningspunktet med vinger
         pg.evaluate(RIG); pg.evaluate("Rampen.settings.set('animation', false); Rampen.start(); Rampen.game.setAngle(40); Rampen.refresh()"); pg.wait_for_timeout(80)
         pg.evaluate("Rampen.launch()"); idle(pg); pg.mouse.move(1, 1)

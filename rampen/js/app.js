@@ -2,11 +2,13 @@
  * Rampen – brugerflade: skærme, input, indstillinger, lyd, fremskridt og rekorder.
  * Bygger på de fælles moduler i ../arkade/ ligesom de andre spil.
  *
- * En tur: vælg vinkel og kraft med de store knapper (forhåndslinjen viser det første
- * hop), og send bilen afsted. Logikken (js/logik.js) regner turen ud i forvejen og
- * stopper ved hvert beslutningspunkt. Her fryser spillet og spørger "Boost nu?"
- * (og med vinger: næse op, lige eller ned). Når bilen holder stille, giver afstanden
- * mønter, og mønterne bruges i værkstedet. Man kan køre så mange ture, man vil.
+ * En tur: vælg vinkel og kraft med de store knapper (forhåndslinjen viser kun starten
+ * af buen), og send bilen afsted. Logikken (js/logik.js) regner turen ud i forvejen og
+ * stopper på toppen af hvert hop. Her fryser spillet og viser 2–3 valgkort (boost,
+ * gem boostet, tag ballonen, næse op/ned …), hver med et usikkert landingsfelt
+ * ("ca. 60–90 m"), for vinden er skjult. Bilen kan kun se et stykke frem (udsyn), og
+ * banen er ny på hver tur. Når bilen holder stille, giver afstanden mønter, og mønterne
+ * bruges i værkstedet. Man kan køre så mange ture, man vil.
  *
  * Logikken ligger i js/logik.js (ingen farver), tegningen i js/tegn.js (læser kun
  * tilstanden), og al grafik i tema/<navn>/.
@@ -24,8 +26,8 @@
     dwell: false, dwellTime: 1.2, theme: 'neon', background: 'mork',
     animation: true, sound: true, music: true
   });
-  // fart: 'rolig' eller 'hurtig' afspilning af flyveturen. gloed: temaets lysskær.
-  var gset = ArkadeSettings.create('rampen', { fart: 'rolig', gloed: true });
+  // fart: 'rolig' eller 'hurtig' afspilning af flyveturen. gloed: temaets lysskær. taage: tåge ud over udsynet (pynt).
+  var gset = ArkadeSettings.create('rampen', { fart: 'rolig', gloed: true, taage: true });
   if (['rolig', 'hurtig'].indexOf(gset.get('fart')) < 0) gset.set('fart', 'rolig');
   var records = ArkadeHighscores.create('rampen', { max: 10 });
   var SPEED = { rolig: 1.6, hurtig: 5 };   // gange virkelig tid
@@ -145,8 +147,10 @@
     syncSettingsUi();
   });
   function applyGlow() { root.setAttribute('data-rampen-gloed', gset.get('gloed') ? 'til' : 'fra'); restyle(); }
+  function applyFog() { root.setAttribute('data-rampen-taage', gset.get('taage') === false ? 'fra' : 'til'); restyle(); }
   gset.onChange(function (key) {
     if (key === 'gloed') applyGlow();
+    if (key === 'taage') applyFog();
     if (key === 'fart') { tegn.setSpeed(speed()); }
     syncSettingsUi();
   });
@@ -185,7 +189,7 @@
     if (current === 'shop' && $('#shop-bil').offsetParent) RampenTegn.bilBillede($('#shop-bil'), opts);
   }
   function syncMenu() {
-    $('#btn-start-label').textContent = game.p.trips ? 'Kør igen' : 'Kør';
+    $('#btn-start-label').textContent = tripInProgress() ? 'Fortsæt turen' : game.p.trips ? 'Kør igen' : 'Kør';
     $('#btn-start-sub').textContent = carName() + (game.p.best ? ' · længst ' + m(game.p.best) : '');
     if (current === 'menu') { fitScreen($('#menu')); drawCars(); }
   }
@@ -234,9 +238,20 @@
   var tegn = RampenTegn.create(courseEl);
   var controls = $('#controls');
 
+  // En tur, der blev afbrudt (gemt ved et beslutningspunkt), fortsætter ved det samme valg
+  function tripInProgress() { return !!(game.flight && !game.flight.done); }
+  function resumeTrip() {
+    var f = game.flight;
+    paused = false; playing = false; trail = []; fastNow = gset.get('fart') === 'hurtig';
+    lastCar = { t: f.t, x: f.x, y: f.y, vx: f.vx, vy: f.vy, hp: f.hp, coins: f.coins, boosts: f.boosts, ground: f.ground, nose: f.nose, hops: f.hops, landings: f.landings, dmg: f.dmg };
+    setNote('Turen fortsætter, hvor du slap.', 'ok');
+    hideOverlays();
+    show('game');
+    onSegmentEnd('top');
+  }
   function startTrip() {
     tegn.stop();
-    if (game.flight && !game.flight.done) { /* en tur, der blev afbrudt, kasseres ikke: spol den færdig */ skipToEnd(); return; }
+    if (tripInProgress()) { resumeTrip(); return; }
     game.flight = null;
     phase = 'launch'; paused = false; freezeEv = null; opts = null; trail = []; lastCar = null; playing = false;
     fastNow = gset.get('fart') === 'hurtig';
@@ -326,23 +341,50 @@
     freezeEv = ev; phase = 'freeze';
     sfx('freeze');
     opts = game.options();
+    saveProgress();                 // turen gemmes ved hvert valg, så den kan fortsætte senere
     refresh();
     guardUnderGaze(controls);
   }
-  function setNose(n) {
-    if (!can('freeze') || !game.st.vinger) return;
-    game.setNose(n); opts = game.options();
-    sfx('aim'); refresh();
+  // Valgkortene: tekst på kortet og en fuld forklaring til skærmlæsere (altid et interval)
+  function feltTxt(k) { return 'ca. ' + k.felt.fra + '–' + k.felt.til + ' m'; }
+  function skadeKort(k) {
+    var st = game.st; if (!st) return '';
+    if (k.felt.smadret) return 'Kan smadre bilen';
+    var d = Math.round(100 * k.felt.skadeMax / st.maxHp);
+    return d >= 5 ? 'Skade op til ' + d + ' %' : '';
   }
-  $$('#controls [data-nose]').forEach(function (b) { b.addEventListener('click', function () { setNose(b.dataset.nose); }); });
-  function decide(boost) {
-    if (!can('freeze')) return;
-    if (boost && game.flight.boosts <= 0) return;
-    if (boost) sfx('boost'); else sfx('click');
-    play(game.decide(boost));
+  function kortAria(k, i) {
+    var sk = skadeKort(k);
+    return 'Kort ' + (i + 1) + ': ' + k.titel + '. ' + k.effekt + '. Lander ' + feltTxt(k) + '.' + (sk ? ' ' + sk + '.' : '');
   }
-  onAct($('#btn-boost'), function () { decide(true); });
-  onAct($('#btn-wait'), function () { decide(false); });
+  function renderCards() {
+    var list = (phase === 'freeze' && opts) ? opts.kort : [];
+    var box = $('#kort-liste');
+    box.classList.toggle('n2', list.length === 2);
+    box.classList.toggle('n3', list.length === 3);
+    $$('.valg-kort', box).forEach(function (b, i) {
+      var k = list[i];
+      b.hidden = !k;
+      if (!k) { b.removeAttribute('data-id'); return; }
+      b.dataset.id = k.id;
+      b.querySelector('use').setAttribute('href', '#rampen-ikon-' + k.ikon);
+      b.querySelector('.kort-titel').textContent = k.titel;
+      b.querySelector('.kort-effekt').textContent = k.effekt;
+      b.querySelector('.kort-felt').textContent = feltTxt(k);
+      b.querySelector('.kort-skade').textContent = skadeKort(k);
+      b.setAttribute('aria-label', kortAria(k, i));
+    });
+  }
+  function decide(valg) {
+    if (!can('freeze') || !opts) return;
+    var id = valg === true ? 'boost' : valg === false ? 'vent' : valg;
+    var k = opts.kort.filter(function (x) { return x.id === id; })[0];
+    if (!k) { sfx('blocked'); return; }
+    if (id === 'boost') sfx('boost'); else sfx('click');
+    play(game.decide(id));
+  }
+  function decideNr(i) { if (opts && opts.kort[i]) decide(opts.kort[i].id); }
+  $$('#kort-liste .valg-kort').forEach(function (b) { onAct(b, function () { decideNr(+b.dataset.kort); }); });
 
   // Hurtigere / roligere og Spring frem, mens bilen kører
   function toggleFast() {
@@ -355,7 +397,7 @@
   onAct($('#btn-speed'), toggleFast);
   function skipAhead() { if (current === 'game' && phase === 'fly' && playing && !paused) { sfx('click'); tegn.finishNow(); } }
   onAct($('#btn-skip'), skipAhead);
-  // Spol hele turen færdig (uden flere boost; næsen bliver, som den er)
+  // Spol hele turen færdig (uden flere boost eller kort)
   function skipToEnd() {
     if (!game.flight) return;
     tegn.stop(); playing = false;
@@ -446,7 +488,8 @@
     sceneCache = {
       course: game.course, taken: game.flight ? game.flight.taken : {}, tNow: lastCar ? lastCar.t : 0,
       angle: game.p.angle, type: game.bilType(), vinger: st.vinger, raket: game.p.upg.raket > 0,
-      trail: trail, previews: [], landings: []
+      trail: trail, previews: [], felter: [],
+      udsyn: (game.st || st).udsyn
     };
     return sceneCache;
   }
@@ -458,22 +501,27 @@
       var a = game.p.angle * Math.PI / 180;
       sc.car = { x: -1.6, y: L.RAMPE.h, vx: Math.cos(a), vy: Math.sin(a), ground: false };
       sc.preLaunch = true; sc.fit = true; sc.trail = null;
+      // Kun starten af buen – ingen landing
       sc.previews = [{ pts: pv.pts, slags: 'start' }];
-      sc.landings = [{ x: pv.x, tekst: m(pv.x), slags: 'start' }];
       sc.taken = {};
+      sc.lim = sc.udsyn;
     } else if (phase === 'freeze' && opts) {
       var f = game.flight;
       sc.car = { x: f.x, y: f.y, vx: f.vx, vy: f.vy, ground: f.ground, nose: f.nose };
       sc.tNow = f.t; sc.fit = true;
-      sc.previews = [{ pts: opts.uden.pts, slags: 'uden' }];
-      sc.landings = [{ x: opts.uden.x, tekst: 'Vent: ' + m(opts.uden.x), slags: 'uden', raekke: 0 }];
-      if (opts.med) {
-        sc.previews.push({ pts: opts.med.pts, slags: 'med' });
-        sc.landings.push({ x: opts.med.x, tekst: 'Boost: ' + m(opts.med.x), slags: 'med', raekke: Math.abs(opts.med.x - opts.uden.x) * tegn.scale < 160 ? 1 : 0 });
-      }
+      sc.lim = f.x + sc.udsyn;
+      // Hvert kort: den skønnede vej (inden for udsyn) og det usikre landingsfelt
+      // (kort med samme felt deler ét felt og én tekst, fx "2 og 3: ca. 50–65 m")
+      opts.kort.forEach(function (k, i) {
+        sc.previews.push({ pts: k.felt.pts, slags: 'kort-' + (i + 1) });
+        var same = sc.felter.filter(function (x) { return x.fra === k.felt.fra && x.til === k.felt.til; })[0];
+        if (same) { same.tekst = same.tekst.replace(':', ' og ' + (i + 1) + ':'); return; }
+        sc.felter.push({ fra: k.felt.fra, til: k.felt.til, nr: i + 1, tekst: (i + 1) + ': ' + feltTxt(k), raekke: sc.felter.length });
+      });
     } else {
       sc.car = lastCar || { x: 0, y: L.RAMPE.h, vx: 1, vy: 0 };
       sc.tNow = sc.car.t;
+      if (game.flight && phase !== 'done') sc.lim = sc.car.x + sc.udsyn; else sc.udsyn = undefined;
     }
     tegn.draw(sc);
   }
@@ -489,9 +537,7 @@
   function refresh() {
     controls.dataset.phase = phase === 'done' ? 'idle' : phase;
     var st = game.st || game.stats();
-    controls.classList.toggle('wings', !!st.vinger);
     var f = game.flight;
-    controls.classList.toggle('nb', !!(f && f.boosts <= 0));
     // Opsendelse
     $('#ang-value').textContent = game.p.angle + '°';
     $('#pow-value').textContent = game.p.power;
@@ -504,11 +550,10 @@
     else if (phase === 'done' && lastCar) hud(lastCar);
     // Beslutningspunkt
     if (phase === 'freeze' && f) {
-      $('#freeze-label').textContent = f.boosts > 0 ? 'Boost nu?' : 'Vinger';
-      $('#freeze-value').textContent = f.boosts > 0 ? f.boosts + ' tilbage' : 'næse ' + f.nose;
-      $('#btn-wait-label').textContent = f.boosts > 0 ? 'Vent' : 'Fortsæt';
-      $$('#controls [data-nose]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.nose === f.nose)); });
+      $('#freeze-label').textContent = 'Vælg et kort';
+      $('#freeze-value').textContent = 'udsyn ' + Math.round(game.st.udsyn) + ' m';
     }
+    renderCards();
     $('#fly-value').textContent = fastNow ? 'Hurtig' : 'Rolig';
     $('#btn-speed-label').textContent = fastNow ? 'Roligere' : 'Hurtigere';
     $('#btn-speed').setAttribute('aria-pressed', String(fastNow));
@@ -528,11 +573,10 @@
       if (phase === 'launch') txt = game.p.trips ? 'Tur ' + (game.p.trips + 1) + '. Vælg vinkel og kraft, og send bilen afsted.' : 'Vælg vinkel og kraft, og send bilen afsted.';
       else if (phase === 'fly') txt = 'Bilen kører …';
       else if (phase === 'freeze' && opts) {
-        // Kort på skærmen (landingerne står på banen); hele forklaringen med skade læses op via banen
-        var lande = 'Vent: ' + landTxt(opts.uden) + '.' + (opts.med ? ' Boost: ' + landTxt(opts.med) + '.' : '');
-        var naese = 'Op: længere, men hårdere landing. Ned: blød landing.';
-        txt = game.st.vinger ? naese : 'Bilen er på toppen. ' + lande;
-        fuld = 'Bilen er på toppen. ' + lande + (game.st.vinger ? ' ' + naese : '');
+        // Kort tekst på skærmen; hele forklaringen (altid som interval) læses op via banen
+        txt = 'Vinden er skjult: felterne viser, hvor bilen cirka lander.';
+        fuld = 'Bilen er på toppen ved ' + m(f.x) + '. Du kan se ' + Math.round(game.st.udsyn) + ' m frem. ' +
+          opts.kort.map(kortAria).join(' ');
       } else if (phase === 'done') txt = 'Turen er slut.';
     }
     var hint = $('#hint');
@@ -542,10 +586,6 @@
     renderCourse();
     if (current === 'game' && !relayouting && (overflows(gameEl) || overflows(root))) { relayouting = true; layoutGame(); relayouting = false; }
   }
-  function landTxt(p) { return p.end === 'smadret' ? 'bilen smadrer ved ' + m(p.x) : (p.landed ? 'lander ved ' : 'holder ved ') + m(p.x) + skadeTxt(p, ' (skade ', ')'); }
-  // Hvor meget skade bilen får frem til landingen (i % af bilen)
-  function skade(p) { var f = game.flight, st = game.st; return f && st ? Math.max(0, Math.round(100 * (f.hp - p.hp) / st.maxHp)) : 0; }
-  function skadeTxt(p, pre, post) { var d = skade(p); return d >= 1 ? pre + d + ' %' + post : ''; }
   var relayouting = false;
 
   // ---------- Værkstedet ----------
@@ -712,7 +752,7 @@
 
   // ---------- Tastatur ----------
   // Opsendelse: pil op/ned = vinkel (Skift: 5°), pil venstre/højre = kraft, Enter/mellemrum = send.
-  // Beslutning: J = Ja, boost, V eller N = Vent, pil op/ned = næse (med vinger).
+  // Beslutning: 1/2/3 = valgkort nr., J = boost-kortet, V eller N = "Gem boostet"/"Glid videre" (hvis det er et kort).
   // Kørsel: H = hurtigere/roligere, Enter/mellemrum = spring frem. Esc eller P = pause.
   document.addEventListener('keydown', function (e) {
     if (e.altKey || e.ctrlKey || e.metaKey) return;
@@ -734,11 +774,9 @@
       else if (k === 'Enter' || k === ' ') { if (!e.repeat) launch(); }
       else handled = false;
     } else if (phase === 'freeze') {
-      var nf = game.flight && game.flight.nose;
-      if (k === 'j') { if (!e.repeat) decide(true); }
+      if (k === '1' || k === '2' || k === '3') { if (!e.repeat) decideNr(+k - 1); }
+      else if (k === 'j') { if (!e.repeat) decide(true); }
       else if (k === 'v' || k === 'n') { if (!e.repeat) decide(false); }
-      else if (k === 'ArrowUp') setNose(nf === 'ned' ? 'lige' : 'op');
-      else if (k === 'ArrowDown') setNose(nf === 'op' ? 'lige' : 'ned');
       else handled = false;
     } else if (phase === 'fly') {
       if (k === 'h') toggleFast();
@@ -851,7 +889,8 @@
     var v = viewport(), small = isSmall(v);
     root.classList.toggle('rampen-lille', small);
     root.classList.toggle('rampen-tvaers', small && v.W > v.H);
-    $('#shop').style.setProperty('--upg-cols', (v.W > v.H || v.W >= 900) ? 4 : 2);
+    // 9 opgraderinger: 5 + 4 på tværs, 3 × 3 på højkant
+    $('#shop').style.setProperty('--upg-cols', v.W > v.H ? 5 : 3);
   }
 
   // Sider: blokkene (data-trin) fordeles på så få sider, som der er plads til.
@@ -975,11 +1014,9 @@
     clearTimeout(resizeTimer); resizeTimer = setTimeout(fitCurrent, 150);
   });
 
-  // Gem, når siden lukkes (en tur, der er i gang, spoles færdig først)
+  // Gem, når siden lukkes. En tur, der er i gang, gemmes ved det seneste valg og kan
+  // fortsætte næste gang; en tur, der allerede er slut, gøres færdig (mønter og rekord).
   window.addEventListener('pagehide', function () {
-    if (game.flight && !game.flight.done) {
-      var guard = 0; while (!game.flight.done && guard++ < 500) game.decide(false);
-    }
     if (game.flight && game.flight.done) { var r = game.finishTrip(); if (r) records.add('tur', r.dist, { bil: game.p.bil }); }
     saveProgress();
   });
@@ -988,6 +1025,7 @@
   RampenTegn.installerIkoner();
   syncSmall();
   applyGlow();
+  applyFog();
   applyTheme();
   applyBackground();
   applyAnimation();
@@ -1000,7 +1038,8 @@
     get game() { return game; }, get phase() { return phase; }, get playing() { return playing; }, get paused() { return paused; },
     get guard() { return gazeGuard ? gazeGuard.id : null; }, get tegn() { return tegn; }, get options() { return opts; },
     settings: arkade, gameSettings: gset, records: records, dwell: dwell, audio: audio, lyd: lyd, logik: L,
-    start: startTrip, show: show, launch: launch, angle: changeAngle, power: changePower, decide: decide, nose: setNose,
+    start: startTrip, show: show, launch: launch, angle: changeAngle, power: changePower, decide: decide, decideNr: decideNr,
+    get cards() { return opts ? opts.kort : []; }, get udsyn() { return game.st ? game.st.udsyn : game.stats().udsyn; },
     skip: skipAhead, skipToEnd: skipToEnd, buy: buy, setPaused: setPaused, layout: layoutGame, refresh: refresh,
     // Til test: giv mønter / læg et fremskridt ind
     setProgress: function (p) { game = L.createGame(p); saveProgress(); syncMenu(); },

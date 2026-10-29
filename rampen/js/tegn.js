@@ -5,7 +5,11 @@
  * figurer tegnes af temaets navngivne tegnefunktioner (window.RampenTema.tegn).
  *
  * Kameraet følger bilen og zoomer ud, når den kommer højt op. Ved en opsendelse og
- * et beslutningspunkt vises i stedet hele forhåndslinjen (fit).
+ * et beslutningspunkt vises i stedet forhåndslinjerne og landingsfelterne (fit).
+ *
+ * Udsyn: bilen kan kun se et stykke frem (sc.lim i meter, under afspilning
+ * bilens x + sc.udsyn). Ting længere fremme tegnes slet ikke, og temaets tåge
+ * (tegn.taage) lægges over resten af banen som pynt.
  */
 (function (global) {
   'use strict';
@@ -50,7 +54,9 @@
 
   // Tegner en hel scene
   // sc: { car: {x,y,vx,vy,ground,boost,nose,chute}, type, vinger, raket, course, taken, tNow,
-  //       angle (rampens vinkel), trail, previews: [{pts, slags}], landings: [{x, tekst, slags}] }
+  //       angle (rampens vinkel), trail, previews: [{pts, slags}], felter: [{fra, til, nr, tekst, raekke}],
+  //       lim (udsynets grænse i meter; udeladt = alt ses) }
+  var drawnIds = [];
   function drawScene(ctx, v, sc, s) {
     var t = T.tegn;
     var mid = v.x0 + (v.x1 - v.x0) / 2, zi = L.zoneIndex(mid), z = L.ZONER[zi], nz = L.ZONER[zi + 1];
@@ -70,15 +76,19 @@
     for (var m = Math.max(st, Math.ceil(v.x0 / st) * st); m <= v.x1; m += st) t.maaler(ctx, { x: m, tekst: m + ' m' }, v, s);
     L.ZONER.forEach(function (Z) { if (Z.fra > 0 && Z.fra >= v.x0 - 50 && Z.fra <= v.x1) t.milepael(ctx, { x: Z.fra, navn: Z.navn }, v, s); });
     if (v.x0 < 5) t.startrampe(ctx, { h: L.RAMPE.h, len: L.RAMPE.len, vinkel: sc.angle || 30 }, v, s);
-    // Ting langs banen
-    if (sc.course) sc.course.range(v.x0 - 15, v.x1 + 15).forEach(function (o) {
+    // Ting langs banen – kun dem inden for udsynet
+    var lim = typeof sc.lim === 'number' ? sc.lim : Infinity;
+    drawnIds = [];
+    if (sc.course) sc.course.range(v.x0 - 15, Math.min(v.x1 + 15, lim)).forEach(function (o) {
+      if (o.x - (o.r || 0) > lim) return;
       var tk = sc.taken && sc.taken[o.id];
       if (tk !== undefined && tk <= (sc.tNow === undefined ? 1e9 : sc.tNow)) return;
-      if (t[o.type]) t[o.type](ctx, o, v, s);
+      if (t[o.type]) { t[o.type](ctx, o, v, s); drawnIds.push({ id: o.id, type: o.type, x: o.x, r: o.r || 0 }); }
     });
     if (sc.trail) t.spor(ctx, sc.trail, v, s);
+    if (lim < v.x1 && t.taage) t.taage(ctx, { x: lim }, v, s);
+    (sc.felter || []).forEach(function (p) { t.felt(ctx, p, v, s); });
     (sc.previews || []).forEach(function (p) { t.forhaand(ctx, p, v, s); });
-    (sc.landings || []).forEach(function (p) { t.landing(ctx, p, v, s); });
     var c = sc.car;
     if (c) {
       var ang = c.ground ? 0 : Math.atan2(c.vy, Math.max(0.1, c.vx));
@@ -109,7 +119,8 @@
       var minX = sc.car.x - 6, maxX = sc.car.x + 20, maxY = Math.max(sc.car.y, 8);
       if (sc.preLaunch) minX = -L.RAMPE.len - 2;
       (sc.previews || []).forEach(function (p) { p.pts.forEach(function (q) { if (q.x > maxX) maxX = q.x; if (q.y > maxY) maxY = q.y; }); });
-      (sc.landings || []).forEach(function (p) { if (p.x + 8 > maxX) maxX = p.x + 8; });
+      (sc.felter || []).forEach(function (p) { if (p.til + 6 > maxX) maxX = p.til + 6; });
+      if (typeof sc.lim === 'number' && sc.lim + 4 > maxX) maxX = sc.lim + 4;
       var k = Math.min(baseK(), (cssW - 40) / (maxX - minX + 4), (gy() - 70) / (maxY + 3));
       return { k: k, x0: minX - 20 / k };
     }
@@ -144,6 +155,7 @@
         var cx0 = c.x - cssW * 0.35 / k;
         x0 = cx0;
         sc.car = c; sc.tNow = tt;
+        if (typeof sc.udsyn === 'number') sc.lim = c.x + sc.udsyn;
         if (opts.onFrame) opts.onFrame(c, frames, i);
         draw(sc, { k: k, x0: x0 });
         if (tt >= T1) { var cb = anim.done; anim = null; if (cb) cb(); return; }
@@ -166,6 +178,7 @@
       setSpeed: function (sp) { if (anim) anim.speed = sp; },
       restyle: function () { readStyle(); if (cssW) resize(cssW, cssH); },
       get animating() { return !!anim; },
+      get drawn() { return drawnIds.slice(); },
       get scale() { return camK; }
     };
   }

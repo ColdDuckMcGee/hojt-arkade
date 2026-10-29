@@ -23,8 +23,13 @@
  *   bil(ctx, {x, y, vinkel, type, vinger, raket, flamme, skaerm, naese}, v, s)
  *         type: saebekasse | folkevogn | sportsvogn | raketbil (fra sæbekassebil til raketbil)
  *   spor(ctx, pts, v, s)                        bilens vej indtil nu
- *   forhaand(ctx, {pts, slags}, v, s)           forhåndslinje; slags: 'uden' | 'med' (boost) | 'start'
- *   landing(ctx, {x, tekst, slags}, v, s)       hvor bilen lander, med afstand
+ *   forhaand(ctx, {pts, slags}, v, s)           forhåndslinje; slags: 'start' (kun starten af opsendelsen)
+ *                                               eller 'kort-1' … 'kort-3' (valgkortets skønnede vej, kun inden for udsyn)
+ *   felt(ctx, {fra, til, nr, tekst, raekke}, v, s)  usikkert landingsfelt for valgkort nr. 1–3 (fra–til i meter,
+ *                                               aldrig et præcist punkt); tekst fx "1: ca. 60–90 m", raekke = tekstlinje 0–2
+ *   taage(ctx, {x}, v, s)                       tåge/mørke fra udsynets grænse (x i meter) og frem. Ren pynt:
+ *                                               tingene derude tegnes slet ikke. Farverne kan være transparent.
+ *   landing(ctx, {x, tekst, slags}, v, s)       (bruges ikke længere af spillet; beholdt til andre temaer)
  * s.gloed er 0, når glød er slået fra (Indstillinger → Udseende → Glød).
  *
  * ikoner (SVG i 100 × 100, klasserne ico-line og ico-fill): se `ikoner` nederst.
@@ -39,7 +44,9 @@
     'trampolin', 'trampolin-dug', 'rampe-ting', 'olie', 'sten', 'sten-kant', 'kaktus', 'kegle', 'kegle-stribe',
     'ballon', 'ballon-snor', 'vind', 'moent', 'moent-kant', 'bonus', 'bonus-kant',
     'bil-krop', 'bil-krop-2', 'bil-kant', 'bil-rude', 'hjul', 'hjul-nav', 'vinge', 'raket', 'flamme', 'flamme-kerne', 'skaerm', 'skaerm-snor',
-    'spor', 'forhaand-uden', 'forhaand-med', 'forhaand-start', 'landing'];
+    'spor', 'forhaand-uden', 'forhaand-med', 'forhaand-start', 'landing',
+    'forhaand-kort-1', 'forhaand-kort-2', 'forhaand-kort-3',
+    'felt-1', 'felt-1-kant', 'felt-2', 'felt-2-kant', 'felt-3', 'felt-3-kant', 'taage', 'taage-2'];
   ZONER.forEach(function (z) { FARVER.push('himmel-' + z + '-1', 'himmel-' + z + '-2', 'jord-' + z, 'jord-' + z + '-kant', 'kulisse-' + z, 'kulisse-' + z + '-2'); });
   var TAL = ['gloed', 'gloed-blur', 'skygge-x', 'skygge-y', 'skygge-blur', 'kontur-w', 'streg-w', 'forhaand-w', 'spor-w', 'jord-kant-w', 'tekst-str', 'radius'];
 
@@ -313,6 +320,30 @@
       for (var i = 1; i < pts.length; i++) ctx.lineTo(v.sx(pts[i].x), v.sy(pts[i].y));
       ctx.stroke(); ctx.setLineDash([]); ctx.lineCap = 'butt'; noFx(ctx);
     },
+    // Usikkert landingsfelt: et bånd på jorden fra–til med kort nr. og "ca. X–Y m"
+    felt: function (ctx, d, v, s) {
+      var a = v.sx(d.fra), b = v.sx(d.til), y = v.sy(0), n = d.nr || 1;
+      var fill = s['felt-' + n], kant = s['felt-' + n + '-kant'], h = Math.max(10, Math.min(18, v.h * 0.03));
+      noFx(ctx);
+      ctx.fillStyle = fill; ctx.fillRect(a, y - h, b - a, h * 2);
+      ctx.strokeStyle = kant; ctx.lineWidth = s['streg-w'];
+      ctx.setLineDash([s['streg-w'] * 3, s['streg-w'] * 2]);
+      ctx.strokeRect(a, y - h, b - a, h * 2); ctx.setLineDash([]);
+      // Kanterne går lidt op, så feltet kan ses, også når det er smalt
+      glow(ctx, s, kant, 0.5);
+      ctx.beginPath(); ctx.moveTo(a, y + h); ctx.lineTo(a, y - h * 2); ctx.moveTo(b, y + h); ctx.lineTo(b, y - h * 2); ctx.stroke(); noFx(ctx);
+      if (d.tekst) tekst(ctx, d.tekst, (a + b) / 2, y - h * 2 - 4 - (d.raekke || 0) * (s['tekst-str'] + 6), s, 'center');
+    },
+    // Tåge fra udsynets grænse: blød overgang og så dækkende
+    taage: function (ctx, d, v, s) {
+      var x = v.sx(d.x); if (x >= v.w) return;
+      var w = Math.max(30, Math.min(90, v.w * 0.08));
+      noFx(ctx);
+      var g = ctx.createLinearGradient(x - w, 0, x + w * 0.3, 0);
+      g.addColorStop(0, s['taage-2']); g.addColorStop(1, s['taage']);
+      ctx.fillStyle = g; ctx.fillRect(x - w, 0, w * 1.3, v.h);
+      ctx.fillStyle = s['taage']; ctx.fillRect(x + w * 0.3 - 0.5, 0, v.w - x, v.h);
+    },
     landing: function (ctx, d, v, s) {
       var x = v.sx(d.x), y = v.sy(0), c = s['forhaand-' + d.slags];
       noFx(ctx); ctx.strokeStyle = c; ctx.lineWidth = s['forhaand-w'] * 0.8;
@@ -353,6 +384,9 @@
     'vinger': '<path class="ico-fill" d="M50 44 L92 30 L84 50 L50 58 L16 50 L8 30 Z"/>',
     'raket': '<path class="ico-fill" d="M50 8 Q70 26 66 62 H34 Q30 26 50 8 Z"/><path class="ico-line" d="M34 62 L22 80 M66 62 L78 80 M44 72 L50 92 L56 72"/>',
     'braendstof': '<rect class="ico-fill" x="24" y="24" width="52" height="66" rx="8"/><path class="ico-line" d="M36 24 V12 H62"/>',
+    'instrumenter': '<circle class="ico-line" cx="50" cy="56" r="34"/><path class="ico-line" d="M50 56 L72 34 M22 56 H30 M70 56 H78 M50 28 V36"/><circle class="ico-fill" cx="50" cy="56" r="7"/>',
+    'ballon': '<ellipse class="ico-fill" cx="50" cy="38" rx="26" ry="30"/><path class="ico-line" d="M50 68 Q42 80 52 92"/>',
+    'trampolin': '<path class="ico-line" d="M12 54 Q50 72 88 54 M20 58 L14 86 M80 58 L86 86"/><path class="ico-fill" d="M38 14 L62 14 L50 36 Z"/>',
     'faldskaerm': '<path class="ico-fill" d="M10 46 Q50 0 90 46 Z"/><path class="ico-line" d="M12 46 L46 84 M50 46 V84 M88 46 L54 84"/><rect class="ico-fill" x="42" y="80" width="16" height="12" rx="2"/>'
   };
 

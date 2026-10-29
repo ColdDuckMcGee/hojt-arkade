@@ -89,14 +89,9 @@ html, body { height: 100%; height: 100dvh; }
 .controls.nb .p-boost { display: none; }
 .controls[data-phase="launch"] { grid-template-rows: var(--head-h) var(--btn) var(--btn) var(--head-h) var(--btn) var(--btn); grid-template-areas: "vh vh" "v1 v4" "v2 v3" "kh kh" "km kp" "go go"; }
 .ctl4 .controls[data-phase="launch"] { grid-template-rows: var(--head-h) var(--btn) var(--btn); grid-template-areas: "vh vh kh kh" "v1 v2 v3 v4" "km kp go go"; }
-.controls[data-phase="freeze"] { grid-template-rows: var(--head-h) var(--btn) var(--btn) var(--btn) var(--btn); grid-template-areas: "fh fh" "ja ja" "ja ja" "ve ve" "ve ve"; }
-.controls[data-phase="freeze"].wings { grid-template-areas: "fh fh" "no nn" "nl nl" "ja ve" "ja ve"; }
-.controls[data-phase="freeze"].nb { grid-template-areas: "fh fh" "ve ve" "ve ve" "ve ve" "ve ve"; }
-.controls[data-phase="freeze"].wings.nb { grid-template-areas: "fh fh" "no nn" "nl nl" "ve ve" "ve ve"; }
-.ctl4 .controls[data-phase="freeze"] { grid-template-rows: var(--head-h) var(--btn) var(--btn); grid-template-areas: "fh fh fh fh" "ja ja ve ve" "ja ja ve ve"; }
-.ctl4 .controls[data-phase="freeze"].wings { grid-template-areas: "fh fh fh fh" "no nl nn ve" "ja ja ja ve"; }
-.ctl4 .controls[data-phase="freeze"].nb { grid-template-areas: "fh fh fh fh" "ve ve ve ve" "ve ve ve ve"; }
-.ctl4 .controls[data-phase="freeze"].wings.nb { grid-template-areas: "fh fh fh fh" "no nl nn ve" "no nl nn ve"; }
+/* Valgkort: samme højde som opsendelsens knapper, så layoutet aldrig rulles */
+.controls[data-phase="freeze"] { grid-template-rows: var(--head-h) calc(var(--head-h) + 4 * var(--btn) + 4 * var(--ig)); grid-template-areas: "fh fh" "kc kc"; }
+.ctl4 .controls[data-phase="freeze"] { grid-template-rows: var(--head-h) calc(2 * var(--btn) + var(--ig)); grid-template-areas: "fh fh fh fh" "kc kc kc kc"; }
 .controls[data-phase="fly"] { grid-template-rows: var(--head-h) var(--btn) var(--btn); grid-template-areas: "fh fh" "hu hu" "sp sp"; }
 .ctl4 .controls[data-phase="fly"] { grid-template-areas: "fh fh fh fh" "hu hu sp sp" "hu hu sp sp"; }
 .controls[data-phase="idle"] { grid-template-rows: var(--head-h); }
@@ -105,8 +100,7 @@ html, body { height: 100%; height: 100dvh; }
 .head-ang { grid-area: vh; } .head-pow { grid-area: kh; } .head-freeze, .head-fly { grid-area: fh; }
 .v1 { grid-area: v1; } .v2 { grid-area: v2; } .v3 { grid-area: v3; } .v4 { grid-area: v4; }
 .km { grid-area: km; } .kp { grid-area: kp; } .go { grid-area: go; }
-.no { grid-area: no; } .nl { grid-area: nl; } .nn { grid-area: nn; }
-.ja { grid-area: ja; } .ve { grid-area: ve; } .hu { grid-area: hu; } .sp { grid-area: sp; }
+.kort-liste { grid-area: kc; } .hu { grid-area: hu; } .sp { grid-area: sp; }
 
 .ctrl-head { height: var(--head-h, 40px); display: flex; align-items: center; gap: 8px; justify-content: space-between; padding: 0 10px; background: var(--rampen-hud-bg); border: var(--rampen-block-w) solid var(--rampen-hud-border); border-radius: var(--rampen-radius-hud-small); min-width: 0; overflow: hidden; }
 .ctrl-label { font-size: 0.9rem; color: var(--muted); letter-spacing: 0.05em; text-transform: uppercase; white-space: nowrap; }
@@ -287,6 +281,37 @@ ol.records .score { white-space: nowrap; }
 .rampen-tvaers .res-dist { font-size: 2.2rem; }
 .rampen-tvaers .res-coins { font-size: 1.4rem; }
 .shop-row .small { white-space: nowrap; font-size: 0.8rem; }
-/* Ja/Vent kan blive smalle (med vinger): ikon over tekst */
-.controls .ja, .controls .ve { flex-direction: column; gap: 4px; }
-.controls .ja .big, .controls .ve .big { white-space: normal; text-align: center; line-height: 1.1; }
+
+/* ---------- Valgkort ----------
+ * Bred skærm: kortene står under hinanden (hvert ca. 1,4 × --btn højt).
+ * ctl4 (lav eller smal skærm): kortene står ved siden af hinanden (2 × --btn høje). */
+.kort-liste { display: grid; gap: var(--ig, 10px); width: 100%; height: 100%; min-height: 0; grid-template-columns: minmax(0, 1fr); grid-auto-rows: minmax(0, 1fr); }
+.ctl4 .kort-liste { grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); grid-template-columns: none; grid-template-rows: minmax(0, 1fr); }
+.controls .valg-kort { position: relative; display: grid; grid-template-columns: calc(var(--btn) * 0.46) minmax(0, 1fr); align-items: center; column-gap: 10px; padding: 6px 10px 6px 12px; text-align: left; overflow: hidden; }
+.valg-kort[hidden] { display: none !important; }
+.controls .valg-kort svg { width: calc(var(--btn) * 0.46); height: calc(var(--btn) * 0.46); }
+.kort-nr { position: absolute; top: 4px; left: 6px; font-size: 0.85rem; font-weight: 800; line-height: 1; color: var(--kort-farve, var(--muted)); }
+.valg-kort.k1 { --kort-farve: var(--rampen-felt-1-kant); border-left: 6px solid var(--rampen-felt-1-kant); }
+.valg-kort.k2 { --kort-farve: var(--rampen-felt-2-kant); border-left: 6px solid var(--rampen-felt-2-kant); }
+.valg-kort.k3 { --kort-farve: var(--rampen-felt-3-kant); border-left: 6px solid var(--rampen-felt-3-kant); }
+.kort-tekst { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.kort-titel { font-size: clamp(1.05rem, calc(var(--btn) * 0.2), 1.6rem); font-weight: 800; line-height: 1.1; color: var(--ui-text); }
+.kort-effekt { font-size: clamp(0.8rem, calc(var(--btn) * 0.13), 1.05rem); line-height: 1.2; color: var(--muted); }
+.kort-felt { font-size: clamp(0.95rem, calc(var(--btn) * 0.17), 1.35rem); font-weight: 800; line-height: 1.15; color: var(--kort-farve, var(--ui-text)); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.kort-skade { font-size: clamp(0.8rem, calc(var(--btn) * 0.13), 1.05rem); line-height: 1.15; color: var(--rampen-fejl); font-weight: 700; }
+.kort-skade:empty { display: none; }
+.ctl4 .controls .valg-kort { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr; justify-items: center; align-items: start; text-align: center; padding: 6px 6px 4px; row-gap: 2px; border-left-width: 0; border-top: 6px solid var(--kort-farve); }
+.ctl4 .controls .valg-kort svg { width: calc(var(--btn) * 0.36); height: calc(var(--btn) * 0.36); }
+.ctl4 .kort-tekst { align-items: center; }
+.ctl4 .kort-titel { font-size: clamp(0.95rem, calc(var(--btn) * 0.17), 1.35rem); }
+.ctl4 .kort-felt { white-space: normal; }
+.kort-tekst > span { overflow-wrap: anywhere; hyphens: auto; max-width: 100%; }
+.ctl4 .kort-tekst { width: 100%; }
+.rampen-lille .ctl4 .controls .valg-kort, .rampen-lille.ctl4 .controls .valg-kort { padding: 4px 3px 3px; }
+.rampen-lille .kort-titel { font-size: 0.95rem; }
+.rampen-lille .kort-effekt, .rampen-lille .kort-skade { font-size: 0.75rem; }
+.rampen-lille .kort-felt { font-size: 0.9rem; }
+.rampen-lille .ctl4 .controls .valg-kort svg { width: calc(var(--btn) * 0.26); height: calc(var(--btn) * 0.26); }
+.rampen-lille .ctl4 .kort-titel { font-size: 0.88rem; }
+.rampen-lille .ctl4 .kort-felt { font-size: 0.85rem; }
+.rampen-lille .ctl4 .kort-effekt, .rampen-lille .ctl4 .kort-skade { font-size: 0.72rem; line-height: 1.12; }
