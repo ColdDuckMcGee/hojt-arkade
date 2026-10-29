@@ -47,6 +47,8 @@
     dwell: false, dwellTime: 1.2, theme: 'neon', background: 'mork', animation: true, sound: true, music: true
   });
   var hal = ArkadeSettings.create('hal', { valgt: '' });
+  // Valgt styring fra velkomstskærmen: '' (ikke valgt endnu), 'mus', 'kigge', 'eget' eller 'kontakt'.
+  var styring = ArkadeSettings.create('styring', { valg: '' });
   var root = document.documentElement;
   // Samme nøgler og værdier som i spillene (se slangen/js/app.js).
   var THEMES = ['neon', 'solnedgang', 'cyberpunk', 'kontrast'];
@@ -317,8 +319,10 @@
   // ---------- Skærme ----------
   var current = 'hal', returnFocus = null;
   function show(id, focusEl) {
+    var fra = current;
     $$('.screen').forEach(function (el) { el.hidden = el.id !== id; });
     current = id;
+    if (fra === 'velkomst' && id !== 'velkomst') velkomstSlut();
     fit();
     dwell.reset();
     if (focusEl) focusEl.focus({ preventScroll: true });
@@ -345,6 +349,7 @@
       var cur = arkade.get(b.dataset.set);
       b.setAttribute('aria-pressed', String(String(cur) === b.dataset.value));
     });
+    $('#styring-navn').textContent = STYRING_NAVN[styring.get('valg')] || 'Ikke valgt';
     var t = arkade.get('dwellTime');
     $('#dwell-value').textContent = fmtSeconds(t);
     $('#dwell-minus').disabled = t <= 0.5 + 1e-9;
@@ -388,6 +393,8 @@
         var a = document.activeElement;
         if (!a || a === document.body || !a.closest('button, a[href]')) { e.preventDefault(); spil(); }
       }
+    } else if (current === 'velkomst') {
+      if (e.key === 'Escape' && velkomstFra) { e.preventDefault(); audio.play('click'); show(velkomstFra, $('#btn-skift-styring')); }
     } else if (e.key === 'Escape') {
       e.preventDefault(); tilbage();
     }
@@ -407,14 +414,92 @@
   document.addEventListener('fullscreenchange', syncFs);
   document.addEventListener('webkitfullscreenchange', syncFs);
 
+  // ---------- Velkomst: Hvordan styrer du? ----------
+  // Første besøg: vælg styring. Valget sætter den fælles kigge-klik-indstilling (arkade.dwell),
+  // som alle spil læser. På selve skærmen er kigge-klik slået til med lang tid (2 s), så man
+  // også kan vælge med øjnene; klik, tryk, eget øjenstyringsprogram og taster virker altid.
+  // TD Browse/Electron genkendes og får "eget program" uden at spørge.
+  var STYRING_NAVN = { mus: 'Mus eller touch', kigge: 'Øjenstyring med kigge-klik',
+    eget: 'Øjenstyring med mit eget program', kontakt: 'Kontakt eller tastatur' };
+  var VELKOMST_DWELL_MS = 2000;
+  var velkomstFra = null, beskedTimer = null;
+  function besked(tekst, ms) {
+    var el = $('#hal-besked');
+    el.textContent = tekst; el.hidden = false;
+    clearTimeout(beskedTimer);
+    beskedTimer = setTimeout(function () { el.hidden = true; }, ms || 6000);
+  }
+  function velkomstTrin(n) {
+    $('#velkomst-trin1-top').hidden = $('#velkomst-trin1').hidden = n !== 1;
+    $('#velkomst-trin2-top').hidden = $('#velkomst-trin2').hidden = n !== 2;
+    var v = styring.get('valg'), t = arkade.get('dwellTime');
+    $$('#velkomst [data-styring]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-styring') === v)); });
+    var naer = null;
+    $$('#velkomst [data-tid]').forEach(function (b) {
+      var d = Math.abs(parseFloat(b.getAttribute('data-tid')) - t);
+      if (!naer || d < naer.d) naer = { b: b, d: d };
+    });
+    $$('#velkomst [data-tid]').forEach(function (b) { b.setAttribute('aria-pressed', String(naer && naer.b === b && naer.d < 0.2)); });
+    fit();
+    dwell.reset();
+    var forst = $('#velkomst-trin' + n + ' [aria-pressed="true"]') || $('#velkomst-trin' + n + ' [data-autofokus]');
+    if (forst) forst.focus({ preventScroll: true });
+  }
+  function visVelkomst(fra) {
+    velkomstFra = fra || null;
+    show('velkomst');
+    if (!ArkadeDwell.isTdBrowse()) { dwell.setTime(VELKOMST_DWELL_MS); dwell.setEnabled(true); }
+    velkomstTrin(1);
+  }
+  function velkomstSlut() {
+    // Tilbage til den gemte indstilling (set() udsender intet, hvis værdien er uændret)
+    dwell.setTime(arkade.get('dwellTime') * 1000);
+    dwell.setEnabled(arkade.get('dwell'));
+  }
+  function vaelgStyring(v, tid) {
+    styring.set('valg', v);
+    arkade.set('dwell', v === 'kigge');
+    if (tid) arkade.set('dwellTime', tid);
+    if (window.ArkadeTaster) ArkadeTaster.setStyring(v);
+    audio.play('click');
+    var tilbageTil = velkomstFra;
+    velkomstFra = null;
+    if (tilbageTil) { syncSettings(); show(tilbageTil, $('#btn-skift-styring')); }
+    else show('hal', spilBtn);
+    besked('Styring: ' + STYRING_NAVN[v] + (v === 'kigge' ? ' (' + fmtSeconds(arkade.get('dwellTime')) + ')' : '') +
+      '. Du kan skifte under Indstillinger.');
+  }
+  $$('#velkomst [data-styring]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var v = b.getAttribute('data-styring');
+      if (v === 'kigge') { audio.play('click'); velkomstTrin(2); }
+      else vaelgStyring(v);
+    });
+  });
+  $$('#velkomst [data-tid]').forEach(function (b) {
+    b.addEventListener('click', function () { vaelgStyring('kigge', parseFloat(b.getAttribute('data-tid'))); });
+  });
+  $('#velkomst-tilbage').addEventListener('click', function () { audio.play('click'); velkomstTrin(1); });
+  $('#btn-skift-styring').addEventListener('click', function () { audio.play('click'); visVelkomst('indstillinger'); });
+
   // ---------- Start ----------
   syncSettings();
   render(false);
   fit();
+  if (!styring.get('valg')) {
+    if (ArkadeDwell.isTdBrowse()) {
+      styring.set('valg', 'eget');
+      arkade.set('dwell', false);
+      if (window.ArkadeTaster) ArkadeTaster.setStyring('eget');
+      besked('TD Browse fundet: Hojt Arkade klikker ikke selv, så brug TD Browse’ egne prikker. Du kan skifte under Indstillinger → Skift styring.', 9000);
+    } else {
+      visVelkomst(null);
+    }
+  }
 
   // Til test og fejlfinding (påvirker ikke almindelig brug)
   window.HojtHal = {
-    spil: SPIL, settings: arkade, dwell: dwell, bg: bg, audio: audio, show: show, ga: ga, fit: fit,
+    spil: SPIL, settings: arkade, styring: styring, visVelkomst: visVelkomst, dwell: dwell, bg: bg, audio: audio, show: show, ga: ga, fit: fit,
     get index() { return index; }
   };
 })();

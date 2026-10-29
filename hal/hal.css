@@ -255,6 +255,50 @@ html { font-size: calc(18px * var(--fit, 1)); }
   .setting-label { font-size: 1.15rem; }
 }
 
+/* ---------- Velkomst: Hvordan styrer du? ----------
+   Overskrift og 4 store valg: 2 × 2 på langs, under hinanden på højkant/smalt.
+   Knapperne deler højden, så der aldrig skal rulles; mindst 84 px høje. */
+.velkomst { justify-content: center; gap: calc(var(--gap) * 0.8); }
+.velkomst-top { flex: none; text-align: center; max-width: 60em; }
+.velkomst-top .neon-sub { font-size: clamp(1.7rem, 6vmin, 3.2rem); }
+.velkomst-hjaelp { margin: 6px 0 0; font-size: clamp(1rem, 2.6vmin, 1.3rem); line-height: 1.35; color: var(--text); text-shadow: 0 1px 4px #000; }
+.velkomst-valg {
+  flex: 0 1 34rem; min-height: 0; width: min(100%, 1150px);
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(84px, 1fr));
+  gap: var(--gap);
+}
+.btn.valg {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto auto; align-content: center;
+  column-gap: clamp(10px, 2vmin, 22px); row-gap: 4px;
+  min-width: 0; min-height: 84px; height: 100%; padding: 10px clamp(12px, 2.4vmin, 28px); text-align: left;
+}
+.valg-ikon { grid-row: 1 / 3; width: clamp(40px, 7vmin, 72px); height: auto; fill: none; stroke: currentColor; stroke-width: 3;
+  stroke-linejoin: round; stroke-linecap: round; color: var(--accent); }
+.valg-titel { font-size: clamp(1.2rem, 3.4vmin, 1.75rem); font-weight: 800; line-height: 1.15; color: var(--ui-text); }
+.valg-tekst { font-size: clamp(.95rem, 2.4vmin, 1.2rem); line-height: 1.3; color: var(--text); }
+.btn.valg[aria-pressed="true"] .valg-titel, .btn.valg[aria-pressed="true"] .valg-tekst, .btn.valg[aria-pressed="true"] .valg-ikon { color: var(--bg); }
+.velkomst-valg.tid .btn.valg { display: flex; flex-direction: column; text-align: center; }
+@media (max-aspect-ratio: 6/5) and (min-height: 560px), (max-width: 699px) and (min-height: 560px) {
+  .velkomst-valg { flex-basis: 44rem; width: min(100%, 720px); grid-template-columns: minmax(0, 1fr); grid-template-rows: repeat(4, minmax(84px, 1fr)); }
+}
+
+/* Meget lille og smalt vindue: 2 × 2 med ikonet over teksten */
+@media (max-width: 699px) and (max-height: 559px) {
+  .btn.valg { display: flex; flex-direction: column; text-align: center; padding: 6px 8px; gap: 2px; }
+  .valg-ikon { width: 32px; }
+  .valg-titel { font-size: 1rem; }
+  .valg-tekst { font-size: .85rem; line-height: 1.2; }
+}
+
+/* Kort besked i hallen (fx "TD Browse fundet"). Kan ikke vælges og forsvinder af sig selv. */
+.hal-besked {
+  position: fixed; z-index: 20; left: 50%; top: max(12px, 2vmin); transform: translateX(-50%);
+  width: max-content; max-width: min(92vw, 44em); margin: 0; padding: 12px 20px; pointer-events: none;
+  background: var(--panel); border: 2px solid var(--accent); border-radius: 16px; color: var(--ui-text);
+  font-size: clamp(1rem, 2.4vmin, 1.2rem); line-height: 1.4; text-align: center;
+  box-shadow: 0 6px 30px rgba(0, 0, 0, .6), 0 0 calc(16px * var(--glow)) var(--accent);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .maskine.skift { animation: none; }
   .taeller-fyld { transition: none; }

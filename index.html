@@ -85,7 +85,7 @@
   </button>
 
   <div class="taeller" id="taeller" aria-hidden="true"></div>
-  <a class="btn primary spil-knap" id="btn-spil"><span class="icon" aria-hidden="true">▶</span><span class="big" id="spil-label">Spil</span></a>
+  <a class="btn primary spil-knap" id="btn-spil" data-autofokus><span class="icon" aria-hidden="true">▶</span><span class="big" id="spil-label">Spil</span></a>
 
   <section class="spil-info panel" aria-labelledby="info-navn">
     <p class="info-status" id="info-status"></p>
@@ -143,6 +143,12 @@
         <button class="btn" id="dwell-plus" aria-label="Længere dwell-tid"><span class="big">+</span><span class="small">Længere</span></button>
       </div>
     </div>
+    <div class="setting">
+      <div class="setting-label" id="lbl-styring">Styring<small id="styring-navn">Mus eller touch</small></div>
+      <div class="row" role="group" aria-labelledby="lbl-styring">
+        <button class="btn" id="btn-skift-styring"><span class="big">Skift styring</span></button>
+      </div>
+    </div>
     <p class="note">Indstillingerne gælder i alle spil. Har du dwell-klik i dit øjenstyringssystem, fx Tobii, så lad dwell være slået fra her. Piletasterne på tastaturet virker altid.</p>
   </section>
 
@@ -190,6 +196,52 @@
     </div>
   </section>
 </main>
+
+<!-- ================= VELKOMST: HVORDAN STYRER DU? =================
+     Vises første gang i hallen (og fra Indstillinger → Skift styring). Valget huskes
+     i localStorage (hojtArkade.styring) og sætter den fælles kigge-klik-indstilling,
+     som alle spil læser. Skærmen kan selv betjenes med mus/touch, kigge-klik (slået
+     til her med lang tid), eget øjenstyringsprogram og kontakt/tastatur. -->
+<main id="velkomst" class="screen velkomst" hidden aria-labelledby="velkomst-titel">
+  <div class="velkomst-top" id="velkomst-trin1-top">
+    <h1 id="velkomst-titel" class="neon-sub">Hvordan styrer du?</h1>
+    <p class="velkomst-hjaelp" id="velkomst-hjaelp">Vælg det, der passer dig. Klik, tryk – eller kig på en knap i 2 sekunder.</p>
+  </div>
+  <div class="velkomst-valg" id="velkomst-trin1" role="group" aria-labelledby="velkomst-titel">
+    <button class="btn option valg" data-styring="mus" data-autofokus>
+      <svg class="valg-ikon" viewBox="0 0 48 48" aria-hidden="true"><path d="M12 6l22 16-10 2 6 13-5 2-6-13-7 7z"/></svg>
+      <span class="valg-titel">Mus eller touch</span>
+      <span class="valg-tekst">Jeg klikker eller trykker selv.</span>
+    </button>
+    <button class="btn option valg" data-styring="kigge">
+      <svg class="valg-ikon" viewBox="0 0 48 48" aria-hidden="true"><path d="M3 24s8-13 21-13 21 13 21 13-8 13-21 13S3 24 3 24z"/><circle cx="24" cy="24" r="7"/></svg>
+      <span class="valg-titel">Øjenstyring med kigge‑klik</span>
+      <span class="valg-tekst">Jeg kigger på en knap, så vælger Hojt Arkade den.</span>
+    </button>
+    <button class="btn option valg" data-styring="eget">
+      <svg class="valg-ikon" viewBox="0 0 48 48" aria-hidden="true"><rect x="4" y="8" width="40" height="27" rx="3"/><path d="M17 42h14M24 35v7"/><path d="M12 21.5s5-7 12-7 12 7 12 7-5 7-12 7-12-7-12-7z"/><circle cx="24" cy="21.5" r="3"/></svg>
+      <span class="valg-titel">Øjenstyring med mit eget program</span>
+      <span class="valg-tekst">Mit program klikker, fx TD Browse, Grid 3 eller Tobii.</span>
+    </button>
+    <button class="btn option valg" data-styring="kontakt">
+      <svg class="valg-ikon" viewBox="0 0 48 48" aria-hidden="true"><circle cx="16" cy="26" r="11"/><circle cx="16" cy="26" r="5"/><rect x="31" y="15" width="14" height="22" rx="3"/><path d="M38 21v10"/></svg>
+      <span class="valg-titel">Kontakt eller tastatur</span>
+      <span class="valg-tekst">Jeg hopper mellem knapperne og vælger med en kontakt eller tast.</span>
+    </button>
+  </div>
+  <div class="velkomst-top" id="velkomst-trin2-top" hidden>
+    <h2 id="velkomst-tid-titel" class="neon-sub">Hvor længe vil du kigge?</h2>
+    <p class="velkomst-hjaelp">Så længe skal du kigge på en knap, før den vælges. Du kan ændre det under Indstillinger.</p>
+  </div>
+  <div class="velkomst-valg tid" id="velkomst-trin2" role="group" aria-labelledby="velkomst-tid-titel" hidden>
+    <button class="btn option valg" data-tid="0.8"><span class="valg-titel">Kort</span><span class="valg-tekst">0,8 sekund</span></button>
+    <button class="btn option valg" data-tid="1.2" data-autofokus><span class="valg-titel">Mellem</span><span class="valg-tekst">1,2 sekund</span></button>
+    <button class="btn option valg" data-tid="2"><span class="valg-titel">Lang</span><span class="valg-tekst">2 sekunder</span></button>
+    <button class="btn valg" id="velkomst-tilbage"><span class="valg-titel">← Tilbage</span><span class="valg-tekst">Vælg en anden styring</span></button>
+  </div>
+</main>
+
+<p class="hal-besked" id="hal-besked" role="status" aria-live="polite" hidden></p>
 
 <noscript><p class="noscript">Hojt Arkade kræver JavaScript. Du kan åbne <a href="slangen/index.html">Slangen</a> direkte.</p></noscript>
 

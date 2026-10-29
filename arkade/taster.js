@@ -8,6 +8,11 @@
  *   venstre/højre spil som før, mens op/ned flytter fokus.
  * - Enter aktiverer altid den knap, der har synligt fokus (Tab, piletaster), også
  *   i spil hvor Enter ellers er en spilhandling. Mellemrum er uændret.
+ * - Har man valgt "Kontakt eller tastatur" på hallens velkomstskærm (gemt i
+ *   hojtArkade.styring.indstillinger), sættes data-styring="kontakt" på <html>
+ *   (ekstra tydelig fokusring, se arkade.css), og når siden er indlæst, får den
+ *   første knap fokus ([data-autofokus], #btn-start, #btn-continue eller første
+ *   synlige knap), hvis intet andet har fokus. ArkadeTaster.setStyring/autofokus.
  * Kun ES5, ingen afhængigheder. Registreres i fangstfasen på window, så den kommer
  * før spillenes egne tastaturhandlere.
  */
@@ -64,6 +69,31 @@
     var k = list.indexOf(a), step = d[0] + d[1] > 0 ? 1 : -1;
     return list[(k + step + list.length) % list.length];
   }
+
+  // ---------- Valgt styring (fra hallens velkomstskærm) ----------
+  var STYRING_KEY = 'hojtArkade.styring.indstillinger';
+  function readStyring() {
+    try { var raw = global.localStorage.getItem(STYRING_KEY); var v = raw ? JSON.parse(raw) : null; return (v && typeof v.valg === 'string') ? v.valg : ''; }
+    catch (x) { return ''; }
+  }
+  function setStyring(v) {
+    var root = doc.documentElement;
+    if (v) root.setAttribute('data-styring', v); else root.removeAttribute('data-styring');
+  }
+  function autofokus(force) {
+    if (!force && doc.documentElement.getAttribute('data-styring') !== 'kontakt') return false;
+    var a = doc.activeElement;
+    if (!force && a && a !== doc.body && a !== doc.documentElement) return false;
+    var sc = scope();
+    var cands = filter(sc.querySelectorAll('[data-autofokus], #btn-start, #btn-continue'), function (b) { return !b.disabled && shown(b); });
+    if (!cands.length) cands = filter(sc.querySelectorAll(SEL), function (b) { return !b.disabled && shown(b); });
+    if (!cands.length) return false;
+    try { cands[0].focus({ preventScroll: true }); } catch (x) { cands[0].focus(); }
+    return true;
+  }
+  setStyring(readStyring());
+  global.addEventListener('load', function () { global.setTimeout(function () { autofokus(false); }, 0); });
+  global.ArkadeTaster = { setStyring: setStyring, styring: readStyring, autofokus: autofokus };
 
   global.addEventListener('keydown', function (e) {
     if (e.altKey || e.ctrlKey || e.metaKey || e.defaultPrevented) return;

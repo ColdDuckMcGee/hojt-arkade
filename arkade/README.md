@@ -73,6 +73,13 @@ spil (op/ned flytter fokus); sæt
 Enter aktiverer altid knappen med synligt fokus (`:focus-visible`), også i spil hvor
 Enter ellers er en spilhandling. Mellemrum er uændret.
 
+Styringen, der vælges på hallens velkomstskærm (`hojtArkade.styring.indstillinger`,
+`valg`: `mus` | `kigge` | `eget` | `kontakt`), sættes som `data-styring` på `<html>`.
+Ved `kontakt` får knapperne en ekstra tydelig fokusring (arkade.css), og efter
+indlæsning får `[data-autofokus]`, `#btn-start` eller `#btn-continue` (ellers første
+knap) fokus. `ArkadeTaster.setStyring(v)`, `.styring()` og `.autofokus(tving)`.
+Kigge-klik selv styres stadig af den fælles `arkade.dwell`/`dwellTime`.
+
 ## ArkadeDwell (dwell.js)
 ```js
 const dwell = ArkadeDwell.create({ enabled: false, timeMs: 1200 });
