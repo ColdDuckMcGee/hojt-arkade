@@ -115,6 +115,8 @@ html, body { height: 100%; height: 100dvh; }
 
 /* Placering: knapper til de fem skibe */
 .ship-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+/* Mindst ca. 122 px mellem skibsknappernes midter (TD Browse' Color Links) */
+.ship-list { row-gap: max(8px, calc(122px - max(80px, calc(var(--btn) * 0.74)))); }
 .ship-btn { min-width: 0; min-height: 0; height: max(80px, calc(var(--btn) * 0.74)); padding: 6px 8px; gap: 6px; }
 .ship-btn .small { font-size: 0.95rem; line-height: 1.15; text-align: center; }
 .ship-btn:first-child { grid-column: 1 / -1; }
@@ -153,6 +155,17 @@ html, body { height: 100%; height: 100dvh; }
   font: inherit; color: inherit;
 }
 button.cell { cursor: pointer; }
+/* Zoom i fjerdedele (se js/app.js): fire store knapper oven på det store hav */
+.qbtn {
+  position: relative; z-index: 3; margin: 0; padding: 0; min-width: 0; min-height: 0;
+  background: transparent; border: 0; border-radius: 0; cursor: zoom-in; font: inherit; color: inherit;
+}
+.qbtn[hidden] { display: none; }
+.qbtn:hover, .qbtn.arkade-dwelling { background: color-mix(in srgb, var(--fr, var(--ss-enemy)) 16%, transparent); }
+.qbtn:focus-visible { outline: 4px solid var(--accent); outline-offset: -4px; }
+@media (hover: none) { .qbtn:hover { background: transparent; } }
+.board:not(.zoomed) .qbtn:not([inert]) { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--fr, var(--ss-enemy)) 55%, transparent); }
+.board .qbtn[inert] { cursor: default; }
 button.cell.off { cursor: default; }
 .cell:focus-visible { outline: 4px solid var(--accent); outline-offset: -6px; z-index: 2; }
 .cell .hl, .cell .mk, .cell .gh { position: absolute; pointer-events: none; }
@@ -294,7 +307,7 @@ button.cell.aim:hover, button.cell.aim.arkade-dwelling { box-shadow: none; }
 #game[data-phase="place"] .compact .hud-grid { display: none; }
 .compact .ship-box { flex: 1 1 0; min-width: 0; padding: 0; background: none; border: 0; }
 .compact .ship-box .fleet-title { display: none; }
-.compact .ship-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.compact .ship-list { display: flex; flex-wrap: wrap; gap: max(8px, calc(122px - var(--btn))); }
 .compact .ship-btn { flex: 1 1 var(--btn); height: var(--btn); min-width: var(--btn); padding: 4px; }
 .compact .ship-btn:first-child { grid-column: auto; }
 .compact .ship-btn .small { font-size: 0.82rem; }

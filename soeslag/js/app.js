@@ -216,6 +216,13 @@
   var note = '', aiNote = '', fresh = -1, freshAi = -1;
   var gameEl = $('#game'), gridEl = $('#game-grid'), boardEl = $('#board'), miniEl = $('#mini');
   var cellEls = [], miniEls = [], builtN = 0;
+  // Zoom i fjerdedele (som Sudoku): fire store knapper (.qbtn) ligger oven på det store hav.
+  // Vælges en, bliver dens rækker og kolonner store og de andre smalle; de tre andre er så
+  // store knapper, der skifter zoom. Kun brugbare felter i den zoomede fjerdedel er klikbare
+  // (resten er inert), så TD Browse' Color Links kun ser få, store mål ad gangen.
+  var zoom = -1, qbtnEls = [];
+  var QNAME = ['øverst til venstre', 'øverst til højre', 'nederst til venstre', 'nederst til højre'];
+  function quadOf(i) { var n = builtN, h = Math.ceil(n / 2), x = i % n, y = Math.floor(i / n); return (y < h ? 0 : 2) + (x < h ? 0 : 1); }
 
   function buildBoard(n) {
     if (builtN === n) return;
@@ -233,6 +240,8 @@
       b.className = 'cell turn-btn';
       b.type = 'button';
       b.dataset.i = i;
+      b.style.gridColumn = String(i % n + 1); b.style.gridRow = String(Math.floor(i / n) + 1);
+      b.inert = true;
       b.innerHTML = '<span class="hl"></span><span class="gh"></span><span class="mk"></span>';
       boardEl.appendChild(b);
       cellEls.push(b);
@@ -242,9 +251,76 @@
       miniEl.appendChild(m);
       miniEls.push(m);
     }
+    qbtnEls = [];
+    var h = Math.ceil(n / 2);
+    for (var q = 0; q < 4; q++) {
+      var qb = document.createElement('button');
+      qb.type = 'button'; qb.className = 'qbtn'; qb.dataset.q = q;
+      qb.style.gridColumn = (q % 2 ? h + 1 : 1) + ' / ' + (q % 2 ? n + 1 : h + 1);
+      qb.style.gridRow = (q >> 1 ? h + 1 : 1) + ' / ' + (q >> 1 ? n + 1 : h + 1);
+      qb.setAttribute('aria-label', 'Zoom ind på fjerdedelen ' + QNAME[q]);
+      boardEl.appendChild(qb);
+      qbtnEls.push(qb);
+    }
+  }
+  // Sporenes bredde ved zoom: de zoomede helst mindst ca. 126 px, de andre smalle. Samme samlede størrelse.
+  function zoomTracks(n, cell, zq) {
+    var h = Math.ceil(n / 2), f = Math.min(0.3, Math.max(0.15, (n * cell / 126 - h) / (n - h)));
+    var big = n * cell / (h + (n - h) * f), c = [], r = [];
+    for (var t = 0; t < n; t++) {
+      c.push(((t < h ? 0 : 1) === zq % 2 ? big : big * f).toFixed(2) + 'px');
+      r.push(((t < h ? 0 : 1) === zq >> 1 ? big : big * f).toFixed(2) + 'px');
+    }
+    // m: hvor mange af de smalle spor en nabo-fjerdedels knap dækker, så dens
+    // midte er mindst 124 px fra nærmeste store felt (TD Browse' Color Links).
+    var small = big * f, m = Math.floor(2 * ((n - h) - (124 - big / 2) / small));
+    return { c: c.join(' '), r: r.join(' '), m: Math.max(1, Math.min(n - h, m)) };
+  }
+  // Knappens spor på én akse: hele halvdelen, eller kun de m yderste smalle spor.
+  function qSpan(n, side, zside, m) {
+    var h = Math.ceil(n / 2);
+    if (zside < 0 || side === zside) return side ? (h + 1) + ' / ' + (n + 1) : '1 / ' + (h + 1);
+    return side ? (n - m + 1) + ' / ' + (n + 1) : '1 / ' + (m + 1);
+  }
+  var zoomShown = -1, zoomQOn = false;
+  function applyZoom(shown, qOn) {
+    zoomShown = shown; zoomQOn = qOn;
+    var n = builtN, cell = parseFloat(gameEl.dataset.cell) || 0, t = shown >= 0 && cell ? zoomTracks(n, cell, shown) : null;
+    var cols = t ? t.c : '', rows = t ? t.r : '';
+    if (boardEl.style.gridTemplateColumns !== cols) {
+      boardEl.style.gridTemplateColumns = cols; boardEl.style.gridTemplateRows = rows;
+      $('#cols').style.gridTemplateColumns = cols; $('#rows').style.gridTemplateRows = rows;
+    }
+    boardEl.classList.toggle('zoomed', shown >= 0);
+    qbtnEls.forEach(function (q, k) {
+      var on = qOn && k !== shown;
+      q.classList.toggle('zoom', k === shown);
+      if (q.inert !== !on) q.inert = !on;
+      q.hidden = shown >= 0 && k === shown;
+      var gc = qSpan(n, k % 2, t ? shown % 2 : -1, t ? t.m : 0), gr = qSpan(n, k >> 1, t ? shown >> 1 : -1, t ? t.m : 0);
+      if (q.style.gridColumn !== gc) q.style.gridColumn = gc;
+      if (q.style.gridRow !== gr) q.style.gridRow = gr;
+    });
+  }
+  function cellAt(x, y) {
+    var els = boardEl.querySelectorAll('.cell');
+    for (var i = 0; i < els.length; i++) {
+      var r = els[i].getBoundingClientRect();
+      if (x >= r.left && x < r.right && y >= r.top && y < r.bottom) return +els[i].dataset.i;
+    }
+    return -1;
   }
   boardEl.addEventListener('click', function (e) {
+    var q = e.target.closest('.qbtn');
+    if (q) { if (!swallowed(q) && live()) { zoom = +q.dataset.q; sfx('click'); refresh(); } return; }
     var c = e.target.closest('.cell');
+    // Inerte felter rammes ikke af klik: find feltet under musen, og zoom dertil
+    // hvis det ligger i en anden fjerdedel (ellers ignoreres klikket som før).
+    if (!c && e.target === boardEl && zoom >= 0 && live()) {
+      var hit = cellAt(e.clientX, e.clientY);
+      if (hit >= 0 && quadOf(hit) !== zoom && qbtnEls[quadOf(hit)] && !qbtnEls[quadOf(hit)].inert) { zoom = quadOf(hit); sfx('click'); refresh(); }
+      return;
+    }
     if (!c || swallowed(c)) return;
     if (c.getAttribute('aria-disabled') === 'true') return;
     pickCell(+c.dataset.i);
@@ -261,7 +337,7 @@
   }
   function startMatch() {
     clearTimeout(aiTimer); clearTimeout(endTimer);
-    busy = false; view = 'home'; aim = -1; selShip = null; orient = 'h';
+    busy = false; view = 'home'; aim = -1; selShip = null; orient = 'h'; zoom = -1;
     note = ''; aiNote = ''; fresh = -1; freshAi = -1;
     buildBoard(run.n);
     refresh(true);
@@ -325,7 +401,7 @@
   function beginBattle() {
     if (!live() || phase() !== 'place') return;
     if (!run.begin()) return;
-    view = 'enemy'; aim = -1; selShip = null; note = ''; aiNote = '';
+    view = 'enemy'; aim = -1; selShip = null; note = ''; aiNote = ''; zoom = -1;
     sfx('click');
     refresh(true);
   }
@@ -333,6 +409,7 @@
   // ----- Kamp -----
   function pickCell(i) {
     if (!live()) return;
+    if (quadOf(i) !== zoom) { zoom = quadOf(i); refresh(); } // fx piletasterne ind i en anden fjerdedel
     if (phase() === 'place') {
       var sh = shipAt(i);
       // Et andet skib: vælg det skib. Ellers er feltet stævnens nye plads.
@@ -446,6 +523,8 @@
     else info = seaClasses(s.enemy, s.enemy.ships, false, ph === 'lost');
     var lastMine = bigHome ? freshAi : fresh;
     var canAim = !bigHome && ph === 'battle' && s.turn === 'player' && !busy && !paused;
+    // Eget hav under kampen vises uden zoom; ellers den valgte fjerdedel
+    var shown = bigHome && ph !== 'place' ? -1 : zoom, anyActive = false;
     for (var i = 0; i < cellEls.length; i++) {
       var el = cellEls[i], inf = info[i];
       var shotDone = inf.shot !== G.NONE;
@@ -461,6 +540,9 @@
       });
       if (active) { el.removeAttribute('aria-disabled'); el.removeAttribute('data-no-dwell'); el.tabIndex = 0; }
       else { el.setAttribute('aria-disabled', 'true'); el.setAttribute('data-no-dwell', ''); el.tabIndex = -1; }
+      if (active) anyActive = true;
+      var off = !active || shown < 0 || quadOf(i) !== shown;
+      if (el.inert !== off) el.inert = off;
       var label = G.coord(n, i) + ', ';
       if (bigHome) label += (inf.ship ? 'dit ' + shipLower(inf.ship) : 'vand') + (s.home ? ', ' + shotWord(inf.shot) : '');
       else label += shotWord(inf.shot) + (inf.ship && inf.shot === G.SUNK ? ' (' + shipLower(inf.ship) + ')' : '');
@@ -470,6 +552,7 @@
     }
     boardEl.classList.toggle('home', bigHome);
     boardEl.classList.toggle('enemy', !bigHome);
+    applyZoom(shown, anyActive);
   }
   function renderMini() {
     var s = run.state, bigHome = view === 'home';
@@ -834,6 +917,7 @@
     st.setProperty('--mini-cell', Math.max(6, Math.floor(extra.mini || 20)) + 'px');
     gameEl.dataset.layout = lay;
     gameEl.dataset.cell = cell;
+    if (qbtnEls.length) applyZoom(zoomShown, zoomQOn);
   }
   function sideH(el) { return el.scrollHeight; }
   // Prøv ét layout med knapstørrelse b. Giver feltstørrelsen, eller 0 hvis siderne ikke kan være der.

@@ -28,9 +28,9 @@ CHECK = """(sel) => {
      if (!vis(e)) return; const r = e.getBoundingClientRect();
      if (r.left < -1 || r.top < -1 || r.right > W + 1 || r.bottom > H + 1) out.clipped.push((e.id || e.tagName + '.' + e.className) + ' ' + [r.left,r.top,r.right,r.bottom].map(Math.round));
   });
-  const bs = [...scr.querySelectorAll('button, a.btn')].filter(vis).filter(e => !e.classList.contains('cell'));
+  const bs = [...scr.querySelectorAll('button, a.btn')].filter(vis).filter(e => !e.classList.contains('cell') && !e.classList.contains('qbtn'));  // felter og zoom-flader på havet måles som felt
   const cells = [...scr.querySelectorAll('#board .cell')].filter(vis);
-  out.cellPx = cells.length ? Math.round(cells[0].getBoundingClientRect().width) : null;
+  out.cellPx = cells.length ? Math.round(Math.max(...cells.map(c => c.getBoundingClientRect().width))) : null;  // største felt (zoomet fjerdedel)
   const name = e => e.id || e.dataset.slot || e.dataset.tab || e.dataset.size || e.dataset.recSize || e.dataset.level || e.dataset.recLevel || e.dataset.orient || e.getAttribute('aria-label') || e.textContent.trim().replace(/\\s+/g,' ').slice(0,16);
   for (let i = 0; i < bs.length; i++) for (let j = i + 1; j < bs.length; j++) { const a = bs[i].getBoundingClientRect(), b = bs[j].getBoundingClientRect();
      if (a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1 && !bs[i].contains(bs[j]) && !bs[j].contains(bs[i]) && bs[i].closest('.overlay') === bs[j].closest('.overlay')) out.overlap.push(name(bs[i]) + '/' + name(bs[j])); }
