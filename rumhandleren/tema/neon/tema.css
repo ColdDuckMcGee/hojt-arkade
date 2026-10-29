@@ -1,0 +1,152 @@
+/* Rumhandleren – tema "neon" (synthwave, neon på glas).
+ *
+ * Al grafik i spillet kommer herfra og fra grafik.js i samme mappe: farver, glød,
+ * skygger, konturer, stregtykkelser, skrift, hjørner og teksturer. Spillets egen
+ * CSS (css/rumhandleren.css) og JS (js/tegn.js, js/app.js) bruger kun variablerne
+ * nedenfor (læst med getComputedStyle, hvor der tegnes), så et nyt tema
+ * (fx tema/ligneclaire/, tema/papirklip/, tema/artdeco/, tema/ler/) skal levere
+ * de samme variabler og de samme navngivne grafikelementer i grafik.js.
+ *
+ * Farvesættene følger Hojt Arkades fælles indstilling data-theme
+ * (neon, solnedgang, cyberpunk, kontrast). Glød slås fra med
+ * data-rh-gloed="fra" på <html> (Indstillinger → Udseende → Glød).
+ *
+ * Konturer (ligne claire, art deco):  --rh-kontur og --rh-kontur-w (0 i neon).
+ * Bløde/faste skygger (papirklip, ler): --rh-skygge (ét CSS drop-shadow-filter).
+ * Glød (neon):                          --rh-gloed-filter og --rh-gloed-filter-accent.
+ * Tekstur (papir, ler, stjerner):       mønstret rumMoenster i grafik.js + --rh-tekstur-synlig.
+ * Fyld (flade farver eller forløb):     --rh-rum-1/--rh-rum-2 og planeternes --rh-planet-*. */
+
+:root, [data-theme] {
+  /* Rummet bag stjernekortet */
+  --rh-rum-1: #070418;
+  --rh-rum-2: #1b0836;
+  --rh-stjerne: rgba(246, 236, 255, 0.55);
+  --rh-taage: rgba(255, 63, 216, 0.10);
+  --rh-tekstur-synlig: 1;
+  --rh-gitter: rgba(34, 234, 255, 0.07);
+
+  /* Ruterne: farve og stiplet streg efter risikoen for pirater (ses også uden farve) */
+  --rh-rute: rgba(196, 176, 222, 0.55);
+  --rh-rute-1: #ffb03c;
+  --rh-rute-2: #ff4f6d;
+  --rh-rute-streg-0: none;
+  --rh-rute-streg-1: 2.2 1.2;
+  --rh-rute-streg-2: 0.9 0.9;
+  --rh-sti: #ffe14d;              /* den planlagte rejse */
+  --rh-ruteskib-sti: rgba(34, 234, 255, 0.5);
+
+  /* Planeterne (fyld og kant pr. fraktion – formen er også forskellig) */
+  --rh-planet-vega: #1d3a6e;   --rh-planet-vega-kant: #22eaff;
+  --rh-planet-orion: #4a1640;  --rh-planet-orion-kant: #ff3fd8;
+  --rh-planet-kant: #3d2a10;   --rh-planet-kant-kant: #ffb03c;
+  --rh-planet-detalje: rgba(246, 236, 255, 0.35);
+  --rh-planet-laast: 0.38;      /* uigennemsigtighed for låste planeter */
+  --rh-laas: #f6ecff;
+  --rh-navn: #f6ecff;
+  --rh-navn-valgt: #ffe14d;
+  --rh-navn-kant: #070418;       /* kant om navnene, så de kan læses over ruterne */
+  --rh-valg: #ffe14d;
+  --rh-her: #39ff6a;
+  --rh-skib: #39ff6a;
+  --rh-ruteskib: #22eaff;
+  --rh-begivenhed: #ffe14d;
+  --rh-bygning: #c4b0de;
+
+  /* Grafik på knapper og kort (varer, skibe, bygninger) */
+  --rh-vare: var(--ui);
+  --rh-vare-forbudt: #ff4f6d;
+  --rh-skrog: #2a0f40;
+  --rh-skrog-kant: #22eaff;
+  --rh-motor: #ff3fd8;
+  --rh-vindue: #ffe14d;
+
+  /* Flader og tekst uden for tegningerne */
+  --rh-ok: #39ff6a;
+  --rh-fejl: #ff7a3c;
+  --rh-advarsel: #ffe14d;
+  --rh-kredit: #ffe14d;
+  --rh-billig: #39ff6a;
+  --rh-dyr: #ff7a3c;
+  --rh-frak-vega: #22eaff;
+  --rh-frak-orion: #ff3fd8;
+  --rh-frak-kant: #ffb03c;
+  --rh-shadow: #000000;
+  --rh-overlay-bg: rgba(0, 0, 0, 0.7);
+  --rh-hall-bg: rgba(0, 0, 0, 0.45);
+  --rh-hall-bg-hover: rgba(255, 255, 255, 0.08);
+  --rh-hud-bg: var(--panel);
+  --rh-hud-border: var(--ui-soft);
+  --rh-kort-bg: rgba(10, 4, 20, 0.86);
+  --rh-kort-valgt: rgba(34, 234, 255, 0.16);
+  --rh-bar: #39ff6a;
+  --rh-bar-lav: #ff7a3c;
+  --rh-bar-tom: rgba(206, 190, 232, 0.25);
+  --rh-swatch-border: rgba(255, 255, 255, 0.5);
+  --rh-font: var(--font);
+}
+[data-theme="solnedgang"] {
+  --rh-rum-1: #12061f; --rh-rum-2: #2a0b3d; --rh-taage: rgba(255, 138, 31, 0.10);
+  --rh-planet-vega-kant: #c77dff; --rh-planet-orion-kant: #ff8a1f; --rh-planet-kant-kant: #ffe14d;
+  --rh-frak-vega: #c77dff; --rh-frak-orion: #ff8a1f; --rh-frak-kant: #ffe14d;
+  --rh-skrog-kant: #c77dff; --rh-motor: #ff8a1f; --rh-ruteskib: #c77dff; --rh-gitter: rgba(199, 125, 255, 0.08);
+}
+[data-theme="cyberpunk"] {
+  --rh-rum-1: #000608; --rh-rum-2: #021a1a; --rh-taage: rgba(42, 157, 255, 0.10);
+  --rh-planet-vega-kant: #2a9dff; --rh-planet-orion-kant: #39ff6a; --rh-planet-kant-kant: #ffe14d;
+  --rh-frak-vega: #2a9dff; --rh-frak-orion: #39ff6a; --rh-frak-kant: #ffe14d;
+  --rh-skrog-kant: #2a9dff; --rh-motor: #39ff6a; --rh-ruteskib: #2a9dff; --rh-gitter: rgba(42, 157, 255, 0.08);
+}
+[data-theme="kontrast"] {
+  --rh-rum-1: #000000; --rh-rum-2: #000000; --rh-stjerne: rgba(255, 255, 255, 0.5); --rh-taage: transparent; --rh-gitter: rgba(255, 255, 255, 0.12);
+  --rh-rute: #ffffff; --rh-rute-1: #ffff00; --rh-rute-2: #ff6600; --rh-sti: #00ffff; --rh-ruteskib-sti: #00ffff;
+  --rh-planet-vega: #000000; --rh-planet-vega-kant: #00ffff; --rh-planet-orion: #000000; --rh-planet-orion-kant: #ff66ff;
+  --rh-planet-kant: #000000; --rh-planet-kant-kant: #ffff00; --rh-planet-detalje: #ffffff; --rh-planet-laast: 0.5;
+  --rh-navn: #ffffff; --rh-navn-valgt: #ffff00; --rh-navn-kant: #000000; --rh-valg: #ffff00; --rh-her: #00ff00; --rh-skib: #00ff00; --rh-ruteskib: #00ffff;
+  --rh-begivenhed: #ffff00; --rh-bygning: #ffffff; --rh-skrog: #000000; --rh-skrog-kant: #ffffff; --rh-motor: #ffff00; --rh-vindue: #ffff00;
+  --rh-ok: #00ff00; --rh-fejl: #ff6600; --rh-advarsel: #ffff00; --rh-kredit: #ffff00; --rh-billig: #00ff00; --rh-dyr: #ff6600;
+  --rh-frak-vega: #00ffff; --rh-frak-orion: #ff66ff; --rh-frak-kant: #ffff00;
+  --rh-kort-bg: #000000; --rh-kort-valgt: #333300; --rh-bar: #00ff00; --rh-bar-lav: #ff6600; --rh-bar-tom: #555555;
+}
+
+/* ---------- Streger, konturer, skygger og hjørner ---------- */
+:root {
+  --rh-kontur: #000000;
+  --rh-kontur-w: 0;             /* sorte konturer om planeter og skibe (ligne claire, art deco) – 0 i neon */
+  --rh-streg-w: 0.35;           /* streger i stjernekortet (i kortets enheder: kortet er 100 × 64) */
+  --rh-rute-w: 0.45;
+  --rh-sti-w: 0.8;
+  --rh-navn-w: 0.6;             /* kant om planetnavnene (kortets enheder) */
+  --rh-ikon-w: 8;               /* streger i ikonerne (ikoner er 100 × 100) */
+  --rh-tegning-w: 3;            /* streger i skibe, planeter og varer (100 × 100) */
+  --rh-markoer-w: 9;            /* streger i markørerne på kortet (100 × 100) */
+  --rh-hall-ikon-w: 7;
+  --rh-frame-w: 3px;
+  --rh-block-w: 2px;
+  --rh-hall-border-w: 2px;
+  --rh-radius-kort: 16px;
+  --rh-radius-hud: 12px;
+  --rh-radius-swatch: 6px;
+  --rh-radius-bar: 4px;
+  --rh-skygge: drop-shadow(0 0 0 transparent);   /* fx drop-shadow(3px 4px 0 rgba(0,0,0,.35)) i papirklip */
+  --rh-ikon-paa-fyld: var(--bg);
+  --rh-gloed-filter: drop-shadow(0 0 3px var(--ui));
+  --rh-gloed-filter-accent: drop-shadow(0 0 4px var(--accent));
+  --rh-planet-gloed: drop-shadow(0 0 1.2px currentColor);
+  --rh-text-shadow: 0 1px 4px var(--rh-shadow);
+  --rh-kort-gloed: 0 0 calc(20px * var(--glow)) color-mix(in srgb, var(--accent) 40%, transparent);
+  --rh-kredit-gloed: 0 0 calc(12px * var(--glow)) color-mix(in srgb, var(--rh-kredit) 50%, transparent);
+}
+[data-theme="kontrast"] { --rh-gloed-filter: drop-shadow(0 0 0 transparent); --rh-gloed-filter-accent: drop-shadow(0 0 0 transparent); --rh-planet-gloed: drop-shadow(0 0 0 transparent); }
+html[data-rh-gloed="fra"], html[data-rh-gloed="fra"] [data-theme] {
+  --glow: 0;
+  --rh-gloed-filter: drop-shadow(0 0 0 transparent); --rh-gloed-filter-accent: drop-shadow(0 0 0 transparent);
+  --rh-planet-gloed: drop-shadow(0 0 0 transparent);
+  --rh-kort-gloed: none; --rh-kredit-gloed: none;
+}
+
+/* ---------- Prøver på farvesættene i Indstillinger ---------- */
+.swatch[data-farver="neon"] { --a: #ff2fd2; --b: #22eaff; --c: #1a0b2a; }
+.swatch[data-farver="solnedgang"] { --a: #ff8a1f; --b: #c77dff; --c: #2a0b3d; }
+.swatch[data-farver="cyberpunk"] { --a: #39ff6a; --b: #2a8dff; --c: #000000; }
+.swatch[data-farver="kontrast"] { --a: #ffff00; --b: #00ffff; --c: #000000; }

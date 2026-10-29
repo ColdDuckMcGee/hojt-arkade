@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="da" data-theme="neon">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0c0612">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Rumhandleren – Hojt Arkade</title>
+<link rel="icon" href="../arkade/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../arkade/arkade.css">
+<link rel="stylesheet" href="css/rumhandleren.css">
+<!-- Temaet: al grafik (farver, glød, skygger, konturer, teksturer og navngivne grafikelementer). Et andet tema leverer de samme navne. -->
+<link rel="stylesheet" href="tema/neon/tema.css">
+</head>
+<body>
+<canvas id="baggrund" aria-hidden="true"></canvas>
+
+<!-- Grafikken (ikoner, varer, skibe, planeter og markører) kommer fra temaet (tema/neon/grafik.js)
+     og lægges ind af js/tegn.js som <symbol>: #rh-ikon-<navn>, #rh-vare-<id>, #rh-skib-<type> osv. -->
+
+<!-- ================= STARTMENU ================= -->
+<main id="menu" class="screen" aria-labelledby="titel">
+  <button class="btn hall-btn" id="btn-hall" data-href="../index.html">
+    <svg class="hall-ico" viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-tilbage"/></svg>
+    <span class="big">Tilbage til hallen</span>
+  </button>
+  <header class="title-block">
+    <div class="title-row">
+      <img class="arkade-logo" src="../arkade/logo.svg" alt="Hojt Arkade">
+      <h1 id="titel" class="neon-title">RUMHANDLEREN</h1>
+    </div>
+    <ul class="regler" aria-label="Sådan spiller du">
+      <li><svg class="regel-ico" viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-marked"/></svg><span>Køb billigt, hvor varen laves, og sælg dyrt, hvor den mangler. Dine egne handler flytter priserne.</span></li>
+      <li><svg class="regel-ico" viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-forfald"/></svg><span>Hver 30. dag skal lånet afdrages. Kan du ikke betale, er spillet slut.</span></li>
+      <li class="opt"><svg class="regel-ico" viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-bygninger"/></svg><span>Køb skibe til faste ruter, byg miner og fabrikker – og bliv rigest. Ingen kamp, intet tidspres.</span></li>
+    </ul>
+  </header>
+  <svg class="menu-skib opt" id="menu-skib" viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-skib-pelikan"/></svg>
+  <div class="row start-row">
+    <button class="btn primary wide" id="btn-start"><span class="big" id="btn-start-label">Ny handel</span><span class="small" id="btn-start-sub">En lille Spurv og 2.500 cr</span></button>
+    <button class="btn" id="btn-ny" hidden><svg class="btn-ico" viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-flyv"/></svg><span class="big">Ny handel</span></button>
+  </div>
+  <div class="row more-row">
+    <button class="btn" id="btn-settings"><span class="icon" aria-hidden="true">⚙</span><span class="big">Indstillinger</span></button>
+    <button class="btn" id="btn-records"><span class="icon" aria-hidden="true">★</span><span class="big">Rekorder</span></button>
+    <button class="btn js-fullscreen"><span class="icon" aria-hidden="true">⛶</span><span class="big js-fs-label">Fuld skærm</span></button>
+    <button class="btn" id="btn-om"><span class="icon" aria-hidden="true">ⓘ</span><span class="big">Om</span></button>
+  </div>
+</main>
+
+<!-- ================= OM ================= -->
+<main id="om" class="screen" hidden aria-labelledby="om-title">
+  <img class="arkade-logo om-logo opt" data-trin src="../arkade/logo.svg" alt="Hojt Arkade">
+  <section class="panel om-panel">
+    <h2 id="om-title" class="neon-sub">Om Rumhandleren</h2>
+    <p data-trin>Hojt Arkade er udviklet af Jon Leismann Engsager, Hojt Design. Jon er IT- og IKT-konsulent i det specialiserede område og laver blandt andet gratis spil til voksne, der bruger øjenstyring.</p>
+    <p data-trin>Rumhandleren er et rent handels- og planlægningsspil. Du starter på Kepler med en lille Spurv, 2.500 cr og et lån på 6.000 cr. Tolv planeter laver og bruger otte varer, og priserne følger udbud og efterspørgsel – også dine egne handler. Nyheder som hungersnød og minestrejker vender op og ned på markederne.</p>
+    <p data-trin>Hver rejse koster brændstof og dage. Hver 30. dag forfalder en regning (renter, afdrag, licens og drift), og den vokser med tiden. Kan du ikke betale, går du konkurs. Ellers fortsætter spillet, så længe du vil – dine point er den største nettoformue, du nåede.</p>
+    <p data-trin>Der er ingen kamp. Risikoen er rumpirater (betal, flygt eller brug forsikringen), told og toldkontrol, hvis du smugler glimmer ind i Vega-unionen. Kontrakter for de tre handelshuse giver omdømme, rabat og adgang til nye planeter.</p>
+    <p data-trin>Koden er åben og frit tilgængelig under MIT-licensen, så alle kan bruge den og bygge videre på den.</p>
+  </section>
+  <div class="row" data-trin>
+    <a class="btn link-btn" id="link-hojt" href="https://hojt.dk" target="_blank" rel="noopener"><span class="big">Hojt Design</span><span class="small">hojt.dk</span></a>
+    <a class="btn link-btn" id="link-github" href="https://github.com/ColdDuckMcGee/hojt-arkade" target="_blank" rel="noopener"><span class="big">Koden på GitHub</span><span class="small">github.com/ColdDuckMcGee/hojt-arkade</span></a>
+  </div>
+  <div class="row om-back-row">
+    <button class="btn primary wide" id="btn-om-back"><span class="icon" aria-hidden="true">←</span><span class="big">Tilbage</span></button>
+    <a class="btn" id="link-alle-spil" href="../index.html"><span class="icon" aria-hidden="true">▦</span><span class="big">Alle spil</span></a>
+  </div>
+</main>
+
+<!-- ================= SPIL ================= -->
+<main id="game" class="screen" hidden aria-label="Spillet">
+  <div class="spil" id="spil">
+    <div class="hud-bar">
+      <div class="hud-grid" id="hud" aria-live="polite">
+        <div class="hud" data-hud="dag"><span class="hud-label">Dag</span><span class="hud-v"><svg class="hud-ico" viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-dag"/></svg><span class="hud-value"></span></span></div>
+        <div class="hud hud-kredit" data-hud="kredit"><span class="hud-label">Kredit</span><span class="hud-v"><svg class="hud-ico" viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-kredit"/></svg><span class="hud-value"></span></span></div>
+        <div class="hud" data-hud="gaeld"><span class="hud-label">Gæld</span><span class="hud-v"><svg class="hud-ico" viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-gaeld"/></svg><span class="hud-value"></span></span></div>
+        <div class="hud hud-forfald" data-hud="forfald"><span class="hud-label">Forfald</span><span class="hud-v"><svg class="hud-ico" viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-forfald"/></svg><span class="hud-value"></span></span></div>
+        <div class="hud" data-hud="braendstof"><span class="hud-label">Brændstof</span><span class="hud-v"><svg class="hud-ico" viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-braendstof"/></svg><span class="hud-value"></span></span></div>
+        <div class="hud" data-hud="last"><span class="hud-label">Last</span><span class="hud-v"><svg class="hud-ico" viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-last"/></svg><span class="hud-value"></span></span></div>
+      </div>
+      <button class="btn menu-btn" id="btn-pause" aria-label="Pause og menu"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-menu"/></svg><span class="small">Menu</span></button>
+    </div>
+    <p class="besked" id="besked" aria-live="polite"></p>
+
+    <nav class="faner" role="tablist" aria-label="Spillets sider">
+      <button class="btn option fane-btn" data-fane="kort" role="tab"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-kort"/></svg><span class="big">Kort</span></button>
+      <button class="btn option fane-btn" data-fane="marked" role="tab"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-marked"/></svg><span class="big">Marked</span></button>
+      <button class="btn option fane-btn" data-fane="skibe" role="tab"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-skibe"/></svg><span class="big">Skibe</span></button>
+      <button class="btn option fane-btn" data-fane="bygninger" role="tab"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-bygninger"/></svg><span class="big">Bygninger</span></button>
+      <button class="btn option fane-btn" data-fane="kontrakter" role="tab"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-kontrakter"/></svg><span class="big">Kontrakter</span></button>
+      <button class="btn option fane-btn" data-fane="gaeld" role="tab"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-oekonomi"/></svg><span class="big">Økonomi</span></button>
+    </nav>
+
+    <!-- Stjernekortet -->
+    <section class="view" id="v-kort" aria-label="Stjernekortet">
+      <div class="vis kort-boks" id="kort-boks">
+        <svg class="kort-svg" id="kort-svg" aria-hidden="true"></svg>
+        <div class="planet-lag" id="planet-lag"></div>
+      </div>
+      <div class="side">
+        <div class="info" id="kort-info" aria-live="polite"></div>
+        <div class="knapper" data-n="4">
+          <button class="btn knap" id="btn-forrige-planet" aria-label="Forrige planet"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-forrige"/></svg><span class="big">Forrige</span></button>
+          <button class="btn knap" id="btn-naeste-planet" aria-label="Næste planet"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-naeste"/></svg><span class="big">Næste</span></button>
+          <button class="btn knap primary" id="btn-flyv"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-flyv"/></svg><span class="big" id="btn-flyv-label">Flyv hertil</span></button>
+          <button class="btn knap" id="btn-vent"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-vent"/></svg><span class="big" id="btn-vent-label">Vent 1 dag</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Markedet -->
+    <section class="view" id="v-marked" aria-label="Markedet" hidden>
+      <div class="vis marked-vis">
+        <div class="varer" id="varer" role="group" aria-label="Varer"></div>
+        <p class="info vare-info" id="vare-info"></p>
+      </div>
+      <div class="side">
+        <div class="knapper" data-n="6">
+          <button class="btn knap koeb" data-koeb="1"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-koeb"/></svg><span class="big">Køb 1</span><span class="small"></span></button>
+          <button class="btn knap saelg" data-saelg="1"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-saelg"/></svg><span class="big">Sælg 1</span><span class="small"></span></button>
+          <button class="btn knap koeb" data-koeb="5"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-koeb"/></svg><span class="big">Køb 5</span><span class="small"></span></button>
+          <button class="btn knap saelg" data-saelg="5"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-saelg"/></svg><span class="big">Sælg 5</span><span class="small"></span></button>
+          <button class="btn knap koeb" data-koeb="max"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-koeb"/></svg><span class="big">Køb max</span><span class="small"></span></button>
+          <button class="btn knap saelg" data-saelg="alt"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-saelg"/></svg><span class="big">Sælg alt</span><span class="small"></span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Skibe og ruter -->
+    <section class="view" id="v-skibe" aria-label="Skibe og ruter" hidden>
+      <div class="vis liste-vis">
+        <div class="kortliste" id="skibsliste"></div>
+        <p class="info" id="skibe-info"></p>
+      </div>
+      <div class="side">
+        <div class="knapper" data-n="6">
+          <button class="btn knap" id="btn-forrige-skib" aria-label="Forrige skib"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-forrige"/></svg><span class="big">Forrige</span></button>
+          <button class="btn knap" id="btn-naeste-skib" aria-label="Næste skib"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-naeste"/></svg><span class="big">Næste</span></button>
+          <button class="btn knap primary" id="btn-ny-rute"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-nyrute"/></svg><span class="big">Ny rute</span></button>
+          <button class="btn knap" id="btn-stop-rute"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-stop"/></svg><span class="big">Stop rute</span></button>
+          <button class="btn knap" id="btn-koeb-skib"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-skibe"/></svg><span class="big">Køb skib</span></button>
+          <button class="btn knap" id="btn-flagskib"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-flagskib"/></svg><span class="big">Flagskib</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bygninger -->
+    <section class="view" id="v-bygninger" aria-label="Bygninger" hidden>
+      <div class="vis liste-vis">
+        <div class="byg-her" id="byg-her"></div>
+        <div class="kortliste" id="bygliste"></div>
+      </div>
+      <div class="side">
+        <div class="knapper" data-n="6">
+          <button class="btn knap" data-byg="mine"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-mine"/></svg><span class="big"><span class="kun-bred">Byg </span>mine</span><span class="small"></span></button>
+          <button class="btn knap" data-byg="fabrik"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-fabrik"/></svg><span class="big"><span class="kun-bred">Byg </span>fabrik</span><span class="small"></span></button>
+          <button class="btn knap" data-byg="lager"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-lager"/></svg><span class="big"><span class="kun-bred">Byg </span>lager</span><span class="small"></span></button>
+          <button class="btn knap primary" id="btn-hent"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-hent"/></svg><span class="big">Hent<span class="kun-bred"> lager</span></span><span class="small"></span></button>
+          <button class="btn knap" id="btn-byg-forrige" aria-label="Forrige side"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-forrige"/></svg><span class="big">Forrige</span></button>
+          <button class="btn knap" id="btn-byg-naeste" aria-label="Næste side"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-naeste"/></svg><span class="big">Næste</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Kontrakter og omdømme -->
+    <section class="view" id="v-kontrakter" aria-label="Kontrakter" hidden>
+      <div class="vis liste-vis">
+        <div class="kortliste" id="kontraktliste"></div>
+        <div class="omdoemme" id="omdoemme"></div>
+      </div>
+      <div class="side">
+        <div class="knapper" data-n="6">
+          <button class="btn option knap" data-kliste="tilbud"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-tilbud"/></svg><span class="big">Tilbud</span></button>
+          <button class="btn option knap" data-kliste="dine"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-dine"/></svg><span class="big">Dine</span></button>
+          <button class="btn knap" id="btn-forrige-k" aria-label="Forrige kontrakt"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-forrige"/></svg><span class="big">Forrige</span></button>
+          <button class="btn knap" id="btn-naeste-k" aria-label="Næste kontrakt"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-naeste"/></svg><span class="big">Næste</span></button>
+          <button class="btn knap primary k-handling" id="btn-k-handling"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-ok"/></svg><span class="big" id="btn-k-label">Tag kontrakt</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Økonomi: gæld, regning og forsikring -->
+    <section class="view" id="v-gaeld" aria-label="Økonomi" hidden>
+      <div class="vis liste-vis">
+        <div class="regning" id="regning"></div>
+      </div>
+      <div class="side">
+        <div class="knapper" data-n="4">
+          <button class="btn knap" id="btn-betal"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-betal"/></svg><span class="big">Afdrag</span><span class="small">1.000 cr</span></button>
+          <button class="btn knap" id="btn-betal-alt"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-betal"/></svg><span class="big">Betal mere</span><span class="small"></span></button>
+          <button class="btn knap" id="btn-laan"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-laan"/></svg><span class="big">Lån 2.000</span><span class="small">5 % rente</span></button>
+          <button class="btn option knap" id="btn-forsikring"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-forsikring"/></svg><span class="big">Forsikring</span><span class="small"></span></button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Pirater: tre valg, ingen kamp -->
+  <div class="overlay" id="pirat-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="pirat-title">
+    <div class="panel">
+      <svg class="overlay-ico" viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-pirat"/></svg>
+      <h2 id="pirat-title" class="neon-sub">Rumpirater!</h2>
+      <p class="muted overlay-tekst" id="pirat-tekst"></p>
+      <div class="row pirat-row">
+        <button class="btn pirat-btn" data-pirat="betal"><svg class="btn-ico" viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-betal"/></svg><span class="big">Betal</span><span class="small"></span></button>
+        <button class="btn pirat-btn" data-pirat="flygt"><svg class="btn-ico" viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-flygt"/></svg><span class="big">Flygt</span><span class="small"></span></button>
+        <button class="btn pirat-btn" data-pirat="forsikring"><svg class="btn-ico" viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-forsikring"/></svg><span class="big">Forsikring</span><span class="small"></span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Køb skib -->
+  <div class="overlay" id="skib-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="skib-title">
+    <div class="panel">
+      <h2 id="skib-title" class="neon-sub">Køb et skib</h2>
+      <p class="muted overlay-tekst" id="skib-tekst"></p>
+      <div class="row skibtype-row">
+        <button class="btn skibtype-btn" data-skibtype="spurv"><svg class="skib-ill" viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-skib-spurv"/></svg><span class="big">Spurv</span><span class="small"></span></button>
+        <button class="btn skibtype-btn" data-skibtype="pelikan"><svg class="skib-ill" viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-skib-pelikan"/></svg><span class="big">Pelikan</span><span class="small"></span></button>
+        <button class="btn skibtype-btn" data-skibtype="hval"><svg class="skib-ill" viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-skib-hval"/></svg><span class="big">Hval</span><span class="small"></span></button>
+      </div>
+      <div class="row">
+        <button class="btn" id="btn-skib-luk"><span class="icon" aria-hidden="true">←</span><span class="big">Tilbage</span></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="pause-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="pause-title">
+    <div class="panel">
+      <h2 id="pause-title" class="neon-sub">Pause</h2>
+      <p class="muted">Spillet venter på dig. Intet sker, før du vælger.</p>
+      <div class="row">
+        <button class="btn primary wide" id="btn-resume"><span class="big">Fortsæt</span></button>
+      </div>
+      <div class="row">
+        <button class="btn" id="btn-pause-settings"><span class="icon" aria-hidden="true">⚙</span><span class="big">Indstillinger</span></button>
+        <button class="btn js-fullscreen"><span class="icon" aria-hidden="true">⛶</span><span class="big js-fs-label">Fuld skærm</span></button>
+        <button class="btn" id="btn-pension"><svg class="btn-ico" viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-pension"/></svg><span class="big">Gå på pension</span><span class="small">slut og gem point</span></button>
+        <button class="btn" id="btn-pause-menu"><span class="icon" aria-hidden="true">⌂</span><span class="big">Til menuen</span><span class="small">spillet gemmes</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Spillet er slut -->
+  <div class="overlay soft" id="slut-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="slut-title">
+    <div class="panel slut-panel">
+      <div class="slut-tekst">
+        <p class="slut-kicker" id="slut-kicker">Spillet er slut</p>
+        <h2 id="slut-title" class="neon-sub slut-point">0 point</h2>
+        <p class="slut-grund" id="slut-grund"></p>
+        <p class="muted slut-tal" id="slut-tal"></p>
+        <p class="slut-rank" id="slut-rank"></p>
+      </div>
+      <div class="row slut-row">
+        <button class="btn primary wide" id="btn-slut-ny"><svg class="btn-ico" viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-flyv"/></svg><span class="big">Ny handel</span></button>
+        <button class="btn" id="btn-slut-rekorder"><span class="icon" aria-hidden="true">★</span><span class="big">Rekorder</span></button>
+        <button class="btn" id="btn-slut-menu"><span class="icon" aria-hidden="true">⌂</span><span class="big">Menu</span></button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ================= INDSTILLINGER ================= -->
+<main id="settings" class="screen" hidden aria-labelledby="set-title">
+  <h2 id="set-title" class="sr-only">Indstillinger</h2>
+  <div class="row tabs" role="tablist">
+    <button class="btn" id="btn-settings-back"><span class="icon" aria-hidden="true">←</span><span class="big">Tilbage</span></button>
+    <button class="btn option tab" data-tab="styring" role="tab"><span class="big">Styring</span></button>
+    <button class="btn option tab" data-tab="udseende" role="tab"><span class="big">Udseende</span></button>
+    <button class="btn option tab" data-tab="lyd" role="tab"><span class="big">Lyd</span></button>
+  </div>
+
+  <section class="tab-panel" data-panel="styring">
+    <div class="setting">
+      <div class="setting-label">Dwell<small>Kig på en knap for at vælge den</small></div>
+      <div class="row" role="group">
+        <button class="btn option" data-set="dwell" data-value="false"><span class="big">Fra</span></button>
+        <button class="btn option" data-set="dwell" data-value="true"><span class="big">Til</span></button>
+      </div>
+    </div>
+    <div class="setting">
+      <div class="setting-label">Dwell-tid<small>Hvor længe du skal kigge</small></div>
+      <div class="row">
+        <button class="btn" id="dwell-minus" aria-label="Kortere dwell-tid"><span class="big">−</span><span class="small">Kortere</span></button>
+        <div class="value-box" id="dwell-value" aria-live="polite">1,2 sek.</div>
+        <button class="btn" id="dwell-plus" aria-label="Længere dwell-tid"><span class="big">+</span><span class="small">Længere</span></button>
+      </div>
+    </div>
+    <p class="note">Brug kun dwell her, hvis dit øjenstyringssystem ikke selv klikker. Har du dwell-klik i fx Tobii, så lad indstillingen være slået fra. Spillet venter altid på dig – der er intet tidspres. Tastaturet virker også: 1–6 skifter side, piletasterne vælger planet, vare, skib eller kontrakt, Enter flyver, tager eller leverer, K køber 1 (Skift+K: 5), S sælger 1 (Skift+S: 5), V venter en dag. Esc eller P giver pause.</p>
+  </section>
+
+  <section class="tab-panel" data-panel="udseende" hidden>
+    <div class="setting">
+      <div class="setting-label">Tema</div>
+      <div class="row" role="group">
+        <button class="btn option theme-btn" data-set="theme" data-value="neon"><span class="swatch" data-farver="neon"></span><span class="small">Pink og cyan</span></button>
+        <button class="btn option theme-btn" data-set="theme" data-value="solnedgang"><span class="swatch" data-farver="solnedgang"></span><span class="small">Orange og lilla</span></button>
+        <button class="btn option theme-btn" data-set="theme" data-value="cyberpunk"><span class="swatch" data-farver="cyberpunk"></span><span class="small">Grøn og blå</span></button>
+        <button class="btn option theme-btn" data-set="theme" data-value="kontrast"><span class="swatch" data-farver="kontrast"></span><span class="small">Høj kontrast</span></button>
+      </div>
+    </div>
+    <div class="setting">
+      <div class="setting-label">Baggrund</div>
+      <div class="row" role="group">
+        <button class="btn option" data-set="background" data-value="mork"><span class="big">Mørk</span></button>
+        <button class="btn option" data-set="background" data-value="solnedgang"><span class="big">Solnedgang</span></button>
+        <button class="btn option" data-set="background" data-value="neonby"><span class="big">Neonby</span></button>
+      </div>
+    </div>
+    <div class="setting">
+      <div class="setting-label">Glød<small>Lysskær om planeter, skibe, knapper og tekst</small></div>
+      <div class="row" role="group">
+        <button class="btn option" data-gset="gloed" data-value="false"><span class="big">Fra</span></button>
+        <button class="btn option" data-gset="gloed" data-value="true"><span class="big">Til</span></button>
+      </div>
+    </div>
+    <div class="setting">
+      <div class="setting-label">Animation<small id="motion-note">Bevægelse i baggrunden</small></div>
+      <div class="row" role="group">
+        <button class="btn option" data-set="animation" data-value="false"><span class="big">Fra</span></button>
+        <button class="btn option" data-set="animation" data-value="true"><span class="big">Til</span></button>
+      </div>
+    </div>
+  </section>
+
+  <section class="tab-panel" data-panel="lyd" hidden>
+    <div class="setting">
+      <div class="setting-label">Lydeffekter</div>
+      <div class="row" role="group">
+        <button class="btn option" data-set="sound" data-value="false"><span class="big">Fra</span></button>
+        <button class="btn option" data-set="sound" data-value="true"><span class="big">Til</span></button>
+      </div>
+    </div>
+    <div class="setting">
+      <div class="setting-label">Musik</div>
+      <div class="row" role="group">
+        <button class="btn option" data-set="music" data-value="false"><span class="big">Fra</span></button>
+        <button class="btn option" data-set="music" data-value="true"><span class="big">Til</span></button>
+      </div>
+    </div>
+  </section>
+  <div class="row trin-bund" hidden></div>
+</main>
+
+<!-- ================= REKORDER ================= -->
+<main id="records" class="screen" hidden aria-labelledby="rec-title">
+  <div class="row tabs">
+    <button class="btn" id="btn-records-back"><span class="icon" aria-hidden="true">←</span><span class="big">Tilbage</span></button>
+  </div>
+  <section class="panel records-panel">
+    <h2 class="group-label" id="rec-title">Top 10 · point</h2>
+    <ol class="records" id="rec-list"></ol>
+    <p class="muted rec-note" id="rec-note">Point = den største nettoformue, du nåede (kredit − gæld + skibe, bygninger og varer).</p>
+  </section>
+</main>
+
+<!-- Bekræft: to store knapper med god afstand. "Nej" står først og har fokus. -->
+<div class="overlay bekraeft" id="bekraeft-overlay" hidden role="alertdialog" aria-modal="true" aria-labelledby="bekraeft-title" aria-describedby="bekraeft-text">
+  <div class="panel">
+    <h2 id="bekraeft-title" class="neon-sub">Er du sikker?</h2>
+    <p class="muted confirm-text" id="bekraeft-text"></p>
+    <div class="row confirm-row">
+      <button class="btn primary confirm-btn" id="btn-bekraeft-nej"><span class="icon" aria-hidden="true">←</span><span class="big" id="bekraeft-nej-label">Nej</span></button>
+      <button class="btn confirm-btn" id="btn-bekraeft-ja"><svg class="btn-ico" viewBox="0 0 100 100" aria-hidden="true"><use href="#rh-ikon-ok" id="bekraeft-ikon"/></svg><span class="big" id="bekraeft-ja-label">Ja</span></button>
+    </div>
+  </div>
+</div>
+
+<script src="../arkade/settings.js"></script>
+<script src="../arkade/highscores.js"></script>
+<script src="../arkade/dwell.js"></script>
+<script src="../arkade/audio.js"></script>
+<script src="../arkade/background.js"></script>
+<script src="js/logik.js"></script>
+<script src="tema/neon/grafik.js"></script>
+<script src="js/tegn.js"></script>
+<script src="js/lyd.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
