@@ -1,7 +1,7 @@
 /*
  * Kabalen – test af spillogikken uden browser og uden afhængigheder.
  * Kør fra repoets rod:  node kabalen/test/spillogik.test.js
- * Dækker: regler, løser, kun løselige spil, point, fortryd, sejr, serien, "sidder fast", Saml og Hint.
+ * Dækker: regler, tilfældig blanding (Fisher–Yates, ingen filtrering), løser (hint), point, fortryd, sejr, serien, "sidder fast", Saml og Hint.
  */
 'use strict';
 var assert = require('assert');
@@ -90,31 +90,67 @@ test('sikre kort: es og 2 altid; højere først når modsatte farver er fulgt me
   s.f = [2, 2, 2, 2]; assert.ok(L.safe(s, K(SP, 2)));
 });
 
-// ---------- Løser og kun løselige spil ----------
+// ---------- Blanding: helt tilfældig, ingen filtrering ----------
+test('blandingen giver 52 unikke kort, og udlægningen bruger dem alle', function () {
+  for (var i = 0; i < 200; i++) {
+    var deck = L.shuffle();
+    assert.strictEqual(deck.length, 52);
+    assert.strictEqual(new Set(deck).size, 52, 'unikke kort');
+    assert.ok(deck.every(function (k) { return k >= 0 && k < 52 && k === Math.floor(k); }));
+    var d = L.randomDeal(i % 2 ? 1 : 3), alle = d.talon.slice();
+    d.t.forEach(function (p) { alle = alle.concat(p.c); });
+    assert.strictEqual(new Set(alle).size, 52); assert.strictEqual(d.talon.length, 24);
+  }
+});
+test('blandingen varierer (ingen to ens af 500)', function () {
+  var seen = new Set();
+  for (var i = 0; i < 500; i++) seen.add(L.shuffle().join(','));
+  assert.strictEqual(seen.size, 500);
+});
+test('blandingen er jævn: hvert kort lander lige ofte på hver plads (grov kontrol)', function () {
+  var N = 20000, pos0 = new Array(52).fill(0), top = new Array(52).fill(0);
+  for (var i = 0; i < N; i++) { var d = L.shuffle(); pos0[d.indexOf(0)]++; top[d[51]]++; }
+  var exp = N / 52;   // ca. 385; 6 standardafvigelser ≈ ±115
+  pos0.concat(top).forEach(function (n) { assert.ok(Math.abs(n - exp) < 120, 'skævhed: ' + n); });
+});
+test('randInt giver alle værdier 0 … n-1 og intet andet', function () {
+  var seen = new Set();
+  for (var i = 0; i < 2000; i++) { var x = L.randInt(7); assert.ok(x >= 0 && x < 7 && x === Math.floor(x)); seen.add(x); }
+  assert.strictEqual(seen.size, 7);
+});
+test('ingen generator af løselige spil: spillet vælger ikke spil med løseren', function () {
+  assert.strictEqual(L.createGenerator, undefined); assert.strictEqual(L.generate, undefined);
+  var g = L.createGame({ draw: 1 });  // uden seed: tilfældig blanding
+  assert.strictEqual(new Set(g.state.talon).size, 24);
+});
+test('samme seed (kun til test) giver samme spil; Fisher–Yates med seed', function () {
+  assert.deepStrictEqual(L.shuffle(L.rng(9)), L.shuffle(L.rng(9)));
+  assert.notDeepStrictEqual(L.shuffle(L.rng(9)), L.shuffle(L.rng(10)));
+});
+
+// ---------- Løseren (bruges kun til hint) ----------
+// Testhjælp: find et spil, løseren kan vinde (kun i testen – spillet selv filtrerer ikke).
+function vindbart(start, draw) {
+  for (var seed = start; seed < start + 200; seed++) {
+    var d = L.deal(L.rng(seed), draw), res = L.solve(d, { maxNodes: 40000 });
+    if (res.status === 'vundet') return { deal: d, path: res.path };
+  }
+  throw new Error('intet vindbart spil fundet');
+}
 test('løseren finder en løsning, og den kan spilles færdig med spillets egne træk (træk 1)', function () {
-  var gen = L.generate(11, 1);
-  assert.ok(gen.loeselig, 'løseligt spil fundet');
-  var res = L.solve(gen.deal);
-  assert.strictEqual(res.status, 'vundet');
-  var g = L.createGame({ deal: gen.deal }); afspil(g, res.path);
+  var v = vindbart(11, 1);
+  var g = L.createGame({ deal: v.deal }); afspil(g, v.path);
   assert.ok(g.won()); assert.deepStrictEqual(g.state.f, [13, 13, 13, 13]);
 });
-test('også træk 3 giver løselige spil, der kan spilles færdige', function () {
-  var gen = L.generate(4, 3); assert.ok(gen.loeselig); assert.strictEqual(gen.deal.draw, 3);
-  var g = L.createGame({ deal: gen.deal }); afspil(g, L.solve(gen.deal).path); assert.ok(g.won());
+test('også i træk 3 kan en løsning spilles færdig', function () {
+  var v = vindbart(4, 3); assert.strictEqual(v.deal.draw, 3);
+  var g = L.createGame({ deal: v.deal }); afspil(g, v.path); assert.ok(g.won());
 });
-test('generatoren kan køres i små bidder (brugerfladen fryser ikke) og giver det samme spil', function () {
-  var a = L.createGenerator(23, 1), n = 0, r;
-  while (!(r = a.step(40))) { n++; assert.ok(n < 100000); }
-  assert.ok(n > 0, 'skulle bruge flere bidder');
-  assert.deepStrictEqual(r.deal, L.generate(23, 1).deal);
-});
-test('20 udgivne spil er alle bevist løselige', function () {
-  for (var seed = 100; seed < 120; seed++) {
-    var d = seed % 2 ? 1 : 3, gen = L.generate(seed, d);
-    assert.ok(gen.loeselig, 'seed ' + seed);
-    var g = L.createGame({ deal: gen.deal }); afspil(g, L.solve(gen.deal, { maxNodes: 40000 }).path); assert.ok(g.won(), 'seed ' + seed);
-  }
+test('løseren kan køres i små bidder og giver samme resultat', function () {
+  var v = vindbart(23, 1), sv = L.createSolver(v.deal, { maxNodes: 40000 }), n = 0;
+  while (sv.step(40) === 'running') { n++; assert.ok(n < 100000); }
+  assert.strictEqual(sv.status, 'vundet');
+  assert.deepStrictEqual(sv.path, v.path);
 });
 test('løseren afviser en umulig stilling', function () {
   // 2♠ ligger over es♠ i samme bunke, og intet kan flyttes: umulig
@@ -186,7 +222,7 @@ test('Saml lægger også usikre kort op, når der ingen sikre er', function () {
   assert.ok(g.collect().ok); assert.strictEqual(g.state.f[SP], 3);
 });
 test('Hint giver et lovligt træk, og følger man hint, vinder man', function () {
-  var gen = L.generate(31, 1), g = L.createGame({ deal: gen.deal }), n = 0;
+  var gen = vindbart(31, 1), g = L.createGame({ deal: gen.deal }), n = 0;
   while (!g.won() && !g.allOpen()) {
     var h = g.hint(); assert.ok(h, 'hint findes');
     var m = Object.assign({}, h); delete m.kilde;

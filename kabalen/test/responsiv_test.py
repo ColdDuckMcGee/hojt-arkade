@@ -162,7 +162,12 @@ def gameplay(pg, w, h, tag, big, small):
 
 def win_whole_game(pg, tag):
     """Spil et helt spil færdigt med løserens træk (som spilleren): automatisk afslutning og sejrsboks."""
-    ok = pg.evaluate("""() => { const res = KabaleLogik.solve(Kabalen.game.state, {maxNodes: 60000}); if (res.status !== 'vundet') return 'ingen løsning: ' + res.status;
+    # Spillet blander helt tilfældigt (ikke alle spil kan vindes). Testen lægger derfor selv et spil,
+    # som løseren kan vinde, ind i serien (kun i testen).
+    ok = pg.evaluate("""() => { let res = null, d = null;
+       for (let seed = 1; seed < 300; seed++) { d = KabaleLogik.deal(KabaleLogik.rng(seed), Kabalen.series.draw); res = KabaleLogik.solve(d, {maxNodes: 40000}); if (res.status === 'vundet') break; }
+       if (!res || res.status !== 'vundet') return 'intet vindbart testspil fundet';
+       Kabalen.loadDeal(d);
        for (const m of res.path) if (!Kabalen.live() && Kabalen.game.allOpen()) break; else if (!Kabalen.play(m)) return 'trækket kunne ikke spilles ' + JSON.stringify(m); return true; }""")
     if ok is not True: fails.append(tag + ' ' + str(ok)); return False
     try: pg.wait_for_function("!document.getElementById('done-overlay').hidden", timeout=20000)
@@ -177,8 +182,8 @@ with sync_playwright() as p:
         tag = 'responsiv-%dx%d' % (w, h)
         ctx = b.new_context(viewport={'width':w,'height':h}, device_scale_factor=1, has_touch=w < 900)
         pg = ctx.new_page()
-        # Fast tilfældighed, så en fejl kan gentages (SEED=... giver andre spil)
-        pg.add_init_script("(() => { let a = %d >>> 0; Math.random = () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; const D = Date; Date.now = () => 1700000000000; })()" % (SEED + w * 7 + h))
+        # Fast tilfældighed (Math.random og crypto), så en fejl kan gentages (SEED=... giver andre spil)
+        pg.add_init_script("(() => { let a = %d >>> 0; Math.random = () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; crypto.getRandomValues = (arr) => { for (let i = 0; i < arr.length; i++) arr[i] = Math.floor(Math.random() * 4294967296) >>> 0; return arr; }; const D = Date; Date.now = () => 1700000000000; })()" % (SEED + w * 7 + h))
         pg.on('console', lambda m: errs.append(m.type+': '+m.text) if m.type in ('error','warning') else None)
         pg.on('pageerror', lambda e: errs.append('pageerror: '+str(e)))
         pg.goto(URL); pg.wait_for_timeout(400)
@@ -196,11 +201,13 @@ with sync_playwright() as p:
         pg.evaluate("Kabalen.show('records')"); pg.wait_for_timeout(80); check(pg,'rekorder','#records',w,h)
         pg.click('#records [data-rec-mode="3"]'); pg.wait_for_timeout(60); check(pg,'rekorder (Træk 3)','#records',w,h)
         pg.evaluate("Kabalen.show('menu')"); pg.wait_for_timeout(60)
-        # Spillet: kun løselige spil, givet i bidder
+        # Spillet: helt tilfældigt blandet (52 unikke kort), ingen filtrering
         pg.click('#btn-start')
         if not wait_game(pg, tag): ctx.close(); continue
-        d = st(pg, "Kabalen.deal && [Kabalen.deal.loeselig, Kabalen.deal.deal.draw]")
-        if d != [True, 1]: fails.append('%s spillet er ikke bevist løseligt: %s' % (tag, d))
+        d = st(pg, "(() => { const s = Kabalen.game.state; const a = s.talon.concat(...s.t.map(p => p.c)); return [new Set(a).size, s.draw, 'loeselig' in Kabalen.deal]; })()")
+        if d != [52, 1, False]: fails.append('%s udlægningen er ikke en ren blanding: %s' % (tag, d))
+        claim = st(pg, "/kan vindes|kan altid vindes|løselig/i.test(document.body.innerText + ' ' + Array.from(document.querySelectorAll('[data-trin],p')).map(e => e.textContent).join(' '))")
+        if claim: fails.append(tag + ' UI påstår, at spillet kan vindes')
         check(pg,'spil (nyt)','#game',w,h)
         gameplay(pg, w, h, tag, big, small)
         # Glød fra: ingen lysskær, alt kan stadig læses
@@ -247,7 +254,7 @@ with sync_playwright() as p:
         # Træk 3 og Giv op med bekræftelse
         pg.evaluate("Kabalen.show('menu')"); pg.click('#menu [data-mode="3"]'); pg.wait_for_timeout(60); pg.click('#btn-start')
         if wait_game(pg, tag):
-            if st(pg, "[Kabalen.series.draw, Kabalen.deal.loeselig]") != [3, True]: fails.append(tag + ' Træk 3 gav ikke et løseligt træk 3-spil')
+            if st(pg, "Kabalen.series.draw") != 3: fails.append(tag + ' Træk 3 blev ikke valgt')
             pg.evaluate("Kabalen.draw()"); pg.wait_for_timeout(450)
             check(pg,'spil (Træk 3)','#game',w,h, (big and 'traek3.png') or (small and tag+'-traek3.png'))
             pg.click('#btn-opgiv'); pg.wait_for_timeout(100)

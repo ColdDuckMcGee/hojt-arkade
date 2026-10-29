@@ -37,6 +37,6 @@ window.HOJT_SPIL = [
   { navn: 'Løberen',       sti: 'loeberen/',      farve: 'pink',  status: 'aktiv', tekst: 'Løb gennem datanettet i tre baner – op på blokkene og forbi firewalls. Alt står stille, til du har valgt.', skaerm: 'hal/skaerme/loeberen.svg' },
   { navn: 'Rumhandleren',  sti: 'rumhandleren/',  farve: 'lilla', status: 'aktiv', tekst: 'Handl mellem tolv planeter, byg et handelsimperium med ruter og miner, og betal regningen hver 30. dag.', skaerm: 'hal/skaerme/rumhandleren.svg' },
   { navn: 'Sudoku',        sti: 'sudoku/',        farve: 'cyan',  status: 'aktiv', tekst: 'Udfyld pladen, så hvert tal kun står én gang i hver række, kolonne og boks.', skaerm: 'hal/skaerme/sudoku.svg' },
-  { navn: 'Kabalen',       sti: 'kabalen/',       farve: 'grøn',  status: 'aktiv', tekst: 'Klassisk kabale: byg fire bunker op fra es til konge. Alle spil kan vindes, og der er intet ur.', skaerm: 'hal/skaerme/kabalen.svg' },
+  { navn: 'Kabalen',       sti: 'kabalen/',       farve: 'grøn',  status: 'aktiv', tekst: 'Klassisk kabale: byg fire bunker op fra es til konge. Kortene blandes helt tilfældigt, og der er intet ur.', skaerm: 'hal/skaerme/kabalen.svg' },
   { navn: 'Rampen',        sti: 'rampen/',        farve: 'orange', status: 'aktiv', tekst: 'Send bilen ud over rampen, saml mønter, og byg den om til en raketbil. Spillet fryser, når du skal vælge.', skaerm: 'hal/skaerme/rampen.svg' }
 ];

@@ -13,9 +13,9 @@ Klassisk kabale (Klondike) med 52 kort. Der er intet ur og ingen tidspres, og sp
 - **Bunkerne:** et kort kan lægges på et kort, der er én højere og har den modsatte farve (rød på sort, sort på rød). Et kort flyttes sammen med alle kortene ovenpå. Kun en **konge** (med kortene ovenpå) kan lægges på en tom plads. Når det sidste åbne kort er flyttet fra en bunke, vendes kortet nedenunder.
 - **Bunken:** et tryk på bunken vender et kort (**Træk 1**) eller tre kort (**Træk 3**) over på de vendte kort. Kun det øverste vendte kort kan spilles. Når bunken er tom, vender et tryk den om igen. Det kan man gøre så mange gange, man vil, og det koster ikke noget.
 - **Grundbunken tilbage:** det øverste kort på en grundbunke kan tages ned igen på en bunke (det koster point).
-- **Kun spil, der kan vindes:** hvert spil bliver blandet og prøvet af en løser, før det gives. Spillet bliver kun givet, hvis løseren har fundet en vej til sejr. Løseren arbejder i små bidder (`setTimeout`), så skærmen aldrig fryser. Det næste spil bliver blandet i baggrunden, mens du spiller, så du normalt ikke venter. Kan løseren mod forventning ikke finde et løseligt spil inden for 80 forsøg, gives det sidste blandede spil.
+- **Helt tilfældig blanding:** hvert spil blandes med en ren Fisher–Yates-blanding med browserens kryptografiske tilfældighed (`crypto.getRandomValues`, uden skævhed). Ingen spil sorteres fra, så det er tilfældigt, om et spil kan gå op, ligesom med rigtige kort. Nogle spil kan ikke vindes.
 - **Automatisk afslutning:** når alle kort er vendt, og bunken er tom, lægges resten op af sig selv, ét kort ad gangen.
-- **Sidder fast:** efter hvert træk tjekker spillet, om du kan komme videre. Det tjekker, om et kort kan vendes, om et kort kan lægges op, og om et kort fra bunken kan bruges, også efter at bunkerne er flyttet rundt. Kan ingen af delene lade sig gøre, kommer en boks med **Fortryd** (prøv en anden vej) eller **Game over** (serien slutter, og pointene gemmes).
+- **Sidder fast:** efter hvert træk tjekker spillet, om du kan komme videre. Det tjekker, om et kort kan vendes, om et kort kan lægges op, og om et kort fra bunken kan bruges, også efter at bunkerne er flyttet rundt. Kan ingen af delene lade sig gøre, kommer en boks med **Fortryd** (prøv en anden vej) eller **Game over** (serien slutter, og pointene gemmes). Da kortene er blandet tilfældigt, kan et spil være umuligt fra starten. Så ender det før eller siden her eller med **Giv op**.
 
 ## Serien og point
 
@@ -36,7 +36,7 @@ Et træk er hvert kort eller hver række, du flytter. **Saml** tæller som ét t
 ## Styring
 
 - **Vælg et kort:** kortet og alle kortene ovenpå bliver valgt (gul ramme), og alle lovlige **mål** lyser grønt med en ring. Vælg et mål, så lægges kortene dér. Har kortet kun ét mål, kan du også bare vælge **samme kort igen**, så flytter det. Vælger du det valgte kort igen, når der er flere mål, eller vælger du noget, der ikke er et mål, fortrydes valget. Kan kortet ikke flyttes, står der det i linjen.
-- **Knapper:** **Fortryd** (ubegrænset, −2 point pr. gang), **Hint** (viser et godt træk med en stiplet ramme om kortet og målet. Hintet kommer fra løseren), **Saml** (lægger alle sikre kort på grundbunkerne i ét træk. Er der ingen sikre kort, lægges de kort op, der kan), **Giv op** (afslutter serien efter et "Er du sikker?") og **Pause**.
+- **Knapper:** **Fortryd** (ubegrænset, −2 point pr. gang), **Hint** (viser et godt træk med en stiplet ramme om kortet og målet. Hintet kommer fra løseren, når den finder en vej til sejr, og ellers fra et enkelt, fornuftigt træk. Løseren bruges kun til hint, aldrig til at vælge spil), **Saml** (lægger alle sikre kort på grundbunkerne i ét træk. Er der ingen sikre kort, lægges de kort op, der kan), **Giv op** (afslutter serien efter et "Er du sikker?") og **Pause**.
 - **Tastatur:** 1–7 vælger det øverste åbne kort i bunke 1–7 (og lægger kortene i bunken, hvis et kort er valgt). G eller F vælger grundbunken som mål. V eller W vælger det vendte kort. Mellemrum, T eller D trækker fra bunken. U, Z eller Backspace fortryder. H giver hint, og S samler. Esc fravælger et valgt kort eller holder pause, og P holder også pause. Kortene kan også nås med Tab og Enter.
 - **Mus og tryk:** klik eller tryk på kort og pladser.
 - **Dwell (valgfrit, slået fra som standard):** kort, pladser og knapper vælges, når du har kigget på dem i den valgte tid, og en ring fyldes imens. Ét dwell er altid én handling. Når kortene har flyttet sig, kan det kort, der lander under blikket, først dwelles, når blikket har været væk fra det.
@@ -48,8 +48,8 @@ Et træk er hvert kort eller hver række, du flytter. **Saml** tæller som ét t
 
 - `node kabalen/test/spillogik.test.js` tjekker:
   - regler, udlægning, træk 1 og træk 3 og point;
-  - sikre kort og løseren. Løserens løsning spilles færdig med spillets egne træk. 20 udgivne spil skal alle kunne vindes, og en umulig stilling skal afvises;
-  - at generatoren kan køres i bidder;
+  - blandingen: 52 unikke kort, ingen to ens blandinger af 500, jævn fordeling (hvert kort lige ofte på hver plads), og at der ikke findes nogen generator af løselige spil;
+  - sikre kort og løseren (som kun bruges til hint). Testen finder selv et spil, løseren kan vinde, og spiller løsningen færdig med spillets egne træk, også i bidder og med Træk 3. En umulig stilling skal afvises;
   - sejr og bonus, fortryd, mål for et valgt kort, Saml og Hint. Følger man hintene, vinder man;
   - automatisk afslutning, "sidder fast" og serien.
 - `node kabalen/test/temaklar.test.js` tjekker, at spillet er klar til flere temaer:
@@ -58,19 +58,20 @@ Et træk er hvert kort eller hver række, du flytter. **Saml** tæller som ét t
   - glød kan slås fra;
   - temaet leverer alle ikoner, kulører og bagsiden.
 - `python3 kabalen/test/responsiv_test.py` (Playwright og Chrome) tjekker alle skærme ved 8 opløsninger:
+  - at udlægningen er en ren blanding (52 unikke kort), og at ingen tekst påstår, at spillet kan vindes;
   - ingen rulning og mindst 84 px for knapper, kort og pladser, der kan vælges;
   - ingen fejl i konsollen;
   - spil med mus og tastatur: valg med mål, samme kort igen og bunken;
   - Hint, Saml, Fortryd, pause og glød fra;
-  - et helt spil vundet med løserens træk, sejrsboks og Næste spil;
+  - et helt spil vundet med løserens træk (testen lægger selv et vindbart spil ind), sejrsboks og Næste spil;
   - "sidder fast", Stop her, Serien er slut og rekorden, Træk 3, Giv op med bekræftelse, dwell og hallen.
 
-  Skærmbilleder gemmes, hvis `KABALEN_SKAERMBILLEDER=<mappe>` er sat. `SEED=<tal>` giver andre spil.
+  Skærmbilleder gemmes, hvis `KABALEN_SKAERMBILLEDER=<mappe>` er sat. Testen gør tilfældigheden fast (`Math.random` og `crypto`), så en fejl kan gentages. `SEED=<tal>` giver andre spil.
 
 ## Filer
 
 - `index.html`: skærmene (start, spil, pause, spil vundet, sidder fast, bekræft, Serien er slut, indstillinger, rekorder og Om).
-- `js/logik.js`: spillogikken uden DOM og uden grafik. Den rummer regler, træk, point, løseren (som kan køres i bidder), generatoren (kun løselige spil), "sidder fast", Saml, Hint, fortryd og serien.
+- `js/logik.js`: spillogikken uden DOM og uden grafik. Den rummer regler, træk, point, den tilfældige blanding, løseren til hint (som kan køres i bidder), "sidder fast", Saml, Hint, fortryd og serien.
 - `js/tegn.js`: tegnelaget. Det bygger 52 kort, pladserne og tallene, placerer dem og presser lange bunker sammen. Det kender ingen farver.
 - `js/lyd.js`: spillets lyde. De laves i browseren med Web Audio, uden lydfiler, og er bløde og korte.
 - `js/app.js`: skærme, styring (mus, tryk, tastatur og dwell), layout, indstillinger og rekorder.

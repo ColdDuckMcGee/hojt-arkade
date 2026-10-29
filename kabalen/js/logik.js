@@ -55,10 +55,29 @@
   function clone(s) {
     return { t: s.t.map(function (p) { return { d: p.d, c: p.c.slice() }; }), f: s.f.slice(), talon: s.talon.slice(), w: s.w, draw: s.draw };
   }
-  function deal(r, draw) {
+  // Et helt tilfældigt tal 0 … n-1 fra browserens kryptografiske tilfældighed
+  // (crypto.getRandomValues). Afvisning af de øverste værdier giver en jævn fordeling
+  // uden skævhed. Findes crypto ikke, bruges Math.random.
+  function randInt(n) {
+    var c = (typeof globalThis !== 'undefined' && globalThis.crypto) || null;
+    if (c && c.getRandomValues) {
+      var buf = new Uint32Array(1), lim = Math.floor(4294967296 / n) * n;
+      do { c.getRandomValues(buf); } while (buf[0] >= lim);
+      return buf[0] % n;
+    }
+    return Math.floor(Math.random() * n);
+  }
+  // Ren Fisher–Yates-blanding. r() er en funktion, der giver et tal i [0, 1) (seed, til test),
+  // eller udeladt: så bruges randInt (kryptografisk tilfældighed). Ingen spil sorteres fra:
+  // det er helt tilfældigt, om et spil kan vindes.
+  function shuffle(r) {
     var deck = [];
     for (var i = 0; i < 52; i++) deck.push(i);
-    for (var j = 51; j > 0; j--) { var x = Math.floor(r() * (j + 1)), tmp = deck[j]; deck[j] = deck[x]; deck[x] = tmp; }
+    for (var j = 51; j > 0; j--) { var x = r ? Math.floor(r() * (j + 1)) : randInt(j + 1), tmp = deck[j]; deck[j] = deck[x]; deck[x] = tmp; }
+    return deck;
+  }
+  function deal(r, draw) {
+    var deck = shuffle(r);
     var s = { t: [], f: [0, 0, 0, 0], talon: [], w: 0, draw: draw === 3 ? 3 : 1 }, n = 0;
     for (var c = 0; c < 7; c++) s.t.push({ d: c, c: deck.slice(n, n + c + 1) }), n += c + 1;
     s.talon = deck.slice(n);
@@ -281,30 +300,6 @@
   }
   function solve(s, opts) { var sv = createSolver(s, opts); sv.step(); return { status: sv.status, path: sv.path, nodes: sv.nodes }; }
 
-  // Spil kun løselige spil ud: bland, prøv løseren, og tag det første, den kan løse.
-  function createGenerator(seed, draw, opts) {
-    opts = opts || {};
-    var r = rng(seed), tries = 0, maxTries = opts.maxTries || 80, cur = null, sv = null, result = null, last = null;
-    function next() { cur = deal(r, draw); last = cur; tries++; sv = createSolver(cur, { maxNodes: opts.maxNodes || 40000 }); }
-    next();
-    function step(budget) {
-      if (result) return result;
-      var left = budget || Infinity;
-      while (left > 0) {
-        var before = sv.nodes, st = sv.step(Math.min(left, 4000));
-        left -= Math.max(1, sv.nodes - before);
-        if (st === 'vundet') { result = { deal: cur, loeselig: true, forsoeg: tries, loesning: sv.path.length }; return result; }
-        if (st !== 'running') {
-          if (tries >= maxTries) { result = { deal: last, loeselig: false, forsoeg: tries, loesning: 0 }; return result; }
-          next();
-        }
-      }
-      return null;
-    }
-    return { step: step, get result() { return result; } };
-  }
-  function generate(seed, draw, opts) { var g = createGenerator(seed, draw, opts); return g.step(); }
-
   // ---------- Sidder man fast? ----------
   // Søger alle tilstande, man kan nå uden "fremskridt" (bunker flyttes rundt, kort fra
   // grundbunken tages ned). Fremskridt = et kort vendes, et kort lægges på grundbunken (flere end
@@ -347,7 +342,7 @@
   // ---------- Ét spil ----------
   function createGame(opts) {
     opts = opts || {};
-    var s = opts.deal ? clone(opts.deal) : deal(rng(opts.seed || 1), opts.draw);
+    var s = opts.deal ? clone(opts.deal) : deal(opts.seed ? rng(opts.seed) : null, opts.draw);
     var hist = [];
     var g = {
       points: 0, moves: 0, undos: 0, draws: 0, flips: 0, toFoundation: 0, lastRes: null,
@@ -517,7 +512,7 @@
     rng: rng, deal: deal, clone: clone, apply: apply, cardMoves: cardMoves, reachable: reachable,
     safe: safe, canFound: canFound, canTab: canTab, won: won, allOpen: allOpen, top: top, wasteTop: wasteTop,
     foundationTotal: foundationTotal, downTotal: downTotal,
-    createSolver: createSolver, solve: solve, createGenerator: createGenerator, generate: generate,
+    createSolver: createSolver, solve: solve, shuffle: shuffle, randInt: randInt, randomDeal: function (draw) { return deal(null, draw); },
     hasProgress: hasProgress, createGame: createGame, createSeries: createSeries, hint: hint, targetsFor: targetsFor, moveFor: moveFor
   };
 })(typeof window !== 'undefined' ? window : globalThis);

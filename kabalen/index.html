@@ -29,7 +29,7 @@
       <img class="arkade-logo" src="../arkade/logo.svg" alt="Hojt Arkade">
       <h1 id="titel" class="neon-title">KABALEN</h1>
     </div>
-    <p class="lead opt">Klassisk kabale (Klondike). Vælg et kort, og vælg så, hvor det skal hen. Der er intet ur. Alle spil kan vindes. Vinder du, fortsætter serien med et nyt spil, og pointene lægges sammen, til du giver op eller sidder fast.</p>
+    <p class="lead opt">Klassisk kabale (Klondike). Vælg et kort, og vælg så, hvor det skal hen. Der er intet ur. Kortene blandes helt tilfældigt, så ikke alle spil kan gå op. Vinder du, fortsætter serien med et nyt spil, og pointene lægges sammen, til du giver op eller sidder fast.</p>
   </header>
   <section class="menu-group" aria-labelledby="mode-label">
     <h2 id="mode-label" class="group-label">Træk fra bunken</h2>
@@ -55,7 +55,7 @@
   <section class="panel om-panel">
     <h2 id="om-title" class="neon-sub">Om Hojt Arkade</h2>
     <p data-trin>Hojt Arkade er udviklet af Jon Leismann Engsager, Hojt Design. Jon er IT- og IKT-konsulent i det specialiserede område og laver blandt andet gratis spil til voksne, der bruger øjenstyring.</p>
-    <p data-trin>Kabalen: byg fire grundbunker op fra es til konge i hver kulør. I de syv bunker lægges kortene nedad i skiftende farve, og kun en konge må lægges på en tom plads. Vælg et kort (kortene ovenpå følger med), og vælg så et af de lysende mål. Er der kun ét mål, kan du også bare vælge kortet igen. Alle spil kan vindes, og der er intet ur.</p>
+    <p data-trin>Kabalen: byg fire grundbunker op fra es til konge i hver kulør. I de syv bunker lægges kortene nedad i skiftende farve, og kun en konge må lægges på en tom plads. Vælg et kort (kortene ovenpå følger med), og vælg så et af de lysende mål. Er der kun ét mål, kan du også bare vælge kortet igen. Kortene blandes helt tilfældigt, så ikke alle spil kan gå op. Der er intet ur.</p>
     <p data-trin>Koden er åben og frit tilgængelig under MIT-licensen, så alle kan bruge den og bygge videre på den.</p>
   </section>
   <div class="row" data-trin>
@@ -129,7 +129,7 @@
   <div class="overlay soft" id="stuck-overlay" hidden role="alertdialog" aria-modal="true" aria-labelledby="stuck-title" aria-describedby="stuck-text">
     <div class="panel">
       <h2 id="stuck-title" class="neon-sub">Ingen flere træk</h2>
-      <p class="muted confirm-text" id="stuck-text">Der er ingen træk, der kan bringe spillet videre.</p>
+      <p class="muted confirm-text" id="stuck-text">Der er ingen træk, der kan bringe spillet videre. Kortene blandes tilfældigt, så ikke alle spil kan gå op.</p>
       <div class="row confirm-row">
         <button class="btn primary confirm-btn" id="btn-stuck-undo"><span class="icon" aria-hidden="true">↶</span><span class="big">Fortryd</span><span class="small">−2 point</span></button>
         <button class="btn confirm-btn" id="btn-stuck-end"><span class="icon" aria-hidden="true">■</span><span class="big">Game over</span><span class="small">gem point</span></button>

@@ -4,7 +4,7 @@
  *
  * Styring: vælg et kort (kortene ovenpå følger med), og de lovlige mål lyser op.
  * Vælg så et mål. Er der kun ét mål, flytter kortet derhen, hvis det vælges igen.
- * Der er intet ur. Alle spil kan vindes (løseren tjekker hvert spil, før det gives).
+ * Der er intet ur. Kortene blandes helt tilfældigt, så det er tilfældigt, om et spil kan vindes.
  * Vinder man, fortsætter serien med et nyt spil. Serien slutter, når man giver op
  * eller sidder fast.
  */
@@ -140,7 +140,7 @@
   function applyGlow() { root.setAttribute('data-ka-gloed', kset.get('gloed') ? 'til' : 'fra'); }
   kset.onChange(function (key) {
     if (key === 'gloed') applyGlow();
-    if (key === 'draw') { syncMenu(); prepareFirst(); }
+    if (key === 'draw') syncMenu();
     syncSettingsUi();
   });
 
@@ -172,7 +172,6 @@
     $$('#menu [data-mode]').forEach(function (b) { b.setAttribute('aria-pressed', String(+b.dataset.mode === d)); });
     $('#start-sub').textContent = modeName(d) + ' · serie uden ende';
     if (current === 'menu') fitScreen($('#menu'));
-    if (current === 'menu') prepareFirst();
   }
   $$('#menu [data-mode]').forEach(function (b) {
     b.addEventListener('click', function () { kset.set('draw', +b.dataset.mode); syncMenu(); sfx('klik'); });
@@ -218,38 +217,10 @@
   document.addEventListener('fullscreenchange', onFs);
   document.addEventListener('webkitfullscreenchange', onFs);
 
-  // ---------- Spil, der kan vindes (laves i små bidder, så skærmen ikke fryser) ----------
-  // Løseren prøver blandinger, til den finder en, der kan vindes. Arbejdet deles op i
-  // korte bidder med setTimeout, mens menuen eller sejrsboksen står fremme.
-  var prep = { 1: null, 3: null };
-  var SLICE = 3000;
-  function newSeed() { return (Math.floor(Math.random() * 0x7fffffff) ^ Date.now()) >>> 0 || 1; }
-  function prepare(d, cb) {
-    var p = prep[d];
-    if (!p) { p = prep[d] = { gen: L.createGenerator(newSeed(), d), timer: 0, cbs: [] }; }
-    if (cb) p.cbs.push(cb);
-    if (p.gen.result) { flush(d); return; }
-    if (p.timer) return;
-    (function tick() {
-      p.timer = setTimeout(function () {
-        p.timer = 0;
-        var r = p.gen.step(SLICE);
-        if (r) flush(d); else tick();
-      }, 0);
-    })();
-  }
-  function flush(d) {
-    var p = prep[d];
-    if (!p || !p.gen.result || !p.cbs.length) return;
-    var cbs = p.cbs; p.cbs = [];
-    var r = p.gen.result;
-    prep[d] = null;
-    cbs[0](r);
-    for (var i = 1; i < cbs.length; i++) prepare(d, cbs[i]);
-  }
-  function takeDeal(d, cb) { prepare(d, cb); }
-  var firstTimer = 0;
-  function prepareFirst() { clearTimeout(firstTimer); firstTimer = setTimeout(function () { prepare(currentDraw()); }, 200); }
+  // ---------- Blanding ----------
+  // Hvert spil blandes helt tilfældigt (Fisher–Yates med crypto.getRandomValues).
+  // Løseren bruges ikke til at vælge spil; den giver kun hint.
+  function takeDeal(d, cb) { cb({ deal: L.randomDeal(d) }); }
 
   // ---------- Spillet ----------
   var series = null, game = null, paused = false, finished = false, waiting = false;
@@ -282,7 +253,6 @@
       if (current !== 'game') show('game'); else layoutGame();
       refresh();
       guardBoard();
-      prepare(d); // næste spil laves allerede nu, i små bidder
     });
   }
 
@@ -558,7 +528,6 @@
     refresh();
     clearTimeout(doneTimer);
     doneTimer = setTimeout(function () { showDone(rec); }, animationOn() ? 700 : 400);
-    prepare(series.draw);
   }
   function showDone(rec) {
     if (!series || finished) return;
