@@ -1,6 +1,6 @@
 # Hojt Arkade – API (global highscore + statistik)
 
-Cloudflare Worker `hojt-arkade-api` med D1-databasen `hojt-arkade`.
+Cloudflare Worker `hojt-arkade-api` med D1-databasen `hojt-arkade-eu` (jurisdiction eu, data bliver i EU).
 Mappen påvirker ikke GitHub Pages – siden er stadig ren statisk HTML.
 
 **Adresse:** https://hojt-arkade-api.hojt.workers.dev
@@ -28,12 +28,12 @@ Mappen påvirker ikke GitHub Pages – siden er stadig ren statisk HTML.
 cd api
 export CLOUDFLARE_API_TOKEN=…  CLOUDFLARE_ACCOUNT_ID=05fb53460a9be1dbc7979f44d0828636
 npx wrangler deploy                                   # udgiv worker.js
-npx wrangler d1 execute hojt-arkade --remote --file=schema.sql   # skema (idempotent)
+npx wrangler d1 execute hojt-arkade-eu --remote --file=schema.sql   # skema (idempotent)
 npx wrangler secret put STATS_KEY                     # statistiknøgle
 npx wrangler secret put SALT                          # salt til IP-hash
 ```
-Slet en score: `npx wrangler d1 execute hojt-arkade --remote --command "DELETE FROM scores WHERE id = …"`.
+Slet en score: `npx wrangler d1 execute hojt-arkade-eu --remote --command "DELETE FROM scores WHERE id = …"`.
 
-Lokalt: `npx wrangler d1 execute hojt-arkade --local --file=schema.sql` og
+Lokalt: `npx wrangler d1 execute hojt-arkade-eu --local --file=schema.sql` og
 `npx wrangler dev --local --port 8787` (hemmeligheder i `.dev.vars`, som ikke committes).
 Sæt `localStorage['hojtArkade.api'] = 'http://127.0.0.1:8787'` i browseren for at bruge den lokale server.

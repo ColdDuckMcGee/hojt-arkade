@@ -6,8 +6,9 @@ account_id = "05fb53460a9be1dbc7979f44d0828636"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "hojt-arkade"
-database_id = "b7f43f91-6755-4276-933f-27d047003eed"
+database_name = "hojt-arkade-eu"
+database_id = "19f363c7-5c1f-488e-8112-3c29842adc57"
+# Oprettet med --jurisdiction eu: data bliver i EU
 
 # Hemmeligheder (sættes med `wrangler secret put`, ligger aldrig i repoet):
 #   STATS_KEY  – nøglen til /stats og statistiksiden
