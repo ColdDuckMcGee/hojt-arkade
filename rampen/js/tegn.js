@@ -4,8 +4,10 @@
  * værdier læses som CSS-variabler (--rampen-<navn>) via getComputedStyle, og alle
  * figurer tegnes af temaets navngivne tegnefunktioner (window.RampenTema.tegn).
  *
- * Kameraet følger bilen og zoomer ud, når den kommer højt op. Ved en opsendelse og
- * et beslutningspunkt vises i stedet forhåndslinjerne og landingsfelterne (fit).
+ * Kameraet (v1.4) har tre udsnit: tæt på bilen under kørsel og flyvning (fast zoom,
+ * følger med op), rampen + bil + startlinje ved opsendelsen, og en oversigt med bil,
+ * landingsfelter og udsyn ved beslutningspunktet. Skift glider roligt (ca. 0,7 s,
+ * blød ind/ud); ved prefers-reduced-motion eller "uden animation" skiftes direkte.
  *
  * Udsyn: bilen kan kun se et stykke frem (sc.lim i meter, under afspilning
  * bilens x + sc.udsyn). Ting længere fremme tegnes slet ikke, og temaets tåge
@@ -97,49 +99,140 @@
     }
   }
 
+  // Bilens ramme på skærmen (px) – bruges til at holde feltteksterne fri af bilen
+  // og af testen, der måler bilens størrelse. Bilen er ca. 3,4 × 1,8 m og tegnes
+  // aldrig med mindre end 16 px pr. meter (se temaets bil()).
+  var carBox = null, lastLabels = [];
+  function carRect(v, c) {
+    if (!c) return null;
+    var k = Math.max(v.k, 16), x = v.sx(c.x), y = v.sy(c.y);
+    return { x: x - 2.2 * k, y: y - 2.1 * k, w: 4.4 * k, h: 2.4 * k, len: 3.4 * k };
+  }
+  function overlap(a, b) { return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h; }
+  // Feltteksterne må ikke dække bilen: flyt en tekst til højre for bilen, ellers
+  // til venstre, ellers ned under jordlinjen (temaets felt() får tekstX / under).
+  function placeLabels(ctx, v, felter, box, s) {
+    if (!box || !felter || !felter.length) return felter || [];
+    var str = s['tekst-str'] || 14, h = Math.max(10, Math.min(18, v.h * 0.03));
+    ctx.save(); ctx.font = '700 ' + Math.round(str) + 'px ' + s.font;
+    var under = 0;
+    var out = felter.map(function (p) {
+      if (!p.tekst) return p;
+      var tw = ctx.measureText(p.tekst).width + 8, cx = (v.sx(p.fra) + v.sx(p.til)) / 2;
+      var y = v.sy(0) - h * 2 - 4 - (p.raekke || 0) * (str + 6);
+      var r = { x: cx - tw / 2, y: y - str - 2, w: tw, h: str + 6 };
+      if (!overlap(r, box)) { lastLabels.push({ nr: p.nr, x: r.x, y: r.y, w: r.w, h: r.h }); return p; }
+      var q = {}; for (var key in p) q[key] = p[key];
+      var right = box.x + box.w + 6 + tw / 2, left = box.x - 6 - tw / 2;
+      if (right + tw / 2 <= v.w - 4) { q.tekstX = v.x0 + right / v.k; r.x = right - tw / 2; }
+      else if (left - tw / 2 >= 4) { q.tekstX = v.x0 + left / v.k; r.x = left - tw / 2; }
+      else { q.under = true; q.raekke = under++; r.y = v.sy(0) + h + 4 + q.raekke * (str + 6) - 2; }
+      lastLabels.push({ nr: p.nr, x: r.x, y: r.y, w: r.w, h: r.h, flyttet: true });
+      return q;
+    });
+    ctx.restore();
+    return out;
+  }
+
   function create(canvas) {
     var ctx = canvas.getContext('2d');
-    var cssW = 0, cssH = 0, dpr = 1, anim = null, last = null, camK = 0, camX = 0;
+    var cssW = 0, cssH = 0, dpr = 1, anim = null, last = null;
+    var cam = null;            // kameraet, som det vises nu: {k, x0, gy}
+    var tween = null;          // igangværende rolig zoom mellem to kameraer
+    var smooth = true;         // false ved prefers-reduced-motion / "uden animation"
+    var EASE_MS = 700;
+    var raf = global.requestAnimationFrame || function (f) { return setTimeout(function () { f(Date.now()); }, 16); };
+    var caf = global.cancelAnimationFrame || clearTimeout;
+    function ease(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
+    function mix(a, b, f) { return { k: a.k * Math.pow(b.k / a.k, f), x0: a.x0 + (b.x0 - a.x0) * f, gy: a.gy + (b.gy - a.gy) * f }; }
     function resize(w, h) {
       dpr = Math.max(1, Math.min(3, global.devicePixelRatio || 1));
       cssW = Math.max(1, w); cssH = Math.max(1, h);
       canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
       canvas.width = Math.round(cssW * dpr); canvas.height = Math.round(cssH * dpr);
-      if (last) draw(last);
+      stopTween(); cam = null;                    // ny størrelse: skift direkte
+      if (last && !anim) draw(last);
     }
-    function gy() { return cssH * 0.86; }
-    function baseK() { return Math.min(cssW / 55, cssH / 24); }
-    // Kamera, der følger bilen
+    function groundY() { return cssH * 0.86; }
+    // Tæt kamera under kørsel og flyvning: fast zoom, så bilen er stor og tydelig
+    function zoomK() { return Math.max(28, Math.min(cssW / 20, cssH / 9.5)); }
+    // Kamera, der følger bilen. Tæt zoom; når bilen kommer højt op, zoomer det lidt
+    // ud (højst til 60 % af den tætte zoom), så jorden stadig kan ses, og derefter
+    // følger det med op (jorden glider ud forneden). Zoomen er en jævn funktion af
+    // bilens højde, så billedet ikke ryster.
     function followCam(c) {
-      var k = Math.min(baseK(), (gy() - 24) / (Math.max(0, c.y) + 9));
-      return { k: k, x0: c.x - cssW * 0.35 / k };
+      var zk = zoomK(), y = Math.max(0, c.y);
+      var k = Math.max(Math.max(28, zk * 0.6), Math.min(zk, (groundY() - cssH * 0.22) / (y + 2.2)));
+      return { k: k, x0: c.x - cssW * 0.35 / k, gy: Math.max(groundY(), cssH * 0.3 + y * k) };
     }
-    // Kamera, der viser hele forhåndslinjen
+    // Opsendelse: rampen, bilen og den korte startlinje
+    function launchCam(sc) {
+      var minX = -L.RAMPE.len - 3, maxX = 18, maxY = 8;
+      (sc.previews || []).forEach(function (p) { p.pts.forEach(function (q) { if (q.x > maxX) maxX = q.x; if (q.y > maxY) maxY = q.y; }); });
+      maxX += 4;
+      var k = Math.min(zoomK(), (cssW - 40) / (maxX - minX), (groundY() - 60) / (maxY + 3));
+      return { k: k, x0: minX - 20 / k, gy: groundY() };
+    }
+    // Beslutningspunkt: bilen, valgkortenes landingsfelter og udsynets grænse
     function fitCam(sc) {
+      if (sc.preLaunch) return launchCam(sc);
       var minX = sc.car.x - 6, maxX = sc.car.x + 20, maxY = Math.max(sc.car.y, 8);
-      if (sc.preLaunch) minX = -L.RAMPE.len - 2;
       (sc.previews || []).forEach(function (p) { p.pts.forEach(function (q) { if (q.x > maxX) maxX = q.x; if (q.y > maxY) maxY = q.y; }); });
       (sc.felter || []).forEach(function (p) { if (p.til + 6 > maxX) maxX = p.til + 6; });
       if (typeof sc.lim === 'number' && sc.lim + 4 > maxX) maxX = sc.lim + 4;
-      var k = Math.min(baseK(), (cssW - 40) / (maxX - minX + 4), (gy() - 70) / (maxY + 3));
-      return { k: k, x0: minX - 20 / k };
+      var k = Math.min(zoomK(), (cssW - 40) / (maxX - minX + 4), (groundY() - 70) / (maxY + 3));
+      return { k: k, x0: minX - 20 / k, gy: groundY() };
     }
-    function draw(sc, cam) {
-      last = sc;
-      if (!style) readStyle();
-      cam = cam || (sc.fit ? fitCam(sc) : followCam(sc.car));
-      camK = cam.k; camX = cam.x0;
+    function targetCam(sc) { return sc.fit ? fitCam(sc) : followCam(sc.car); }
+    function render(sc, c) {
+      cam = c;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, cssW, cssH);
-      var v = view(cssW, cssH, cam.x0, cam.k, gy());
-      drawScene(ctx, v, sc, style);
+      var v = view(cssW, cssH, c.x0, c.k, c.gy);
+      carBox = carRect(v, sc.car); lastLabels = [];
+      var sc2 = sc;
+      if (sc.felter && sc.felter.length && carBox) {
+        sc2 = {}; for (var key in sc) sc2[key] = sc[key];
+        sc2.felter = placeLabels(ctx, v, sc.felter, carBox, style);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+      drawScene(ctx, v, sc2, style);
+    }
+    function stopTween() { if (tween) { caf(tween.id); tween = null; } }
+    function same(a, b) { return a && b && Math.abs(a.k / b.k - 1) < 0.01 && Math.abs(a.x0 - b.x0) * b.k < 2 && Math.abs(a.gy - b.gy) < 2; }
+    // Tegn en stillestående scene. Skifter kameraet (fx fra flyvning til
+    // beslutningspunkt eller tilbage), glider det roligt derhen; uden animation
+    // springer det direkte.
+    function draw(sc, forced) {
+      last = sc;
+      if (!style) readStyle();
+      if (forced) { stopTween(); render(sc, forced); return; }
+      var to = targetCam(sc);
+      if (!smooth || !cam || anim) { stopTween(); render(sc, to); return; }
+      if (tween && same(tween.to, to)) { tween.sc = sc; return; }
+      if (same(cam, to)) { stopTween(); render(sc, to); return; }
+      var from = cam;
+      stopTween();
+      tween = { from: from, to: to, sc: sc, t0: null, id: 0 };
+      function step(now) {
+        if (!tween) return;
+        if (tween.t0 === null) tween.t0 = now;
+        var f = Math.min(1, (now - tween.t0) / EASE_MS);
+        render(tween.sc, f >= 1 ? tween.to : mix(tween.from, tween.to, ease(f)));
+        if (f >= 1) { tween = null; return; }
+        tween.id = raf(step);
+      }
+      render(sc, from);
+      tween.id = raf(step);
     }
     // Afspil en række billeder fra logikken. speed > 1 er hurtigere end virkelig tid.
+    // Kameraet glider roligt fra det forrige udsnit (fx beslutningspunktets
+    // oversigt) ind til det tætte følgekamera i løbet af de første ca. 0,7 s.
     function animate(sc, frames, opts) {
-      stop();
-      var raf = global.requestAnimationFrame || function (f) { return setTimeout(function () { f(Date.now()); }, 16); };
+      stop(); stopTween();
+      if (!style) readStyle();
       var t0 = null, i = 0, T0 = frames[0].t, T1 = frames[frames.length - 1].t;
-      var k = camK || followCam(frames[0]).k, x0 = null;
+      var from = smooth ? cam : null;
       anim = { id: 0, done: opts.onDone, speed: opts.speed || 1, tt: 0, last: 0 };
       function frame(now) {
         if (!anim) return;
@@ -150,14 +243,12 @@
         var a = frames[i], b = frames[Math.min(frames.length - 1, i + 1)], f = b.t > a.t ? Math.max(0, Math.min(1, (tt - a.t) / (b.t - a.t))) : 1;
         var c = { x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f, vx: a.vx + (b.vx - a.vx) * f, vy: a.vy + (b.vy - a.vy) * f,
           ground: b.ground && a.ground, boost: a.boost, nose: a.nose, chute: a.chute, hp: a.hp, coins: a.coins, boosts: a.boosts };
-        var target = followCam(c);
-        k += (target.k - k) * 0.06;                 // rolig zoom
-        var cx0 = c.x - cssW * 0.35 / k;
-        x0 = cx0;
+        var target = followCam(c), g = from ? Math.min(1, (now - t0) / EASE_MS) : 1;
         sc.car = c; sc.tNow = tt;
         if (typeof sc.udsyn === 'number') sc.lim = c.x + sc.udsyn;
         if (opts.onFrame) opts.onFrame(c, frames, i);
-        draw(sc, { k: k, x0: x0 });
+        last = sc;
+        render(sc, g >= 1 ? target : mix(from, target, ease(g)));
         if (tt >= T1) { var cb = anim.done; anim = null; if (cb) cb(); return; }
         anim.id = raf(frame);
       }
@@ -165,7 +256,6 @@
     }
     function stop() {
       if (!anim) return;
-      var caf = global.cancelAnimationFrame || clearTimeout;
       caf(anim.id); anim = null;
     }
     // Spring til slutningen af den igangværende afspilning
@@ -176,10 +266,16 @@
     return {
       resize: resize, draw: draw, animate: animate, stop: stop, finishNow: finishNow,
       setSpeed: function (sp) { if (anim) anim.speed = sp; },
+      // Rolig zoom til/fra; slås fra ved prefers-reduced-motion og "uden animation"
+      setSmooth: function (on) { smooth = !!on; if (!smooth && tween) { var t = tween; stopTween(); render(t.sc, t.to); } },
       restyle: function () { readStyle(); if (cssW) resize(cssW, cssH); },
       get animating() { return !!anim; },
+      get zooming() { return !!tween; },
       get drawn() { return drawnIds.slice(); },
-      get scale() { return camK; }
+      get scale() { return cam ? cam.k : 0; },
+      // Bilens ramme på skærmen i px (len = bilens længde i px)
+      get carBox() { return carBox ? { x: carBox.x, y: carBox.y, w: carBox.w, h: carBox.h, len: carBox.len } : null; },
+      get labels() { return lastLabels.slice(); }
     };
   }
 

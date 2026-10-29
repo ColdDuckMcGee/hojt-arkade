@@ -26,7 +26,9 @@
  *   forhaand(ctx, {pts, slags}, v, s)           forhåndslinje; slags: 'start' (kun starten af opsendelsen)
  *                                               eller 'kort-1' … 'kort-3' (valgkortets skønnede vej, kun inden for udsyn)
  *   felt(ctx, {fra, til, nr, tekst, raekke}, v, s)  usikkert landingsfelt for valgkort nr. 1–3 (fra–til i meter,
- *                                               aldrig et præcist punkt); tekst fx "1: ca. 60–90 m", raekke = tekstlinje 0–2
+ *                                               aldrig et præcist punkt); tekst fx "1: ca. 60–90 m", raekke = tekstlinje 0–2.
+ *                                               Valgfrit: tekstX (meter) = tekstens midte, under = tekst under jordlinjen
+ *                                               (tegnelaget sætter dem, så teksten ikke dækker bilen)
  *   taage(ctx, {x}, v, s)                       tåge/mørke fra udsynets grænse (x i meter) og frem. Ren pynt:
  *                                               tingene derude tegnes slet ikke. Farverne kan være transparent.
  *   landing(ctx, {x, tekst, slags}, v, s)       (bruges ikke længere af spillet; beholdt til andre temaer)
@@ -332,7 +334,12 @@
       // Kanterne går lidt op, så feltet kan ses, også når det er smalt
       glow(ctx, s, kant, 0.5);
       ctx.beginPath(); ctx.moveTo(a, y + h); ctx.lineTo(a, y - h * 2); ctx.moveTo(b, y + h); ctx.lineTo(b, y - h * 2); ctx.stroke(); noFx(ctx);
-      if (d.tekst) tekst(ctx, d.tekst, (a + b) / 2, y - h * 2 - 4 - (d.raekke || 0) * (s['tekst-str'] + 6), s, 'center');
+      if (!d.tekst) return;
+      // tekstX (meter) / under: tegnelaget flytter teksten, hvis den ellers ville dække bilen
+      var tx = typeof d.tekstX === 'number' ? v.sx(d.tekstX) : (a + b) / 2;
+      var ty = d.under ? y + h + 4 + s['tekst-str'] + (d.raekke || 0) * (s['tekst-str'] + 6)
+        : y - h * 2 - 4 - (d.raekke || 0) * (s['tekst-str'] + 6);
+      tekst(ctx, d.tekst, tx, ty, s, 'center');
     },
     // Tåge fra udsynets grænse: blød overgang og så dækkende
     taage: function (ctx, d, v, s) {

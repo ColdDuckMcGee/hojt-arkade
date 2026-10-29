@@ -243,12 +243,47 @@ def flying_shot(pg, w, h, tag, shots):
     """Bilen i luften (animation til), midt i en tur."""
     pg.evaluate(RIG); pg.evaluate("Rampen.settings.set('animation', true); Rampen.gameSettings.set('fart', 'rolig')")
     pg.evaluate("Rampen.start(); Rampen.game.setAngle(40); Rampen.refresh()"); pg.wait_for_timeout(80)
-    pg.evaluate("Rampen.launch()"); pg.wait_for_timeout(900)
+    pg.evaluate("Rampen.launch()"); pg.wait_for_timeout(650)
     if st(pg, "Rampen.phase") != 'fly': fails.append('%s fase under flyvning: %s' % (tag, st(pg, "Rampen.phase")))
     check(pg, 'bilen flyver', '#game', w, h, tag + '-flyver.png')
     if shots and SHOT: pg.screenshot(path=SHOT + 'spil-i-gang.png')
     pg.mouse.move(1, 1); pg.keyboard.press('Enter'); idle(pg)
     if st(pg, "Rampen.phase") != 'freeze': fails.append('%s Enter sprang ikke frem til beslutningen (%s)' % (tag, st(pg, "Rampen.phase")))
+    pg.evaluate("Rampen.settings.set('animation', false)")
+
+# Bilens længde i px under flyvning målt i v1.3 (før det tætte kamera i v1.4)
+V13_FLY = {(1920,1080): 95, (1366,768): 54, (1280,720): 54, (1024,768): 54, (1024,1366): 61, (1366,1024): 62, (390,844): 54, (844,390): 54}
+CAM = """() => { const t = Rampen.tegn, b = t.carBox, c = document.getElementById('course'), lim = Rampen.game.flight ? Rampen.game.flight.x + Rampen.udsyn : 0;
+  return { len: b ? Math.round(b.len) : 0, box: b, cw: c.clientWidth, ch: c.clientHeight, zooming: t.zooming, labels: t.labels,
+    phase: Rampen.phase, beyond: Rampen.phase === 'freeze' ? t.drawn.filter(o => o.x - o.r > lim + 0.01).length : 0 }; }"""
+def label_hits(c):
+    b = c['box']
+    if not b: return []
+    return [l['nr'] for l in c['labels'] if l['x'] < b['x'] + b['w'] and b['x'] < l['x'] + l['w'] and l['y'] < b['y'] + b['h'] and b['y'] < l['y'] + l['h']]
+def camera_check(pg, w, h, tag):
+    """v1.4: tæt kamera under flyvning, rolig udzoom ved beslutningspunktet."""
+    pg.evaluate(RIG); pg.evaluate("Rampen.settings.set('animation', true); Rampen.gameSettings.set('fart', 'rolig')")
+    pg.evaluate("Rampen.start(); Rampen.game.setAngle(40); Rampen.refresh()"); pg.wait_for_timeout(80)
+    pg.evaluate("Rampen.launch()"); pg.wait_for_timeout(720)
+    fly = st(pg, CAM)
+    pg.mouse.move(1, 1); pg.keyboard.press('Enter'); idle(pg)
+    z0 = st(pg, "Rampen.tegn.zooming")
+    pg.wait_for_timeout(900)
+    dec = st(pg, CAM)
+    bad = []
+    if fly['phase'] != 'fly': bad.append('ikke i luften ved målingen (%s)' % fly['phase'])
+    base = V13_FLY.get((w, h), 54)
+    if fly['len'] < base * 1.5: bad.append('bilen er kun %d px under flyvning (v1.3: %d)' % (fly['len'], base))
+    if dec['len'] * 1.3 > fly['len']: bad.append('ingen udzoom ved beslutningspunktet (%d mod %d px)' % (dec['len'], fly['len']))
+    b = fly['box']
+    if b and (b['x'] < 0 or b['y'] < 0 or b['x'] + b['w'] > fly['cw'] or b['y'] + b['h'] > fly['ch']): bad.append('bilen uden for billedet under flyvning')
+    if not z0: bad.append('ingen rolig zoom ved beslutningspunktet')
+    if dec['zooming']: bad.append('zoomen blev ikke færdig')
+    if dec['beyond']: bad.append('%d ting tegnet ud over udsynet' % dec['beyond'])
+    hits = label_hits(dec)
+    if hits: bad.append('felttekst %s dækker bilen' % hits)
+    print('%s %dx%d kamera: bil %d px i luften (v1.3: %d), %d px ved beslutningen, rolig zoom %s, felttekster fri af bilen %s' % ('OK  ' if not bad else 'FEJL', w, h, fly['len'], base, dec['len'], z0, not hits))
+    if bad: fails.append('%s kamera: %s' % (tag, '; '.join(bad)))
     pg.evaluate("Rampen.settings.set('animation', false)")
 
 def dwell_check(pg, w, h, tag):
@@ -292,6 +327,7 @@ with sync_playwright() as p:
         pg.evaluate("Rampen.show('records')"); pg.wait_for_timeout(80); check(pg,'rekorder','#records',w,h, small and tag+'-rekorder.png')
         pg.evaluate("Rampen.show('shop')"); pg.wait_for_timeout(80); check(pg,'værksted (ny)','#shop',w,h)
         flying_shot(pg, w, h, tag, big)
+        camera_check(pg, w, h, tag)
         gameplay(pg, w, h, tag, big)
         dwell_check(pg, w, h, tag)
         if big or small: sound_check(pg, w, h, tag)
@@ -299,6 +335,9 @@ with sync_playwright() as p:
         # Hovedbilledet for opløsningen: beslutningspunktet med vinger
         pg.evaluate(RIG); pg.evaluate("Rampen.settings.set('animation', false); Rampen.start(); Rampen.game.setAngle(40); Rampen.refresh()"); pg.wait_for_timeout(80)
         pg.evaluate("Rampen.launch()"); idle(pg); pg.mouse.move(1, 1)
+        c = st(pg, CAM)
+        if c['zooming']: fails.append(tag + ' kameraet glider, selv om animation er slået fra')
+        if label_hits(c): fails.append('%s felttekst %s dækker bilen' % (tag, label_hits(c)))
         if SHOT: pg.screenshot(path=SHOT + tag + '.png')
         ctx.close()
     # Mindre bevægelse: resultatet vises med det samme
@@ -306,7 +345,7 @@ with sync_playwright() as p:
     pg.goto(URL); pg.wait_for_timeout(300)
     pg.evaluate(RIG); pg.evaluate("Rampen.start()"); pg.wait_for_timeout(80)
     pg.evaluate("Rampen.launch()"); pg.wait_for_timeout(150)
-    t = st(pg, "[Rampen.tegn.animating, Rampen.phase]")
+    t = st(pg, "[Rampen.tegn.animating || Rampen.tegn.zooming, Rampen.phase]")
     print('%s reduced motion: animerer=%s, fase efter 0,15 s=%s' % ('OK  ' if t == [False, 'freeze'] else 'FEJL', t[0], t[1]))
     if t != [False, 'freeze']: fails.append('reduced motion: %s' % t)
     ctx.close()

@@ -129,6 +129,7 @@
   function applyBackground() { bg.setMode(arkade.get('background')); }
   function applyAnimation() {
     bg.setAnimated(animationOn());
+    if (tegn) tegn.setSmooth(animationOn());     // kameraets rolige zoom følger samme valg
     $('#motion-note').textContent = reducedMotionMq.matches
       ? 'Slået fra, fordi din computer er sat til mindre bevægelse. Turen vises med det samme'
       : 'Bevægelse i baggrunden, og bilen, der kører. Fra viser straks, hvor bilen ender';
@@ -236,6 +237,7 @@
   var playing = false, fastNow = false, noteText = '', noteCls = '', lastResult = null;
   var courseEl = $('#course');
   var tegn = RampenTegn.create(courseEl);
+  tegn.setSmooth(animationOn());
   var controls = $('#controls');
 
   // En tur, der blev afbrudt (gemt ved et beslutningspunkt), fortsætter ved det samme valg
