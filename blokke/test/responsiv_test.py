@@ -28,9 +28,9 @@ CHECK = """(sel) => {
      if (!vis(e)) return; const r = e.getBoundingClientRect();
      if (r.left < -1 || r.top < -1 || r.right > W + 1 || r.bottom > H + 1) out.clipped.push((e.id || e.tagName + '.' + e.className) + ' ' + [r.left,r.top,r.right,r.bottom].map(Math.round));
   });
-  const bs = [...scr.querySelectorAll('button, a.btn')].filter(vis).filter(e => !e.classList.contains('cell'));
+  const bs = [...scr.querySelectorAll('button, a.btn')].filter(vis).filter(e => !e.classList.contains('cell') && !e.classList.contains('qbtn'));  // felter og zoom-flader måles som felt
   const cells = [...scr.querySelectorAll('#board .cell')].filter(vis);
-  out.cellPx = cells.length ? Math.round(cells[0].getBoundingClientRect().width) : null;
+  out.cellPx = cells.length ? Math.round(Math.max(...cells.map(c => c.getBoundingClientRect().width))) : null;  // største felt (zoomet fjerdedel)
   const name = e => e.id || e.dataset.slot || e.dataset.tab || e.dataset.size || e.dataset.recSize || e.getAttribute('aria-label') || e.textContent.trim().replace(/\\s+/g,' ').slice(0,16);
   for (let i = 0; i < bs.length; i++) for (let j = i + 1; j < bs.length; j++) { const a = bs[i].getBoundingClientRect(), b = bs[j].getBoundingClientRect();
      if (a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1 && !bs[i].contains(bs[j]) && !bs[j].contains(bs[i]) && bs[i].closest('.overlay') === bs[j].closest('.overlay')) out.overlap.push(name(bs[i]) + '/' + name(bs[j])); }
@@ -106,12 +106,17 @@ with sync_playwright() as p:
             pg.evaluate("s => { Blokke.gameSettings.set('boardSize', s); Blokke.start(); }", size); pg.wait_for_timeout(150)
             check(pg,'spil '+size,'#game',w,h)
             if size == '8x8':
+                # Zoom: oversigten har fire knapper; klik på en zoomer, og kun dens 4×4 tomme felter er klikbare
+                pg.click('.qbtn[data-q="1"]'); pg.wait_for_timeout(80)
+                z = pg.evaluate("() => [Blokke.zoom, document.querySelectorAll('#board .cell:not([inert])').length, Math.round(document.querySelector('#board .cell:not([inert])').getBoundingClientRect().width), +document.querySelector('#game').dataset.cell]")
+                # zoomede felter mindst 84 px, eller mindst 1,7 gange så store som uden zoom på telefoner
+                if z[0] != 1 or z[1] != 16 or z[2] < min(84, 1.7 * z[3]): fails.append('%s zoom forkert %s' % (tag, z))
                 pg.evaluate(DEMO); pg.wait_for_timeout(150)
                 check(pg,'spil 8x8 skygge','#game',w,h, tag+'-spil.png')
                 ok = pg.evaluate("() => { const g = document.querySelectorAll('#board .cell.g-ok').length, c = document.querySelectorAll('#board .cell.clr').length, placeOn = !document.getElementById('btn-place').disabled; return [g, c, placeOn]; }")
                 if ok != [3, 8, True]: fails.append('%s skygge forkert %s' % (tag, ok))
                 # Klik på et felt lægger ikke brikken
-                pg.click('#board .cell >> nth=0'); pg.wait_for_timeout(60)
+                pg.click('#board .cell:not([inert]) >> nth=0'); pg.wait_for_timeout(60)
                 if pg.evaluate("Blokke.run.state.moves") != 0: fails.append(tag + ' klik på felt lagde brikken')
                 pg.evaluate(DEMO); pg.click('#btn-place'); pg.wait_for_timeout(500)
                 if pg.evaluate("[Blokke.run.state.moves, Blokke.run.state.lines]") != [1, 1]: fails.append(tag + ' Læg virkede ikke')

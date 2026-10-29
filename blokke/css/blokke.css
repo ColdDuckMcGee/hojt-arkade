@@ -102,6 +102,17 @@ html, body { height: 100%; height: 100dvh; }
   cursor: pointer; font: inherit; color: inherit;
 }
 .cell:focus-visible { outline: 4px solid var(--accent); outline-offset: -6px; z-index: 2; }
+/* Zoom i fjerdedele (se js/app.js): fire store knapper oven på brættet */
+.qbtn {
+  position: relative; z-index: 3; margin: 0; padding: 0; min-width: 0; min-height: 0;
+  background: transparent; border: 0; border-radius: 0; cursor: zoom-in; font: inherit; color: inherit;
+}
+.qbtn[hidden] { display: none; }
+.qbtn:hover, .qbtn.arkade-dwelling { background: color-mix(in srgb, var(--bk-hover) 18%, transparent); }
+.qbtn:focus-visible { outline: 4px solid var(--accent); outline-offset: -4px; }
+@media (hover: none) { .qbtn:hover { background: transparent; } }
+.board:not(.zoomed) .qbtn:not([inert]) { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--bk-frame) 55%, transparent); }
+.board .qbtn[inert] { cursor: default; }
 .cell .blk, .cell .gh { position: absolute; inset: 7%; border-radius: 14%; pointer-events: none; }
 .cell[data-c="1"] { --c: var(--bk-c1); } .cell[data-c="2"] { --c: var(--bk-c2); } .cell[data-c="3"] { --c: var(--bk-c3); }
 .cell[data-c="4"] { --c: var(--bk-c4); } .cell[data-c="5"] { --c: var(--bk-c5); } .cell[data-c="6"] { --c: var(--bk-c6); }
@@ -121,7 +132,7 @@ html, body { height: 100%; height: 100dvh; }
   background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--bk-bad) 55%, transparent) 0 6px, color-mix(in srgb, var(--bk-bad) 12%, transparent) 6px 14px);
   border: 4px solid var(--bk-bad);
 }
-.cell.g-bad.f .gh::after { content: "✕"; position: absolute; inset: 0; display: grid; place-items: center; color: var(--bk-bad); font-weight: 900; font-size: calc(var(--cell, 80px) * 0.5); line-height: 1; }
+.cell.g-bad.f .gh::after { content: "✕"; position: absolute; inset: 0; display: grid; place-items: center; color: var(--bk-bad); font-weight: 900; font-size: calc(var(--cs, var(--cell, 80px)) * 0.5); line-height: 1; }
 .cell.anchor .gh::before { content: ""; position: absolute; left: 50%; top: 50%; width: 26%; height: 26%; transform: translate(-50%, -50%); border-radius: 50%; border: 3px solid var(--bk-sel); }
 /* Rækker og kolonner, der forsvinder: gul kant og striber */
 .cell.clr { background: repeating-linear-gradient(45deg, color-mix(in srgb, var(--bk-clear) 22%, transparent) 0 5px, transparent 5px 12px); }

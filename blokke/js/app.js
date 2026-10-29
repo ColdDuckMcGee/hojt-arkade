@@ -192,6 +192,14 @@
   var boardEl = $('#board'), cellEls = [];
   var vanishing = {}, popping = {}, animTimer = 0, popTimer = 0, stuckTimer = 0;
   var lastNote = '';
+  // Zoom i fjerdedele (som Sudoku): i oversigten er brættet fire store knapper
+  // (.qbtn), så TD Browse' Color Links ikke får mange små mål tæt på hinanden.
+  // I en zoomet fjerdedel er dens felter store og de andre spor smalle (samme
+  // samlede størrelse). Felter der ikke kan bruges, er inert. Musen finder
+  // stadig feltet under sig (cellAt), så klik og skygge virker som før.
+  var zoom = -1, qbtnEls = [];
+  var QNAME = ['øverst til venstre', 'øverst til højre', 'nederst til venstre', 'nederst til højre'];
+  function quadOf(i) { var n = run.n, h = Math.ceil(n / 2); return (Math.floor(i / n) < h ? 0 : 2) + (i % n < h ? 0 : 1); }
 
   function buildBoard(n) {
     boardEl.innerHTML = '';
@@ -203,27 +211,97 @@
       b.type = 'button';
       b.dataset.i = i;
       b.innerHTML = '<span class="blk"></span><span class="gh"></span>';
+      b.style.gridColumn = String(i % n + 1); b.style.gridRow = String(Math.floor(i / n) + 1);
+      b.inert = true;
       boardEl.appendChild(b);
       cellEls.push(b);
     }
+    qbtnEls = [];
+    for (var q = 0; q < 4; q++) {
+      var qb = document.createElement('button');
+      qb.type = 'button'; qb.className = 'qbtn'; qb.dataset.q = q;
+      qb.setAttribute('aria-label', 'Zoom ind på fjerdedelen ' + QNAME[q]);
+      boardEl.appendChild(qb);
+      qbtnEls.push(qb);
+    }
+  }
+  // Sporenes bredde ved zoom: de zoomede helst ca. 126 px, de andre smalle.
+  function zoomTracks(n, cell, zq) {
+    var h = Math.ceil(n / 2), f = Math.min(0.3, Math.max(0.15, (n * cell / 126 - h) / (n - h)));
+    var big = n * cell / (h + (n - h) * f), c = [], r = [];
+    for (var t = 0; t < n; t++) {
+      c.push(((t < h ? 0 : 1) === zq % 2 ? big : big * f).toFixed(2) + 'px');
+      r.push(((t < h ? 0 : 1) === zq >> 1 ? big : big * f).toFixed(2) + 'px');
+    }
+    // m: hvor mange smalle spor en nabo-fjerdedels knap dækker, så dens midte er
+    // mindst 124 px fra nærmeste store felt.
+    var small = big * f, m = Math.floor(2 * ((n - h) - (124 - big / 2) / small));
+    return { c: c.join(' '), r: r.join(' '), big: big, small: small, h: h, m: Math.max(1, Math.min(n - h, m)) };
+  }
+  function qSpan(n, side, zside, m) {
+    var h = Math.ceil(n / 2);
+    if (zside < 0 || side === zside) return side ? (h + 1) + ' / ' + (n + 1) : '1 / ' + (h + 1);
+    return side ? (n - m + 1) + ' / ' + (n + 1) : '1 / ' + (m + 1);
+  }
+  function applyZoom(qOn) {
+    if (!run || !qbtnEls.length) return;
+    var n = run.n, cell = parseFloat(gameEl.dataset.cell) || 0, t = zoom >= 0 && cell ? zoomTracks(n, cell, zoom) : null;
+    var cols = t ? t.c : '', rows = t ? t.r : '';
+    if (boardEl.style.gridTemplateColumns !== cols) { boardEl.style.gridTemplateColumns = cols; boardEl.style.gridTemplateRows = rows; }
+    boardEl.classList.toggle('zoomed', !!t);
+    for (var i = 0; i < cellEls.length; i++) {
+      var x = i % n, y = Math.floor(i / n), cs = t ? Math.min((x < t.h) === (zoom % 2 === 0) ? t.big : t.small, (y < t.h) === (zoom < 2) ? t.big : t.small) : cell;
+      cellEls[i].style.setProperty('--cs', cs.toFixed(1) + 'px');
+    }
+    qbtnEls.forEach(function (q, k) {
+      var on = qOn && k !== zoom;
+      if (q.inert !== !on) q.inert = !on;
+      q.hidden = !!t && k === zoom;
+      var gc = qSpan(n, k % 2, t ? zoom % 2 : -1, t ? t.m : 0), gr = qSpan(n, k >> 1, t ? zoom >> 1 : -1, t ? t.m : 0);
+      if (q.style.gridColumn !== gc) q.style.gridColumn = gc;
+      if (q.style.gridRow !== gr) q.style.gridRow = gr;
+    });
+  }
+  function setZoom(k) { if (!live() || k === zoom) return; zoom = k; sfx('click'); refresh(); }
+  function cellAt(x, y) {
+    for (var i = 0; i < cellEls.length; i++) {
+      var r = cellEls[i].getBoundingClientRect();
+      if (x >= r.left && x < r.right && y >= r.top && y < r.bottom) return i;
+    }
+    return -1;
+  }
+  // Felt under musen, også når feltet er inert (så rammer klikket brættet)
+  function cellFromEvent(e) {
+    var c = e.target.closest('.cell');
+    if (c) return +c.dataset.i;
+    return e.target === boardEl ? cellAt(e.clientX, e.clientY) : -1;
   }
   boardEl.addEventListener('click', function (e) {
+    var q = e.target.closest('.qbtn');
+    if (q) { if (!swallowed(q)) setZoom(+q.dataset.q); return; }
     var c = e.target.closest('.cell');
-    if (!c || swallowed(c)) return;
-    selectCell(+c.dataset.i);
+    if (c) { if (!swallowed(c)) selectCell(+c.dataset.i); return; }
+    // Inert felt: i en anden fjerdedel zoomes der dertil, ellers er klikket som
+    // på et ulovligt felt før (rød skygge, intet lægges).
+    var i = cellFromEvent(e);
+    if (i < 0 || !live()) return;
+    if (zoom >= 0 && quadOf(i) !== zoom) setZoom(quadOf(i));
+    else if (zoom >= 0) selectCell(i);
   });
-  boardEl.addEventListener('pointerover', function (e) {
-    var c = e.target.closest('.cell');
-    var i = c ? +c.dataset.i : -1;
+  function hoverAt(e) {
+    var i = e.target.closest('.qbtn') ? -1 : cellFromEvent(e);
+    if (i >= 0 && zoom >= 0 && quadOf(i) !== zoom) i = -1;
     if (i !== hoverIdx) { hoverIdx = i; renderBoard(); }
-  });
+  }
+  boardEl.addEventListener('pointerover', hoverAt);
+  boardEl.addEventListener('pointermove', function (e) { if (e.target === boardEl) hoverAt(e); });
   boardEl.addEventListener('pointerleave', function () { if (hoverIdx >= 0) { hoverIdx = -1; renderBoard(); } });
 
   function startGame() {
     if (window.ArkadeHighscore) ArkadeHighscore.start();
     run = G.createRun(boardSize());
     paused = false; finished = false;
-    selSlot = -1; selCell = -1; hoverIdx = -1; vanishing = {}; popping = {}; lastNote = '';
+    selSlot = -1; selCell = -1; hoverIdx = -1; vanishing = {}; popping = {}; lastNote = ''; zoom = -1;
     clearTimeout(animTimer); clearTimeout(popTimer); clearTimeout(stuckTimer);
     buildBoard(run.n);
     hideOverlays();
@@ -262,6 +340,7 @@
     if (!live()) return;
     if (i === selCell) return; // samme felt igen: intet sker (læg med Læg-knappen)
     selCell = i;
+    if (quadOf(i) !== zoom) zoom = quadOf(i);
     var pv = currentPreview();
     sfx(pv && !pv.ok ? 'bad' : 'cell');
     refresh();
@@ -330,6 +409,12 @@
     var pv = currentPreview();
     var ghost = {}, clr = {}, anchor = -1, okGhost = pv && pv.ok;
     if (pv) { pv.cells.forEach(function (i) { ghost[i] = 1; }); pv.cleared.forEach(function (i) { clr[i] = 1; }); anchor = pv.anchor; }
+    var okAt = {};
+    if (selSlot >= 0 && zoom >= 0) for (var j = 0; j < cellEls.length; j++) {
+      if (quadOf(j) !== zoom) continue;
+      var pj = run.preview(selSlot, j % n, Math.floor(j / n));
+      if (pj && pj.ok) okAt[j] = 1;
+    }
     var hov = {};
     if (bset.get('hoverPreview') && selSlot >= 0 && hoverIdx >= 0 && hoverIdx !== selCell && live()) {
       var hp = run.preview(selSlot, hoverIdx % n, Math.floor(hoverIdx / n));
@@ -354,7 +439,12 @@
       if (ghost[i]) label += okGhost ? ', brikken lægges her' : (v ? ', brikken rammer en blok her' : ', skygge');
       if (clr[i]) label += ', forsvinder';
       if (el.getAttribute('aria-label') !== label) el.setAttribute('aria-label', label);
+      // Klikbar kun i den zoomede fjerdedel, og kun hvis feltet kan bruges: med
+      // valgt brik de felter, hvor den kan lægges; uden brik de tomme felter.
+      var use = live() && zoom >= 0 && quadOf(i) === zoom && (i === selCell || (selSlot >= 0 ? !!(okAt[i]) : !v));
+      if (el.inert !== !use) el.inert = !use;
     }
+    applyZoom(live());
   }
 
   function renderTray() {
@@ -701,6 +791,7 @@
     st.setProperty('--piece-h', b + 'px');
     gameEl.dataset.layout = lay;
     gameEl.dataset.cell = cell;
+    applyZoom(live());
   }
   function layoutGame() {
     if (current !== 'game' || !run) return;
@@ -913,7 +1004,7 @@
     boardSize: boardSize, autoSize: autoSize,
     get run() { return run; }, get selection() { return { slot: selSlot, cell: selCell }; },
     settings: arkade, gameSettings: bset, records: records, dwell: dwell, audio: audio,
-    start: startGame, show: show, selectPiece: selectPiece, selectCell: selectCell, place: place,
+    start: startGame, show: show, selectPiece: selectPiece, selectCell: selectCell, place: place, setZoom: setZoom, get zoom() { return zoom; },
     undo: undoAction, refresh: refresh, cellSizeFor: cellSizeFor, gameOver: gameOver, showStuck: showStuck
   };
 })();
