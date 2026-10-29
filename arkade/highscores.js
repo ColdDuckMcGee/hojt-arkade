@@ -1,7 +1,9 @@
 /*
  * Hojt Arkade – highscores.js
  * Lokal rekordliste (top 10) pr. kategori, fx pr. brætstørrelse.
- * Ingen navne – hver plads gemmes med point og dato.
+ * Hver plads gemmes med point, dato og (efter navneindtastning) et navn på 3 bogstaver.
+ * Er arkade/highscore.js indlæst, kobles den globale liste på automatisk: efter add()
+ * vises navneindtastning og top 10 med fanerne 'Verden' og 'Min maskine'.
  *
  *   const hs = ArkadeHighscores.create('slangen', { max: 10 });
  *   const res = hs.add('15', 230);   // { rank: 3, entry: {...}, list: [...] }  rank = 0 hvis ikke på listen
@@ -32,6 +34,8 @@
 
   function create(namespace, opts) {
     var max = (opts && opts.max) || 10;
+    var global_ = !(opts && opts.global === false) && !/-test$/.test(namespace);
+    if (global_ && !global.HOJT_SPIL_ID) global.HOJT_SPIL_ID = namespace;
     var storageKey = 'hojtArkade.' + namespace + '.rekorder';
 
     function getAll() {
@@ -59,7 +63,20 @@
       data[category] = arr;
       write(storageKey, data);
       var idx = arr.findIndex(function (e) { return e.id === entry.id; });
-      return { rank: idx + 1, entry: entry, list: arr };
+      var res = { rank: idx + 1, entry: entry, list: arr };
+      if (global_ && global.ArkadeHighscore && typeof global.ArkadeHighscore.efterAdd === 'function') {
+        try { global.ArkadeHighscore.efterAdd(api, category, score, res); } catch (e) { /* global liste må aldrig vælte spillet */ }
+      }
+      return res;
+    }
+    // Sæt navn (3 bogstaver) på en plads, fx efter navneindtastning.
+    function setName(category, id, navn) {
+      category = String(category);
+      var data = getAll(), arr = data[category];
+      if (!Array.isArray(arr)) return false;
+      var e = arr.find(function (x) { return x && x.id === id; });
+      if (!e) return false;
+      e.navn = navn; write(storageKey, data); return true;
     }
     function best(category) { var l = list(category); return l.length ? l[0].score : 0; }
     function qualifies(category, score) {
@@ -71,7 +88,8 @@
       if (category === undefined) data = {}; else delete data[String(category)];
       write(storageKey, data);
     }
-    return { storageKey: storageKey, max: max, list: list, add: add, best: best, qualifies: qualifies, clear: clear };
+    var api = { namespace: namespace, storageKey: storageKey, max: max, list: list, add: add, best: best, qualifies: qualifies, clear: clear, setName: setName };
+    return api;
   }
 
   global.ArkadeHighscores = { create: create, formatDate: formatDate };

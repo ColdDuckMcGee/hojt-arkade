@@ -11,6 +11,7 @@ Fra et spil i sin egen mappe (fx `slangen/index.html`):
 <link rel="stylesheet" href="../arkade/arkade.css">
 <script src="../arkade/settings.js"></script>
 <script src="../arkade/highscores.js"></script>
+<script src="../arkade/highscore.js"></script>
 <script src="../arkade/dwell.js"></script>
 <script src="../arkade/audio.js"></script>
 <script src="../arkade/background.js"></script>
@@ -35,7 +36,26 @@ const res = hs.add('15', 230);  // { rank, entry, list } – rank 0 = ikke på l
 hs.list('15'); hs.best('15'); hs.qualifies('15', 120); hs.clear('15');
 ArkadeHighscores.formatDate(entry.date); // "26.10.2026"
 ```
-Ingen navne – hver plads har point og dato. Kategori er fri tekst (fx brætstørrelse).
+Hver plads har point, dato og evt. `navn` (3 bogstaver; ældre pladser uden navn vises som `---`).
+Kategori er fri tekst (fx brætstørrelse). `hs.setName(kat, id, 'JON')` sætter navnet.
+Navne der ender på `-test` (og `{ global: false }`) kobles ikke på verdenslisten.
+
+## ArkadeHighscore (highscore.js) – verdenslisten og statistik
+```js
+ArkadeHighscore.start();   // når et nyt spil begynder  (tæller 'start', skærm, tema)
+ArkadeHighscore.slut();    // ved game over             (tæller 'slut' + varighed)
+ArkadeHighscore.vis(records, kategori);  // åbn top 10 (Verden / Min maskine) uden indtastning
+```
+Indlæses efter highscores.js og henter selv `highscore.css`. Når `records.add()` giver en plads på
+den lokale top 10 – eller scoren slår verdens top 10 – vises efter 0,6 s en arkade-dialog:
+3 bogstaver (gitter med A–Z, Æ, Ø, Å, Slet når knapperne kan blive ≥ 84 px, ellers ▲▼ pr. plads),
+OK og Spring over. Sidste navn foreslås. Derefter top 10 med fanerne **Verden** og **Min maskine**.
+- Uden net: kun den lokale liste; scoren lægges i kø (`hojtArkade.scoreKoe`) og sendes senere.
+- Fra disken (file://) laves ingen net-kald.
+- Under automatiske tests (`navigator.webdriver`) vises dialogen kun, hvis
+  `localStorage['hojtArkade.hsTest'] = '1'`.
+- Mens dialogen er åben, er resten af siden `inert`, og tastetryk når ikke spillet.
+- Server: se `api/README.md`. Statistiksiden ligger på `/statistik/` (kræver nøglen).
 
 ## ArkadeDwell (dwell.js)
 ```js

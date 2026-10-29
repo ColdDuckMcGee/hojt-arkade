@@ -1,0 +1,111 @@
+/* Hojt Arkade – global highscore: navneindtastning og top 10 med faner.
+   Bruger temaets variabler (--ui, --accent, --panel, --text …) med reserveværdier. */
+.arkade-hs {
+  --hs-ui: var(--ui, #ff3fd8); --hs-acc: var(--accent, #22eaff); --hs-txt: var(--text, #f6ecff);
+  --hs-muted: var(--muted, #c4b0de); --hs-soft: var(--ui-soft, rgba(255, 63, 216, .18));
+  --hs-glow: var(--glow, 1);
+  --hs-key: 84px; --hs-slot: 84px; --hs-gap: 8px; --hs-pad: 12px; --hs-row: 36px;
+  position: fixed; inset: 0; z-index: 9000;
+  display: flex; align-items: center; justify-content: center;
+  padding: var(--hs-pad); overflow: hidden;
+  background: rgba(0, 0, 0, .86);
+  color: var(--hs-txt); font-family: var(--font, "Segoe UI", system-ui, sans-serif);
+  -webkit-user-select: none; user-select: none;
+}
+.arkade-hs[hidden] { display: none !important; }
+.arkade-hs-kort {
+  display: flex; flex-direction: column; align-items: center; gap: var(--hs-gap);
+  max-width: 100%; max-height: 100%;
+  padding: var(--hs-gap) calc(var(--hs-gap) * 1.5);
+  background: linear-gradient(var(--panel, rgba(18, 7, 30, .92)), var(--panel, rgba(18, 7, 30, .92))), var(--bg, #0c0612); border: 3px solid var(--hs-ui); border-radius: 22px;
+  box-shadow: 0 0 calc(28px * var(--hs-glow)) var(--hs-soft);
+}
+.arkade-hs-top { text-align: center; line-height: 1.15; }
+.arkade-hs-titel {
+  font-size: clamp(1.4rem, 4.4vmin, 2.4rem); font-weight: 800; letter-spacing: .18em; color: var(--hs-acc);
+  text-shadow: 0 0 calc(12px * var(--hs-glow)) var(--hs-acc);
+}
+.arkade-hs-under { font-size: clamp(.95rem, 2.4vmin, 1.25rem); color: var(--hs-muted); }
+.arkade-hs-besked { min-height: 0; font-size: 1.05rem; font-weight: 700; color: var(--hs-acc); }
+.arkade-hs-besked:empty { display: none; }
+
+/* knapper */
+.arkade-hs-btn {
+  min-width: var(--hs-key); min-height: var(--hs-key); padding: 0 14px;
+  font: inherit; font-size: calc(var(--hs-key) * .36); font-weight: 700; color: var(--ui-text, #fff);
+  background: rgba(0, 0, 0, .62); border: 3px solid var(--hs-ui); border-radius: 14px;
+  box-shadow: 0 0 calc(10px * var(--hs-glow)) var(--hs-soft), inset 0 0 calc(10px * var(--hs-glow)) var(--hs-soft);
+  cursor: pointer; touch-action: manipulation;
+}
+.arkade-hs-btn:hover, .arkade-hs-btn.arkade-dwelling, .arkade-hs-btn:active { background: var(--hs-soft); box-shadow: 0 0 calc(22px * var(--hs-glow)) var(--hs-ui); }
+.arkade-hs-btn:focus-visible { outline: 4px solid var(--hs-acc); outline-offset: 3px; }
+.arkade-hs-btn[aria-disabled="true"] { opacity: .35; border-style: dashed; }
+.arkade-hs-btn.ok { border-width: 4px; background: var(--hs-soft); min-width: calc(var(--hs-key) * 1.4); }
+.arkade-hs-btn.spring, .arkade-hs-btn.slet { font-size: max(1rem, calc(var(--hs-key) * .24)); }
+.arkade-hs-btn.pil { min-width: var(--hs-slot); width: var(--hs-slot); padding: 0; }
+.arkade-hs-btn.fane[aria-pressed="true"] { background: var(--hs-ui); color: var(--bg, #000); box-shadow: 0 0 calc(22px * var(--hs-glow)) var(--hs-ui); }
+
+/* navneindtastning */
+.arkade-hs-midt { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: calc(var(--hs-gap) * 2); }
+.arkade-hs-pladser { display: flex; gap: var(--hs-gap); }
+.arkade-hs-kol { display: flex; flex-direction: column; align-items: center; gap: var(--hs-gap); }
+.arkade-hs-plads {
+  width: var(--hs-slot); height: var(--hs-slot);
+  display: flex; align-items: center; justify-content: center;
+  font-size: calc(var(--hs-slot) * .66); font-weight: 800; font-family: "Courier New", ui-monospace, monospace;
+  color: var(--hs-acc); text-shadow: 0 0 calc(12px * var(--hs-glow)) var(--hs-acc);
+  border-bottom: 5px solid var(--hs-muted); background: rgba(0, 0, 0, .35); border-radius: 8px 8px 0 0;
+}
+.arkade-hs-plads.aktiv { border-bottom-color: var(--hs-acc); animation: arkade-hs-blink 1.6s ease-in-out infinite; }
+@keyframes arkade-hs-blink { 50% { background: var(--hs-soft); } }
+.arkade-hs-handl { display: flex; gap: var(--hs-gap); flex-wrap: wrap; justify-content: center; }
+.arkade-hs[data-mode="cykel"] .arkade-hs-handl { flex-direction: column; }
+.arkade-hs[data-mode="cykel"] .arkade-hs-taster { display: none; }
+.arkade-hs-taster {
+  display: grid; grid-template-columns: repeat(var(--hs-cols), var(--hs-key)); gap: var(--hs-gap);
+  justify-content: center;
+}
+.arkade-hs-taster .arkade-hs-btn { width: var(--hs-key); height: var(--hs-key); padding: 0; font-family: "Courier New", ui-monospace, monospace; font-size: calc(var(--hs-key) * .46); }
+.arkade-hs-taster .arkade-hs-btn.slet { grid-column: span 2; width: auto; font-family: inherit; font-size: max(1rem, calc(var(--hs-key) * .26)); }
+
+/* top 10 */
+.arkade-hs-liste .arkade-hs-kort { width: min(640px, 100%); }
+.arkade-hs-side { display: flex; flex-direction: column; align-items: center; gap: var(--hs-gap); width: 100%; }
+.arkade-hs-faner { display: flex; gap: var(--hs-gap); justify-content: center; }
+.arkade-hs-liste .arkade-hs-btn { --hs-key: 84px; font-size: 1.2rem; min-width: 150px; }
+.arkade-hs-boks { width: 100%; }
+.arkade-hs-rk { list-style: none; margin: 0; padding: 0; width: 100%; }
+.arkade-hs-rk li {
+  display: grid; grid-template-columns: 2.6em 3.6em 1fr auto; gap: 10px; align-items: center;
+  height: var(--hs-row); padding: 0 10px; border-radius: 8px;
+  font-size: clamp(.95rem, calc(var(--hs-row) * .5), 1.35rem); font-variant-numeric: tabular-nums;
+}
+.arkade-hs-rk li:nth-child(odd) { background: rgba(255, 255, 255, .04); }
+.arkade-hs-rk .nr { color: var(--hs-muted); text-align: right; }
+.arkade-hs-rk .navn { font-family: "Courier New", ui-monospace, monospace; font-weight: 800; letter-spacing: .12em; color: var(--hs-acc); }
+.arkade-hs-rk .score { font-weight: 700; text-align: right; }
+.arkade-hs-rk .dato { color: var(--hs-muted); font-size: .85em; }
+.arkade-hs-rk li.tom .navn { color: var(--hs-muted); }
+.arkade-hs-rk li.ny { background: var(--hs-soft); outline: 2px solid var(--hs-ui); }
+.arkade-hs-note { min-height: 1.3em; margin-top: 4px; text-align: center; color: var(--hs-muted); font-size: 1rem; }
+/* bred og lav skærm: knapper til venstre, liste til højre */
+.arkade-hs-liste.bred .arkade-hs-kort {
+  display: grid; grid-template-columns: auto 1fr; grid-template-rows: 1fr auto; align-items: center;
+  column-gap: calc(var(--hs-gap) * 2); width: min(980px, 100%);
+}
+.arkade-hs-liste.bred .arkade-hs-side { width: auto; justify-content: center; grid-column: 1; grid-row: 1; }
+.arkade-hs-liste.bred .arkade-hs-boks { grid-column: 2; grid-row: 1 / span 2; }
+.arkade-hs-liste.bred .arkade-hs-btn.ok { grid-column: 1; grid-row: 2; justify-self: center; }
+.arkade-hs-liste.bred .arkade-hs-faner { flex-direction: column; }
+
+
+@media (max-width: 480px) {
+  .arkade-hs-liste .arkade-hs-btn { min-width: 0; flex: 1; }
+  .arkade-hs-faner { width: 100%; }
+  .arkade-hs-rk li { grid-template-columns: 2.2em 3.2em 1fr auto; gap: 6px; padding: 0 6px; }
+}
+@media (prefers-reduced-motion: reduce) { .arkade-hs-plads.aktiv { animation: none; } }
+/* OK og Spring over følger pladsernes højde (ikke bogstavtasternes) */
+.arkade-hs-midt .arkade-hs-btn { min-height: var(--hs-slot); min-width: calc(var(--hs-slot) * 1.3); font-size: clamp(1.1rem, calc(var(--hs-slot) * .3), 1.7rem); }
+.arkade-hs-midt .arkade-hs-btn.spring { font-size: clamp(1rem, calc(var(--hs-slot) * .2), 1.25rem); }
+.arkade-hs[data-mode="cykel"] .arkade-hs-midt .arkade-hs-btn { min-height: 84px; }

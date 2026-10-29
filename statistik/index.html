@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="da" data-theme="neon">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Statistik · Hojt Arkade</title>
+<link rel="icon" href="../arkade/favicon.svg" type="image/svg+xml">
+<style>
+  :root { --bg:#0c0612; --panel:#1a0b29; --ui:#ff3fd8; --acc:#22eaff; --txt:#f6ecff; --muted:#c4b0de; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--txt); font: 17px/1.4 "Segoe UI", system-ui, sans-serif; }
+  main { max-width: 1100px; margin: 0 auto; padding: 24px 18px 60px; }
+  h1 { margin: 0 0 4px; color: var(--acc); letter-spacing: .08em; }
+  h2 { margin: 28px 0 10px; font-size: 1.15rem; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; }
+  .muted { color: var(--muted); }
+  button, input { font: inherit; }
+  button { min-height: 48px; padding: 0 18px; color: var(--txt); background: #000a; border: 2px solid var(--ui); border-radius: 12px; cursor: pointer; }
+  button[aria-pressed="true"] { background: var(--ui); color: #000; }
+  input { min-height: 48px; padding: 0 12px; width: min(420px, 100%); background: #000; color: var(--txt); border: 2px solid var(--muted); border-radius: 12px; }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .kort { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+  .tal { background: var(--panel); border: 2px solid #ff3fd833; border-radius: 16px; padding: 14px 16px; }
+  .tal b { display: block; font-size: 2rem; color: var(--acc); font-variant-numeric: tabular-nums; }
+  table { width: 100%; border-collapse: collapse; background: var(--panel); border-radius: 14px; overflow: hidden; }
+  th, td { padding: 8px 12px; text-align: right; font-variant-numeric: tabular-nums; }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--muted); font-weight: 600; border-bottom: 1px solid #ffffff22; }
+  tr:nth-child(even) td { background: #ffffff06; }
+  .bar { display: inline-block; height: 12px; background: var(--ui); border-radius: 6px; vertical-align: middle; }
+  .soejler { display: flex; align-items: flex-end; gap: 3px; height: 180px; background: var(--panel); border-radius: 14px; padding: 12px; overflow-x: auto; }
+  .soejle { flex: 1 0 14px; min-width: 14px; background: linear-gradient(var(--acc), var(--ui)); border-radius: 4px 4px 0 0; position: relative; }
+  .soejle span { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); font-size: .7rem; color: var(--muted); }
+  .akse { display: flex; justify-content: space-between; color: var(--muted); font-size: .85rem; padding: 4px 12px; }
+  .fejl { color: #ff8080; font-weight: 700; }
+  .to { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 700px) { .to { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Statistik</h1>
+  <p class="muted">Hojt Arkade · kun tællinger, ingen cookies og ingen personoplysninger.</p>
+
+  <section id="login">
+    <form id="login-form" class="row">
+      <label for="noegle" class="muted">Statistiknøgle</label>
+      <input id="noegle" type="password" autocomplete="current-password" required>
+      <button type="submit">Vis statistik</button>
+    </form>
+    <p id="login-fejl" class="fejl" hidden></p>
+  </section>
+
+  <section id="data" hidden>
+    <div class="row" style="justify-content: space-between">
+      <div class="row" id="periode" role="group" aria-label="Periode">
+        <button data-p="1">I dag</button><button data-p="7">7 dage</button><button data-p="30" aria-pressed="true">30 dage</button><button data-p="365">Et år</button>
+      </div>
+      <div class="row"><button id="opdater">Opdatér</button><button id="glem">Glem nøglen</button></div>
+    </div>
+    <h2>Overblik</h2>
+    <div class="kort" id="overblik"></div>
+    <h2>Spil startet</h2>
+    <div class="row" id="grp" role="group" aria-label="Gruppér" style="margin-bottom: 10px">
+      <button data-g="dag" aria-pressed="true">Pr. dag</button><button data-g="uge">Pr. uge</button><button data-g="maaned">Pr. måned</button>
+    </div>
+    <div class="soejler" id="soejler"></div>
+    <div class="akse"><span id="akse-fra"></span><span id="akse-til"></span></div>
+    <h2>Pr. spil</h2>
+    <table id="pr-spil"><thead><tr><th>Spil</th><th>Startet</th><th>Færdige</th><th>Gns. varighed</th><th>Scorer i perioden</th><th>Scorer i alt</th><th>Bedste score</th><th></th></tr></thead><tbody></tbody></table>
+    <div class="to">
+      <div><h2>Skærmstørrelser</h2><table id="skaerme"><thead><tr><th>Størrelse</th><th>Antal</th><th></th></tr></thead><tbody></tbody></table></div>
+      <div><h2>Temaer</h2><table id="temaer"><thead><tr><th>Tema</th><th>Antal</th><th></th></tr></thead><tbody></tbody></table></div>
+    </div>
+    <p class="muted" id="hentet"></p>
+  </section>
+</main>
+<script src="../games.js"></script>
+<script>
+(function () {
+  'use strict';
+  var API = (function () { try { var o = localStorage.getItem('hojtArkade.api'); if (o && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(o)) return o; } catch (e) {} return 'https://hojt-arkade-api.hojt.workers.dev'; })();
+  var K = 'hojtArkade.statistikNoegle';
+  var $ = function (s) { return document.querySelector(s); };
+  var NAVNE = {};
+  (window.HOJT_SPIL || []).forEach(function (g) { NAVNE[g.sti.replace(/[\/-]/g, '')] = g.navn; });
+  var data = null, periode = 30, grp = 'dag';
+
+  function fmt(n) { return Math.round(n).toLocaleString('da-DK'); }
+  function varighed(s) { if (!s && s !== 0) return '–'; s = Math.round(s); var m = Math.floor(s / 60); return m ? m + ' min ' + (s % 60) + ' s' : s + ' s'; }
+  function dagStr(d) { return d.toISOString().slice(0, 10); }
+  function fraDag() { var d = new Date(); d.setUTCDate(d.getUTCDate() - (periode - 1)); return dagStr(d); }
+  function ugeNoegle(ds) {
+    var d = new Date(ds + 'T00:00:00Z'), dn = (d.getUTCDay() + 6) % 7; d.setUTCDate(d.getUTCDate() - dn + 3);
+    var j1 = new Date(Date.UTC(d.getUTCFullYear(), 0, 4)), w = 1 + Math.round(((d - j1) / 86400000 - 3 + ((j1.getUTCDay() + 6) % 7)) / 7);
+    return d.getUTCFullYear() + '-U' + (w < 10 ? '0' : '') + w;
+  }
+  function el(t, txt) { var e = document.createElement(t); if (txt != null) e.textContent = txt; return e; }
+  function bar(v, max) { var s = el('span'); s.className = 'bar'; s.style.width = (max ? Math.max(2, 160 * v / max) : 0) + 'px'; return s; }
+
+  function hent(key) {
+    $('#login-fejl').hidden = true;
+    return fetch(API + '/stats?key=' + encodeURIComponent(key), { credentials: 'omit', cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (!j.ok) throw new Error(j.fejl || 'fejl');
+        localStorage.setItem(K, key); data = j;
+        $('#login').hidden = true; $('#data').hidden = false; tegn();
+      })
+      .catch(function (e) {
+        $('#login').hidden = false; $('#data').hidden = true;
+        $('#login-fejl').textContent = e.message === 'forkert nøgle' ? 'Forkert nøgle.' : 'Kunne ikke hente statistikken (' + e.message + ').';
+        $('#login-fejl').hidden = false;
+      });
+  }
+
+  function tegn() {
+    var fra = fraDag();
+    var ev = data.events.filter(function (r) { return r.dag >= fra; });
+    var dims = data.dims.filter(function (r) { return r.dag >= fra; });
+    var sd = (data.scoresPrDag || []).filter(function (r) { return r.dag >= fra; });
+    var pr = {}, tot = { start: 0, slut: 0, vs: 0, vn: 0, sc: 0 };
+    function g(id) { return pr[id] || (pr[id] = { start: 0, slut: 0, vs: 0, vn: 0, sc: 0, alle: 0, bedst: 0 }); }
+    ev.forEach(function (r) {
+      var x = g(r.spil);
+      if (r.type === 'start') { x.start += r.antal; tot.start += r.antal; }
+      else { x.slut += r.antal; x.vs += r.varighed_sum; x.vn += r.varighed_n; tot.slut += r.antal; tot.vs += r.varighed_sum; tot.vn += r.varighed_n; }
+    });
+    sd.forEach(function (r) { g(r.spil).sc += r.antal; tot.sc += r.antal; });
+    (data.scores || []).forEach(function (r) { var x = g(r.spil); x.alle = r.antal; x.bedst = r.bedst; });
+
+    var ov = $('#overblik'); ov.innerHTML = '';
+    [['Spil startet', fmt(tot.start)], ['Spillet færdig', fmt(tot.slut)], ['Gns. varighed', varighed(tot.vn ? tot.vs / tot.vn : null)], ['Scorer på verdenslisten', fmt(tot.sc)]]
+      .forEach(function (k) { var d = el('div'); d.className = 'tal'; d.appendChild(el('b', k[1])); d.appendChild(el('span', k[0])); ov.appendChild(d); });
+
+    // søjler
+    var grupper = {}, orden = [];
+    var start = new Date(fra + 'T00:00:00Z'), slut = new Date();
+    for (var d = new Date(start); d <= slut; d.setUTCDate(d.getUTCDate() + 1)) {
+      var ds = dagStr(d), k = grp === 'dag' ? ds : grp === 'uge' ? ugeNoegle(ds) : ds.slice(0, 7);
+      if (!(k in grupper)) { grupper[k] = 0; orden.push(k); }
+    }
+    ev.forEach(function (r) { if (r.type !== 'start') return; var k = grp === 'dag' ? r.dag : grp === 'uge' ? ugeNoegle(r.dag) : r.dag.slice(0, 7); if (k in grupper) grupper[k] += r.antal; });
+    var mx = Math.max.apply(null, orden.map(function (k) { return grupper[k]; }).concat([1]));
+    var sj = $('#soejler'); sj.innerHTML = '';
+    orden.forEach(function (k) {
+      var s = el('div'); s.className = 'soejle'; s.style.height = (100 * grupper[k] / mx) + '%'; s.title = k + ': ' + grupper[k];
+      if (grupper[k]) s.appendChild(el('span', grupper[k])); sj.appendChild(s);
+    });
+    $('#akse-fra').textContent = orden[0] || ''; $('#akse-til').textContent = orden[orden.length - 1] || '';
+
+    var ids = Object.keys(NAVNE).concat(Object.keys(pr).filter(function (i) { return !(i in NAVNE); }));
+    ids.sort(function (a, b) { return (g(b).start - g(a).start) || (NAVNE[a] || a).localeCompare(NAVNE[b] || b, 'da'); });
+    var mxs = Math.max.apply(null, ids.map(function (i) { return g(i).start; }).concat([1]));
+    var tb = $('#pr-spil tbody'); tb.innerHTML = '';
+    ids.forEach(function (i) {
+      var x = g(i), tr = el('tr');
+      [NAVNE[i] || i, fmt(x.start), fmt(x.slut), varighed(x.vn ? x.vs / x.vn : null), fmt(x.sc), fmt(x.alle), x.bedst ? fmt(x.bedst) : '–'].forEach(function (v) { tr.appendChild(el('td', v)); });
+      var td = el('td'); td.appendChild(bar(x.start, mxs)); tr.appendChild(td); tb.appendChild(tr);
+    });
+
+    function dimTabel(sel, felt, max) {
+      var m = {}; dims.forEach(function (r) { if (r.felt === felt) m[r.vaerdi] = (m[r.vaerdi] || 0) + r.antal; });
+      var rows = Object.keys(m).sort(function (a, b) { return m[b] - m[a]; }).slice(0, max);
+      var top = rows.length ? m[rows[0]] : 1, tb = $(sel + ' tbody'); tb.innerHTML = '';
+      if (!rows.length) { var tr = el('tr'), td = el('td', 'Ingen data endnu'); td.colSpan = 3; td.className = 'muted'; tr.appendChild(td); tb.appendChild(tr); }
+      rows.forEach(function (k) { var tr = el('tr'); tr.appendChild(el('td', felt === 'skaerm' ? k.replace('x', ' × ') : k)); tr.appendChild(el('td', fmt(m[k]))); var td = el('td'); td.appendChild(bar(m[k], top)); tr.appendChild(td); tb.appendChild(tr); });
+    }
+    dimTabel('#skaerme', 'skaerm', 12); dimTabel('#temaer', 'tema', 12);
+    $('#hentet').textContent = 'Hentet ' + new Date(data.nu).toLocaleString('da-DK') + '. Dage regnes i UTC.';
+  }
+
+  function vaelg(gruppeSel, attr, fn) {
+    document.querySelectorAll(gruppeSel + ' button').forEach(function (b) {
+      b.addEventListener('click', function () {
+        document.querySelectorAll(gruppeSel + ' button').forEach(function (x) { x.setAttribute('aria-pressed', x === b); });
+        fn(b.getAttribute(attr)); if (data) tegn();
+      });
+    });
+  }
+  vaelg('#periode', 'data-p', function (v) { periode = +v; });
+  vaelg('#grp', 'data-g', function (v) { grp = v; });
+  $('#login-form').addEventListener('submit', function (e) { e.preventDefault(); hent($('#noegle').value.trim()); });
+  $('#opdater').addEventListener('click', function () { hent(localStorage.getItem(K) || ''); });
+  $('#glem').addEventListener('click', function () { localStorage.removeItem(K); data = null; $('#data').hidden = true; $('#login').hidden = false; $('#noegle').value = ''; });
+  var gemt = null; try { gemt = localStorage.getItem(K); } catch (e) {}
+  if (gemt) hent(gemt);
+})();
+</script>
+</body>
+</html>
