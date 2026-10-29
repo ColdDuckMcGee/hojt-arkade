@@ -40,6 +40,8 @@ ArkadeHighscores.formatDate(entry.date); // "26.10.2026"
 Hver plads har point, dato og evt. `navn` (3 bogstaver; ældre pladser uden navn vises som `---`).
 Kategori er fri tekst (fx brætstørrelse). `hs.setName(kat, id, 'JON')` sætter navnet.
 Navne der ender på `-test` (og `{ global: false }`) kobles ikke på verdenslisten.
+`{ globalKat: ['biler'] }` sender kun de nævnte kategorier til verdenslisten (Rampen: kun hele løbet
+med en bil ved Ny bil, ikke hver tur); Verden-knappen viser så den første af dem.
 
 ## ArkadeHighscore (highscore.js) – verdenslisten og statistik
 ```js

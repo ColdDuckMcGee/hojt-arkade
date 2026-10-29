@@ -368,7 +368,10 @@
 
   function visSidste() {
     var s = global.ArkadeHighscores && global.ArkadeHighscores.sidst;
-    if (s && s.records) vis(s.records, s.kat);
+    if (!s || !s.records) return;
+    var gk = s.records.globalKat, kat = s.kat;
+    if (gk && gk.length && gk.indexOf(kat) < 0) kat = gk[0];   // fx Rampen: verdenslisten er 'biler'
+    vis(s.records, kat);
   }
   if (doc) doc.addEventListener('click', function (e) {
     var b = e.target && e.target.closest && e.target.closest('[data-hs-verden]');

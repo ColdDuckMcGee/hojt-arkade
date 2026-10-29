@@ -6,6 +6,7 @@
  * vises navneindtastning og top 10 med fanerne 'Verden' og 'Min maskine'.
  *
  *   const hs = ArkadeHighscores.create('slangen', { max: 10 });
+ *   // { globalKat: ['biler'] } = kun de kategorier sendes til verdenslisten
  *   const res = hs.add('15', 230);   // { rank: 3, entry: {...}, list: [...] }  rank = 0 hvis ikke på listen
  *   hs.list('15');                   // [{ id, score, date: ISO-streng }, ...] højeste først
  *   hs.best('15');                   // højeste point eller 0
@@ -37,6 +38,8 @@
     var max = (opts && opts.max) || 10;
     var global_ = !(opts && opts.global === false) && !/-test$/.test(namespace);
     if (global_ && !global.HOJT_SPIL_ID) global.HOJT_SPIL_ID = namespace;
+    // globalKat: kun disse kategorier går til verdenslisten (fx kun hele løbet, ikke hver tur).
+    var globalKat = opts && Array.isArray(opts.globalKat) ? opts.globalKat.map(String) : null;
     var storageKey = 'hojtArkade.' + namespace + '.rekorder';
 
     function getAll() {
@@ -71,7 +74,7 @@
       write(storageKey, data);
       var idx = arr.findIndex(function (e) { return e.id === entry.id; });
       var res = { rank: idx + 1, entry: entry, list: arr };
-      if (global_ && global.ArkadeHighscore && typeof global.ArkadeHighscore.efterAdd === 'function') {
+      if (global_ && (!globalKat || globalKat.indexOf(category) >= 0) && global.ArkadeHighscore && typeof global.ArkadeHighscore.efterAdd === 'function') {
         try { global.ArkadeHighscore.efterAdd(api, category, score, res); } catch (e) { /* global liste må aldrig vælte spillet */ }
       }
       return res;
@@ -95,7 +98,7 @@
       if (category === undefined) data = {}; else delete data[String(category)];
       write(storageKey, data);
     }
-    var api = { namespace: namespace, storageKey: storageKey, max: max, list: list, add: add, best: best, qualifies: qualifies, clear: clear, setName: setName };
+    var api = { namespace: namespace, storageKey: storageKey, max: max, globalKat: globalKat, list: list, add: add, best: best, qualifies: qualifies, clear: clear, setName: setName };
     return api;
   }
 

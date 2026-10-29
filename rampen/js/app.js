@@ -29,7 +29,8 @@
   // fart: 'rolig' eller 'hurtig' afspilning af flyveturen. gloed: temaets lysskær. taage: tåge ud over udsynet (pynt).
   var gset = ArkadeSettings.create('rampen', { fart: 'rolig', gloed: true, taage: true });
   if (['rolig', 'hurtig'].indexOf(gset.get('fart')) < 0) gset.set('fart', 'rolig');
-  var records = ArkadeHighscores.create('rampen', { max: 10 });
+  // Kun hele løbet med en bil ('biler', ved Ny bil) går til verdenslisten – ikke hver tur.
+  var records = ArkadeHighscores.create('rampen', { max: 10, globalKat: ['biler'] });
   var SPEED = { rolig: 1.6, hurtig: 5 };   // gange virkelig tid
 
   var THEMES = ['neon', 'solnedgang', 'cyberpunk', 'kontrast'];
