@@ -307,6 +307,7 @@ ol.records .score { white-space: nowrap; }
   border-radius: var(--ka-radius-maal); background: var(--ka-maal); pointer-events: none;
   -webkit-mask: radial-gradient(circle, transparent 38%, var(--ka-shadow) 40%); mask: radial-gradient(circle, transparent 38%, var(--ka-shadow) 40%);
 }
+.kort.kandidat .forside { border: var(--ka-valgt-w) dashed var(--ka-valgt); background-color: var(--ka-valgt-bg); }
 .kort.tip .forside, .plads.tip { border: var(--ka-tip-w) dashed var(--ka-tip); box-shadow: var(--ka-tip-glow); }
 .kort.tip .bagside { border: var(--ka-tip-w) dashed var(--ka-tip); }
 .kort:focus-visible, .plads:focus-visible { outline: var(--ka-valgt-w) solid var(--accent); outline-offset: 2px; z-index: 950 !important; }
@@ -346,7 +347,7 @@ ol.records .score { white-space: nowrap; }
   font-weight: var(--ka-weight-tal); font-size: calc(var(--ka-badge) * 0.55); font-variant-numeric: tabular-nums; line-height: 1;
   pointer-events: none; white-space: nowrap; padding: 0 4px;
 }
-.plus-tal { pointer-events: auto; cursor: pointer; } /* vælger de samlede kort */
+.plus-tal { pointer-events: auto; cursor: pointer; margin: 0; font-family: inherit; -webkit-appearance: none; appearance: none; } /* knap: vælger de samlede kort (klikbar, når bunken er foldet ud) */
 .skjult-tal[hidden], .plus-tal[hidden] { display: none; }
 
 /* ---------- Sejr ---------- */

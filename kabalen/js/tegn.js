@@ -4,11 +4,16 @@
  * farver: udseendet kommer fra klasser og CSS-variabler i det aktive tema, og
  * kulører, bagside og ikoner hentes ved navn fra temaets grafik.js (window.KabaleTema).
  *
- * Kortene er knapper (så dwell, tastatur og mus virker ens). Hvert kort har en
+ * Kortene er knapper (så dwell, tastatur og mus virker ens). Kun én klikbar flade pr.
+ * bunke/plads: det øverste kort (eller den tomme plads). De andre kort er inert, så
+ * hjælpemidler som TD Browse' farveprikker kun tilbyder én prik pr. bunke. Er der flere
+ * kort i en bunke, der kan flyttes, folder app.js bunken ud (view.expand), og så er netop de
+ * kort klikbare. Mus og tryk på et inert kort klares af app.js (findes ud fra punktet).
+ * Hvert kort har en
  * forside (værdi og kulør øverst til venstre, stor kulør i midten) og en bagside.
  *
  * Klasser: .kort.opad (forsiden op) · .rod / .sort · .valgt (valgt kort og kortene ovenpå)
- * · .maal (lovligt mål) · .tip (hint) · .tynd (kun en smal stribe kan ses) · .lav (lavt kort,
+ * · .maal (lovligt mål) · .kandidat (bunken er foldet ud: kortet kan vælges) · .tip (hint) · .tynd (kun en smal stribe kan ses) · .lav (lavt kort,
  * ingen stor kulør) · .gemt (ligger under andre kort). Pladser: .plads[data-slot].
  *
  * Lange bunker komprimeres: først bliver kort, der ikke kan flyttes, til smalle striber,
@@ -104,7 +109,7 @@
       }
       for (var b = 0; b < 7; b++) {
         var sk = document.createElement('span'); sk.className = 'skjult-tal'; sk.setAttribute('aria-hidden', 'true'); boardEl.appendChild(sk);
-        var pl = document.createElement('span'); pl.className = 'plus-tal'; pl.setAttribute('aria-hidden', 'true'); boardEl.appendChild(pl);
+        var pl = document.createElement('button'); pl.type = 'button'; pl.className = 'plus-tal'; pl.setAttribute('aria-hidden', 'true'); pl.inert = true; boardEl.appendChild(pl);
         badges['s' + b] = sk; badges['p' + b] = pl;
       }
       built = true;
@@ -138,7 +143,8 @@
       st.setProperty('--ka-idx', geo.idx + 'px'); st.setProperty('--ka-idx-tynd', geo.idxThin + 'px');
       st.setProperty('--ka-badge', geo.badge + 'px');
       boardEl.dataset.mode = geo.mode;
-      var sel = {}, tg = { t: {}, f: {} }, hc = {}, hd = view.hint && view.hint.dest;
+      var sel = {}, tg = { t: {}, f: {} }, hc = {}, hd = view.hint && view.hint.dest, ex = view.expand || null, exIdx = {};
+      if (ex) ex.idx.forEach(function (i) { exIdx[i] = true; });
       if (view.sel) view.sel.cards.forEach(function (k) { sel[k] = true; });
       (view.targets || []).forEach(function (t) { if (t.k === 't') tg.t[t.col] = true; else tg.f[t.s] = true; });
       if (view.hint) (view.hint.cards || []).forEach(function (k) { hc[k] = true; });
@@ -154,14 +160,17 @@
         cl.toggle('lav', h < Math.max(w * 0.9, geo.idx * 2.6));
         cl.toggle('valgt', !!sel[k]);
         cl.toggle('maal', !!o.target);
+        cl.toggle('kandidat', !!o.cand); // bunken er foldet ud: dette kort kan vælges
         cl.toggle('tip', !!hc[k] || !!o.hintDest);
         el.dataset.synlig = String(Math.round(o.vis || 0));
-        target(el, live && !!o.dwell);
+        // Klikbar (og dwell-mål) er kun kortets "aktive" flade; resten er inert
+        var on = !!o.dwell && !o.hidden;
+        target(el, live && on);
         var label = o.up ? L.navn(k) : 'Kort med bagsiden op';
         if (o.label) label = o.label;
         if (el.getAttribute('aria-label') !== label) el.setAttribute('aria-label', label);
-        if (o.hidden) el.setAttribute('aria-hidden', 'true'); else el.removeAttribute('aria-hidden');
-        if (el.inert !== !!o.hidden) el.inert = !!o.hidden; // skjulte kort (bunken, under vendte kort)
+        if (!on) el.setAttribute('aria-hidden', 'true'); else el.removeAttribute('aria-hidden');
+        if (el.inert !== !on) el.inert = !on; // skjulte, dækkede og ikke-aktive kort
         pos[k] = x + ',' + y;
       }
       var sl = geo.slots, i, k;
@@ -223,7 +232,8 @@
           var hiddenUnder = up && !last && visH === 0;
           put(k, to.x, to.y + al.y[i], to.w, geo.ch, 30 + i, {
             up: up, thin: up && !last && visH > 0 && visH < geo.big, hidden: false,
-            dwell: up && (last || visH >= geo.big), vis: visH,
+            dwell: up && visH > 0 && (ex && ex.col === c ? !!exIdx[i] : last), vis: visH,
+            cand: !!(ex && ex.col === c && exIdx[i]),
             target: last && !!tg.t[c], hintDest: last && hd && hd.k === 't' && hd.col === c,
             label: up ? L.navn(k) + (hiddenUnder ? ' (samlet)' : '') : 'Kort med bagsiden op'
           });
@@ -236,6 +246,14 @@
           sk.style.zIndex = String(30 + p.c.length + 1);
         }
         pl.hidden = !al.collapsed; pl.dataset.col = String(c); pl.dataset.n = String(al.collapsed || 0);
+        // "+N" er kun klikbar, når bunken er foldet ud, og et af de samlede kort kan flyttes
+        var plOn = false;
+        if (ex && ex.col === c && al.collapsed) for (i = p.d; i < al.collapseAt; i++) if (exIdx[i]) plOn = true;
+        if (pl.inert !== !plOn) pl.inert = !plOn;
+        pl.tabIndex = plOn && live ? 0 : -1;
+        if (plOn && live) { pl.removeAttribute('data-no-dwell'); pl.setAttribute('aria-hidden', 'false'); }
+        else { pl.setAttribute('data-no-dwell', ''); pl.setAttribute('aria-hidden', 'true'); }
+        pl.setAttribute('aria-label', 'De ' + (al.collapsed || 0) + ' samlede kort i bunke ' + (c + 1));
         if (al.collapsed) {
           pl.textContent = '+' + al.collapsed;
           var yy = to.y + al.y[al.collapseAt];

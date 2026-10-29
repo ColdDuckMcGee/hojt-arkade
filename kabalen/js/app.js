@@ -225,6 +225,7 @@
 
   // ---------- Spillet ----------
   var series = null, game = null, paused = false, finished = false, waiting = false;
+  var expand = null; // { col, idx: [...] }: bunken er foldet ud, så man kan vælge hvilket kort
   var sel = null, hintMv = null, autoTimer = 0, autoRunning = false, doneTimer = 0, stuckTimer = 0;
   var lastNote = '', noteCls = '', fresh = true, lastDealInfo = null;
   var boardEl = $('#bord'), gameEl = $('#game'), sideEl = $('#side');
@@ -248,7 +249,7 @@
       waiting = false;
       lastDealInfo = r;
       game = series.start(r.deal);
-      sel = null; hintMv = null; fresh = true;
+      sel = null; hintMv = null; fresh = true; expand = null;
       setNote('', '');
       tegn.build();
       hideOverlays();
@@ -283,6 +284,7 @@
   }
   function destName(t) { return t.k === 'f' ? 'grundbunken' : 'bunke ' + (t.col + 1); }
   function selectSrc(src) {
+    expand = null;
     var cards = srcCards(src), targets = game.targets(src);
     sel = { src: src, cards: cards, targets: targets };
     hintMv = null;
@@ -292,7 +294,7 @@
     else { setNote(what + ': vælg et af de lysende mål.', ''); sfx('vaelg'); }
     refresh();
   }
-  function cancelSel(quiet) { if (!sel) return; sel = null; if (!quiet) { setNote('', ''); sfx('fravaelg'); } refresh(); }
+  function cancelSel(quiet) { if (expand) { expand = null; if (!sel) { if (!quiet) { setNote('', ''); sfx('fravaelg'); } refresh(); return; } } if (!sel) return; sel = null; if (!quiet) { setNote('', ''); sfx('fravaelg'); } refresh(); }
   function sameSrc(a, b) { return a && b && a.k === b.k && a.col === b.col && a.idx === b.idx && a.s === b.s; }
   function findTarget(dest) {
     if (!sel) return null;
@@ -309,6 +311,7 @@
     doMove(m);
   }
   function doMove(m) {
+    expand = null;
     var r = game.play(m);
     hintMv = null;
     if (!r.ok) { sfx('nej'); refresh(); return; }
@@ -408,13 +411,70 @@
     if (best < 0) best = p.d;
     if (p.c[best] !== undefined) pickCard(p.c[best]);
   }
+  // Øverste kort i en bunke (bunkens eneste klikbare flade): vælg bunken. Kan kun ét kort
+  // (eller én række) flyttes, vælges det. Kan flere, foldes bunken ud, så man vælger hvilket.
+  function columnCands(c) {
+    var p = game.state.t[c], a = [];
+    for (var i = p.d; i < p.c.length; i++) if (game.targets({ k: 't', col: c, idx: i }).length) a.push(i);
+    return a;
+  }
+  function pickColumn(c) {
+    if (!live()) return;
+    var p = game.state.t[c], top = p.c.length - 1;
+    if (top < 0) { pickSlot('t' + c); return; }
+    if (sel) {
+      if (sel.src.k === 't' && sel.src.col === c) { if (sel.targets.length === 1) { moveTo(sel.targets[0]); return; } cancelSel(); return; }
+      var t = findTarget({ k: 't', col: c });
+      if (t) { moveTo(t); return; }
+    }
+    var cands = columnCands(c);
+    if (cands.length < 2) { selectSrc({ k: 't', col: c, idx: cands.length ? cands[0] : top }); return; }
+    sel = null; hintMv = null;
+    expand = { col: c, idx: cands };
+    setNote('Bunke ' + (c + 1) + ': vælg hvilket kort der skal flyttes (kortene ovenpå følger med).', '');
+    sfx('vaelg');
+    refresh();
+  }
+  // Mus og tryk på et kort, der ikke er klikbart (inert): find kortet under punktet, så musen
+  // virker som før (fx et kort midt i en bunke eller "+N"). Hjælpemidler ser kun én flade pr. bunke.
+  function pickAt(x, y) {
+    var best = null, bz = -1;
+    var pls = boardEl.querySelectorAll('.plus-tal');
+    for (var j = 0; j < pls.length; j++) {
+      if (pls[j].hidden) continue;
+      var q = pls[j].getBoundingClientRect();
+      if (x >= q.left && x <= q.right && y >= q.top && y <= q.bottom) { pickCollapsed(+pls[j].dataset.col, +pls[j].dataset.n); return; }
+    }
+    for (var k = 0; k < 52; k++) {
+      var el = tegn.card(k);
+      if (!el || el.classList.contains('gemt')) continue;
+      var r = el.getBoundingClientRect(), z = +el.style.zIndex || 0;
+      if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom && z > bz) { best = k; bz = z; }
+    }
+    if (best !== null) { pickCard(best); return; }
+    var sl = boardEl.querySelectorAll('.plads');
+    for (var i = 0; i < sl.length; i++) {
+      var s = sl[i].getBoundingClientRect();
+      if (x >= s.left && x <= s.right && y >= s.top && y <= s.bottom) { pickSlot(sl[i].dataset.slot); return; }
+    }
+  }
   boardEl.addEventListener('click', function (e) {
+    var ex = expand;
+    expand = null;
     var pt = e.target.closest('.plus-tal');
     if (pt) { pickCollapsed(+pt.dataset.col, +pt.dataset.n); return; }
     var c = e.target.closest('.kort');
-    if (c) { pickCard(+c.dataset.k); return; }
+    if (c) {
+      var k = +c.dataset.k, at = locate(k);
+      if (ex && at && at.k === 't' && at.col === ex.col && ex.idx.indexOf(at.idx) >= 0) { selectSrc({ k: 't', col: at.col, idx: at.idx }); return; }
+      if (at && at.k === 't' && at.up && at.idx === game.state.t[at.col].c.length - 1) { pickColumn(at.col); return; }
+      pickCard(k); return;
+    }
     var p = e.target.closest('.plads');
-    if (p) pickSlot(p.dataset.slot);
+    if (p) { pickSlot(p.dataset.slot); return; }
+    // Klik ramte bordet (et inert kort eller en dækket plads): som før med musen
+    if (e.detail !== 0 || e.clientX || e.clientY) pickAt(e.clientX, e.clientY);
+    else if (ex) refresh();
   });
 
   // ---------- Knapper ----------
@@ -423,7 +483,7 @@
     if (!game.canUndo()) { setNote('Der er intet at fortryde endnu.', ''); refresh(); return; }
     $('#stuck-overlay').hidden = true;
     game.undo();
-    sel = null; hintMv = null;
+    sel = null; hintMv = null; expand = null;
     sfx('fortryd');
     setNote('Sidste træk er fortrudt (−' + pointsText(-L.POINT.fortryd) + ').', '');
     fresh = false;
@@ -432,7 +492,7 @@
   }
   function showHint() {
     if (!live()) return;
-    sel = null;
+    sel = null; expand = null;
     var h = game.hint();
     if (!h) { setNote('Jeg kan ikke finde et godt træk.', ''); refresh(); return; }
     sfx('hint');
@@ -462,7 +522,7 @@
   }
   function collect() {
     if (!live()) return;
-    sel = null;
+    sel = null; expand = null;
     var r = game.collect();
     if (!r.ok) { setNote('Der er ingen kort, der kan lægges op lige nu.', ''); sfx('nej'); refresh(); return; }
     sfx('grund', Math.max.apply(null, game.state.f));
@@ -491,6 +551,7 @@
       targets: sel ? sel.targets : [],
       hint: hintMv ? { cards: hintCards(hintMv), dest: hintDest(hintMv) } : null,
       movable: movableMap(),
+      expand: expand,
       live: live(),
       fresh: fresh || !animationOn()
     }, geo);
@@ -758,6 +819,7 @@
   // U/Z fortryder, H hint, S saml, Esc fortryder valget eller giver pause.
   function keyColumn(c) {
     if (!live()) return;
+    expand = null;
     var s = game.state, p = s.t[c];
     if (sel) {
       var t = findTarget({ k: 't', col: c });
@@ -785,7 +847,7 @@
     if (e.altKey || e.ctrlKey || e.metaKey) return;
     if (current !== 'game') return;
     if (confirmOpen()) { if (e.key === 'Escape') { e.preventDefault(); cancelQuit(); } return; }
-    if (e.key === 'Escape' && sel) { e.preventDefault(); cancelSel(); return; }
+    if (e.key === 'Escape' && (sel || expand)) { e.preventDefault(); cancelSel(); return; }
     if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') { e.preventDefault(); setPaused(!paused); return; }
     if (overlayOpen()) return;
     var k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
@@ -923,6 +985,9 @@
     var b0 = Math.max(BTN_MIN, cssBtn(v.W, v.H)), best = null;
     for (var b = b0; ; b = Math.max(BTN_MIN, b * 0.93)) {
       var bb = Math.floor(b);
+      // Afstand mellem knappernes midter mindst ca. 122 px (TD Browse' farveprikker viser ellers
+      // flere valg på én gang), når der er plads. Små skærme beholder den smalle afstand.
+      ig = small ? 8 : Math.max(10, Math.min(40, 122 - bb));
       [1, 2].forEach(function (k) {
         var hintH = k === 1 ? (small ? 96 : 118) : (small ? 64 : 76);
         var pn = panelSize(k, bb, ig, hintH);
@@ -1167,6 +1232,7 @@
   window.Kabalen = {
     get series() { return series; }, get game() { return game; }, get sel() { return sel; }, get geo() { return geo; },
     get waiting() { return waiting; }, get hint() { return hintMv; }, get deal() { return lastDealInfo; },
+    get expand() { return expand; }, pickColumn: pickColumn,
     get guard() { return gazeGuard ? (gazeGuard.id || gazeGuard.className) : null; },
     settings: arkade, gameSettings: kset, records: records, dwell: dwell, audio: audio, lyd: lyd,
     start: startGame, show: show, pickCard: pickCard, pickSlot: pickSlot, draw: drawStock, undo: undo, showHint: showHint,
