@@ -177,7 +177,7 @@
     return {
       unlock: function () {
         if (!ensure()) return;
-        if (ctx.state === 'suspended') ctx.resume();
+        if (ctx.state === 'suspended') { var p = ctx.resume(); if (p && p.catch) p.catch(function () {}); }
         unlocked = true;
         if (musicOn) startMusic();
       },
