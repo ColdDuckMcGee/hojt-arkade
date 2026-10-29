@@ -123,6 +123,17 @@ html, body { height: 100%; height: 100dvh; }
   display: flex; align-items: center; justify-content: center;
   will-change: transform;
 }
+/* Zoom i fjerdedele (se js/board.js): fire store knapper oven på pladen */
+.qbtn {
+  position: absolute; z-index: 3; margin: 0; padding: 0; min-width: 0; min-height: 0;
+  background: transparent; border: 0; border-radius: 14px; cursor: zoom-in; font: inherit; color: inherit;
+}
+.qbtn:hover, .qbtn.arkade-dwelling { background: color-mix(in srgb, var(--ms-open) 14%, transparent); }
+.qbtn:focus-visible { outline: 4px solid var(--accent); outline-offset: -4px; }
+@media (hover: none) { .qbtn:hover { background: transparent; } }
+#board:not(.zoomed) ~ .qbtn { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--ms-open) 40%, transparent); }
+.qbtn.zoom { pointer-events: none; }
+.board-wrap.exploding .qbtn { pointer-events: none; }
 .cell::before { /* glasrefleks */
   content: ""; position: absolute; left: 8%; right: 8%; top: 6%; height: 34%;
   border-radius: 9px; background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0));
@@ -156,7 +167,7 @@ html, body { height: 100%; height: 100dvh; }
 /* I flag-tilstand viser et flag på hover, at det fjernes */
 .board-wrap[data-mode="flag"] .cell.is-flag:is(:hover, .arkade-dwelling, :focus-visible) .flag-ico { opacity: 0.4; }
 .board-wrap[data-mode="flag"] .cell.is-flag:is(:hover, .arkade-dwelling, :focus-visible)::after {
-  content: "Fjern"; position: absolute; bottom: 6%; font-size: max(14px, calc(var(--cell) * 0.16)); font-weight: 700; color: var(--ui-text);
+  content: "Fjern"; position: absolute; bottom: 6%; font-size: max(14px, calc(var(--cs, var(--cell)) * 0.16)); font-weight: 700; color: var(--ui-text);
 }
 
 /* Åbnede felter: dybere, mørkere glas med lysende tal */
@@ -167,7 +178,7 @@ html, body { height: 100%; height: 100dvh; }
 }
 .cell.is-open::before { display: none; }
 .cell .num {
-  font-size: calc(var(--cell, 120px) * 0.56); font-weight: 800; line-height: 1;
+  font-size: calc(var(--cs, var(--cell, 120px)) * 0.56); font-weight: 800; line-height: 1;
   font-variant-numeric: tabular-nums; color: var(--nc);
   text-shadow: 0 0 calc(10px * var(--glow)) var(--nc), 0 0 calc(22px * var(--glow)) var(--nc);
 }

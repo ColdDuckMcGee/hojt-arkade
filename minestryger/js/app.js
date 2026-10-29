@@ -518,6 +518,7 @@
       if (!overflows(game) || cell <= 8) break;
       cell--;
     }
+    board.relayout();
     lay.dataset.plan = p.side + (p.below ? '-under' : '-ved-siden') + ' zoom ' + p.z.toFixed(2);
     fitOverlays();
   }
