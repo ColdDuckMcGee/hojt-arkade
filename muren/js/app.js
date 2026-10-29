@@ -614,6 +614,13 @@
     res.panelW = panelW; res.hudCols = hudCols; res.statusH = statusH; res.hudHc = hudRows === 2 ? Math.max(40, (statusH - ig) / 2) : statusH;
     var colSide = res.hintBoard.side ? statusH + g + ctlH : colH;
     res.side = colSide <= H - 2 * p ? fitBoard(W - 2 * p - g - panelW, H - 2 * p) : null;
+    // Beskedlinjen må ikke dække stenene: ved siden af brættet, hvis der er bredde nok, ellers over det
+    res.hintMode = null; res.hintW = 0; res.hintH = hint;
+    if (res.side && res.hintBoard.side) {
+      var spare = W - 2 * p - g - panelW - res.side.w - ig;
+      if (spare >= 110) { res.hintMode = 'col'; res.hintW = Math.floor(Math.min(spare, 220)); }
+      else { res.hintMode = 'top'; res.side = fitBoard(W - 2 * p - g - panelW, H - 2 * p - hint - ig); }
+    }
     res.below = panelW <= W - 2 * p ? fitBoard(W - 2 * p, H - 2 * p - colH - g) : null;
     LAYOUTS.forEach(function (l) { if (!res[l] || res[l].k * L.H < 120) res[l] = null; });
     return res;
@@ -663,6 +670,10 @@
     gameEl.dataset.layout = lay;
     var hb = !!(res.hintBoard && res.hintBoard[lay]), hintEl = $('#hint');
     gridEl.classList.toggle('hint-board', hb);
+    gridEl.classList.toggle('hint-col', hb && res.hintMode === 'col');
+    gridEl.classList.toggle('hint-top', hb && res.hintMode !== 'col');
+    st.setProperty('--hint-w', (res.hintW || 0) + 'px');
+    st.setProperty('--hint-h', (res.hintH || 44) + 'px');
     if (hb && hintEl.parentNode !== $('#board-wrap')) $('#board-wrap').appendChild(hintEl);
     if (!hb && hintEl.parentNode !== $('#side-right')) $('#side-right').insertBefore(hintEl, $('#controls'));
     gameEl.dataset.board = f.w + 'x' + f.h;
@@ -816,7 +827,7 @@
     if (pager) pager.reset();
     if (el === goEl) { if (resetPage) goShowRecords = false; setGoSplit(false); }
     var base = isOverlay ? (parseFloat(getComputedStyle(el).getPropertyValue('--btn')) || cssBtn(v.W, v.H)) : cssBtn(v.W, v.H);
-    var minB = small ? SMALL_MIN : 52;
+    var minB = SMALL_MIN; // knapperne er aldrig under 84 px – hellere flere sider
     if (base < minB) { base = minB; el.style.setProperty('--btn', base + 'px'); }
     var fits = function () {
       if (overflows(box)) return false;

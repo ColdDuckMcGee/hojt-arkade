@@ -1,6 +1,6 @@
 # Responsiv test af Muren: alle skærme ved 8 opløsninger.
 # Tjekker: ingen rulning, intet klippet af, ingen overlap, tekst inden i knapperne,
-# mindste knap >= 80 px og ingen fejl eller advarsler i konsollen.
+# hver knap >= 84 px i både højde og bredde og ingen fejl eller advarsler i konsollen.
 #
 # Desuden spillet i browseren: drej med knapper (10° og 2°) og tastatur, klik på
 # brættet for at sigte, Skyd (drejeknapperne er låst, mens salven flyver), Spring
@@ -22,7 +22,8 @@ SHOT = (SHOT_DIR.rstrip('/') + '/') if SHOT_DIR else None
 if SHOT: os.makedirs(SHOT + 'ekstra', exist_ok=True)
 CHROME = os.environ.get('CHROME', '/usr/bin/google-chrome')
 SIZES = [(1920,1080),(1366,768),(1280,720),(1024,768),(1024,1366),(1366,1024),(390,844),(844,390)]
-MIN_BTN = 80
+MIN_BTN = 84   # hver knap (og link) skal være mindst 84 px i både højde og bredde
+MAAL = {}      # alle målte knapper: {opløsning: {skærm: [(navn, b, h)]}}
 errs=[]; fails=[]; summary={}
 CHECK = """(sel) => {
   const se = document.scrollingElement, W = se.clientWidth, H = se.clientHeight;
@@ -36,7 +37,7 @@ CHECK = """(sel) => {
      if (!vis(e)) return; const r = e.getBoundingClientRect();
      if (r.left < -1 || r.top < -1 || r.right > W + 1 || r.bottom > H + 1) out.clipped.push((e.id || e.tagName + '.' + e.className) + ' ' + [r.left,r.top,r.right,r.bottom].map(Math.round));
   });
-  const bs = [...scr.querySelectorAll('button, a.btn')].filter(vis).filter(e => true);
+  const bs = [...scr.querySelectorAll('button, a, [role=button], input, select, summary')].filter(vis);
   const cv = scr.querySelector('#course'); out.board = cv && vis(cv) ? [Math.round(cv.getBoundingClientRect().width), Math.round(cv.getBoundingClientRect().height)] : null;
   const name = e => e.id || e.dataset.slot || e.dataset.tab || e.dataset.mode || e.dataset.recMode || e.dataset.turn && ('drej' + e.dataset.turn) || e.getAttribute('aria-label') || e.textContent.trim().replace(/\\s+/g,' ').slice(0,16);
   for (let i = 0; i < bs.length; i++) for (let j = i + 1; j < bs.length; j++) { const a = bs[i].getBoundingClientRect(), b = bs[j].getBoundingClientRect();
@@ -47,6 +48,7 @@ CHECK = """(sel) => {
   const z = e => { let f = 1; for (let n = e; n; n = n.parentElement) { const zz = parseFloat(n.style && n.style.zoom); if (zz) f *= zz; } return f; };
   const sizes = counted.map(e => { const r = e.getBoundingClientRect(); return [Math.round(Math.min(r.width, r.height)), name(e) + ' ' + Math.round(r.width) + 'x' + Math.round(r.height)]; }).sort((a, b) => a[0] - b[0]);
   counted.forEach(e => { if (e.scrollWidth > e.clientWidth + 2 || e.scrollHeight > e.clientHeight + 2) out.textOut.push(name(e) + ' ' + e.scrollWidth + '>' + e.clientWidth); });
+  out.all = counted.map(e => { const r = e.getBoundingClientRect(); return [name(e), Math.round(r.width * 10) / 10, Math.round(r.height * 10) / 10]; });
   out.minBtn = sizes.length ? sizes[0][0] : null;
   out.minName = sizes.length ? sizes[0][1] : '';
   out.zoomed = [...document.querySelectorAll('*')].some(e => e.style && e.style.zoom && !e.closest('[hidden]'));
@@ -63,6 +65,9 @@ def check(pg, name, sel, w, h, shot=None):
     if not ok: line += ' ' + json.dumps({k: r[k] for k in ('scroll','inner','clipped','overlap','textOut')}, ensure_ascii=False)
     print(line)
     summary.setdefault('%dx%d' % (w, h), []).append((name, r['minBtn']))
+    MAAL.setdefault('%dx%d' % (w, h), {})[name] = r['all']
+    for (n, bw, bh) in r['all']:
+        if min(bw, bh) < MIN_BTN: fails.append('%dx%d %s: knappen %s er %sx%s px (under %d px)' % (w, h, name, n, bw, bh, MIN_BTN))
     if not ok: fails.append(line)
     if shot and SHOT: pg.screenshot(path=SHOT + ('' if shot == '%s.png' % name_tag(w, h) else 'ekstra/') + shot)
 def pages(pg, scr, w, h, name, shotbase):
@@ -234,6 +239,13 @@ with sync_playwright() as p:
 print()
 print('MINDSTE KNAP PR. OPLØSNING:')
 for k, v in summary.items(): print('  %-10s %s px' % (k, min(x[1] for x in v if x[1] is not None)))
+print('TILBAGE TIL HALLEN (b x h):')
+for k, v in MAAL.items():
+    hb = [x for x in v.get('start', []) if x[0] == 'btn-hall']
+    print('  %-10s %s' % (k, '%gx%g px' % tuple(hb[0][1:]) if hb else 'ikke fundet'))
+    if not hb: fails.append(k + ' Tilbage til hallen blev ikke fundet på startskærmen')
+if os.environ.get('MUREN_MAAL'):
+    json.dump(MAAL, open(os.environ['MUREN_MAAL'], 'w'), ensure_ascii=False, indent=1)
 print('KONSOL:', errs)
 print('FEJL:', len(fails))
 for f in fails: print('  ', f)

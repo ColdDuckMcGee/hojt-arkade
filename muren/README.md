@@ -19,7 +19,7 @@ Kanonen står nederst på brættet. Den sender alle sine kugler af sted i en **s
 - **Point:** 1 point pr. træf og 10 point ekstra for hver sten, der knuses. Status viser **Tur**, **Kugler** og **Point**.
 - **Tastatur:** pil venstre/højre drejer 2° (med Skift 10°), Enter, mellemrum eller S skyder, F eller Tab springer frem under en salve, og Esc eller P giver pause.
 - **Dwell** (valgfrit, slået fra som standard, med ring). Nye dialoger er dwell-sikre: en knap, der dukker op lige under blikket, kan først vælges, når blikket har været væk.
-- **Alle skærme:** man skal aldrig rulle. Knapperne er mindst ca. 3 cm, når der er plads, og ellers mindst ca. 80 px. Spillet vælger det layout, der giver det største bræt: status til venstre og knapper til højre på brede skærme, knapperne ved siden af på lave skærme og knapperne under brættet på højkant. Brættet (700 × 1000) drejes aldrig.
+- **Alle skærme:** man skal aldrig rulle. Knapperne er mindst ca. 3 cm, når der er plads, og aldrig under 84 × 84 px (er der ikke plads, deles skærmen hellere i flere sider). Spillet vælger det layout, der giver det største bræt: status til venstre og knapper til højre på brede skærme, knapperne ved siden af på lave skærme og knapperne under brættet på højkant. Brættet (700 × 1000) drejes aldrig. Er der ikke plads til beskedlinjen ved knapperne, står den ved siden af (eller over) brættet – aldrig oven på stenene.
 - **Rekorder:** en lokal top 10 med point, antal ture og dato.
 - **Afslut:** fra pausen spørger spillet først (**Nej, spil videre** har fokus, og Esc betyder Nej). Pointene gemmes. Lukkes siden midt i et spil, gemmes de også.
 - **Lyd:** spillets egne bløde lyde (`js/lyd.js`, Web Audio, ingen lydfiler) til skud, træf, knust sten, +1, muren rykker ned og game over. De følger arkadens lyd til/fra (og en fælles lydstyrke, hvis arkaden får en). Mange træf lige efter hinanden dæmpes.
@@ -27,7 +27,7 @@ Kanonen står nederst på brættet. Den sender alle sine kugler af sted i en **s
 - **Test:**
   - `node muren/test/spillogik.test.js` tjekker start, vinkler og sigte ved klik, lige skud og loft, afprelning på vægge (indfaldsvinkel = udfaldsvinkel), at kuglerne aldrig forlader brættet eller går gennem en sten, at sigtelinjen viser det rigtige første stød, træf, knuste sten og point, +1-ringe (også automatisk opsamling), at muren rykker ned, og tallene stiger, første landing som næste affyringspunkt, game over, Spring frem (samme resultat) og determinisme.
   - `node muren/test/temaklar.test.js` tjekker, at ingen farver, skygger eller skrifttyper ligger uden for temaet, og at temaet leverer alt, spillet beder om.
-  - `python3 muren/test/responsiv_test.py` (Playwright og Chrome) tjekker alle skærme ved 8 opløsninger: ingen rulning, knapstørrelser, spil med knapper, tastatur og klik på brættet, Skyd og låste knapper, Spring frem, muren rykker ned, bekræftelsen, game over, rekorder, glød fra, dwell, mindre bevægelse og hallen. Skærmbilleder gemmes, når `MUREN_SKAERMBILLEDER=<mappe>` er sat.
+  - `python3 muren/test/responsiv_test.py` (Playwright og Chrome) tjekker alle skærme ved 8 opløsninger: ingen rulning, at hver knap og knap-link på alle skærme er mindst 84 px i både højde og bredde (testen fejler ellers og udskriver målene for Tilbage til hallen), spil med knapper, tastatur og klik på brættet, Skyd og låste knapper, Spring frem, muren rykker ned, bekræftelsen, game over, rekorder, glød fra, dwell, mindre bevægelse og hallen. Skærmbilleder gemmes, når `MUREN_SKAERMBILLEDER=<mappe>` er sat.
 
 ## Filer
 
