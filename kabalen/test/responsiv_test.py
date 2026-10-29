@@ -1,7 +1,7 @@
 # Responsiv test af Kabalen: alle skærme ved de 8 opløsninger fra den fælles brief, og mobil.
 # Tjekker: ingen rulning, intet klippet af, ingen overlappende knapper, tekst inden i knapperne,
 # alle mål mindst 84 px (knapper, pladser og de kort, man kan pege på: den synlige del af kortet),
-# og ingen fejl i konsollen.
+# og ingen fejl i konsollen. Highscore-dialogen ved game over lukkes med "Spring over".
 #
 # Desuden spillet i browseren: Træk 1/Træk 3 i menuen, vælg et kort med musen (kortene ovenpå
 # følger med, og de lovlige mål lyser), læg det på et mål, samme kort igen flytter (ét mål),
@@ -33,10 +33,8 @@ errs=[]; fails=[]; summary={}
 MOBILE = [(390,664),(390,700),(390,750),(390,844),(375,667),(375,553),(430,740),(844,340),(667,375),(320,480)]
 MOBILE_SMALL_OK = [(320,480)]   # her er der ikke plads til 84 px kort; bordet går forud, og kortene bliver mindre
 def known(eng, text):
-    # Kendte meldinger, som ikke kommer fra Kabalen: den headless WebKit har ingen lydenhed og ingen TLS
-    # (arkade/audio.js fanger ikke afvisningen fra AudioContext.resume), og den fælles highscore
-    # (arkade/highscore.js) sender en beacon til arkadens API.
-    return (eng == 'webkit' and ('Failed to start the audio device' in text or 'TLS support is not available' in text)) or 'hojt-arkade-api' in text
+    # Kendte meldinger, som ikke kommer fra Kabalen: den headless WebKit her har ingen TLS.
+    return eng == 'webkit' and 'TLS support is not available' in text
 MOBIL_CHECK = """() => {
   const se = document.scrollingElement, W = innerWidth, H = innerHeight;
   const R = e => e.getBoundingClientRect();
@@ -116,6 +114,26 @@ def pages(pg, scr, w, h, name, shotbase):
         if n > 8: fails.append('for mange sider ' + name); break
     return n
 def st(pg, expr): return pg.evaluate(expr)
+# Den fælles highscore (arkade/highscore.js) viser ved game over dialogen "NY REKORD!" med
+# 3-bogstavs-navn (.arkade-hs-navn). Testen slår den til (localStorage 'hojtArkade.hsTest' = '1',
+# ellers skjules den for automatiske tests), lukker den med "Spring over" og fortsætter.
+HS_TEST = "try { localStorage.setItem('hojtArkade.hsTest', '1'); } catch (e) {}"
+def luk_hs(pg, tag, kraevet):
+    try: pg.wait_for_selector('.arkade-hs-navn', state='visible', timeout=2500 if kraevet else 700)
+    except Exception:
+        if kraevet: fails.append(tag + ' highscore-dialogen (.arkade-hs-navn) kom ikke ved game over')
+        return False
+    pg.click('.arkade-hs-navn .arkade-hs-btn.spring')
+    try: pg.wait_for_selector('.arkade-hs-navn', state='detached', timeout=3000)
+    except Exception: fails.append(tag + ' highscore-dialogen lukkede ikke med "Spring over"'); return False
+    # Efter navnet (eller "Spring over") viser highscoren listen; den lukkes med "Videre".
+    try: pg.wait_for_selector('.arkade-hs-liste', state='visible', timeout=2000)
+    except Exception: fails.append(tag + ' highscore-listen (.arkade-hs-liste) kom ikke efter "Spring over"'); return False
+    pg.click('.arkade-hs-liste .arkade-hs-btn.ok')
+    try: pg.wait_for_selector('.arkade-hs-liste', state='hidden', timeout=3000)
+    except Exception: fails.append(tag + ' highscore-listen lukkede ikke med "Videre"'); return False
+    pg.wait_for_timeout(150)
+    return True
 def wait_game(pg, tag):
     try: pg.wait_for_function("Kabalen.game && !Kabalen.waiting && Kabalen.live()", timeout=30000)
     except Exception: fails.append(tag + ' spillet blev aldrig givet'); return False
@@ -217,6 +235,7 @@ with sync_playwright() as p:
         pg = ctx.new_page()
         # Fast tilfældighed (Math.random og crypto), så en fejl kan gentages (SEED=... giver andre spil)
         pg.add_init_script("(() => { let a = %d >>> 0; Math.random = () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; crypto.getRandomValues = (arr) => { for (let i = 0; i < arr.length; i++) arr[i] = Math.floor(Math.random() * 4294967296) >>> 0; return arr; }; const D = Date; Date.now = () => 1700000000000; })()" % (SEED + w * 7 + h))
+        pg.add_init_script(HS_TEST)
         pg.on('console', lambda m: errs.append(m.type+': '+m.text) if m.type in ('error','warning') else None)
         pg.on('pageerror', lambda e: errs.append('pageerror: '+str(e)))
         pg.goto(URL); pg.wait_for_timeout(400)
@@ -276,6 +295,7 @@ with sync_playwright() as p:
         # Stop her → Serien er slut, og rekorden gemmes
         total = st(pg, "Kabalen.series.total()")
         pg.click('#btn-done-quit'); pg.wait_for_timeout(200)
+        luk_hs(pg, tag, True)
         if st(pg, "document.getElementById('gameover').hidden"): fails.append(tag + ' slutskærmen blev ikke vist')
         if pg.inner_text('#go-title').strip() != 'Serien er slut': fails.append(tag + ' slutskærmen siger %r' % pg.inner_text('#go-title'))
         if not st(pg, "Kabalen.records.list('traek1').some(e => e.score === %d && e.levels === 2)" % total): fails.append(tag + ' rekorden blev ikke gemt (%s)' % total)
@@ -296,6 +316,7 @@ with sync_playwright() as p:
             pg.keyboard.press('Escape'); pg.wait_for_timeout(80)
             if not st(pg, "document.getElementById('confirm-overlay').hidden && Kabalen.live()"): fails.append(tag + ' Esc i bekræftelsen spillede ikke videre')
             pg.click('#btn-opgiv'); pg.wait_for_timeout(80); pg.click('#btn-confirm-yes'); pg.wait_for_timeout(200)
+            luk_hs(pg, tag, st(pg, "Kabalen.series.total() > 0"))
             if 'gav op' not in pg.inner_text('#go-reason'): fails.append(tag + ' slutskærmen siger ikke "gav op": ' + pg.inner_text('#go-reason'))
             pg.evaluate("Kabalen.gameSettings.set('draw', 1)")
         # Dwell: ét dwell vælger, ét dwell lægger, intet gentages
