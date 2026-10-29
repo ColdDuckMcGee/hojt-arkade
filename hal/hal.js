@@ -58,6 +58,7 @@
   var audio = ArkadeAudio.create({ sfx: arkade.get('sound'), music: arkade.get('music') });
   function unlock() { audio.unlock(); }
   document.addEventListener('pointerdown', unlock, { once: true });
+  document.addEventListener('click', unlock, { once: true }); // TD Browse m.fl. kan klikke uden pointerdown
   document.addEventListener('keydown', unlock, { once: true });
 
   var reducedMotion = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };

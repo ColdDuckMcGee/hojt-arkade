@@ -98,6 +98,7 @@
   function sfx(name, n) { if (LYD[name]) lyd.play(LYD[name], n); else audio.play(SFX[name] || name); }
   function unlockAudio() { audio.unlock(); lyd.unlock(); }
   document.addEventListener('pointerdown', unlockAudio, true);
+  document.addEventListener('click', unlockAudio, true); // TD Browse m.fl. kan klikke uden pointerdown
   document.addEventListener('keydown', unlockAudio, true);
   document.addEventListener('touchstart', unlockAudio, { capture: true, passive: true });
 
