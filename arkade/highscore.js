@@ -14,6 +14,8 @@
  * sender scoren og viser top 10 med fanerne 'Verden' og 'Min maskine'.
  *
  *   ArkadeHighscore.vis(records, kategori)   // vis top 10 uden indtastning
+ *   ArkadeHighscore.visSidste()              // vis top 10 for den liste, rekordskærmen sidst viste
+ * En knap med attributten data-hs-verden (fx 'Verden' på rekordskærmen) kalder visSidste().
  *
  * Uden net: kun den lokale liste vises, og scoren lægges i kø og sendes senere.
  * Ingen cookies. Statistikken er kun tællinger (spil, start/slut, varighed, skærm, tema).
@@ -364,8 +366,17 @@
       .then(function () { if (info.gentegn) info.gentegn(); });
   }
 
+  function visSidste() {
+    var s = global.ArkadeHighscores && global.ArkadeHighscores.sidst;
+    if (s && s.records) vis(s.records, s.kat);
+  }
+  if (doc) doc.addEventListener('click', function (e) {
+    var b = e.target && e.target.closest && e.target.closest('[data-hs-verden]');
+    if (b && !aktiv) { e.preventDefault(); visSidste(); }
+  });
+
   global.ArkadeHighscore = {
-    API: API, start: start, slut: slut, efterAdd: efterAdd, vis: vis, luk: luk,
+    API: API, start: start, slut: slut, efterAdd: efterAdd, vis: vis, visSidste: visSidste, luk: luk,
     erAaben: function () { return !!aktiv; }, gyldigtNavn: gyldigtNavn, sendKoe: sendKoe, lyd: null
   };
   if (global.addEventListener) global.addEventListener('online', sendKoe);

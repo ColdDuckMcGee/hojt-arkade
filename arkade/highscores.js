@@ -11,6 +11,7 @@
  *   hs.best('15');                   // højeste point eller 0
  *   hs.clear('15');
  *   ArkadeHighscores.formatDate(iso) // "26.10.2026"
+ *   ArkadeHighscores.sidst           // { records, kat } fra det seneste list()-kald
  */
 (function (global) {
   'use strict';
@@ -42,10 +43,16 @@
       var data = read(storageKey);
       return (data && typeof data === 'object') ? data : {};
     }
-    function list(category) {
+    function liste(category) {
       var arr = getAll()[String(category)];
       if (!Array.isArray(arr)) return [];
       return arr.filter(function (e) { return e && typeof e.score === 'number'; }).slice(0, max);
+    }
+    // Spillets rekordskærm kalder list(kategori); den sidst viste liste huskes, så
+    // 'Verden'-knappen (data-hs-verden) i highscore.js ved, hvilken top 10 den skal hente.
+    function list(category) {
+      if (global_) global.ArkadeHighscores.sidst = { records: api, kat: String(category) };
+      return liste(category);
     }
     function add(category, score, extra) {
       category = String(category);
@@ -78,9 +85,9 @@
       if (!e) return false;
       e.navn = navn; write(storageKey, data); return true;
     }
-    function best(category) { var l = list(category); return l.length ? l[0].score : 0; }
+    function best(category) { var l = liste(category); return l.length ? l[0].score : 0; }
     function qualifies(category, score) {
-      var l = list(category);
+      var l = liste(category);
       return score > 0 && (l.length < max || score > l[l.length - 1].score);
     }
     function clear(category) {
@@ -92,5 +99,5 @@
     return api;
   }
 
-  global.ArkadeHighscores = { create: create, formatDate: formatDate };
+  global.ArkadeHighscores = { create: create, formatDate: formatDate, sidst: null };
 })(window);

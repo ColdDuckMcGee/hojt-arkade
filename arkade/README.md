@@ -46,7 +46,11 @@ Navne der ender på `-test` (og `{ global: false }`) kobles ikke på verdenslist
 ArkadeHighscore.start();   // når et nyt spil begynder  (tæller 'start', skærm, tema)
 ArkadeHighscore.slut();    // ved game over             (tæller 'slut' + varighed)
 ArkadeHighscore.vis(records, kategori);  // åbn top 10 (Verden / Min maskine) uden indtastning
+ArkadeHighscore.visSidste();             // samme for den liste, rekordskærmen sidst viste
 ```
+**Verden-knap:** en knap med `data-hs-verden` (i alle spil på rekordskærmen, lige efter Tilbage) åbner
+top 10 for den kategori, rekordskærmen sidst viste med `records.list(kat)`. På lave, brede skærme
+(højde ≤ 500 px) vises kun ikonet 🌍, så rækken ikke bliver bredere.
 Indlæses efter highscores.js og henter selv `highscore.css`. Når `records.add()` giver en plads på
 den lokale top 10 – eller scoren slår verdens top 10 – vises efter 0,6 s en arkade-dialog:
 3 bogstaver (gitter med A–Z, Æ, Ø, Å, Slet når knapperne kan blive ≥ 84 px, ellers ▲▼ pr. plads),

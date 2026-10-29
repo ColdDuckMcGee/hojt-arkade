@@ -109,3 +109,10 @@
 .arkade-hs-midt .arkade-hs-btn { min-height: var(--hs-slot); min-width: calc(var(--hs-slot) * 1.3); font-size: clamp(1.1rem, calc(var(--hs-slot) * .3), 1.7rem); }
 .arkade-hs-midt .arkade-hs-btn.spring { font-size: clamp(1rem, calc(var(--hs-slot) * .2), 1.25rem); }
 .arkade-hs[data-mode="cykel"] .arkade-hs-midt .arkade-hs-btn { min-height: 84px; }
+
+/* 'Verden'-knappen på spillenes rekordskærm: på lave skærme kun ikonet, så rækken ikke bliver bredere */
+@media (max-height: 500px) and (orientation: landscape) {
+  [data-hs-verden] .big { display: none; }
+  [data-hs-verden] .icon { font-size: 1.7em; }
+  #records .row:has(> [data-hs-verden]) { column-gap: 10px; }
+}
