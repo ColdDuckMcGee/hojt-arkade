@@ -355,3 +355,17 @@ ol.records .score { white-space: nowrap; }
 .done-name { margin: 4px 0; }
 .done-points { margin: 6px 0; font-size: clamp(1.6rem, 6vmin, 3rem); font-weight: 800; color: var(--ka-ok); text-shadow: var(--ka-points-glow); }
 .done-parts { margin: 0 0 10px; line-height: 1.4; }
+
+/* ---------- Kompakt knappanel (meget lave eller smalle skærme, fx en telefon med browserens linjer) ----------
+ * app.js sætter data-kompakt, når knapperne må være mindre end 84 px, for at bordet kan ses. */
+#game[data-kompakt="ja"] .tools .tool .small,
+#game[data-kompakt="lille"] .tools .tool .small { display: none; }
+#game[data-kompakt="ja"] .tools .tool .big { font-size: max(0.72rem, calc(var(--btn) * 0.17)); }
+#game[data-kompakt="ja"] .tools .tool svg { width: calc(var(--btn) * 0.4); height: calc(var(--btn) * 0.4); }
+#game[data-kompakt="lille"] .tools .tool .big { display: none; }
+#game[data-kompakt="lille"] .tools .tool svg { width: calc(var(--btn) * 0.55); height: calc(var(--btn) * 0.55); }
+#game[data-kompakt="ja"] .hud-label, #game[data-kompakt="lille"] .hud-label,
+#game[data-kompakt="lille"] .hud-sub { display: none; }
+#game[data-kompakt="ja"] .hud-value, #game[data-kompakt="lille"] .hud-value { font-size: max(0.85rem, calc(var(--btn) * 0.3)); }
+#game[data-kompakt="ja"] .hud-sub { font-size: 0.68rem; }
+#game[data-kompakt="ja"] .hint, #game[data-kompakt="lille"] .hint { font-size: 0.9rem; }

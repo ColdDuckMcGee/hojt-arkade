@@ -41,7 +41,7 @@ Et træk er hvert kort eller hver række, du flytter. **Saml** tæller som ét t
 - **Mus og tryk:** klik eller tryk på kort og pladser.
 - **Dwell (valgfrit, slået fra som standard):** kort, pladser og knapper vælges, når du har kigget på dem i den valgte tid, og en ring fyldes imens. Ét dwell er altid én handling. Når kortene har flyttet sig, kan det kort, der lander under blikket, først dwelles, når blikket har været væk fra det.
 - **Store mål:** alle knapper og alle kort og pladser, der kan vælges med dwell, er mindst 84 px (ca. 3 cm, når der er plads). Lange bunker presses sammen. Kort med bagsiden op samles i en lille stak med et tal for, hvor mange der er. Åbne kort, der ikke kan flyttes, bliver til smalle striber, og er bunken stadig for lang, samles de nederste åbne kort under en **+N**-mærkat. Et tryk på **+N** vælger det nederste af de samlede kort, der kan flyttes. Smalle striber kan klikkes på, men de kan ikke dwelles. Det kan kun de store mål.
-- **Alle skærme:** man skal aldrig rulle. På en bred skærm står knapperne ved siden af bordet, og på en høj skærm står de under bordet. På en smal skærm på højkant (fx en telefon) står bordet i fire kolonner: grundbunkerne øverst, bunke 1–4, og derefter bunke 5–7 med bunken og de vendte kort i fjerde kolonne. Layoutet med de største kort vælges.
+- **Alle skærme:** man skal aldrig rulle. På en bred skærm står knapperne ved siden af bordet, og på en høj skærm står de under bordet. På en smal skærm på højkant (fx en telefon) står bordet i fire kolonner: grundbunkerne øverst, bunke 1–4, og derefter bunke 5–7 med bunken og de vendte kort i fjerde kolonne. Layoutet med de største kort vælges. På en telefon kan browserens linjer foroven og forneden gøre det synlige vindue meget lavt (fx 390 × 664). Så bliver knapperne først mindre og står i en kompakt række (de små tekster skjules, og under ca. 60 px vises kun ikonerne), så kortene kan blive ved med at være mindst 84 px. Først når der heller ikke er plads til det (fx 320 × 480), bliver kortene mindre. Bordet kan altid ses. Layoutet følger med, når browserens linjer kommer og går (`visualViewport`).
 - **Rolig visning:** intet blinker. Kortene glider kort på plads (220 ms). Er animation slået fra, eller er computeren sat til mindre bevægelse, skifter kortene plads uden overgang. **Glød** kan slås fra under Indstillinger → Udseende, og spillet kan læses lige så godt uden. Røde kulører er hule, og sorte er fyldte, så farverne også kan skelnes uden farve.
 
 ## Test
@@ -65,6 +65,8 @@ Et træk er hvert kort eller hver række, du flytter. **Saml** tæller som ét t
   - Hint, Saml, Fortryd, pause og glød fra;
   - et helt spil vundet med løserens træk (testen lægger selv et vindbart spil ind), sejrsboks og Næste spil;
   - "sidder fast", Stop her, Serien er slut og rekorden, Træk 3, Giv op med bekræftelse, dwell og hallen.
+
+  - mobil med Chromium og WebKit (Safari-motoren) og iPhone-emulering ved 390×664, 390×700, 390×750, 390×844, 375×667, 375×553, 430×740, 844×340, 667×375 og 320×480: bordet har en højde, alle 7 bunker, grundbunkerne og bunken ses inden for vinduet, ingen rulning, intet overlap, knapper mindst 44 px og kort mindst 84 px (undtagen 320×480).
 
   Skærmbilleder gemmes, hvis `KABALEN_SKAERMBILLEDER=<mappe>` er sat. Testen gør tilfældigheden fast (`Math.random` og `crypto`), så en fejl kan gentages. `SEED=<tal>` giver andre spil.
 

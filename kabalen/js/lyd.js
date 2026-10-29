@@ -128,7 +128,8 @@
     return {
       unlock: function () {
         if (!ensure()) return;
-        if (ctx.state === 'suspended' && ctx.resume) ctx.resume();
+        // iOS/WebKit kan afvise at starte lyden (fx i lydløs tilstand); det må ikke give en fejl
+        if (ctx.state === 'suspended' && ctx.resume) { try { var pr = ctx.resume(); if (pr && pr.catch) pr.catch(function () {}); } catch (e) {} }
         unlocked = true;
       },
       play: function (name, n) {

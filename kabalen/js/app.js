@@ -805,7 +805,21 @@
   // Knapperne er ca. 3 cm, når der er plads, ellers så store som muligt, men aldrig under
   // MIN_T (84 px). Kortene er mindst MIN_T brede. Layoutet med de største kort vælges.
   var MIN_T = 84, NCELL = 6; // 5 knapper + pointfeltet
-  function viewport() { return { W: root.clientWidth || window.innerWidth, H: root.clientHeight || window.innerHeight }; }
+  // Mindste kort og knapper i den aktuelle beregning. Normalt MIN_T begge, men på meget lave
+  // eller smalle skærme (fx en telefon med browserens linjer) går spillet trinvis ned:
+  // først mindre knapper i en kompakt række, så mindre kort. Bordet skal altid kunne ses.
+  var CARD_MIN = MIN_T, BTN_MIN = MIN_T;
+  var LADDER = [[84, 84], [72, 84], [60, 84], [52, 84], [46, 84], [52, 76], [46, 68], [44, 60], [40, 52], [36, 44], [32, 36], [28, 28]];
+  // Den synlige del af vinduet. På mobil (iOS Safari/Chrome) kan browserens linjer gøre den
+  // synlige højde mindre end layoutets; derfor bruges den mindste af målene.
+  function viewport() {
+    var W = root.clientWidth || window.innerWidth, H = root.clientHeight || window.innerHeight;
+    if (window.innerHeight && window.innerHeight < H) H = window.innerHeight;
+    var vv = window.visualViewport;
+    if (vv && vv.height && vv.scale <= 1.01 && vv.height < H) H = Math.floor(vv.height);
+    if (vv && vv.width && vv.scale <= 1.01 && vv.width < W) W = Math.floor(vv.width);
+    return { W: W, H: H };
+  }
   function cssBtn(W, H) { var cm = 96 / 2.54; return Math.max(3 * cm, Math.min(0.15 * Math.min(W, H), 4.2 * cm)); }
   function cssGap(W, H) { return Math.max(0.8 * 96 / 2.54, 0.03 * Math.min(W, H)); }
   function spacing(W, H) { var mn = Math.min(W, H); return { p: Math.max(8, Math.round(mn * 0.014)), g: Math.max(8, Math.min(24, Math.round(mn * 0.02))) }; }
@@ -817,11 +831,11 @@
     var cols = mode === 'syv' ? 7 : 4;
     var gx = Math.max(6, Math.min(18, Math.round(BW * 0.012)));
     var maxCw = Math.floor((BW - (cols - 1) * gx) / cols);
-    if (maxCw < MIN_T) return null;
+    if (maxCw < CARD_MIN) return null;
     maxCw = Math.min(maxCw, 210);
     var list = [];
-    for (var c = maxCw; c > MIN_T; c = Math.floor(c * 0.97)) list.push(c);
-    list.push(MIN_T);
+    for (var c = maxCw; c > CARD_MIN; c = Math.floor(c * 0.97)) list.push(c);
+    list.push(CARD_MIN);
     for (var li = 0; li < list.length; li++) {
       var cw = list[li];
       for (var kr = 1.4; kr >= 1.0 - 1e-9; kr -= 0.1) {
@@ -837,7 +851,7 @@
     return best;
   }
   function base(cw, ch, gx) {
-    var big = Math.max(MIN_T, Math.round(ch * 0.3));
+    var big = Math.max(CARD_MIN, Math.round(ch * 0.3));
     return {
       cw: cw, ch: ch, gx: gx, gy: gx,
       big: big, thin: Math.max(22, Math.round(cw * 0.17)),
@@ -849,7 +863,7 @@
   }
   function finish3(g) { g.idxThin = Math.max(13, Math.round(Math.min(g.idx * 0.75, g.thin * 0.72))); return g; }
   function fitSyv(g, BW, BH) {
-    var opts = [g.ch, Math.max(MIN_T, Math.round(g.ch * 0.72))];
+    var opts = [g.ch, Math.max(CARD_MIN, Math.round(g.ch * 0.72))];
     for (var i = 0; i < opts.length; i++) {
       var rh = opts[i], TH = BH - rh - g.gy;
       var strips = Math.floor((TH - g.ch - g.badge) / g.big);
@@ -870,9 +884,9 @@
   }
   function fitFire(g, BW, BH) {
     // Række 1: grundbunker. Bånd A: bunke 1–4. Bånd B: bunke 5–7 + bunken og de vendte kort.
-    var rh = Math.max(MIN_T, Math.min(g.ch, Math.round(g.ch * 0.8)));
+    var rh = Math.max(CARD_MIN, Math.min(g.ch, Math.round(g.ch * 0.8)));
     var band = Math.floor((BH - rh - 2 * g.gy) / 2);
-    if (band < g.ch + g.badge + g.thin || (band - g.gy) / 2 < MIN_T) return null;
+    if (band < g.ch + g.badge + g.thin || (band - g.gy) / 2 < CARD_MIN) return null;
     var strips = Math.floor((band - g.ch - g.badge) / g.big);
     var W = 4 * g.cw + 3 * g.gx, o = Object.assign({}, g, { mode: 'fire', W: W, H: BH, strips: strips, rh: rh });
     var x = function (c) { return c * (g.cw + g.gx); };
@@ -891,10 +905,20 @@
     return { k: k, rows: rows, w: Math.max(k === 1 ? 172 : 0, k * b + (k - 1) * ig), h: hintH + ig + rows * b + (rows - 1) * ig };
   }
   function bestLayout(v, draw) {
+    var fit = null;
+    for (var i = 0; i < LADDER.length && !fit; i++) {
+      BTN_MIN = LADDER[i][0]; CARD_MIN = LADDER[i][1];
+      fit = bestLayoutWith(v, draw);
+      if (fit) { fit.btnMin = BTN_MIN; fit.cardMin = CARD_MIN; }
+    }
+    BTN_MIN = MIN_T; CARD_MIN = MIN_T;
+    return fit;
+  }
+  function bestLayoutWith(v, draw) {
     var sp = spacing(v.W, v.H), p = sp.p, g = sp.g;
     var small = Math.min(v.W, v.H) < 560, ig = small ? 8 : 10;
-    var b0 = Math.max(MIN_T, cssBtn(v.W, v.H)), best = null;
-    for (var b = b0; ; b = Math.max(MIN_T, b * 0.93)) {
+    var b0 = Math.max(BTN_MIN, cssBtn(v.W, v.H)), best = null;
+    for (var b = b0; ; b = Math.max(BTN_MIN, b * 0.93)) {
       var bb = Math.floor(b);
       [1, 2].forEach(function (k) {
         var hintH = k === 1 ? (small ? 96 : 118) : (small ? 64 : 76);
@@ -904,13 +928,13 @@
         consider('side', pn, BW, BH, bb, hintH);
       });
       [6, 3, 2].forEach(function (k) {
-        var hintH = small ? 44 : 56;
+        var hintH = bb < MIN_T ? 30 : (small ? 44 : 56);
         var pn = panelSize(k, bb, ig, hintH);
         if (pn.w > v.W - 2 * p) return;
         var BW = v.W - 2 * p, BH = v.H - 2 * p - g - pn.h;
         consider('below', pn, BW, BH, bb, hintH);
       });
-      if (bb <= MIN_T) break;
+      if (bb <= BTN_MIN) break;
     }
     function consider(lay, pn, BW, BH, bb, hintH) {
       ['syv', 'fire'].forEach(function (mode) {
@@ -935,6 +959,7 @@
     st.setProperty('--tools-cols', pn.k);
     st.setProperty('--hint-h', fit.hintH + 'px');
     gameEl.dataset.layout = fit.lay;
+    gameEl.dataset.kompakt = fit.b < MIN_T ? (fit.b < 60 ? 'lille' : 'ja') : 'nej';
     gameEl.dataset.mode = cg.mode;
     // Pladen centreres i sit område; panelet står ved siden af eller nedenunder
     var bx, by, sx, sy, sw, sh;
@@ -1112,13 +1137,17 @@
     if (current === 'game') layoutGame(); else fitScreen($('#' + current));
   }
   var resizeTimer = 0;
-  window.addEventListener('resize', function () {
+  function onResize() {
     syncSmall();
     if (current === 'menu') syncMenu();
     fitCurrent();
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(fitCurrent, 150);
-  });
+  }
+  window.addEventListener('resize', onResize);
+  window.addEventListener('orientationchange', function () { setTimeout(onResize, 200); });
+  // Browserens linjer kommer og går på mobil uden altid at give 'resize' på window
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', onResize);
 
   // ---------- Start ----------
   KabaleTegn.installerGrafik();

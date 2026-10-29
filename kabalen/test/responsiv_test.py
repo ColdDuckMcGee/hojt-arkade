@@ -1,4 +1,4 @@
-# Responsiv test af Kabalen: alle skærme ved de 8 opløsninger fra den fælles brief.
+# Responsiv test af Kabalen: alle skærme ved de 8 opløsninger fra den fælles brief, og mobil.
 # Tjekker: ingen rulning, intet klippet af, ingen overlappende knapper, tekst inden i knapperne,
 # alle mål mindst 84 px (knapper, pladser og de kort, man kan pege på: den synlige del af kortet),
 # og ingen fejl i konsollen.
@@ -13,6 +13,10 @@
 #   python3 kabalen/test/responsiv_test.py
 # Miljøvariabler (valgfri):
 #   CHROME=/sti/til/chrome     KABALEN_SKAERMBILLEDER=/mappe   ONLY=844x390,390x844
+#   ENGINES=chromium,webkit    (mobiltesten; WebKit kræver `python3 -m playwright install webkit`)
+#
+# Mobil (Chromium og WebKit med iPhone-emulering): 390×664, 390×700, 390×750, 390×844, 375×667,
+# 375×553, 430×740, 844×340, 667×375 og 320×480 – bordet har en højde, alle 7 bunker ses, ingen rulning.
 import json, os, sys, pathlib
 from playwright.sync_api import sync_playwright
 URL = (pathlib.Path(__file__).resolve().parent.parent / 'index.html').as_uri()
@@ -25,6 +29,35 @@ SIZES = [(1920,1080),(1366,768),(1280,720),(1024,768),(1024,1366),(1366,1024),(3
 MIN_T = 84
 SEED = int(os.environ.get('SEED', '2026'))
 errs=[]; fails=[]; summary={}
+# Mobil: synlige vinduer på telefoner med browserens linjer (fx iPhone med adresselinje og værktøjslinje)
+MOBILE = [(390,664),(390,700),(390,750),(390,844),(375,667),(375,553),(430,740),(844,340),(667,375),(320,480)]
+MOBILE_SMALL_OK = [(320,480)]   # her er der ikke plads til 84 px kort; bordet går forud, og kortene bliver mindre
+def known(eng, text):
+    # Kendte meldinger, som ikke kommer fra Kabalen: den headless WebKit har ingen lydenhed og ingen TLS
+    # (arkade/audio.js fanger ikke afvisningen fra AudioContext.resume), og den fælles highscore
+    # (arkade/highscore.js) sender en beacon til arkadens API.
+    return (eng == 'webkit' and ('Failed to start the audio device' in text or 'TLS support is not available' in text)) or 'hojt-arkade-api' in text
+MOBIL_CHECK = """() => {
+  const se = document.scrollingElement, W = innerWidth, H = innerHeight;
+  const R = e => e.getBoundingClientRect();
+  const inside = r => r.width > 0 && r.height > 0 && r.left >= -1 && r.top >= -1 && r.right <= W + 1 && r.bottom <= H + 1;
+  const bord = R(document.getElementById('bord')), side = R(document.getElementById('side'));
+  const inBord = r => bord.width > 0 && bord.height > 0 && r.left >= bord.left - 1 && r.top >= bord.top - 1 && r.right <= bord.right + 1 && r.bottom <= bord.bottom + 1;
+  const slot0 = s => document.querySelector('.bord .plads[data-slot="' + s + '"]');
+  const slot = s => { const e = slot0(s); return e && inBord(R(e)) ? e : null; };
+  let tableau = 0; for (let c = 0; c < 7; c++) { const e = slot('t' + c); if (e && inside(R(e))) tableau++; }
+  let found = 0; for (let f = 0; f < 4; f++) { const e = slot('g' + f); if (e && inside(R(e))) found++; }
+  const st = slot('bunke'); const kort = [...document.querySelectorAll('.bord .kort.opad')].filter(e => inside(R(e))).length;
+  const btns = [...document.querySelectorAll('#side .tools .btn')].filter(e => R(e).width > 0);
+  const g = document.getElementById('game');
+  return { bord: [bord.left, bord.top, bord.width, bord.height].map(Math.round), tableau, found, stock: !!st && inside(R(st)), kort,
+    scroll: se.scrollHeight > se.clientHeight + 1 || se.scrollWidth > se.clientWidth + 1,
+    overlap: bord.left < side.right - 1 && side.left < bord.right - 1 && bord.top < side.bottom - 1 && side.top < bord.bottom - 1,
+    btnOut: btns.filter(e => !inside(R(e))).map(e => e.id), nBtn: btns.length,
+    minBtn: Math.round(Math.min(...btns.map(e => Math.min(R(e).width, R(e).height)))),
+    textOut: btns.filter(e => e.scrollWidth > e.clientWidth + 2 || e.scrollHeight > e.clientHeight + 2).map(e => e.id),
+    cw: Kabalen.geo ? Kabalen.geo.cw : 0, kompakt: g.dataset.kompakt, lay: g.dataset.layout, mode: g.dataset.mode };
+}"""
 CHECK = """(sel) => {
   const se = document.scrollingElement, W = se.clientWidth, H = se.clientHeight;
   const vis = e => !e.closest('[hidden]') && e.getBoundingClientRect().width > 0 && getComputedStyle(e).visibility !== 'hidden';
@@ -299,6 +332,49 @@ with sync_playwright() as p:
                 if not act: fails.append(tag + ' Kabalen er ikke aktiv i hallen')
         ctx.close()
     b.close()
+
+    # ---------- Mobil: små synlige vinduer (browserens linjer foroven og forneden) ----------
+    # Chromium og WebKit (Safari-motoren) med iPhone-emulering. Bordet skal altid kunne ses
+    # sammen med knapperne: bordet har en højde, alle 7 bunker, grundbunkerne og bunken ses
+    # helt inden for vinduet, intet overlapper, ingen rulning. Kortene er mindst 84 px, så vidt
+    # pladsen tillader; på meget lave skærme bliver knapperne mindre (kompakt række).
+    for eng in [e for e in os.environ.get('ENGINES', 'chromium,webkit').split(',') if e]:
+        try:
+            mb = p.webkit.launch() if eng == 'webkit' else p.chromium.launch(executable_path=CHROME if os.path.exists(CHROME) else None, args=['--no-sandbox'])
+        except Exception as e:
+            fails.append('mobil: %s kunne ikke starte: %s' % (eng, str(e).splitlines()[0])); continue
+        for (w, h) in [x for x in MOBILE if not os.environ.get('ONLY') or '%dx%d' % x in os.environ['ONLY'].split(',')]:
+            tag = 'mobil-%s-%dx%d' % (eng, w, h)
+            dev = dict(p.devices['iPhone 13']); dev['viewport'] = {'width': w, 'height': h}; dev.pop('default_browser_type', None)
+            if eng != 'webkit': dev.pop('is_mobile', None)
+            ctx = mb.new_context(**dev); pg = ctx.new_page()
+            pg.add_init_script("(() => { let a = %d >>> 0; Math.random = () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; crypto.getRandomValues = (arr) => { for (let i = 0; i < arr.length; i++) arr[i] = Math.floor(Math.random() * 4294967296) >>> 0; return arr; }; })()" % (SEED + w + h))
+            pg.on('console', lambda m, eng=eng: errs.append(eng + ' ' + m.type + ': ' + m.text) if m.type in ('error', 'warning') and not known(eng, m.text) else None)
+            pg.on('pageerror', lambda e, eng=eng: errs.append(eng + ' pageerror: ' + str(e)) if not known(eng, str(e)) else None)
+            pg.goto(URL); pg.wait_for_timeout(500)
+            pg.click('#btn-start')
+            if not wait_game(pg, tag): ctx.close(); continue
+            pg.wait_for_timeout(500)
+            r = pg.evaluate(MOBIL_CHECK)
+            bad = []
+            if r['bord'][3] <= 0 or r['bord'][2] <= 0: bad.append('bordet har ingen størrelse %s' % r['bord'])
+            if r['tableau'] != 7: bad.append('kun %d af 7 bunker ses helt' % r['tableau'])
+            if r['found'] != 4: bad.append('kun %d af 4 grundbunker ses' % r['found'])
+            if not r['stock']: bad.append('bunken ses ikke')
+            if r['kort'] < 7: bad.append('kun %d kort ses' % r['kort'])
+            if r['scroll']: bad.append('siden kan rulles')
+            if r['overlap']: bad.append('bordet og knapperne overlapper')
+            if r['btnOut']: bad.append('knapper uden for vinduet: %s' % r['btnOut'])
+            if r['nBtn'] != 5: bad.append('kun %d af 5 knapper ses' % r['nBtn'])
+            if r['minBtn'] < 44: bad.append('knapper under 44 px (%d)' % r['minBtn'])
+            if r['cw'] < MIN_T and (w, h) not in MOBILE_SMALL_OK: bad.append('kort under 84 px (%d)' % r['cw'])
+            if r['textOut']: bad.append('tekst uden for knapper: %s' % r['textOut'])
+            for b_ in bad: fails.append(tag + ' ' + b_)
+            summary.setdefault('%s-%s' % (eng, '%dx%d' % (w, h)), []).append(min(r['cw'], r['minBtn']))
+            print('%s %-26s bord=%dx%d kort=%dpx knapper=%dpx (%s) layout=%s/%s' % ('OK  ' if not bad else 'FEJL', tag, r['bord'][2], r['bord'][3], r['cw'], r['minBtn'], r['kompakt'], r['lay'], r['mode']))
+            if SHOT and eng == 'webkit': pg.screenshot(path=SHOT + 'mobil-%dx%d.png' % (w, h))
+            ctx.close()
+        mb.close()
 print()
 print('MINDSTE MÅL PR. OPLØSNING (knapper, kort og pladser):')
 for k, v in summary.items(): print('  %-10s %s px' % (k, min(v)))
