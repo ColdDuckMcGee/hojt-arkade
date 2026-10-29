@@ -1,0 +1,116 @@
+/* Kabalen – tema "neon" (synthwave: neonkanter på mørkt glas).
+ *
+ * Al grafik i spillet kommer herfra og fra grafik.js i samme mappe: farver,
+ * glød, skygger, konturer, teksturer, skrifttyper, stregtykkelser og hjørner.
+ * Spillets egen CSS (css/kabalen.css) og JS bruger kun variablerne nedenfor,
+ * så et nyt tema (fx tema/papirklip/) leverer de samme variabler og de samme
+ * navngivne kulører, bagside og ikoner.
+ *
+ * Farvesættene (Pink og cyan, Orange og lilla, Grøn og blå, Høj kontrast)
+ * følger Hojt Arkades fælles indstilling data-theme. Glød slås fra med
+ * data-ka-gloed="fra" på <html> (Indstillinger → Udseende → Glød).
+ *
+ * Røde og sorte kort kan skelnes uden farve: røde kulører (hjerter, ruder) er
+ * tegnet hule, sorte (spar, klør) er fyldte. */
+
+/* ---------- Farver ---------- */
+:root, [data-theme] {
+  --ka-kort-bg: #120822;                  /* kortets forside */
+  --ka-kort-kant: rgba(214, 200, 255, 0.55);
+  --ka-rod: #ff4f8b;                      /* hjerter og ruder */
+  --ka-sort: #6fe8ff;                     /* spar og klør */
+  --ka-bag-bg: #2a0b46;                   /* bagsiden */
+  --ka-bag-bg2: #170630;
+  --ka-bag-line: #ff3fd8;
+  --ka-bag-kant: rgba(255, 63, 216, 0.75);
+  --ka-bag-fill: rgba(255, 63, 216, 0.2);
+  --ka-plads-kant: rgba(196, 176, 222, 0.45);  /* tomme pladser */
+  --ka-plads-bg: rgba(10, 4, 22, 0.42);
+  --ka-plads-ikon: rgba(196, 176, 222, 0.38);
+  --ka-valgt: #ffd23a;                    /* valgte kort */
+  --ka-valgt-bg: #2b2209;
+  --ka-maal: #39ff6a;                     /* lovlige mål */
+  --ka-maal-bg: rgba(57, 255, 106, 0.16);
+  --ka-tip: #22eaff;                      /* hint */
+  --ka-tal-bg: rgba(0, 0, 0, 0.78);       /* tal på skjulte kort og "+N" */
+  --ka-tal: #ffffff;
+  --ka-tal-kant: rgba(255, 255, 255, 0.6);
+  --ka-ok: #39ff6a;
+  --ka-err: #ff9a3c;
+  --ka-shadow: #000000;
+  --ka-overlay-bg: rgba(0, 0, 0, 0.62);
+  --ka-overlay-soft: rgba(0, 0, 0, 0.42);
+  --ka-hall-bg: rgba(0, 0, 0, 0.45);
+  --ka-hall-bg-hover: rgba(255, 255, 255, 0.08);
+  --ka-hall-border: rgba(196, 176, 222, 0.7);
+  --ka-swatch-border: rgba(255, 255, 255, 0.5);
+  --ka-texture: none;                     /* fx papir- eller lerstruktur i andre temaer */
+  --ka-bagside: repeating-linear-gradient(45deg, var(--ka-bag-bg) 0 10px, var(--ka-bag-bg2) 10px 20px);
+}
+[data-theme="solnedgang"] { --ka-sort: #c9a6ff; --ka-rod: #ff9a3c; --ka-bag-line: #ff8a1f; --ka-bag-kant: rgba(255, 138, 31, 0.75); --ka-bag-bg: #3a1030; --ka-tip: #22eaff; }
+[data-theme="cyberpunk"] { --ka-sort: #39ff6a; --ka-rod: #ff4fd8; --ka-bag-line: #2a9dff; --ka-bag-kant: rgba(42, 157, 255, 0.8); --ka-bag-bg: #031a2e; --ka-bag-bg2: #010b14; --ka-maal: #2a9dff; --ka-maal-bg: rgba(42, 157, 255, 0.18); --ka-valgt: #ffd23a; }
+[data-theme="kontrast"] {
+  --ka-kort-bg: #000000; --ka-kort-kant: #ffffff; --ka-rod: #ff8a8a; --ka-sort: #ffffff;
+  --ka-bag-bg: #0000a0; --ka-bag-bg2: #000060; --ka-bag-line: #ffffff; --ka-bag-kant: #ffffff;
+  --ka-plads-kant: #ffffff; --ka-plads-bg: #000000; --ka-plads-ikon: #9a9a9a;
+  --ka-valgt: #ffff00; --ka-valgt-bg: #3a3a00; --ka-maal: #00ff00; --ka-maal-bg: #003300; --ka-tip: #00ffff;
+  --ka-tal-bg: #000000; --ka-tal: #ffffff; --ka-tal-kant: #ffffff; --ka-ok: #00ff00; --ka-err: #ff9900;
+}
+
+/* ---------- Skrift ---------- */
+:root {
+  --ka-font-kort: var(--font);
+  --ka-weight-kort: 800;
+  --ka-weight-tal: 800;
+}
+
+/* ---------- Streger og hjørner ---------- */
+:root {
+  --ka-kort-kant-w: 2px;
+  --ka-plads-kant-w: 2px;
+  --ka-valgt-w: 4px;        /* ramme om valgte kort */
+  --ka-maal-w: 4px;         /* ramme om lovlige mål */
+  --ka-tip-w: 4px;
+  --ka-stroke-ico: 8;       /* ikoner tegnes i 100 × 100 */
+  --ka-stroke-hall: 7;
+  --ka-stroke-kulor: 0;     /* kontur om kulørerne (fx sort i ligne claire) */
+  --ka-stroke-bag: 5;
+  --ka-hall-border-w: 2px;
+  --ka-block-w: 3px;
+  --ka-radius-kort: 10px;
+  --ka-radius-hud: 14px;
+  --ka-radius-tal: 8px;
+  --ka-radius-swatch: 6px;
+  --ka-plads-stil: dashed;  /* tomme pladser: stiplet kant */
+  --ka-kant-stil: solid;    /* mål og bunken med kort: fuld kant */
+  --ka-radius-maal: 50%;    /* mærket (ring) på lovlige mål */
+  --ka-glid-ms: 220ms;      /* kortene glider på plads (0 ved Animation fra / mindre bevægelse) */
+}
+
+/* ---------- Glød og skygger ----------
+ * --glow kommer fra arkade.css (0 i Høj kontrast). Glød slås helt fra med
+ * data-ka-gloed="fra": så tegnes alt fladt, og spillet kan stadig aflæses. */
+:root, [data-theme] {
+  --ka-text-shadow: 0 1px 4px var(--ka-shadow);
+  --ka-text-shadow-strong: 0 1px 6px var(--ka-shadow), 0 0 2px var(--ka-shadow);
+  --ka-kort-skygge: 0 2px 6px rgba(0, 0, 0, 0.55);
+  --ka-kort-glow: 0 0 calc(8px * var(--glow)) color-mix(in srgb, var(--ka-kort-kant) 40%, transparent);
+  --ka-kulor-glow: drop-shadow(0 0 calc(3px * var(--glow)) currentColor);
+  --ka-valgt-glow: 0 0 calc(18px * var(--glow)) color-mix(in srgb, var(--ka-valgt) 70%, transparent);
+  --ka-maal-glow: 0 0 calc(20px * var(--glow)) color-mix(in srgb, var(--ka-maal) 75%, transparent);
+  --ka-tip-glow: 0 0 calc(18px * var(--glow)) color-mix(in srgb, var(--ka-tip) 70%, transparent);
+  --ka-bag-glow: 0 0 calc(6px * var(--glow)) color-mix(in srgb, var(--ka-bag-line) 45%, transparent);
+  --ka-score-glow: 0 0 calc(18px * var(--glow)) var(--ui);
+  --ka-points-glow: 0 0 calc(12px * var(--glow)) color-mix(in srgb, var(--ka-ok) 50%, transparent);
+}
+html[data-ka-gloed="fra"], html[data-ka-gloed="fra"] [data-theme] {
+  --glow: 0;
+  --ka-kort-glow: none; --ka-kulor-glow: none; --ka-valgt-glow: none; --ka-maal-glow: none;
+  --ka-tip-glow: none; --ka-bag-glow: none; --ka-score-glow: none; --ka-points-glow: none;
+}
+
+/* ---------- Prøver på farvesættene i Indstillinger ---------- */
+.swatch[data-farver="neon"] { --a: #ff2fd2; --b: #22eaff; --c: #1a0b2a; }
+.swatch[data-farver="solnedgang"] { --a: #ff8a1f; --b: #c77dff; --c: #2a0b3d; }
+.swatch[data-farver="cyberpunk"] { --a: #39ff6a; --b: #2a8dff; --c: #000000; }
+.swatch[data-farver="kontrast"] { --a: #ffff00; --b: #00ffff; --c: #000000; }
