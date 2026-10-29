@@ -57,7 +57,8 @@
   // Tegner en hel scene
   // sc: { car: {x,y,vx,vy,ground,boost,nose,chute}, type, vinger, raket, course, taken, tNow,
   //       angle (rampens vinkel), trail, previews: [{pts, slags}], felter: [{fra, til, nr, tekst, raekke}],
-  //       lim (udsynets grænse i meter; udeladt = alt ses) }
+  //       lim (udsynets grænse i meter; udeladt = alt ses),
+  //       fund (v1.6: turens fund i luften [{id, x, y, r, fund, risiko, t0, t1}]) }
   var drawnIds = [];
   // sc kan også have (v1.5, kun pynt – påvirker aldrig spillet):
   //   tid (sekunder til rolige løbende ting), stemning (stemningspartikler til/fra),
@@ -104,6 +105,15 @@
       var tk = sc.taken && sc.taken[o.id];
       if (tk !== undefined && tk <= (sc.tNow === undefined ? 1e9 : sc.tNow)) return;
       if (t[o.type]) { t[o.type](ctx, o, v, s); drawnIds.push({ id: o.id, type: o.type, x: o.x, r: o.r || 0 }); }
+    });
+    // Fund i luften (v1.6): ses fra toppen, hvor det dukkede op (t0), til det er taget eller bilen er forbi (t1)
+    var nu = sc.tNow === undefined ? 1e9 : sc.tNow;
+    if (t.fund) (sc.fund || []).forEach(function (o) {
+      if (o.t0 > nu + 1e-6 || (o.t1 !== null && o.t1 !== undefined && o.t1 <= nu)) return;
+      var tk = sc.taken && sc.taken[o.id];
+      if (tk !== undefined && tk <= nu) return;
+      if (o.x - o.r > lim || o.x < v.x0 - 15 || o.x > v.x1 + 15) return;
+      t.fund(ctx, o, v, s); drawnIds.push({ id: o.id, type: 'fund', x: o.x, r: o.r });
     });
     if (sc.trail) t.spor(ctx, sc.trail, v, s);
     var parts = t.partikel ? (sc.partikler || []) : [];

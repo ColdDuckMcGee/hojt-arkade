@@ -100,7 +100,8 @@
   };
   // Spillets egne lyde (js/lyd.js, Web Audio). Et tema kan give dem andre klange (RampenTema.lyde).
   var lyd = RampenLyd.create({ sfx: arkade.get('sound'), volume: volumeSetting(), lyde: RampenTema.lyde });
-  var LYD = { motor: 'motor', launch: 'opsendelse', boost: 'boost', coin: 'moent', hop: 'hop', landing: 'landing', buy: 'koeb' };
+  var LYD = { motor: 'motor', launch: 'opsendelse', boost: 'boost', coin: 'moent', hop: 'hop', landing: 'landing', buy: 'koeb',
+    fund: 'fund', fundRisiko: 'fund-risiko', fundBrug: 'fund-brug' };
   // Fælles lydstyrke, hvis arkaden får en (0–1 eller 0–100). Ellers fuld styrke (systemets lydstyrke gælder).
   function volumeSetting() {
     var v = arkade.all().volume;
@@ -295,9 +296,18 @@
   onAct($('#btn-launch'), launch);
 
   // Afspil et stykke af turen. Uden animation vises slutningen med det samme.
-  var lastCoins = 0, lastHp = 0, lastHops = 0, lastLand = 0, lastDmg = 0, curSeg = null;
+  var lastCoins = 0, lastHp = 0, lastHops = 0, lastLand = 0, lastDmg = 0, lastFundN = 0, lastReddet = 0, curSeg = null;
   // Lyde for det, der skete fra det forrige billede til dette
   function frameSounds(c) {
+    // Fund (v1.6): taget eller brugt i dette billede
+    var nyFund = (c.fundN || 0) > lastFundN, brugt = (c.reddet || 0) > lastReddet;
+    if (nyFund) {
+      var fl = game.fund(c.fundN), sidst = fl[fl.length - 1];
+      if (sidst) { sfx(sidst.risiko ? 'fundRisiko' : 'fund'); setNote('Fund: ' + sidst.navn + ' – ' + sidst.tekst.charAt(0).toLowerCase() + sidst.tekst.slice(1) + '.', 'ok'); }
+    }
+    if (brugt) { sfx('fundBrug'); setNote('Reservehjulet tog den hårde landing.', 'ok'); }
+    if (nyFund || brugt) { fundHud(c); hintOnly(); }
+    lastFundN = c.fundN || 0; lastReddet = c.reddet || 0;
     if (c.coins > lastCoins) sfx(c.coins - lastCoins >= 10 ? 'bonus' : 'coin');
     if (c.hops > lastHops) sfx('hop');
     var dmg = c.dmg - lastDmg;
@@ -311,6 +321,7 @@
     setNote('', '');
     var fr = seg.frames, first = fr[0];
     lastCoins = first.coins; lastHp = first.hp; lastHops = first.hops; lastLand = first.landings; lastDmg = first.dmg;
+    lastFundN = first.fundN || 0; lastReddet = first.reddet || 0;
     var done = function () {
       playing = false;
       var lf = fr[fr.length - 1];
@@ -428,7 +439,11 @@
     r.zoneBonus.forEach(function (z) { parts.push(z.beloen + ' for at nå ' + z.navn.toLowerCase()); });
     r.goals.forEach(function (g) { parts.push(g.beloen + ' for målet "' + g.tekst + '"'); });
     if (game.p.bil > 1) parts.push('Bil ' + game.p.bil + ' giver +' + Math.round((L.multiplier(game.p.bil) - 1) * 100) + ' %');
+    var fs = r.fundStat || {};
+    if (fs.ekstraMoent) parts.push(fs.ekstraMoent + ' ekstra fra Guldfeber');
+    if (fs.dublet) parts.push(fs.dublet + ' for fund, du havde i forvejen');
     $('#res-parts').textContent = parts.join(' · ') + '.';
+    renderResFund(r);
     var rank = '';
     if (r.newBest && r.dist > 0) { rank = 'Din længste tur med denne bil!'; }
     if (res && res.rank === 1) { rank = 'Ny rekord!'; sfx('record'); }
@@ -446,6 +461,73 @@
   $('#btn-res-shop').addEventListener('click', function () { sfx('click'); hideOverlays(); show('shop'); });
   $('#btn-res-again').addEventListener('click', function () { sfx('click'); startTrip(); });
   $('#btn-res-menu').addEventListener('click', function () { sfx('click'); hideOverlays(); show('menu'); });
+
+  // Fundene på slutskærmen: ikon, navn og hvad fundet gjorde på turen
+  function fundVirkning(id, fs) {
+    switch (id) {
+      case 'reservehjul': return fs.reddet ? 'Reddede ' + fs.reddet + ' landing' + (fs.reddet === 1 ? '' : 'er') + ' (' + fs.sparet + ' skade)' : 'Blev ikke brugt';
+      case 'guldfeber': return '+' + fs.ekstraMoent + ' mønter' + (fs.ekstraSkade ? ', +' + fs.ekstraSkade + ' skade' : '');
+      case 'nitro': return '+' + fs.nitro + ' boost (giver ingen mønter, hvis de ikke bruges)';
+      case 'magnet': return fs.magnet ? 'Trak ' + fs.magnet + ' mønt' + (fs.magnet === 1 ? '' : 'er') + ' til bilen' : 'Trak ingen mønter';
+      case 'kompas': return 'Smallere felter og længere udsyn';
+      case 'vimpel': return 'Viste vinden svagt';
+      case 'koeler': return 'Boost uden overophedning';
+    }
+    return '';
+  }
+  function fundChip(id, navn, info, risiko, brugt) {
+    return '<div class="fund-chip' + (risiko ? ' risiko' : '') + (brugt ? ' brugt' : '') + '">' +
+      '<svg viewBox="0 0 100 100" aria-hidden="true"><use href="#rampen-ikon-fund-' + id + '"/></svg>' +
+      '<span><span class="fund-navn">' + navn + '</span>' + (info ? '<span class="fund-info">' + info + '</span>' : '') + '</span></div>';
+  }
+  function renderResFund(r) {
+    var el = $('#res-fund'), l = r.fund || [], fs = r.fundStat || {};
+    el.hidden = !l.length;
+    el.innerHTML = l.map(function (q) { return fundChip(q.id, q.navn, fundVirkning(q.id, fs), q.risiko, false); }).join('');
+    el.setAttribute('aria-label', l.length ? 'Fund på turen: ' + l.map(function (q) { return q.navn + ' – ' + fundVirkning(q.id, fs); }).join('. ') : '');
+    el.setAttribute('role', 'group');
+  }
+  // Fundene på banen (HUD): store ikoner og danske navne; vindvimplen viser vinden svagt
+  var fundKey = '';
+  function vimpelTekst() {
+    var v = game.vimpel(); if (!v) return '';
+    var a = v.x === 'svag' ? 'svag vind' : v.x, b = v.y === 'svag' ? '' : v.y;
+    return b ? a + ', ' + b : a;
+  }
+  function fundHud(c) {
+    var el = $('#hud-fund'); if (!el) return;
+    var l = (game.flight && current === 'game' && phase !== 'done') ? game.fund(c && c.fundN !== undefined ? c.fundN : undefined) : [];
+    var info = l.map(function (q) {
+      if (q.id === 'vimpel') return vimpelTekst();
+      if (q.brugt) return 'brugt';
+      if (q.id === 'nitro') return '+' + (2 * q.antal) + ' boost';
+      if (q.antal > 1) return '× ' + q.antal;
+      return q.kort;
+    });
+    var key = l.map(function (q, i) { return q.id + q.antal + info[i]; }).join('|');
+    if (key !== fundKey) {
+      fundKey = key;
+      el.innerHTML = l.map(function (q, i) { return fundChip(q.id, q.navn, info[i], q.risiko, q.brugt); }).join('');
+      el.setAttribute('aria-label', l.length ? 'Turens fund: ' + l.map(function (q, i) { return q.navn + (info[i] ? ' (' + info[i] + ')' : ''); }).join(', ') : 'Ingen fund');
+      el.classList.toggle('taet', l.length >= 3);
+    }
+    el.hidden = !l.length;
+    placeFund();
+  }
+  // Fund-striben står under hinten, når hinten står på banen; bliver den for bred, vises kun ikonerne
+  function placeFund() {
+    var el = $('#hud-fund'), h = $('#hint'), bw = $('#board-wrap');
+    if (!el || el.hidden) return;
+    var top = 8;
+    if (h.parentNode === bw && h.textContent) top = h.offsetTop + h.offsetHeight + 6;
+    bw.style.setProperty('--fund-top', top + 'px');
+    el.classList.remove('mini');
+    if (el.scrollHeight > 60 || el.offsetTop + el.offsetHeight > bw.clientHeight * 0.45) el.classList.add('mini');
+  }
+  function hintOnly() {
+    var hint = $('#hint');
+    if (noteText) { hint.textContent = noteText; hint.className = 'hint' + (noteCls ? ' ' + noteCls : ''); }
+  }
 
   // ---------- Pause ----------
   function setPaused(p) {
@@ -492,7 +574,8 @@
       course: game.course, taken: game.flight ? game.flight.taken : {}, tNow: lastCar ? lastCar.t : 0,
       angle: game.p.angle, type: game.bilType(), vinger: st.vinger, raket: game.p.upg.raket > 0,
       trail: trail, previews: [], felter: [],
-      udsyn: (game.st || st).udsyn,
+      udsyn: game.effStats().udsyn,
+      fund: game.flight ? game.flight.fundSpawns : [],
       opg: game.p.upg, maxHp: (game.st || st).maxHp          // kun til tegningen (synlige opgraderinger og slid)
     };
     return sceneCache;
@@ -555,7 +638,7 @@
     // Beslutningspunkt
     if (phase === 'freeze' && f) {
       $('#freeze-label').textContent = 'Vælg et kort';
-      $('#freeze-value').textContent = 'udsyn ' + Math.round(game.st.udsyn) + ' m';
+      $('#freeze-value').textContent = 'udsyn ' + Math.round(game.effStats().udsyn) + ' m';
     }
     renderCards();
     $('#fly-value').textContent = fastNow ? 'Hurtig' : 'Rolig';
@@ -578,15 +661,21 @@
       else if (phase === 'fly') txt = 'Bilen kører …';
       else if (phase === 'freeze' && opts) {
         // Kort tekst på skærmen; hele forklaringen (altid som interval) læses op via banen
-        txt = 'Vinden er skjult: felterne viser, hvor bilen cirka lander.';
-        fuld = 'Bilen er på toppen ved ' + m(f.x) + '. Du kan se ' + Math.round(game.st.udsyn) + ' m frem. ' +
-          opts.kort.map(kortAria).join(' ');
+        var vt = vimpelTekst(), nyt = opts.kort.filter(function (k) { return k.fund; })[0];
+        txt = nyt ? 'Et fund svæver foran bilen: ' + nyt.titel.replace('Tag fundet: ', '') + '. Vil du tage det?' :
+          vt ? 'Vimplen: ' + vt + '. Felterne viser, hvor bilen cirka lander.' : 'Vinden er skjult: felterne viser, hvor bilen cirka lander.';
       } else if (phase === 'done') txt = 'Turen er slut.';
+    }
+    if (phase === 'freeze' && opts && f) {
+      var fl = game.fund().map(function (q) { return q.navn + (q.brugt ? ' (brugt)' : ''); });
+      fuld = (noteText ? noteText + ' ' : '') + 'Bilen er på toppen ved ' + m(f.x) + '. Du kan se ' + Math.round(game.effStats().udsyn) + ' m frem. ' +
+        (fl.length ? 'Turens fund: ' + fl.join(', ') + '. ' : '') + opts.kort.map(kortAria).join(' ');
     }
     var hint = $('#hint');
     hint.textContent = txt;
     hint.className = 'hint' + (cls ? ' ' + cls : '');
     courseEl.setAttribute('aria-label', 'Banen. ' + (fuld || txt));
+    fundHud(phase === 'fly' && lastCar ? lastCar : null);
     renderCourse();
     if (current === 'game' && !relayouting && (overflows(gameEl) || overflows(root))) { relayouting = true; layoutGame(); relayouting = false; }
   }
@@ -1043,10 +1132,10 @@
     get guard() { return gazeGuard ? gazeGuard.id : null; }, get tegn() { return tegn; }, get options() { return opts; },
     settings: arkade, gameSettings: gset, records: records, dwell: dwell, audio: audio, lyd: lyd, logik: L,
     start: startTrip, show: show, launch: launch, angle: changeAngle, power: changePower, decide: decide, decideNr: decideNr,
-    get cards() { return opts ? opts.kort : []; }, get udsyn() { return game.st ? game.st.udsyn : game.stats().udsyn; },
+    get cards() { return opts ? opts.kort : []; }, get udsyn() { return game.effStats().udsyn; },
     skip: skipAhead, skipToEnd: skipToEnd, buy: buy, setPaused: setPaused, layout: layoutGame, refresh: refresh,
     // Til test: giv mønter / læg et fremskridt ind
-    setProgress: function (p) { game = L.createGame(p); saveProgress(); syncMenu(); },
+    setProgress: function (p) { tegn.stop(); playing = false; game = L.createGame(p); saveProgress(); syncMenu(); },
     save: saveProgress
   };
 })();

@@ -10,7 +10,8 @@
  *
  *   var lyd = RampenLyd.create({ sfx: true, volume: 1, lyde: RampenTema.lyde });
  *   lyd.unlock();             // ved første klik/tast
- *   lyd.play('opsendelse');   // motor, opsendelse, boost, moent, hop, landing, koeb
+ *   lyd.play('opsendelse');   // motor, opsendelse, boost, moent, hop, landing, koeb,
+ *                             // fund, fund-risiko, fund-brug (v1.6)
  *   lyd.play('landing', 0.8); // n = hvor hård landingen var (0–1)
  */
 (function (global) {
@@ -112,6 +113,22 @@
         var h = Math.max(0, Math.min(1, +n || 0));
         tone(NOTE(43 - 5 * h), t, 0.22 + 0.15 * h, { type: 'sine', gain: 0.08 + 0.05 * h, slideTo: NOTE(36 - 5 * h), filter: 500 });
         stoej(t, 0.12 + 0.1 * h, { freq: 220, q: 0.9, gain: 0.03 + 0.04 * h, attack: 0.005 });
+      },
+      // Fund (v1.6): en lys klokke i tre trin, når et fund samles op
+      fund: function (t) {
+        [76, 83, 88].forEach(function (m, i) { tone(NOTE(m), t + i * 0.07, 0.32, { type: 'sine', gain: 0.06 }); });
+        tone(NOTE(64), t, 0.45, { type: 'triangle', gain: 0.04, filter: 1400 });
+      },
+      // Risikofund: samme klokke, men mørkere og med en lille nedadgående tone til sidst
+      'fund-risiko': function (t) {
+        [69, 72, 76].forEach(function (m, i) { tone(NOTE(m), t + i * 0.08, 0.3, { type: 'triangle', gain: 0.06, filter: 1600 }); });
+        tone(NOTE(57), t + 0.26, 0.4, { type: 'sine', gain: 0.06, slideTo: NOTE(50) });
+      },
+      // Et fund bliver brugt (Reservehjulet tager en hård landing): blødt "pling" og et sus
+      'fund-brug': function (t) {
+        tone(NOTE(79), t, 0.25, { type: 'sine', gain: 0.06 });
+        tone(NOTE(74), t + 0.09, 0.35, { type: 'sine', gain: 0.05 });
+        stoej(t, 0.25, { freq: 1200, freqTo: 600, q: 0.8, gain: 0.03, attack: 0.02 });
       },
       // Køb i værkstedet: tre stigende toner
       koeb: function (t) { [67, 71, 76].forEach(function (m, i) { tone(NOTE(m), t + i * 0.08, 0.2, { type: 'triangle', gain: 0.11 }); }); }

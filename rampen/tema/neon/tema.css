@@ -58,6 +58,15 @@
   --rampen-moent-kant: #a86a00;
   --rampen-bonus: #39ff6a;
   --rampen-bonus-kant: #04300f;
+  /* Fund (v1.6): plade, kant, tegn og en stille ring. Risikofund er mørkere og stiplede. */
+  --rampen-fund: #22eaff;
+  --rampen-fund-kant: #e9fdff;
+  --rampen-fund-risiko: #8a1f6a;
+  --rampen-fund-risiko-kant: #ffb13d;
+  --rampen-fund-tegn: #0b0420;
+  --rampen-fund-halo: rgba(34, 234, 255, 0.45);
+  --rampen-fund-hud: rgba(34, 234, 255, 0.16);
+  --rampen-fund-hud-risiko: rgba(255, 177, 61, 0.18);
   --rampen-bil-krop: #ff3fd8;
   --rampen-bil-krop-2: #22eaff;
   --rampen-bil-kant: #ffe8fb;
@@ -136,6 +145,8 @@
   --rampen-felt-1-kant: #ffe14d; --rampen-felt-2-kant: #c77dff; --rampen-felt-3-kant: #ff8a1f;
   --rampen-felt-1: rgba(255, 225, 77, 0.3); --rampen-felt-2: rgba(199, 125, 255, 0.3); --rampen-felt-3: rgba(255, 138, 31, 0.3);
   --rampen-taage: rgba(42, 11, 61, 0.82); --rampen-taage-2: rgba(42, 11, 61, 0);
+  --rampen-fund: #ffd23f; --rampen-fund-kant: #fff6d8; --rampen-fund-halo: rgba(255, 210, 63, 0.45); --rampen-fund-hud: rgba(255, 210, 63, 0.16);
+  --rampen-fund-risiko: #6a1f8a; --rampen-fund-risiko-kant: #ff8a1f;
 }
 [data-theme="cyberpunk"] {
   --rampen-sol-1: #39ff6a; --rampen-sol-2: #2a9dff; --rampen-skilt: #39ff6a; --rampen-rampe-lys: #39ff6a;
@@ -145,6 +156,8 @@
   --rampen-felt-1-kant: #39ff6a; --rampen-felt-2-kant: #2a9dff; --rampen-felt-3-kant: #ff3fd8;
   --rampen-felt-1: rgba(57, 255, 106, 0.3); --rampen-felt-2: rgba(42, 157, 255, 0.3); --rampen-felt-3: rgba(255, 63, 216, 0.3);
   --rampen-taage: rgba(0, 4, 12, 0.85); --rampen-taage-2: rgba(0, 4, 12, 0);
+  --rampen-fund: #2a9dff; --rampen-fund-kant: #e8fff0; --rampen-fund-halo: rgba(42, 157, 255, 0.5); --rampen-fund-hud: rgba(42, 157, 255, 0.18);
+  --rampen-fund-risiko: #5a0a46; --rampen-fund-risiko-kant: #ff3fd8; --rampen-fund-hud-risiko: rgba(255, 63, 216, 0.18);
 }
 [data-theme="kontrast"] {
   --rampen-himmel-forstad-1: #000000; --rampen-himmel-forstad-2: #000000; --rampen-himmel-oerken-1: #000000; --rampen-himmel-oerken-2: #000000;
@@ -159,6 +172,8 @@
   --rampen-felt-1-kant: #ffff00; --rampen-felt-2-kant: #00ffff; --rampen-felt-3-kant: #ff00ff;
   --rampen-felt-1: rgba(255, 255, 0, 0.35); --rampen-felt-2: rgba(0, 255, 255, 0.35); --rampen-felt-3: rgba(255, 0, 255, 0.35);
   --rampen-taage: rgba(0, 0, 0, 0.9); --rampen-taage-2: rgba(0, 0, 0, 0);
+  --rampen-fund: #00ffff; --rampen-fund-kant: #ffffff; --rampen-fund-tegn: #000000; --rampen-fund-halo: #ffffff; --rampen-fund-hud: #000000;
+  --rampen-fund-risiko: #ff00ff; --rampen-fund-risiko-kant: #ffff00; --rampen-fund-hud-risiko: #000000;
 }
 /* Tågen er pynt og kan slås fra (Indstillinger → Udseende → Tåge). Tingene er stadig skjulte. */
 html[data-rampen-taage="fra"], html[data-rampen-taage="fra"] [data-theme] { --rampen-taage: transparent; --rampen-taage-2: transparent; }

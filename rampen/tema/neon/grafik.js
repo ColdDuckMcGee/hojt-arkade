@@ -20,6 +20,9 @@
  *   startrampe(ctx, {h, len, vinkel}, v, s)     rampen, bilen sendes ud fra (x = 0)
  *   ting: trampolin, rampe, olie, sten, kaktus, kegle, ballon, vind, moent, bonus
  *         (ctx, o, v, s) – o er tingen fra logikken (x, y, w, h eller r i meter, zone)
+ *   fund(ctx, {x, y, r, fund, risiko}, v, s)    (v1.6) et fund i luften: fund = reservehjul | kompas | magnet |
+ *                                               koeler | vimpel | guldfeber | nitro; risiko = har en bagside
+ *                                               (tegnes med stiplet kant, ikke kun en anden farve). Står stille.
  *   bil(ctx, {x, y, vinkel, type, vinger, raket, flamme, skaerm, naese}, v, s)
  *         type: saebekasse | folkevogn | sportsvogn | raketbil (fra sæbekassebil til raketbil)
  *   spor(ctx, pts, v, s)                        bilens vej indtil nu
@@ -50,7 +53,8 @@
     'forhaand-kort-1', 'forhaand-kort-2', 'forhaand-kort-3',
     'felt-1', 'felt-1-kant', 'felt-2', 'felt-2-kant', 'felt-3', 'felt-3-kant', 'taage', 'taage-2',
     'bil-lys', 'bil-lys-2', 'bil-lygte', 'bil-krom', 'bil-panser', 'bil-skade', 'roeg', 'roeg-moerk', 'stoev', 'gnist',
-    'sol-1', 'sol-2', 'stjerne', 'sky', 'fugl', 'rampe-lys', 'skilt', 'skilt-flade'];
+    'sol-1', 'sol-2', 'stjerne', 'sky', 'fugl', 'rampe-lys', 'skilt', 'skilt-flade',
+    'fund', 'fund-kant', 'fund-risiko', 'fund-risiko-kant', 'fund-tegn', 'fund-halo'];
   ZONER.forEach(function (z) { FARVER.push('himmel-' + z + '-1', 'himmel-' + z + '-2', 'jord-' + z, 'jord-' + z + '-kant', 'kulisse-' + z, 'kulisse-' + z + '-2', 'fjern-' + z, 'forgrund-' + z, 'partikel-' + z); });
   var TAL = ['gloed', 'gloed-blur', 'skygge-x', 'skygge-y', 'skygge-blur', 'kontur-w', 'streg-w', 'forhaand-w', 'spor-w', 'jord-kant-w', 'tekst-str', 'radius'];
 
@@ -84,6 +88,23 @@
   // Horisont for fjerne lag: følger jorden, men kun en del af vejen, når kameraet går op
   function horisont(v, f) { var g = v.h * 0.86; return g + (v.sy(0) - g) * f; }
   function mix(a, b, f) { return f <= 0 ? a : f >= 1 ? b : null; }
+
+  // Fundenes tegn (v1.6) som SVG-stier i 100 × 100 – bruges både på banen (Path2D) og som ikoner
+  var FUND_TEGN = {
+    reservehjul: { line: 'M84 50 A34 34 0 1 1 16 50 A34 34 0 1 1 84 50 Z M50 16 V32 M50 68 V84 M16 50 H32 M68 50 H84', fill: 'M62 50 A12 12 0 1 1 38 50 A12 12 0 1 1 62 50 Z' },
+    kompas: { line: 'M84 50 A34 34 0 1 1 16 50 A34 34 0 1 1 84 50 Z', fill: 'M50 18 L61 50 L50 82 L39 50 Z' },
+    magnet: { line: 'M30 28 V52 A20 20 0 0 0 70 52 V28', fill: 'M18 12 H42 V30 H18 Z M58 12 H82 V30 H58 Z' },
+    koeler: { line: 'M50 10 V90 M15 30 L85 70 M15 70 L85 30 M40 16 L50 26 L60 16 M40 84 L50 74 L60 84', fill: 'M50 42 L57 50 L50 58 L43 50 Z' },
+    vimpel: { line: 'M24 8 V94 M14 94 H36', fill: 'M28 14 L90 32 L28 52 Z' },
+    guldfeber: { line: 'M44 40 V76 M34 46 L44 40', fill: 'M78 58 A30 30 0 1 1 18 58 A30 30 0 1 1 78 58 Z M82 6 L86 18 L98 22 L86 26 L82 38 L78 26 L66 22 L78 18 Z' },
+    nitro: { line: 'M18 86 L30 74 M30 92 L40 82', fill: 'M60 6 L22 56 H48 L38 94 L80 40 H54 Z' }
+  };
+  var fundSti = {};
+  function fundPath(id, slags) {
+    if (typeof Path2D === 'undefined' || !FUND_TEGN[id]) return null;
+    var k = id + slags; if (!fundSti[k]) fundSti[k] = new Path2D(FUND_TEGN[id][slags]);
+    return fundSti[k];
+  }
 
   var tegn = {
     himmel: function (ctx, d, v, s) {
@@ -260,6 +281,31 @@
       rr(ctx, x - r * 0.7, y - r, r * 1.4, r * 2, r * 0.3); ctx.fillStyle = s['bonus']; ctx.fill(); noFx(ctx);
       ctx.lineWidth = Math.max(1.5, r * 0.18); ctx.strokeStyle = s['bonus-kant']; ctx.stroke();
       ctx.beginPath(); ctx.moveTo(x - r * 0.3, y); ctx.lineTo(x + r * 0.3, y); ctx.moveTo(x, y - r * 0.3); ctx.lineTo(x, y + r * 0.3); ctx.stroke();
+    },
+    // Et fund (v1.6): en rund plade med fundets tegn og en stille ring omkring (ingen blink).
+    // Risikofund har en mørkere plade og stiplet kant og ring.
+    fund: function (ctx, o, v, s) {
+      var x = v.sx(o.x), y = v.sy(o.y), r = px(v, o.r, 15);
+      var flade = o.risiko ? s['fund-risiko'] : s['fund'], kant = o.risiko ? s['fund-risiko-kant'] : s['fund-kant'];
+      noFx(ctx);
+      ctx.setLineDash(o.risiko ? [r * 0.35, r * 0.25] : []);
+      ctx.beginPath(); ctx.arc(x, y, r * 1.4, 0, Math.PI * 2);
+      ctx.lineWidth = Math.max(2, r * 0.12); ctx.strokeStyle = s['fund-halo']; ctx.stroke();
+      glow(ctx, s, kant, 0.9);
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = flade; ctx.fill();
+      noFx(ctx);
+      ctx.lineWidth = Math.max(2.5, r * 0.16); ctx.strokeStyle = kant; ctx.stroke();
+      ctx.setLineDash([]);
+      kontur(ctx, s);
+      var l = fundPath(o.fund, 'line'), f = fundPath(o.fund, 'fill');
+      if (l || f) {
+        var k = r * 1.25 / 100;
+        ctx.save(); ctx.translate(x - 50 * k, y - 50 * k); ctx.scale(k, k);
+        ctx.strokeStyle = s['fund-tegn']; ctx.fillStyle = s['fund-tegn'];
+        ctx.lineWidth = 10; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        if (l) ctx.stroke(l); if (f) ctx.fill(f);
+        ctx.restore();
+      }
     },
     // ---------- Bilen ----------
     // b: {x, y, vinkel, type, vinger, raket, flamme, skaerm, naese,
@@ -643,6 +689,10 @@
     'trampolin': '<path class="ico-line" d="M12 54 Q50 72 88 54 M20 58 L14 86 M80 58 L86 86"/><path class="ico-fill" d="M38 14 L62 14 L50 36 Z"/>',
     'faldskaerm': '<path class="ico-fill" d="M10 46 Q50 0 90 46 Z"/><path class="ico-line" d="M12 46 L46 84 M50 46 V84 M88 46 L54 84"/><rect class="ico-fill" x="42" y="80" width="16" height="12" rx="2"/>'
   };
+  // Fundene (v1.6): fund-<id>, samme tegn som på banen
+  Object.keys(FUND_TEGN).forEach(function (id) {
+    ikoner['fund-' + id] = '<path class="ico-line" d="' + FUND_TEGN[id].line + '"/><path class="ico-fill" d="' + FUND_TEGN[id].fill + '"/>';
+  });
 
   // Lyde: neon bruger spillets egne standardlyde (js/lyd.js). Et andet tema kan give
   // enkelte lyde en anden klang: lyde: { landing: function (t, n, v) { v.tone(…); } }.

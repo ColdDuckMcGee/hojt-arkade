@@ -21,6 +21,13 @@
  * spilleren vælger ét af 2–3 valgkort (fx "Brug boost nu", "Tag ballonen",
  * "Næse op"). Ingen hurtige reaktioner: intet sker, før der er valgt.
  *
+ * Fund (v1.6): på toppen af et hop kan der dukke et fund op i luften lige foran
+ * bilen (fra turens frø). Det giver en fordel, der kun gælder resten af turen –
+ * fx Reservehjul, Kompas eller Mønt-magnet – eller er et risikofund med en bagside
+ * (Guldfeber, Nitro). Fundet tages med valgkortet "Tag fundet" (bilen styrer
+ * igennem det og taber lidt fart) i stedet for fx et boost.
+ * Fundene nulstilles, når turen slutter.
+ *
  * Enheder: meter, sekunder. x = afstand fra rampen, y = højde over jorden.
  */
 (function (global) {
@@ -124,6 +131,87 @@
     skyer: { kegle: 2, sten: 1 },
     rummet: { sten: 1 }
   };
+  // ---------- Fund (v1.6): fordele, der kun gælder resten af turen ----------
+  // stak = hvor mange der kan være aktive ad gangen (et ekstra fund giver ellers FUND_DUBLET mønter)
+  var FUND = [
+    { id: 'reservehjul', navn: 'Reservehjul', kort: 'Næste hårde landing uden skade', tekst: 'Den næste hårde landing giver ingen skade', stak: 2 },
+    { id: 'kompas', navn: 'Kompas', kort: 'Smallere felter, længere udsyn', tekst: 'Smallere landingsfelter og 8 m længere udsyn resten af turen', stak: 1 },
+    { id: 'magnet', navn: 'Mønt-magnet', kort: 'Trækker mønter til sig', tekst: 'Mønter i nærheden bliver trukket til bilen resten af turen', stak: 1 },
+    { id: 'koeler', navn: 'Køler', kort: 'Boost uden overophedning', tekst: 'Boost overopheder ikke og lander blødere resten af turen', stak: 1 },
+    { id: 'vimpel', navn: 'Vindvimpel', kort: 'Viser vinden svagt', tekst: 'Viser svagt, hvordan vinden blæser, og gør felterne lidt smallere', stak: 1 },
+    { id: 'guldfeber', navn: 'Guldfeber', kort: 'Dobbelt mønter, skrøbelig bil', tekst: 'Dobbelt mønter, men bilen tager 50 % mere skade resten af turen', stak: 1, risiko: true },
+    { id: 'nitro', navn: 'Nitro', kort: '+2 boost, dobbelt overophedning', tekst: '+2 boost nu, men boost overopheder dobbelt og giver ingen mønter ved slut', stak: 3, risiko: true }
+  ];
+  var FUND_ID = {}; FUND.forEach(function (d) { FUND_ID[d.id] = d; });
+  var FUND_DUBLET = 15;                         // mønter for et fund, man allerede har
+  var FUND_CHANCE = 0.4;                        // chance for et fund ved hver top
+  var FUND_PULJE = {
+    forstad: { reservehjul: 3, magnet: 3, kompas: 2, vimpel: 2, koeler: 1, guldfeber: 1 },
+    oerken: { reservehjul: 2, magnet: 2, kompas: 2, vimpel: 2, koeler: 2, guldfeber: 2, nitro: 1 },
+    bjerge: { reservehjul: 2, magnet: 2, kompas: 2, vimpel: 1, koeler: 2, guldfeber: 2, nitro: 2 },
+    skyer: { reservehjul: 2, magnet: 2, kompas: 1, vimpel: 1, koeler: 2, guldfeber: 2, nitro: 2 },
+    rummet: { reservehjul: 2, magnet: 2, kompas: 1, vimpel: 1, koeler: 2, guldfeber: 2, nitro: 2 }
+  };
+  // Et fund dukker op i luften ved et beslutningspunkt (frø: turens vind + toppens nummer).
+  // Det svæver lidt foran bilen, over eller under den vej, bilen ellers tager, så man
+  // skal vælge kortet "Tag fundet" (og tabe lidt fart) for at få det.
+  function spawnFund(f, st) {
+    f.topN = (f.topN | 0) + 1;
+    if (!f.vind || !f.fundSpawns || !FUND_TIL.til) return null;
+    var r = rng(hash((f.vind.s >>> 0) ^ 0x46554E44, f.topN));
+    if (r() >= FUND_CHANCE) return null;
+    var z = zoneAt(f.x).id, id = vaelg(r, FUND_PULJE[z]), d = FUND_ID[id];
+    var D = 13 + r() * 6, side = r() < 0.5 ? 1 : -1, off = 4 + r() * 1.5;
+    // Hvor bilen er D m fremme, hvis intet vælges – fundet lægges ved siden af den vej
+    var c = clone(f); c.luftI = -1;
+    var n = 0, vej = [];
+    while (c.x < f.x + D + 6 && n++ < 900) { step(c, st, TOM_BANE, false); vej.push(c.x, c.y + 0.6); if (c.ground || c.done) break; }
+    var yAt = null; for (var i = 0; i < vej.length; i += 2) if (vej[i] >= f.x + D) { yAt = vej[i + 1] - 0.6; break; }
+    if (yAt === null) return null;
+    var y = 0;
+    for (var forsoeg = 0; forsoeg < 4; forsoeg++, off += 1) {
+      y = yAt + side * off; if (y < 2.5) { side = 1; y = yAt + off; }
+      var naer = 1e9; for (var j = 0; j < vej.length; j += 2) naer = Math.min(naer, Math.hypot(vej[j] - f.x - D, vej[j + 1] - y));
+      if (naer > 3.4) break;
+    }
+    var o = { id: 1000000 + f.topN, type: 'fund', fund: id, risiko: !!d.risiko, x: f.x + D, y: y, r: 1.8, t0: f.t, t1: null };
+    f.fundSpawns.push(o); f.luftI = f.fundSpawns.length - 1;
+    return o;
+  }
+  var FUND_TIL = { til: true };                 // kun til tests/sammenligning: fund slået fra
+  var TOM_BANE = { seed: 0, range: function () { return []; } };
+  function aktivtFund(f) { return f.fundSpawns && f.luftI >= 0 ? f.fundSpawns[f.luftI] : null; }
+  function harFund(f, id) { return !!(f && f.fund && f.fund[id] > 0); }
+  // Bilens værdier med fundene (kompas og vimpel) – samme objekt, hvis intet ændres
+  function eff(f, st) {
+    var b = st.base || st;
+    if (!f || !f.fund || !(harFund(f, 'kompas') || harFund(f, 'vimpel'))) return b;
+    var c = {}; for (var k in b) c[k] = b[k];
+    c.base = b;
+    if (harFund(f, 'kompas')) { c.usikker = Math.min(1, b.usikker) * 0.65; c.udsyn = b.udsyn + 8; }
+    if (harFund(f, 'vimpel')) c.usikker = Math.min(1, c.usikker) * 0.85;
+    return c;
+  }
+  function skadeFaktor(f) { return harFund(f, 'guldfeber') ? 1.5 : 1; }
+  function tagFund(f, o) {
+    var d = FUND_ID[o.fund]; if (!d) return;
+    if (!f.fund) f.fund = {};
+    if (!f.fundListe) f.fundListe = [];
+    if (!f.fundStat) f.fundStat = nyFundStat();
+    var n = f.fund[d.id] || 0;
+    if (f.fundListe.indexOf(d.id) < 0) f.fundListe.push(d.id);
+    if (d.id === 'nitro') { f.boosts += 2; f.fundStat.nitro += 2; f.fund.nitro = n + 1; return; }
+    if (d.id !== 'nitro' && n >= d.stak) { f.coins += FUND_DUBLET; f.fundStat.dublet += FUND_DUBLET; return; }
+    f.fund[d.id] = n + 1;
+  }
+  function nyFundStat() { return { reddet: 0, sparet: 0, ekstraMoent: 0, ekstraSkade: 0, nitro: 0, dublet: 0, magnet: 0 }; }
+  // Vindvimplens svage vink: kun retningen, og kun når vinden er tydelig
+  function vimpelVink(f) {
+    if (!harFund(f, 'vimpel') || !f.vind) return null;
+    var bx = f.vind.bx, by = f.vind.by;
+    return { x: bx > 0.25 ? 'medvind' : bx < -0.25 ? 'modvind' : 'svag', y: by > 0.3 ? 'opvind' : by < -0.3 ? 'nedvind' : 'svag' };
+  }
+
   function vaelg(r, pulje) {
     var sum = 0, k; for (k in pulje) sum += pulje[k];
     var v = r() * sum; for (k in pulje) { v -= pulje[k]; if (v < 0) return k; }
@@ -209,7 +297,7 @@
     var w = f.vind, u = st.usikker;
     function akse(v, salt) {
       if (!w || u >= 1) return [-1, 0, 1];
-      var e = unit(hash(w.s ^ salt, f.valg | 0)), mid = v + e * u;
+      var e = unit(hash(w.s ^ salt, f.valg | 0)) * (harFund(f, 'vimpel') ? 0.4 : 1), mid = v + e * u;
       var lo = Math.max(-1, mid - u), hi = Math.min(1, mid + u);
       return [lo, (lo + hi) / 2, hi];
     }
@@ -226,13 +314,19 @@
       ground: false, hp: st.maxHp, boosts: st.boosts, boostT: 0, nose: 'lige', boostedHop: false,
       taken: {}, coins: 0, picked: 0, tramps: 0, balloons: 0, boostsUsed: 0, dmg: 0,
       airStart: 0, longestAir: 0, apex: RAMPE.h, topFrozen: false, chuteT: 0, hops: 0, landings: 0,
-      done: false, end: null, lastHit: null
+      done: false, end: null, lastHit: null,
+      fund: {}, fundListe: [], fundStat: nyFundStat(), fundSpawns: [], luftI: -1, topN: 0
     };
   }
   function clone(f) {
     var c = {}; for (var k in f) c[k] = f[k];
     c.taken = {}; for (var t in f.taken) c.taken[t] = f.taken[t];
     if (f.sigt) c.sigt = { pts: f.sigt.pts, i: f.sigt.i, type: f.sigt.type };
+    c.fund = {}; for (var u in f.fund) c.fund[u] = f.fund[u];
+    c.fundListe = (f.fundListe || []).slice();
+    c.fundStat = {}; var fs = f.fundStat || nyFundStat(); for (var q in fs) c.fundStat[q] = fs[q];
+    c.fundSpawns = (f.fundSpawns || []).slice();
+    if (c.luftI >= 0 && c.fundSpawns[c.luftI]) { var a0 = c.fundSpawns[c.luftI], a1 = {}; for (var w in a0) a1[w] = a0[w]; c.fundSpawns[c.luftI] = a1; }
     return c;
   }
   // Næsen (kun med vinger, valgt med et kort for ét hop ad gangen): op = svæver
@@ -284,6 +378,7 @@
     }
     f.t += DT;
     collide(f, st, crs);
+    if (f.luftI >= 0) fundCollide(f);
     if (f.hp <= 0 && !f.done) { f.hp = 0; f.done = true; f.end = 'smadret'; f.vx = 0; f.vy = 0; f.y = Math.max(0, f.y); f.ground = f.y <= 0; }
     if (!f.ground && wasGround) { f.airStart = f.x; f.apex = f.y; f.topFrozen = false; }
     if (f.done) return 'end';
@@ -324,12 +419,16 @@
       }
     }
     var nz = st.vinger ? NOSE[f.nose] : NOSE.lige;
-    var boostLand = f.boostedHop ? 1.9 : 1;     // boost giver hårdere landing
+    var boostLand = f.boostedHop ? (harFund(f, 'koeler') ? 1.35 : 1.9) : 1;     // boost giver hårdere landing (Køler: blødere)
     var impact = -f.vy * (1 - st.skaerm) * nz.land * boostLand;
     f.nose = 'lige'; f.boostedHop = false;       // næse og boost-skade gælder ét hop
     f.landings++;
     if (st.skaerm > 0 && impact > 9) f.chuteT = f.t;
-    if (impact > 9) { var d = (impact - 9) * 3.2 * st.panser; f.hp -= d; f.dmg += d; f.lastHit = 'landing'; }
+    if (impact > 9) {
+      var d = (impact - 9) * 3.2 * st.panser * skadeFaktor(f);
+      if (harFund(f, 'reservehjul')) { f.fund.reservehjul--; f.fundStat.reddet++; f.fundStat.sparet += d; f.lastHit = 'reservehjul'; }
+      else { f.hp -= d; f.dmg += d; f.lastHit = 'landing'; if (harFund(f, 'guldfeber')) f.fundStat.ekstraSkade += d / 3; }
+    }
     var oil = onOil(f, crs);
     if (impact > 3) {
       f.vy = impact * st.hop; f.vx *= oil ? 1 : Math.min(1, st.behold + (nz.land < 1 ? 0.15 : 0));
@@ -338,12 +437,16 @@
     } else { f.vy = 0; f.ground = true; }
   }
   function collide(f, st, crs) {
-    var l = crs.range(f.x - 2, f.x + 2);
+    var mag = harFund(f, 'magnet'), l = crs.range(f.x - (mag ? 5 : 2), f.x + (mag ? 5 : 2));
     for (var i = 0; i < l.length; i++) {
       var o = l[i];
       if (f.taken[o.id] !== undefined) continue;
       var hit = false;
-      if (o.r) hit = Math.hypot(f.x - o.x, f.y + 0.6 - o.y) < o.r + 0.8;
+      if (o.r) {
+        var dd = Math.hypot(f.x - o.x, f.y + 0.6 - o.y);
+        hit = dd < o.r + 0.8;
+        if (!hit && mag && o.type === 'moent' && dd < o.r + 4.2) { hit = true; f.fundStat.magnet++; }
+      }
       else if (o.type === 'vind') hit = f.x >= o.x && f.x <= o.x + o.w && f.y >= o.y && f.y <= o.y + o.h;
       else if (o.type === 'rampe') hit = f.x >= o.x + 0.5 && f.x <= o.x + o.w && f.y <= o.h * (f.x - o.x) / o.w + 0.3 && f.vx > 0;
       else if (o.type === 'olie' || o.type === 'trampolin') hit = false;  // håndteres ved landing/rulning
@@ -352,8 +455,9 @@
       f.taken[o.id] = f.t;
       f.lastHit = o.type;
       switch (o.type) {
-        case 'moent': f.coins += 5; f.picked++; break;
-        case 'bonus': f.coins += 10; f.boosts++; break;
+        case 'moent': f.coins += guld(f, 5); f.picked++; break;
+        case 'bonus': f.coins += guld(f, 10); f.boosts++; break;
+        case 'fund': tagFund(f, o); break;
         case 'ballon': f.vy = Math.max(f.vy, 0) + 9; f.balloons++; f.ground = false; resetJump(f); break;
         case 'vind': f.vx += 6; f.vy += 3; break;
         case 'rampe':
@@ -366,11 +470,20 @@
       }
     }
   }
+  // Fundet i luften: tages, når bilen flyver igennem; forsvinder, når bilen er forbi eller lander
+  function fundCollide(f) {
+    var o = aktivtFund(f); if (!o) return;
+    if (Math.hypot(f.x - o.x, f.y + 0.6 - o.y) < o.r + 0.8) { f.taken[o.id] = f.t; f.lastHit = 'fund'; f.luftI = -1; tagFund(f, o); return; }
+    if (f.x > o.x + 3 || f.ground) { o.t1 = f.t; f.luftI = -1; }
+  }
   function resetJump(f) { f.apex = f.y; f.topFrozen = false; }
-  function hurt(f, d) { f.hp -= d; f.dmg += d; }
+  function hurt(f, d) { var k = skadeFaktor(f); f.hp -= d * k; f.dmg += d * k; if (k > 1) f.fundStat.ekstraSkade += d * (k - 1); }
+  // Guldfeber: dobbelt mønter
+  function guld(f, n) { if (!harFund(f, 'guldfeber')) return n; f.fundStat.ekstraMoent += n; return n * 2; }
 
   // Et billede til animationen
   function frame(f, st) { return { t: f.t, x: f.x, y: f.y, vx: f.vx, vy: f.vy, hp: f.hp, coins: f.coins, boost: f.boostT > 0, ground: f.ground, nose: f.nose, boosts: f.boosts, hops: f.hops, landings: f.landings, dmg: f.dmg,
+    fundN: f.fundListe ? f.fundListe.length : 0, reddet: f.fundStat ? f.fundStat.reddet : 0,
     chute: st.skaerm > 0 && !f.ground && f.vy < -9 && f.y < 30 }; }
 
   // Kør, til der skal vælges, eller til bilen holder stille.
@@ -379,6 +492,7 @@
     var frames = [frame(f, st)], ev = null, n = 0;
     while (!ev && n < MAX_STEPS) {
       ev = step(f, st, crs, true); n++;
+      if (ev === 'top') spawnFund(f, st);
       if (ev === 'top' && cards(f, st, crs).length < 2) ev = null;
       if (n % 2 === 0 || ev) frames.push(frame(f, st));
     }
@@ -422,7 +536,9 @@
     if (id === 'boost' && c.boosts > 0) {
       c.boosts--; c.boostT = st.boostTid; c.boostsUsed++;
       c.boostedHop = true;                          // dette hop lander hårdere
-      var burn = st.maxHp * 0.11; c.hp -= burn; c.dmg += burn;  // overophedning
+      // overophedning (Køler: ingen; Nitro: dobbelt; Guldfeber: +50 %)
+      var burn = harFund(c, 'koeler') ? 0 : st.maxHp * 0.11 * (harFund(c, 'nitro') ? 2 : 1) * skadeFaktor(c);
+      c.hp -= burn; c.dmg += burn;
     } else if (id === 'sigt' && card.target) { c.sigt = { pts: card.target.pts, i: 0, type: card.target.type }; c.vx *= 0.9; }
     else if (id === 'op' && st.vinger) { c.nose = 'op'; c.vy += 6; }
     else if (id === 'ned' && st.vinger) { c.nose = 'ned'; c.vy -= 5; c.vx *= 1.06; }
@@ -436,8 +552,10 @@
   };
   // Mulige mål inden for udsyn (nærmeste først, gode ting først)
   function targets(f, st, vis) {
-    var lim = f.x + st.udsyn, out = { bonus: [], ballon: [], moenter: [], trampolin: [] };
+    var lim = f.x + st.udsyn, out = { fund: [], bonus: [], ballon: [], moenter: [], trampolin: [] };
     var l = vis.range(f.x + 5, lim).filter(function (o) { return f.taken[o.id] === undefined && o.x > f.x + 5; });
+    var af = aktivtFund(f);
+    if (af && f.taken[af.id] === undefined && af.x <= lim) l.push(af);
     l.sort(function (a, b) { return a.x - b.x; });
     var grp = null;
     l.forEach(function (o) {
@@ -445,6 +563,7 @@
         if (grp && o.x - grp.last < 3) { grp.pts.push({ id: o.id, x: o.x, y: o.y - 0.6 }); grp.last = o.x; }
         else { grp = { type: 'moenter', pts: [{ id: o.id, x: o.x, y: o.y - 0.6 }], last: o.x }; out.moenter.push(grp); }
       } else if (o.type === 'bonus' || o.type === 'ballon') out[o.type].push({ type: o.type, pts: [{ id: o.id, x: o.x, y: o.y - 0.6 }] });
+      else if (o.type === 'fund') out.fund.push({ type: 'fund', fund: o.fund, pts: [{ id: o.id, x: o.x, y: o.y - 0.6 }] });
       else if (o.type === 'trampolin') out.trampolin.push({ type: 'trampolin', pts: [{ id: o.id, x: o.x + o.w / 2, y: 0 }] });
     });
     return out;
@@ -452,11 +571,12 @@
   function midModel(f, st) { var e = windEstimate(f, st); return { bx: e.bx[1], by: e.by[1], gx: 0, gy: 0 }; }
   // Kortene for denne situation (2–3 stk., eller færre, hvis der intet er at vælge)
   function cards(f, st, crs) {
+    st = eff(f, st);
     var vis = synlig(crs, f.x + st.udsyn), list = [];
     var boost = f.boosts > 0 ? { id: 'boost', ikon: 'boost', titel: 'Brug boost nu', effekt: 'Længere hop. Hårdere landing og overophedning' } : null;
     // Sigt: det første mål, bilen faktisk kan nå (prøvet med skønnet over vinden)
     var sigt = null, tg = targets(f, st, vis), mm = midModel(f, st);
-    ['bonus', 'ballon', 'moenter', 'trampolin'].some(function (type) {
+    ['fund', 'bonus', 'ballon', 'moenter', 'trampolin'].some(function (type) {
       return tg[type].slice(0, 2).some(function (t) {
         if (type === 'moenter' && t.pts.length < 2) return false;
         var c = clone(f); c.vmod = mm;
@@ -465,7 +585,11 @@
         var hit = t.pts.filter(function (p) { return r.taken[p.id] !== undefined; }).length;
         if (hit < (type === 'moenter' ? 2 : 1)) return false;
         var key = type === 'moenter' && t.pts[0].y < f.y - 3 ? 'dyk' : type, nv = MAAL_NAVN[key];
-        sigt = { id: 'sigt', ikon: nv.ikon, titel: nv.titel, effekt: nv.effekt, target: { type: type, pts: t.pts } };
+        if (type === 'fund') {
+          var fd = FUND_ID[t.fund], dub = fd.id !== 'nitro' && (f.fund[fd.id] || 0) >= fd.stak;
+          nv = { titel: 'Tag fundet: ' + fd.navn, effekt: dub ? 'Har det allerede: +' + FUND_DUBLET + ' mønter. Taber lidt fart' : fd.kort + '. Taber lidt fart', ikon: 'fund-' + fd.id };
+        }
+        sigt = { id: 'sigt', ikon: nv.ikon, titel: nv.titel, effekt: nv.effekt, target: { type: type, pts: t.pts }, fund: type === 'fund' ? t.fund : undefined, risiko: type === 'fund' ? !!FUND_ID[t.fund].risiko : undefined };
         return true;
       });
     });
@@ -507,6 +631,7 @@
   // bilen kan se, og ni bud på vinden inden for instrumenternes skøn (± vindstød).
   // Afrundes udad til hele 5 m og er mindst 10 m bredt – aldrig et præcist tal.
   function field(f, st, crs, card) {
+    st = eff(f, st);
     var lim = f.x + st.udsyn, vis = synlig(crs, lim), est = windEstimate(f, st);
     var lo = Infinity, hi = -Infinity, hpMin = Infinity, hpMax = -Infinity, smadret = false, mid = null, hits = 0;
     for (var i = 0; i < 3; i++) for (var j = 0; j < 3; j++) {
@@ -581,6 +706,19 @@
       t.f.taken && typeof t.f.taken === 'object' && t.f.vind && typeof t.f.vind.bx === 'number') {
       out.tur = { seed: t.seed >>> 0, f: t.f };
       if (NOSE[t.f.nose] === undefined) t.f.nose = 'lige';
+      // Fund: kun kendte navne og hele tal
+      var fu = {}, fl = [], fs0 = nyFundStat();
+      if (t.f.fund && typeof t.f.fund === 'object') FUND.forEach(function (d) { var v = Math.floor(+t.f.fund[d.id]); if (v > 0) fu[d.id] = Math.min(v, d.id === 'nitro' ? 9 : d.stak); });
+      if (Array.isArray(t.f.fundListe)) t.f.fundListe.forEach(function (id) { if (FUND_ID[id] && fl.indexOf(id) < 0) fl.push(id); });
+      if (t.f.fundStat && typeof t.f.fundStat === 'object') for (var q in fs0) { var w = +t.f.fundStat[q]; if (isFinite(w) && w >= 0) fs0[q] = w; }
+      var sp = [];
+      if (Array.isArray(t.f.fundSpawns)) t.f.fundSpawns.forEach(function (o) {
+        if (o && FUND_ID[o.fund] && ['id', 'x', 'y', 't0'].every(function (k) { return typeof o[k] === 'number' && isFinite(o[k]); }))
+          sp.push({ id: o.id, type: 'fund', fund: o.fund, risiko: !!FUND_ID[o.fund].risiko, x: o.x, y: o.y, r: 1.8, t0: o.t0, t1: typeof o.t1 === 'number' ? o.t1 : null });
+      });
+      var li = Math.floor(+t.f.luftI);
+      t.f.fund = fu; t.f.fundListe = fl; t.f.fundStat = fs0; t.f.fundSpawns = sp;
+      t.f.luftI = li >= 0 && li < sp.length ? li : -1; t.f.topN = Math.max(0, Math.floor(+t.f.topN) || 0);
       t.f.sigt = null; t.f.vmod = null;
     }
     return out;
@@ -629,7 +767,18 @@
         return r;
       },
       // Det, bilen kan se lige nu (til tegning og test)
-      udsyn: function () { var f = game.flight, st = game.st || stats(p.upg); return (f ? f.x : 0) + st.udsyn; },
+      udsyn: function () { var f = game.flight, st = eff(f, game.st || stats(p.upg)); return (f ? f.x : 0) + st.udsyn; },
+      // Bilens værdier med turens fund (udsyn, usikkerhed)
+      effStats: function () { return eff(game.flight, game.st || stats(p.upg)); },
+      // Turens fund til visning: [{id, navn, tekst, risiko, antal, brugt}] (n = kun de første n, fx under animationen)
+      fund: function (n) {
+        var f = game.flight; if (!f || !f.fundListe) return [];
+        return f.fundListe.slice(0, n === undefined ? f.fundListe.length : n).map(function (id) {
+          var d = FUND_ID[id], a = f.fund[id] || 0;
+          return { id: id, navn: d.navn, tekst: d.tekst, kort: d.kort, risiko: !!d.risiko, antal: a, brugt: id === 'reservehjul' && a === 0 };
+        });
+      },
+      vimpel: function () { return vimpelVink(game.flight); },
       synlige: function () { return synlig(crs, game.udsyn()).range(-20, game.udsyn()); },
       // Beslutningspunkt: valgkortene med hver sit usikre landingsfelt
       cards: function () {
@@ -659,12 +808,17 @@
         r.distCoins = Math.floor(dist * 0.35 * mult);
         r.pickCoins = Math.floor(f.coins * mult);
         // Ubrugte boost er værdifulde: +SPARE_BOOST mønter pr. stk. (gør "Gem boostet" konkurrencedygtigt)
-        r.spareBoosts = Math.max(0, f.boosts | 0);
+        // Nitro-boost giver ingen mønter ved slut
+        var fs = f.fundStat || nyFundStat();
+        r.spareBoosts = Math.max(0, (f.boosts | 0) - Math.min(f.boosts | 0, fs.nitro | 0));
         r.spareCoins = dist >= 60 ? Math.floor(r.spareBoosts * SPARE_BOOST * mult) : 0;
         r.zoneBonus = []; var zb = 0;
         ZONER.forEach(function (z) { if (dist >= z.fra && p.zones.indexOf(z.id) < 0) { p.zones.push(z.id); r.zoneBonus.push({ id: z.id, navn: z.navn, beloen: z.bonus }); zb += z.bonus; } });
         r.goals = []; var gb = 0;
         activeGoals(p.goals).forEach(function (g) { if (g.test(r)) { p.goals.push(g.id); r.goals.push({ id: g.id, tekst: g.tekst, beloen: g.beloen }); gb += g.beloen; } });
+        // Fund på turen (de nulstilles nu)
+        r.fund = (f.fundListe || []).map(function (id) { var d = FUND_ID[id]; return { id: id, navn: d.navn, risiko: !!d.risiko }; });
+        r.fundStat = { reddet: fs.reddet, sparet: Math.round(fs.sparet), ekstraMoent: Math.floor(fs.ekstraMoent * mult), ekstraSkade: Math.round(fs.ekstraSkade), nitro: fs.nitro, dublet: Math.floor(fs.dublet * mult), magnet: fs.magnet };
         r.total = r.distCoins + r.pickCoins + r.spareCoins + zb + gb;
         r.newBest = dist > p.best;
         p.coins += r.total; p.trips++; p.carScore += dist; if (dist > p.best) p.best = dist;
@@ -702,7 +856,7 @@
     DT: DT, G: G, RAMPE: RAMPE, ZONER: ZONER, OPG: OPG, BILER: BILER, TING: TING, MAAL: MAAL,
     ANGLE_MIN: ANGLE_MIN, ANGLE_MAX: ANGLE_MAX, NY_BIL_KRAV: NY_BIL_KRAV,
     zoneAt: zoneAt, zoneIndex: zoneIndex, pris: pris, stats: stats, bilType: bilType, niveauSum: niveauSum,
-    SPARE_BOOST: SPARE_BOOST,
+    SPARE_BOOST: SPARE_BOOST, FUND: FUND, FUND_DUBLET: FUND_DUBLET, spawnFund: spawnFund, FUND_TIL: FUND_TIL, eff: eff, vimpelVink: vimpelVink,
     course: course, chunk: chunk, seedForCar: seedForCar, seedForTrip: seedForTrip, synlig: synlig, newFlight: newFlight, clone: clone, step: step,
     advance: advance, predict: predict, runToTouch: runToTouch, cards: cards, field: field, applyCard: applyCard,
     windFor: windFor, windEstimate: windEstimate, VIND: VIND, activeGoals: activeGoals, goal: goal, multiplier: multiplier,

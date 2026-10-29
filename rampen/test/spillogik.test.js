@@ -1,6 +1,6 @@
 // Logiktest af Rampen (uden browser): node rampen/test/spillogik.test.js
 // Fysik, ting på banen, beslutningspunkter, valgkort, skjult vind og landingsfelter,
-// udsyn, ny bane pr. tur, opgraderinger, zoner, mål, Ny bil, gemt fremskridt og balance.
+// udsyn, ny bane pr. tur, opgraderinger, zoner, mål, Ny bil, gemt fremskridt, fund (v1.6) og balance.
 'use strict';
 var assert = require('assert');
 var path = require('path');
@@ -10,7 +10,7 @@ var n = 0, failed = 0;
 function test(name, fn) {
   n++;
   try { fn(); console.log('OK   ' + name); }
-  catch (e) { failed++; console.log('FEJL ' + name + '\n     ' + (e && e.message)); }
+  catch (e) { failed++; console.log('FEJL ' + name + '\n     ' + (e && e.message)); if (process.env.STAK) console.log(e.stack); }
 }
 // En bane med præcis de ting, testen giver
 function bane(items) {
@@ -32,6 +32,8 @@ function flyv(st, crs, angle, power, opts) {
   }
   return f;
 }
+// Fund (v1.6) slået fra under en test, der handler om noget andet
+function udenFund(fn) { return function () { L.FUND_TIL.til = false; try { fn(); } finally { L.FUND_TIL.til = true; } }; }
 function nulOpg() { var u = {}; L.OPG.forEach(function (o) { u[o.id] = 0; }); return u; }
 function maxOpg() { var u = {}; L.OPG.forEach(function (o) { u[o.id] = o.max; }); return u; }
 
@@ -147,11 +149,11 @@ test('et boost giver en ny bue med et nyt beslutningspunkt på toppen', function
   r = g.decide('boost'); assert.strictEqual(r.event, 'top');
   assert.ok(g.flight.x > x1, 'boost førte ikke længere frem (x ' + g.flight.x + ' vs ' + x1 + ')');
 });
-test('uden boost, vinger og mål inden for udsyn fryser spillet aldrig', function () {
+test('uden boost, vinger og mål inden for udsyn fryser spillet aldrig', udenFund(function () {
   var st = L.stats(nulOpg()); st.boosts = 0;
   var t = tilTop(st, TOM, 45, 10);
   assert.strictEqual(t.ev, 'end');
-});
+}));
 test('boost bruger brændstof og tæller', function () {
   var g = L.createGame(null); g.setAngle(40); g.setPower(10);
   g.launch(); var b = g.flight.boosts;
@@ -159,7 +161,7 @@ test('boost bruger brændstof og tæller', function () {
   assert.strictEqual(g.flight ? g.flight.boosts : 0, b - 1);
   assert.strictEqual(g.flight.boostsUsed, 1);
 });
-test('næse op flyver længere end næse ned, men lander hårdere', function () {
+test('næse op flyver længere end næse ned, men lander hårdere', udenFund(function () {
   var p = L.newProgress(1); p.upg.vinger = 3; p.upg.motor = 6;
   var st = L.stats(p.upg), t = tilTop(st, TOM, 45, 10);
   assert.strictEqual(t.ev, 'top');
@@ -167,7 +169,7 @@ test('næse op flyver længere end næse ned, men lander hårdere', function () 
   assert.ok(op.x > ned.x, op.x + ' <= ' + ned.x);
   assert.ok(op.hp < lige.hp, 'op ' + op.hp + ' vs lige ' + lige.hp);
   assert.ok(ned.hp >= lige.hp, 'ned ' + ned.hp + ' vs lige ' + lige.hp);
-});
+}));
 test('en hel tur ender altid (stop eller smadret)', function () {
   var g = L.createGame(null);
   for (var t = 0; t < 5; t++) {
@@ -282,7 +284,7 @@ test('ting uden for udsynet er skjulte; Instrumenter giver lidt længere udsyn',
   assert.ok(L.stats({ instrumenter: 5 }).udsyn > L.stats({}).udsyn);
   assert.ok(L.stats({}).udsyn >= 30 && L.stats({ instrumenter: 5 }).udsyn <= 50);
 });
-test('valgkortene afhænger af situationen', function () {
+test('valgkortene afhænger af situationen', udenFund(function () {
   var u = nulOpg(); u.braendstof = 1; u.motor = 3;
   var st = L.stats(u), t = tilTop(st, TOM, 40, 10);
   assert.strictEqual(t.ev, 'top');
@@ -303,7 +305,7 @@ test('valgkortene afhænger af situationen', function () {
   assert.ok(kn.some(function (c) { return c.id === 'sigt' && /ballon/i.test(c.titel); }), ids(kn));
   var fjern = bane([ting('ballon', t.f.x + st.udsyn + 15, { y: 6 })]);
   assert.ok(L.cards(t.f, st, fjern).every(function (c) { return c.id !== 'sigt'; }));
-});
+}));
 
 // ---------- Opgraderinger og fremskridt ----------
 test('priser stiger, og max-niveau kan ikke købes', function () {
@@ -465,9 +467,134 @@ test('ubrugte boost giver mønter, og boost koster skade', function () {
   assert.ok(g.flight.boostedHop || g.flight.boostT > 0 || g.flight.landings >= 0, 'boost startede');
 });
 
+// ---------- Fund under turen (v1.6) ----------
+// Find en tur, hvor der dukker et fund op på toppen, og tag det med kortet
+function medFund(seed, upg) {
+  for (var s = seed; s < seed + 400; s++) {
+    var p = L.newProgress(1); p.seed = s; if (upg) Object.assign(p.upg, upg);
+    var g = L.createGame(p); g.setAngle(40); g.setPower(10);
+    var r = g.launch(), k = 0;
+    while (r.event !== 'end' && k++ < 60) {
+      var c = g.cards().filter(function (q) { return q.id === 'sigt' && q.fund; })[0];
+      if (c) return { g: g, kort: c, seed: s };
+      r = g.decide('vent');
+    }
+  }
+  return null;
+}
+function kortF(f, st, crs) { return L.cards(f, st, crs).map(function (k) { k.felt = L.field(f, st, crs, k); return k; }); }
+function medFundI(f, id, n) { f.fund = {}; f.fund[id] = n || 1; f.fundListe = [id]; return f; }
+test('fund dukker op deterministisk fra turens frø, og banen er den samme som før', function () {
+  var a = medFund(500), b = medFund(500);
+  assert.ok(a, 'intet fund på 400 ture');
+  assert.strictEqual(a.seed, b.seed);
+  assert.deepStrictEqual(a.g.flight.fundSpawns, b.g.flight.fundSpawns);
+  assert.ok(a.g.course.range(0, 3000).every(function (o) { return o.type !== 'fund'; }), 'fund må ikke ændre banen');
+  var o = a.g.flight.fundSpawns[a.g.flight.luftI];
+  assert.ok(o.x > a.g.flight.x + 10 && o.x <= a.g.flight.x + a.g.udsyn(), 'fundet ligger lige foran bilen inden for udsyn');
+  assert.ok(/^Tag fundet: /.test(a.kort.titel) && /fart/.test(a.kort.effekt) && a.kort.ikon === 'fund-' + a.kort.fund);
+  // Vælges "vent", flyver bilen forbi fundet uden at tage det
+  var c = L.clone(a.g.flight); L.advance(c, a.g.st, a.g.course);
+  assert.ok(!c.fundListe.length || c.fundListe[0] !== a.kort.fund || c.taken[o.id] === undefined, 'vent tog fundet');
+  // Fund slået fra: samme tur uden fund
+  L.FUND_TIL.til = false;
+  try { var p = L.newProgress(1); p.seed = a.seed; var g2 = L.createGame(p); g2.setAngle(40); g2.setPower(10); g2.launch(); assert.strictEqual(g2.flight.fundSpawns.length, 0); }
+  finally { L.FUND_TIL.til = true; }
+});
+test('"Tag fundet" tager fundet, det vises, og fundene nulstilles når turen slutter', function () {
+  var a = medFund(900);
+  var id = a.kort.fund, r = a.g.decide('sigt');
+  assert.ok(a.g.flight.fundListe.indexOf(id) >= 0, 'fundet blev ikke taget');
+  var vis = a.g.fund();
+  assert.ok(vis.length >= 1 && vis[0].navn && vis[0].tekst && typeof vis[0].risiko === 'boolean');
+  while (r.event !== 'end') r = a.g.decide('vent');
+  var res = a.g.finishTrip();
+  assert.ok(res.fund.some(function (q) { return q.id === id; }), 'turens resultat viser ikke fundet');
+  assert.ok(res.fundStat && typeof res.fundStat.reddet === 'number');
+  a.g.setAngle(40); a.g.setPower(10); a.g.launch();
+  assert.ok(a.g.flight.fundListe.every(function (q) { return a.g.flight.fundSpawns.length && q; }) && Object.keys(a.g.flight.fund).every(function (q) { return a.g.flight.fundListe.indexOf(q) >= 0; }));
+  assert.ok(a.g.flight.fundStat.reddet === 0 && a.g.flight.fundStat.dublet === 0, 'fundene blev ikke nulstillet');
+});
+test('Reservehjul tager én hård landing; Køler fjerner overophedning; Guldfeber og Nitro har en bagside', function () {
+  var st = L.stats(nulOpg());
+  var uden = flyv(st, TOM, 60, 10), med = L.newFlight(st, TOM, 60, 10); medFundI(med, 'reservehjul');
+  while (!med.done) L.step(med, st, TOM, false);
+  assert.ok(uden.dmg > 0, 'testhoppet skal give skade');
+  assert.ok(med.dmg < uden.dmg && med.fundStat.reddet === 1 && med.fund.reservehjul === 0, 'reservehjul: ' + med.dmg + ' vs ' + uden.dmg);
+  // Køler og Nitro: boostkortets felt viser forskellen i skade
+  var u = nulOpg(); u.braendstof = 2; u.motor = 3; var s2 = L.stats(u), t = tilTop(s2, TOM, 40, 10);
+  var skade = function (f) { var hp0 = f.hp; L.applyCard(f, s2, { id: 'boost' }); return hp0 - f.hp; };   // overophedning ved boost
+  var k0 = skade(t.f), k1 = skade(medFundI(L.clone(t.f), 'koeler')), k2 = skade(medFundI(L.clone(t.f), 'nitro'));
+  assert.ok(k1 < k0 && k2 > k0, 'køler ' + k1 + ' / normal ' + k0 + ' / nitro ' + k2);
+  // Guldfeber: dobbelt mønter, men 1,5 × skade
+  var f0 = L.clone(t.f), f1 = medFundI(L.clone(t.f), 'guldfeber'), bane0 = L.predict(t.f, s2, TOM, {}).pts, mid = bane0[Math.floor(bane0.length * 0.5)];
+  var crs = bane([ting('moent', mid.x, { y: mid.y + 0.6 })]);
+  while (!f0.done) L.step(f0, s2, crs, false); while (!f1.done) L.step(f1, s2, crs, false);
+  assert.ok(f0.coins > 0 && f1.coins >= f0.coins * 2 && f1.fundStat.ekstraMoent > 0, 'guldfeber ' + f1.coins + ' vs ' + f0.coins);
+  var gf = L.newFlight(st, TOM, 60, 10); medFundI(gf, 'guldfeber'); while (!gf.done) L.step(gf, st, TOM, false);
+  assert.ok(uden.dmg < st.maxHp * 0.6 && Math.abs(gf.dmg - uden.dmg * 1.5) < 0.01 * uden.dmg + 0.01, 'guldfeber-skade ' + gf.dmg + ' vs ' + uden.dmg);
+  // Nitro: +2 boost, der ikke giver spare-mønter
+  var g = L.createGame(null); g.setAngle(40); g.setPower(10); g.launch();
+  var b0 = g.flight.boosts; L.tagFund ? 0 : 0;
+  var fN = g.flight; fN.fundSpawns.push({ id: 7777777, type: 'fund', fund: 'nitro', risiko: true, x: fN.x, y: fN.y + 0.6, r: 1.8, t0: fN.t, t1: null }); fN.luftI = fN.fundSpawns.length - 1;
+  L.step(fN, g.st, g.course, false);
+  assert.strictEqual(fN.boosts, b0 + 2); assert.strictEqual(fN.fund.nitro, 1);
+  var r = { event: 'top' }; while (r.event !== 'end') r = g.decide('vent');
+  var res = g.finishTrip();
+  assert.ok(res.spareBoosts <= b0, 'nitro-boost gav spare-mønter (' + res.spareBoosts + ')');
+});
+test('Kompas og Vindvimpel gør felterne smallere; vimplen viser vinden svagt; Mønt-magnet', function () {
+  var u = nulOpg(); u.braendstof = 1; u.motor = 3;
+  var st = L.stats(u), vind = { bx: 2.5, by: -1, s: 77 }, t = tilTop(st, TOM, 40, 10, vind);
+  assert.strictEqual(t.ev, 'top');
+  var bredde = function (f) { var c = kortF(f, st, TOM)[0]; return c.felt.til - c.felt.fra; };
+  var w0 = bredde(t.f), wk = bredde(medFundI(L.clone(t.f), 'kompas')), wv = bredde(medFundI(L.clone(t.f), 'vimpel'));
+  assert.ok(wk < w0 && wv < w0, 'bredder ' + w0 + ' / kompas ' + wk + ' / vimpel ' + wv);
+  assert.ok(L.eff(medFundI(L.clone(t.f), 'kompas'), st).udsyn > st.udsyn);
+  assert.ok(L.eff(medFundI(L.clone(t.f), 'kompas'), st).usikker > 0, 'aldrig helt præcist');
+  var vink = L.vimpelVink(medFundI(L.clone(t.f), 'vimpel'));
+  assert.ok(vink && /medvind|modvind|svag/i.test(JSON.stringify(vink)), JSON.stringify(vink));
+  assert.strictEqual(L.vimpelVink(t.f), null);
+  // Magnet: en mønt lidt ved siden af banen
+  var pts = L.predict(t.f, st, TOM, {}).pts, m = pts[Math.floor(pts.length * 0.5)];
+  var crs = bane([ting('moent', m.x, { y: m.y + 0.6 + 4.5 })]);
+  var a = L.clone(t.f), b = medFundI(L.clone(t.f), 'magnet'); a.vmod = b.vmod = { bx: 0, by: 0, gx: 0, gy: 0 };
+  while (!a.done) L.step(a, st, crs, false); while (!b.done) L.step(b, st, crs, false);
+  assert.ok(a.coins === 0 && b.coins > 0 && b.fundStat.magnet === 1, 'magnet ' + b.coins + ' / uden ' + a.coins);
+});
+test('et fund man allerede har giver mønter; gemt tur med fund genoptages ens, og ødelagte fund renses', function () {
+  var a, s0 = 1300, upg = { motor: 4, braendstof: 2, raket: 2 };
+  for (;;) {   // en tur, der fortsætter efter fundet er taget
+    a = medFund(s0, upg); var prøve = L.createGame(JSON.parse(JSON.stringify(a.g.save())));
+    if (prøve.decide('sigt').event !== 'end') break;
+    s0 = a.seed + 1;
+  }
+  var f = a.g.flight, o = f.fundSpawns[f.luftI], d = L.FUND.filter(function (q) { return q.id === o.fund; })[0];
+  if (o.fund !== 'nitro') { f.fund[o.fund] = d.stak; var c0 = f.coins, c = L.clone(f); c.x = o.x; c.y = o.y - 0.6; L.step(c, a.g.st, a.g.course, false);
+    assert.strictEqual(c.coins - c0 >= L.FUND_DUBLET, true, 'dublet gav ikke mønter'); f.fund[o.fund] = 0; delete f.fund[o.fund]; }
+  a.g.decide('sigt');
+  var gemt = JSON.parse(JSON.stringify(a.g.save())), b = L.createGame(JSON.parse(JSON.stringify(gemt)));
+  assert.deepStrictEqual(b.flight.fund, a.g.flight.fund);
+  assert.deepStrictEqual(b.flight.fundSpawns, a.g.flight.fundSpawns);
+  var ra = { event: 'top' }, rb = { event: 'top' }, k = 0;
+  while (ra.event !== 'end' && k++ < 200) { var ka = a.g.cards(), pick = ka[0].id; ra = a.g.decide(pick); rb = b.decide(pick); }
+  assert.strictEqual(a.g.flight.x, b.flight.x);
+  assert.deepStrictEqual(a.g.finishTrip(), b.finishTrip());
+  // Ødelagte funddata renses
+  var p = JSON.parse(JSON.stringify(gemt));
+  p.tur.f.fund = { kompas: 'x', ukendt: 3, magnet: 2.7 }; p.tur.f.fundListe = ['ukendt', 'magnet', 'magnet', 5];
+  p.tur.f.fundSpawns = [null, { id: 'a' }, { id: 5, fund: 'hund', x: 1, y: 1, t0: 0 }]; p.tur.f.luftI = 9; p.tur.f.fundStat = { reddet: -4, sparet: 'z' };
+  var g3 = L.createGame(p);
+  assert.deepStrictEqual(g3.flight.fund, { magnet: 1 });
+  assert.deepStrictEqual(g3.flight.fundListe, ['magnet']);
+  assert.strictEqual(g3.flight.fundSpawns.length, 0); assert.strictEqual(g3.flight.luftI, -1);
+  assert.strictEqual(g3.flight.fundStat.reddet, 0);
+  assert.ok(Array.isArray(g3.fund()));
+});
+
 function botZoner(kind, maxTure) {
   var start = L.newProgress(1); start.seed = kind === 'altid-boost' ? 11001 : kind === 'omtanke' ? 22002 : 33003;
-  var g = L.createGame(start), naaet = {}, sum = 0, boosts = 0;
+  var g = L.createGame(start), naaet = {}, sum = 0, boosts = 0, fundTaget = 0, fundTure = 0;
   for (var trip = 1; trip <= maxTure; trip++) {
     for (;;) {
       var b = null;
@@ -481,7 +608,9 @@ function botZoner(kind, maxTure) {
     var r = g.launch(), k = 0;
     while (r.event !== 'end' && k++ < 200) {
       var c = g.cards(), f = g.flight, pick;
-      if (kind === 'altid-boost') pick = (c.filter(function (q) { return q.id === 'boost'; })[0] || c[0]).id;
+      var fk = c.filter(function (q) { return q.fund; })[0];
+      if (kind === 'jaeger' && fk) { pick = fk.id; fundTaget++; }
+      else if (kind === 'altid-boost') pick = (c.filter(function (q) { return q.id === 'boost'; })[0] || c[0]).id;
       else if (kind === 'klog-gem') {
         var bs = -1e9; pick = c[c.length - 1].id;
         c.forEach(function (q) {
@@ -502,11 +631,11 @@ function botZoner(kind, maxTure) {
       }
       r = g.decide(pick);
     }
-    var res = g.finishTrip(); sum += res.dist; boosts += res.boostsUsed;
+    var res = g.finishTrip(); sum += res.dist; boosts += res.boostsUsed; if (res.fund.length) fundTure++;
     L.ZONER.forEach(function (z) { if (res.dist >= z.fra && !naaet[z.id]) naaet[z.id] = trip; });
     if (naaet.rummet && trip >= 70) break;
   }
-  return { naaet: naaet, snit: sum / g.p.trips, boosts: boosts, trips: g.p.trips, best: g.p.best };
+  return { naaet: naaet, snit: sum / g.p.trips, boosts: boosts, trips: g.p.trips, best: g.p.best, fundTaget: fundTaget, fundTure: fundTure };
 }
 
 test('altid-boost klarer sig dårligere end omtanke og ikke bedre end klog-gem', function () {
@@ -521,6 +650,16 @@ test('altid-boost klarer sig dårligere end omtanke og ikke bedre end klog-gem',
   // Klog-gem når rummet mindst lige så hurtigt (margen 8 ture)
   assert.ok(k.naaet.rummet && a.naaet.rummet && a.naaet.rummet >= k.naaet.rummet - 8,
     'altid-boost rummet@' + a.naaet.rummet + ' vs klog-gem@' + k.naaet.rummet);
+});
+
+test('fund ændrer valg, men er ikke en genvej: fundjægeren slår ikke den forsigtige bot', function () {
+  var o = botZoner('omtanke', 70), j = botZoner('jaeger', 70);
+  console.log('     omtanke snit ' + Math.round(o.snit) + ' (fund på ' + o.fundTure + '/' + o.trips + ' ture) | fundjæger snit ' + Math.round(j.snit) +
+    ' best ' + j.best + ' rummet@' + j.naaet.rummet + ' (tog ' + j.fundTaget + ' fund, fund på ' + j.fundTure + ' ture)');
+  assert.ok(j.fundTaget >= 40, 'for få fund at vælge (' + j.fundTaget + ')');
+  assert.ok(o.fundTure >= 15, 'den forsigtige bot vælger næsten aldrig fund (' + o.fundTure + ')');
+  assert.ok(j.snit <= o.snit * 1.05, 'fundjægeren er for stærk: ' + Math.round(j.snit) + ' vs ' + Math.round(o.snit));
+  assert.ok(o.naaet.rummet, 'omtanke nåede ikke rummet');
 });
 
 console.log('\n' + (n - failed) + '/' + n + ' tests OK');

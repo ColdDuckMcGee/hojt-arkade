@@ -10,6 +10,9 @@
 # efter genindlæsning, tåge fra, egne lyde, turens resultat og rekord, værkstedet
 # (køb), Ny bil med bekræftelse, pause, glød fra, dwell (ét dwell på Send afsted =
 # én tur) og straks slutresultat ved prefers-reduced-motion. Til sidst hallen.
+# v1.6 Fund: et fund i luften med kortet "Tag fundet", fundene i HUD'en (store ikoner,
+# danske navne, plads til alle syv uden at dække pause-knappen), fundene gemmes med en
+# afbrudt tur og vises på slutskærmen.
 #
 # Kræver Python med Playwright og Chrome/Chromium:
 #   python3 rampen/test/responsiv_test.py
@@ -215,7 +218,7 @@ def gameplay(pg, w, h, tag, shots):
 
 def sound_check(pg, w, h, tag):
     """Egne lyde: alle navne findes, de følger den fælles lydindstilling, og en tur giver lyde."""
-    r = st(pg, """(() => { const l = Rampen.lyd, want = ['motor', 'opsendelse', 'boost', 'moent', 'hop', 'landing', 'koeb'];
+    r = st(pg, """(() => { const l = Rampen.lyd, want = ['motor', 'opsendelse', 'boost', 'moent', 'hop', 'landing', 'koeb', 'fund', 'fund-risiko', 'fund-brug'];
       const missing = want.filter(n => !l.has(n));
       Rampen.settings.set('sound', true); const on = want.map(n => l.play(n, 0.5));
       Rampen.settings.set('sound', false); const off = want.map(n => l.play(n));
@@ -303,11 +306,91 @@ def dwell_check(pg, w, h, tag):
     pg.evaluate("Rampen.settings.set('animation', false)")
     print('OK   %dx%d dwell' % (w, h) if not [f for f in fails if f.startswith(tag) and 'dwell' in f] else 'FEJL %dx%d dwell' % (w, h))
 
+# v1.6: et frø, hvor der dukker et fund op ved første top, og turen fortsætter efter det er taget
+FIND_FUND = """() => { const L = Rampen.logik; let best = null;
+  for (let s = 1; s < 3000; s++) {
+    const p = L.newProgress(1); p.coins = 400; p.trips = 3; p.best = 180; p.carScore = 400; p.seed = s;
+    Object.assign(p.upg, {motor: 3, daek: 2, karrosseri: 2, aero: 2, vinger: 1, raket: 1, braendstof: 1});
+    const g = L.createGame(JSON.parse(JSON.stringify(p))); g.setAngle(40); g.setPower(10);
+    if (g.launch().event !== 'top') continue;
+    const k = g.cards().find(c => c.fund); if (!k) continue;
+    let r = g.decide('sigt'); if (r.event === 'end' || !g.flight.fundListe.length) continue;
+    let n = 1, ok = 1, guard = 0;   // flere forskellige fund (gerne et risikofund) giver et bedre billede
+    while (guard++ < 6) { const k2 = g.cards().find(c => c.fund); if (!k2) break; r = g.decide('sigt'); if (r.event === 'end') break; n++;
+      const l = g.flight.fundListe; if (l.length >= 2) ok = l.some(id => L.FUND.find(d => d.id === id).risiko) ? 3 : 2;
+      if (ok === 3) break; }
+    const sc = ok * 10 - n;
+    if (!best || sc > best[2]) best = [s, n, sc];
+    if (ok === 3) break;
+  }
+  return best.slice(0, 2); }"""
+FUND_HUD = """() => { const el = document.getElementById('hud-fund'), bw = document.getElementById('board-wrap').getBoundingClientRect(),
+  pb = document.getElementById('btn-pause').getBoundingClientRect(), r = el.getBoundingClientRect();
+  const chips = [...el.querySelectorAll('.fund-chip')];
+  const icons = chips.map(c => { const u = c.querySelector('use').getAttribute('href'); const i = c.querySelector('svg').getBoundingClientRect(); return [!!document.querySelector(u), Math.round(i.width)]; });
+  return { shown: !el.hidden && r.width > 0, n: chips.length, names: chips.map(c => c.querySelector('.fund-navn').textContent),
+    inside: r.left >= bw.left - 1 && r.top >= bw.top - 1 && r.right <= bw.right + 1 && r.bottom <= bw.bottom + 1,
+    pause: r.left < pb.right && pb.left < r.right && r.top < pb.bottom && pb.top < r.bottom,
+    icons: icons, mini: el.classList.contains('mini'), h: Math.round(r.height), bh: Math.round(bw.height), label: el.getAttribute('aria-label') }; }"""
+FUND_SEED = {}
+def fund_check(pg, w, h, tag, shots):
+    idle(pg)
+    if 'fund' not in FUND_SEED: FUND_SEED['fund'] = st(pg, FIND_FUND)
+    seed, nfund = FUND_SEED['fund']
+    pg.evaluate(RIG.replace('Rampen.setProgress(p);', 'p.seed = %d; Rampen.setProgress(p);' % seed))
+    pg.evaluate("Rampen.settings.set('animation', false); Rampen.start(); Rampen.game.setAngle(40); Rampen.game.setPower(10); Rampen.refresh()"); pg.wait_for_timeout(60)
+    pg.evaluate("Rampen.launch()"); idle(pg); pg.mouse.move(1, 1)
+    bad = []
+    k = st(pg, "(() => { const k = Rampen.cards.find(c => c.fund); return k ? [k.titel, k.ikon, !!document.querySelector('#rampen-ikon-' + k.ikon)] : null; })()")
+    drawn = st(pg, "Rampen.tegn.drawn.filter(o => o.type === 'fund').length")
+    if not k or not k[2] or not k[0].startswith('Tag fundet: '): bad.append('intet fundkort (%s)' % k)
+    if drawn < 1: bad.append('fundet blev ikke tegnet på banen')
+    hint = st(pg, "document.getElementById('hint').textContent")
+    if 'fund' not in hint.lower(): bad.append('hinten nævner ikke fundet (%s)' % hint)
+    check(pg, 'fund på banen', '#game', w, h, tag + '-fund-paa-banen.png')
+    if shots and SHOT: pg.screenshot(path=SHOT + 'fund-paa-banen.png')
+    # Tag fundet (og flere, hvis de dukker op)
+    for _ in range(nfund):
+        pg.evaluate("Rampen.decide('sigt')"); idle(pg)
+    if st(pg, "Rampen.phase") != 'freeze': bad.append('turen sluttede lige efter fundet (%s)' % st(pg, "Rampen.phase"))
+    else:
+        f = st(pg, FUND_HUD)
+        if not f['shown'] or f['n'] < 1: bad.append('fundene vises ikke i HUD %s' % f)
+        if not f['inside'] or f['pause']: bad.append('fund-striben uden for banen eller over pause %s' % f)
+        if any(not i[0] or i[1] < 26 for i in f['icons']): bad.append('fundikoner mangler eller er små %s' % f['icons'])
+        check(pg, 'fund i HUD', '#game', w, h, tag + '-fund-i-hud.png')
+        if shots and SHOT: pg.screenshot(path=SHOT + 'fund-i-hud.png')
+        names = f['names']
+        # Fundene gemmes med turen og vises igen efter genindlæsning
+        pg.reload(); pg.wait_for_timeout(400); pg.evaluate("Rampen.start()"); pg.wait_for_timeout(150)
+        f2 = st(pg, FUND_HUD)
+        if f2['names'] != names: bad.append('fundene kom ikke med efter genindlæsning (%s -> %s)' % (names, f2['names']))
+        # Værste tilfælde: alle syv fund på én gang (bagefter tilbage til turens rigtige fund)
+        fund0 = st(pg, "JSON.stringify({fund: Rampen.game.flight.fund, liste: Rampen.game.flight.fundListe})")
+        pg.evaluate("""(() => { const f = Rampen.game.flight; Rampen.logik.FUND.forEach(d => { if (!f.fund[d.id]) f.fund[d.id] = 1; if (!f.fundListe.includes(d.id)) f.fundListe.push(d.id); }); Rampen.refresh(); })()""")
+        pg.wait_for_timeout(60)
+        f3 = st(pg, FUND_HUD)
+        if f3['n'] != 7 or not f3['inside'] or f3['pause'] or f3['h'] > f3['bh'] * 0.5: bad.append('7 fund passer ikke %s' % f3)
+        check(pg, '7 fund i HUD', '#game', w, h, tag + '-fund-alle.png')
+        pg.evaluate("""(() => { const f = Rampen.game.flight, o = %s; f.fund = o.fund; f.fundListe = o.liste; Rampen.refresh(); })()""" % fund0)
+    # Til slut: fundene på slutskærmen
+    k2 = 0
+    while st(pg, "Rampen.phase") == 'freeze' and k2 < 40:
+        pg.evaluate("Rampen.decide(Rampen.cards.some(c => c.id === 'vent') ? 'vent' : Rampen.cards[0].id)"); idle(pg); k2 += 1
+    r = st(pg, "(() => { const e = document.getElementById('res-fund'); return [Rampen.phase, !e.hidden, e.querySelectorAll('.fund-chip').length, e.innerText.replace(/\\s+/g, ' ')]; })()")
+    if r[0] != 'done' or not r[1] or r[2] < 1: bad.append('slutskærmen viser ikke fundene %s' % r)
+    check(pg, 'tur slut med fund', '#game', w, h, tag + '-tur-slut-fund.png')
+    if shots and SHOT: pg.screenshot(path=SHOT + 'tur-slut-fund.png')
+    nf = st(pg, "(() => { Rampen.start(); return [Rampen.game.flight === null || !Rampen.game.flight.fundListe || Rampen.game.flight.fundListe.length === 0, document.getElementById('hud-fund').hidden]; })()")
+    if nf != [True, True]: bad.append('fundene blev ikke nulstillet til næste tur %s' % nf)
+    print('%s %dx%d fund: frø %d, kort %s, slut %s' % ('OK  ' if not bad else 'FEJL', w, h, seed, k and k[0], r[3][:90] if len(r) > 3 else r))
+    if bad: fails.append('%s fund: %s' % (tag, '; '.join(bad)))
+
 def new_page(b, w, h, **kw):
     ctx = b.new_context(viewport={'width':w,'height':h}, device_scale_factor=1, has_touch=w < 900, **kw)
     pg = ctx.new_page()
     pg.on('console', lambda m: errs.append(m.type+': '+m.text) if m.type in ('error','warning') else None)
-    pg.on('pageerror', lambda e: errs.append('pageerror: '+str(e)))
+    pg.on('pageerror', lambda e: errs.append('pageerror: '+str(e) + ' @ ' + (e.stack or '')[:600]))
     return ctx, pg
 
 with sync_playwright() as p:
@@ -333,6 +416,7 @@ with sync_playwright() as p:
         gameplay(pg, w, h, tag, big)
         dwell_check(pg, w, h, tag)
         if big or small: sound_check(pg, w, h, tag)
+        fund_check(pg, w, h, tag, big)
         resume_check(pg, w, h, tag)
         # Hovedbilledet for opløsningen: beslutningspunktet med vinger
         pg.evaluate(RIG); pg.evaluate("Rampen.settings.set('animation', false); Rampen.start(); Rampen.game.setAngle(40); Rampen.refresh()"); pg.wait_for_timeout(80)

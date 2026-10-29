@@ -74,6 +74,8 @@
         <svg viewBox="0 0 100 100" aria-hidden="true"><use href="#rampen-ikon-pause"/></svg>
         <span class="small">Pause</span>
       </button>
+      <!-- Fund (v1.6): turens fund med store ikoner; gælder kun resten af turen -->
+      <div class="fund-strip" id="hud-fund" role="status" aria-live="polite" aria-label="Turens fund" hidden></div>
     </div>
 
     <aside class="side" id="side" aria-label="Status og valg">
@@ -138,6 +140,7 @@
         <p class="res-reason" id="res-reason">Bilen holder stille.</p>
         <p class="res-coins" id="res-coins">+0 mønter</p>
         <p class="muted res-parts" id="res-parts"></p>
+        <div class="res-fund" id="res-fund" hidden></div>
         <p class="res-rank" id="res-rank"></p>
       </div>
       <div class="row res-row">
