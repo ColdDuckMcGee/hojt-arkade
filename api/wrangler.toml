@@ -1,0 +1,14 @@
+name = "hojt-arkade-api"
+main = "worker.js"
+compatibility_date = "2026-10-01"
+workers_dev = true
+account_id = "05fb53460a9be1dbc7979f44d0828636"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "hojt-arkade"
+database_id = "b7f43f91-6755-4276-933f-27d047003eed"
+
+# Hemmeligheder (sættes med `wrangler secret put`, ligger aldrig i repoet):
+#   STATS_KEY  – nøglen til /stats og statistiksiden
+#   SALT       – salt til den daglige IP-hash i rate limit
