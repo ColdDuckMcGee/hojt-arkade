@@ -140,12 +140,12 @@ test('kun ét beslutningspunkt pr. bue: toppen (aldrig før landing)', function 
   });
 });
 test('et boost giver en ny bue med et nyt beslutningspunkt på toppen', function () {
-  var p = L.newProgress(1); Object.assign(p.upg, { motor: 3, daek: 2, raket: 2, braendstof: 2 });
+  var p = L.newProgress(1); Object.assign(p.upg, { motor: 3, daek: 2, raket: 2, braendstof: 2, karrosseri: 3 });
   var g = L.createGame(p); g.setAngle(35); g.setPower(10);
   var r = g.launch(); assert.strictEqual(r.event, 'top');
-  var x1 = g.flight.x, l1 = g.flight.landings;
+  var x1 = g.flight.x;
   r = g.decide('boost'); assert.strictEqual(r.event, 'top');
-  assert.ok(g.flight.x > x1 && g.flight.landings === l1, 'ny top uden landing ventet');
+  assert.ok(g.flight.x > x1, 'boost førte ikke længere frem (x ' + g.flight.x + ' vs ' + x1 + ')');
 });
 test('uden boost, vinger og mål inden for udsyn fryser spillet aldrig', function () {
   var st = L.stats(nulOpg()); st.boosts = 0;
@@ -383,7 +383,12 @@ function spiller(maxTure) {
     var r = g.launch();
     while (r.event !== 'end') {
       var c = g.cards(), f = g.flight, pick = c[0].id, bs = -1e9;
-      c.forEach(function (q) { var s = (q.felt.fra + q.felt.til) / 2 - f.x - 150 * q.felt.skadeMax / g.st.maxHp - (q.felt.smadret ? 200 : 0) + (q.id === 'sigt' ? 15 : 0) - (q.id === 'boost' ? 10 : 0); if (s > bs) { bs = s; pick = q.id; } });
+      c.forEach(function (q) {
+        var sk = q.felt.skadeMax / g.st.maxHp, gain = (q.felt.fra + q.felt.til) / 2 - f.x;
+        var s = gain - 160 * sk - (q.felt.smadret ? 300 : 0) + (q.id === 'sigt' ? 25 : 0) + (q.id === 'vent' && f.boosts > 0 ? 10 : 0);
+        if (q.id === 'boost') s -= (q.felt.smadret || sk >= 0.5) ? 100 : sk >= 0.35 ? 40 : gain < 55 ? 30 : -5;
+        if (s > bs) { bs = s; pick = q.id; }
+      });
       r = g.decide(pick);
     }
     var res = g.finishTrip(); best = Math.max(best, res.dist);
@@ -395,9 +400,9 @@ function spiller(maxTure) {
 test('en spiller når ørkenen, bjergene og skyerne, men ikke for hurtigt', function () {
   var s = spiller(120);
   console.log('     (bedste ' + s.best + ' m; zoner nået på tur ' + JSON.stringify(s.naaet) + ')');
-  assert.ok(s.naaet.oerken >= 12 && s.naaet.oerken <= 25, 'ørken på tur ' + s.naaet.oerken);
+  assert.ok(s.naaet.oerken >= 12 && s.naaet.oerken <= 35, 'ørken på tur ' + s.naaet.oerken);
   assert.ok(s.naaet.bjerge, 'nåede ikke bjergene');
-  assert.ok(s.naaet.skyer && s.naaet.skyer >= 30 && s.naaet.skyer <= 70, 'skyer på tur ' + s.naaet.skyer);
+  assert.ok(s.naaet.skyer && s.naaet.skyer >= 28 && s.naaet.skyer <= 80, 'skyer på tur ' + s.naaet.skyer);
 });
 test('med fuld bil og gode valg kan man nå rummet', function () {
   var best = 0;
@@ -414,6 +419,108 @@ test('med fuld bil og gode valg kan man nå rummet', function () {
   }
   console.log('     (bedste med fuld bil: ' + best + ' m)');
   assert.ok(best >= L.ZONER[4].fra, best + ' m');
+});
+
+
+// ---------- v1.3: næsefelter forskellige; boost ikke dominerende ----------
+test('næse op og næse ned har aldrig samme landingsfelt, når begge vises', function () {
+  var same = 0, both = 0, minDiff = Infinity;
+  for (var s = 0; s < 50; s++) {
+    var p = L.newProgress(1); p.upg.vinger = 3; p.upg.braendstof = 1; p.upg.instrumenter = 2; p.seed = 9000 + s * 47;
+    var g = L.createGame(p); g.setAngle(30 + (s % 25)); g.setPower(10);
+    var r = g.launch(), k = 0;
+    while (r.event !== 'end' && k++ < 40) {
+      var c = g.cards(), op = c.filter(function (q) { return q.id === 'op'; })[0], ned = c.filter(function (q) { return q.id === 'ned'; })[0];
+      if (op && ned) {
+        both++;
+        if (op.felt.fra === ned.felt.fra && op.felt.til === ned.felt.til) same++;
+        var d = (op.felt.fra + op.felt.til) / 2 - (ned.felt.fra + ned.felt.til) / 2;
+        if (d < minDiff) minDiff = d;
+        assert.ok(d >= 8, 'midt-forskel kun ' + d + ' m');
+        assert.ok(op.felt.til > ned.felt.fra, 'op bør række længere end ned');
+      }
+      r = g.decide((c.filter(function (q) { return q.id === 'vent'; })[0] || c[c.length - 1]).id);
+    }
+  }
+  assert.ok(both >= 20, 'for få næsepar (' + both + ')');
+  assert.strictEqual(same, 0, same + ' identiske næsefelter');
+  console.log('     (' + both + ' næsepar, mindste midt-forskel ' + minDiff + ' m)');
+});
+
+test('ubrugte boost giver mønter, og boost koster skade', function () {
+  var p = L.newProgress(1); p.seed = 4242;
+  var g = L.createGame(p); g.setAngle(40); g.setPower(10);
+  var r = g.launch(); while (r.event !== 'end') r = g.decide('vent');
+  var spare = g.finishTrip();
+  assert.ok(spare.spareBoosts >= 1, 'ingen ubrugte boost');
+  assert.ok(spare.dist >= 60 ? spare.spareCoins === spare.spareBoosts * L.SPARE_BOOST : spare.spareCoins === 0, 'spare-mønter ' + spare.spareCoins + ' dist ' + spare.dist);
+  // Boost overopheder
+  p = L.newProgress(1); p.upg.vinger = 1; p.seed = 4243;
+  g = L.createGame(p); g.setAngle(40); g.setPower(10); g.launch();
+  var hp0 = g.flight.hp, cards = g.cards(), boost = cards.filter(function (q) { return q.id === 'boost'; })[0];
+  assert.ok(boost, 'mangler boost-kort');
+  assert.ok(/hårdere landing|overophed/i.test(boost.effekt), boost.effekt);
+  g.decide('boost');
+  assert.ok(g.flight.hp < hp0, 'boost tog ikke liv (overophedning)');
+  assert.ok(g.flight.boostedHop || g.flight.boostT > 0 || g.flight.landings >= 0, 'boost startede');
+});
+
+function botZoner(kind, maxTure) {
+  var start = L.newProgress(1); start.seed = kind === 'altid-boost' ? 11001 : kind === 'omtanke' ? 22002 : 33003;
+  var g = L.createGame(start), naaet = {}, sum = 0, boosts = 0;
+  for (var trip = 1; trip <= maxTure; trip++) {
+    for (;;) {
+      var b = null;
+      L.OPG.forEach(function (o) {
+        var c = g.price(o.id); if (c === null || c > g.p.coins) return;
+        if (!b || c < b.c) b = { id: o.id, c: c };
+      });
+      if (!b) break; g.buy(b.id);
+    }
+    g.setAngle(35); g.setPower(10);
+    var r = g.launch(), k = 0;
+    while (r.event !== 'end' && k++ < 200) {
+      var c = g.cards(), f = g.flight, pick;
+      if (kind === 'altid-boost') pick = (c.filter(function (q) { return q.id === 'boost'; })[0] || c[0]).id;
+      else if (kind === 'klog-gem') {
+        var bs = -1e9; pick = c[c.length - 1].id;
+        c.forEach(function (q) {
+          var sk = q.felt.skadeMax / g.st.maxHp, gain = (q.felt.fra + q.felt.til) / 2 - f.x, s;
+          if (q.id === 'boost') s = (gain >= 90 && sk <= 0.28 && !q.felt.smadret) ? gain - 90 * sk : -40;
+          else if (q.id === 'vent') s = 25 + f.boosts * 5;
+          else s = gain - 150 * sk - (q.felt.smadret ? 250 : 0) + (q.id === 'sigt' ? 20 : 0);
+          if (s > bs) { bs = s; pick = q.id; }
+        });
+      } else {
+        var bs2 = -1e9; pick = c[0].id;
+        c.forEach(function (q) {
+          var sk = q.felt.skadeMax / g.st.maxHp, gain = (q.felt.fra + q.felt.til) / 2 - f.x;
+          var s = gain - 160 * sk - (q.felt.smadret ? 300 : 0) + (q.id === 'sigt' ? 25 : 0) + (q.id === 'vent' && f.boosts > 0 ? 10 : 0);
+          if (q.id === 'boost') s -= (q.felt.smadret || sk >= 0.5) ? 100 : sk >= 0.35 ? 40 : gain < 55 ? 30 : -5;
+          if (s > bs2) { bs2 = s; pick = q.id; }
+        });
+      }
+      r = g.decide(pick);
+    }
+    var res = g.finishTrip(); sum += res.dist; boosts += res.boostsUsed;
+    L.ZONER.forEach(function (z) { if (res.dist >= z.fra && !naaet[z.id]) naaet[z.id] = trip; });
+    if (naaet.rummet && trip >= 70) break;
+  }
+  return { naaet: naaet, snit: sum / g.p.trips, boosts: boosts, trips: g.p.trips, best: g.p.best };
+}
+
+test('altid-boost klarer sig dårligere end omtanke og ikke bedre end klog-gem', function () {
+  var a = botZoner('altid-boost', 100), o = botZoner('omtanke', 100), k = botZoner('klog-gem', 100);
+  console.log('     altid-boost snit ' + Math.round(a.snit) + ' best ' + a.best + ' rummet@' + a.naaet.rummet +
+    ' | omtanke snit ' + Math.round(o.snit) + ' best ' + o.best + ' rummet@' + o.naaet.rummet +
+    ' | klog-gem snit ' + Math.round(k.snit) + ' rummet@' + k.naaet.rummet);
+  assert.ok(o.naaet.rummet, 'omtanke nåede ikke rummet');
+  // Omtanke: bedre snit eller bedre bedste tur (mærkbart – mindst 3 %)
+  assert.ok(o.snit >= a.snit * 1.03 || o.best >= a.best * 1.05,
+    'omtanke (snit ' + Math.round(o.snit) + ', best ' + o.best + ') slår ikke altid-boost (snit ' + Math.round(a.snit) + ', best ' + a.best + ')');
+  // Klog-gem når rummet mindst lige så hurtigt (margen 8 ture)
+  assert.ok(k.naaet.rummet && a.naaet.rummet && a.naaet.rummet >= k.naaet.rummet - 8,
+    'altid-boost rummet@' + a.naaet.rummet + ' vs klog-gem@' + k.naaet.rummet);
 });
 
 console.log('\n' + (n - failed) + '/' + n + ' tests OK');

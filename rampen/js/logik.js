@@ -71,7 +71,7 @@
       drag: 0.010 * (1 - 0.11 * g('aero')),
       lift: 0.0035 * g('vinger'),
       vinger: g('vinger') > 0,
-      thrust: 16 + 6 * g('raket'),                      // m/s² i 1,2 s
+      thrust: 13 + 5 * g('raket'),                      // m/s² i 1,2 s
       boostTid: 1.2,
       boosts: 1 + g('braendstof'),
       skaerm: 0.12 * g('faldskaerm'),                   // andel, faldskærmen tager af landingen
@@ -223,7 +223,7 @@
     return {
       vind: vind || null, vmod: null, sigt: null, touchX: null, valg: 0,
       t: 0, x: 0, y: RAMPE.h, vx: v0 * Math.cos(a), vy: v0 * Math.sin(a),
-      ground: false, hp: st.maxHp, boosts: st.boosts, boostT: 0, nose: 'lige',
+      ground: false, hp: st.maxHp, boosts: st.boosts, boostT: 0, nose: 'lige', boostedHop: false,
       taken: {}, coins: 0, picked: 0, tramps: 0, balloons: 0, boostsUsed: 0, dmg: 0,
       airStart: 0, longestAir: 0, apex: RAMPE.h, topFrozen: false, chuteT: 0, hops: 0, landings: 0,
       done: false, end: null, lastHit: null
@@ -239,7 +239,12 @@
   // længere, men lander hårdere (mere skade); ned = kortere hop, men blød landing,
   // der bevarer farten.
   var AIM_A = 16;                               // m/s²: hvor hårdt bilen kan styre mod et mål
-  var NOSE = { lige: { lift: 1, drag: 1, land: 1 }, op: { lift: 2, drag: 1.08, land: 1.1 }, ned: { lift: 0.2, drag: 0.85, land: 0.6 } };
+  // Næse: pitch er ekstra op/ned-acceleration (andel af g). Op og ned skal give tydeligt forskellige landinger.
+  var NOSE = {
+    lige: { lift: 1, drag: 1, land: 1, pitch: 0 },
+    op:   { lift: 2.6, drag: 1.08, land: 1.2, pitch: 0.18 },
+    ned:  { lift: 0.05, drag: 0.75, land: 0.5, pitch: -0.4 }
+  };
 
   // Et tidsskridt. Returnerer 'top' (beslutningspunkt), 'end' eller null.
   // freezes = false: ingen beslutningspunkter (forhåndslinjer).
@@ -268,7 +273,10 @@
       var wx = wa.ax > 0 ? wa.ax * Math.max(0, 1 - f.vx / 40) : wa.ax;
       var up = Math.min(lift + wa.ay, 0.9 * g);
       f.vx += (-dr * v * f.vx + thrust * ca + wx) * DT;
-      f.vy += (-g - dr * v * f.vy + up + thrust * sa) * DT;
+      // Pitch (næse) lægges på før loftet, så opdrift+pitch+opvind aldrig bærer hele bilen
+      var vert = Math.min(up + nz.pitch * g, 0.9 * g);
+      if (nz.pitch < 0) vert = up + nz.pitch * g;       // næse ned: fuld nedadgående pitch
+      f.vy += (-g - dr * v * f.vy + vert + thrust * sa) * DT;
       if (f.sigt) steer(f, g);
       f.x += f.vx * DT; f.y += f.vy * DT;
       if (f.y > f.apex) f.apex = f.y;
@@ -311,13 +319,14 @@
       var o = l[i];
       if (o.type === 'trampolin' && f.x >= o.x && f.x <= o.x + o.w) {
         f.vy = Math.max(-f.vy * 0.9, 12); f.tramps++; f.hops++; f.lastHit = 'trampolin';
-        f.apex = 0; f.airStart = f.x; f.topFrozen = false;
+        f.apex = 0; f.airStart = f.x; f.topFrozen = false; f.boostedHop = false;
         return;
       }
     }
     var nz = st.vinger ? NOSE[f.nose] : NOSE.lige;
-    var impact = -f.vy * (1 - st.skaerm) * nz.land;
-    f.nose = 'lige';                            // næsekortet gælder ét hop
+    var boostLand = f.boostedHop ? 1.9 : 1;     // boost giver hårdere landing
+    var impact = -f.vy * (1 - st.skaerm) * nz.land * boostLand;
+    f.nose = 'lige'; f.boostedHop = false;       // næse og boost-skade gælder ét hop
     f.landings++;
     if (st.skaerm > 0 && impact > 9) f.chuteT = f.t;
     if (impact > 9) { var d = (impact - 9) * 3.2 * st.panser; f.hp -= d; f.dmg += d; f.lastHit = 'landing'; }
@@ -395,8 +404,8 @@
   function predict(f, st, crs, opts) {
     var c = clone(f); opts = opts || {};
     if (opts.card) applyCard(c, st, opts.card);
-    if (opts.nose) c.nose = opts.nose;
-    if (opts.boost && c.boosts > 0) { c.boosts--; c.boostT = st.boostTid; }
+    else if (opts.nose) applyCard(c, st, { id: opts.nose });
+    else if (opts.boost) applyCard(c, st, { id: 'boost' });
     var r = runToTouch(c, st, crs, 60 * 120);
     return { pts: r.pts, x: r.x, landed: !r.done, end: r.end, hp: r.hp };
   }
@@ -410,9 +419,13 @@
   function applyCard(c, st, card) {
     var id = card && card.id || 'vent';
     c.nose = 'lige'; c.sigt = null;
-    if (id === 'boost' && c.boosts > 0) { c.boosts--; c.boostT = st.boostTid; c.boostsUsed++; }
-    else if (id === 'sigt' && card.target) { c.sigt = { pts: card.target.pts, i: 0, type: card.target.type }; c.vx *= 0.9; }
-    else if ((id === 'op' || id === 'ned') && st.vinger) c.nose = id;
+    if (id === 'boost' && c.boosts > 0) {
+      c.boosts--; c.boostT = st.boostTid; c.boostsUsed++;
+      c.boostedHop = true;                          // dette hop lander hårdere
+      var burn = st.maxHp * 0.11; c.hp -= burn; c.dmg += burn;  // overophedning
+    } else if (id === 'sigt' && card.target) { c.sigt = { pts: card.target.pts, i: 0, type: card.target.type }; c.vx *= 0.9; }
+    else if (id === 'op' && st.vinger) { c.nose = 'op'; c.vy += 6; }
+    else if (id === 'ned' && st.vinger) { c.nose = 'ned'; c.vy -= 5; c.vx *= 1.06; }
   }
   var MAAL_NAVN = {
     bonus: { titel: 'Tag brændstofdunken', effekt: '+1 boost og +10 mønter. Taber lidt fart', ikon: 'braendstof' },
@@ -440,7 +453,7 @@
   // Kortene for denne situation (2–3 stk., eller færre, hvis der intet er at vælge)
   function cards(f, st, crs) {
     var vis = synlig(crs, f.x + st.udsyn), list = [];
-    var boost = f.boosts > 0 ? { id: 'boost', ikon: 'boost', titel: 'Brug boost nu', effekt: 'Længere hop. Bruger 1 boost' } : null;
+    var boost = f.boosts > 0 ? { id: 'boost', ikon: 'boost', titel: 'Brug boost nu', effekt: 'Længere hop. Hårdere landing og overophedning' } : null;
     // Sigt: det første mål, bilen faktisk kan nå (prøvet med skønnet over vinden)
     var sigt = null, tg = targets(f, st, vis), mm = midModel(f, st);
     ['bonus', 'ballon', 'moenter', 'trampolin'].some(function (type) {
@@ -456,23 +469,38 @@
         return true;
       });
     });
-    var vent = { id: 'vent', ikon: 'vent', titel: f.boosts > 0 ? 'Gem boostet' : 'Glid videre', effekt: f.boosts > 0 ? 'Spar det til et senere hop' : 'Ingen ændring' };
-    var noser = [];
+    var vent = { id: 'vent', ikon: 'vent', titel: f.boosts > 0 ? 'Gem boostet' : 'Glid videre',
+      effekt: f.boosts > 0 ? 'Spar det (+' + SPARE_BOOST + ' mønter pr. ubrugt ved slut)' : 'Ingen ændring' };
+    var noser = [], nosePar = false;
     if (st.vinger) {
-      var op = { id: 'op', ikon: 'naese-op', titel: 'Næse op', effekt: 'Længere, men hårdere landing' };
-      var ned = { id: 'ned', ikon: 'naese-ned', titel: 'Næse ned', effekt: 'Kortere, men blød landing' };
-      // Er landingen hård lige nu? Så kommer "Næse ned" først.
-      var c0 = clone(f); c0.vmod = mm; c0.nose = 'lige'; c0.sigt = null;
-      var r0 = runToTouch(c0, st, vis);
-      noser = r0.hp < f.hp - 0.5 ? [ned, op] : [op, ned];
+      var op = { id: 'op', ikon: 'naese-op', titel: 'Næse op', effekt: 'Længere og højere. Hårdere landing' };
+      var ned = { id: 'ned', ikon: 'naese-ned', titel: 'Næse ned', effekt: 'Kortere, blød landing. Bevarer fart' };
+      // Kun begge næsekort, når felterne er tydeligt forskellige (ellers det mest nyttige)
+      var fOp = field(f, st, crs, op), fNed = field(f, st, crs, ned);
+      var midOp = (fOp.fra + fOp.til) / 2, midNed = (fNed.fra + fNed.til) / 2;
+      nosePar = midOp - midNed >= 8 && (fOp.fra !== fNed.fra || fOp.til !== fNed.til);
+      if (nosePar) {
+        noser = fNed.skadeMax + 2 < fOp.skadeMax ? [ned, op] : [op, ned];
+      } else {
+        var hard = fOp.skadeMax >= st.maxHp * 0.2 || fNed.skadeMax >= st.maxHp * 0.2;
+        noser = [hard ? (fNed.skadeMax <= fOp.skadeMax ? ned : op) : (midOp >= midNed ? op : ned)];
+      }
     }
-    var andre = [];
-    if (sigt) andre.push(sigt);
-    andre = andre.concat(noser);
-    andre.push(vent);
-    if (boost) list = [boost].concat(andre.slice(0, 2));
-    else list = andre.slice(0, 3);
-    if (!boost && !sigt && !st.vinger) list = [];       // kun "Glid videre": intet at vælge
+    // Med boost: "Gem boostet" er med, medmindre begge næsekort er det tydelige valg
+    // (næse bruger ikke boost, så gemning stadig er mulig ved at vælge næse).
+    if (boost) {
+      if (nosePar && !sigt) list = [boost].concat(noser);           // boost, næse, næse
+      else {
+        list = [boost, vent];
+        var ekstra = (sigt ? [sigt] : []).concat(noser);
+        if (ekstra.length) list.splice(1, 0, ekstra[0]);            // boost, (mål|næse), gem
+      }
+    } else {
+      list = (sigt ? [sigt] : []).concat(noser);
+      list.push(vent);
+      list = list.slice(0, 3);
+      if (!sigt && !st.vinger) list = [];                           // kun "Glid videre": intet at vælge
+    }
     return list;
   }
   // Landingsfeltet for et kort: hvor bilen første gang rører jorden, regnet med det,
@@ -559,7 +587,8 @@
   }
   var ANGLE_MIN = 10, ANGLE_MAX = 70;
   function multiplier(bil) { return 1 + 0.25 * (bil - 1); }   // Ny bil: +25 % mønter pr. bil
-  var NY_BIL_KRAV = 1000;                                      // længste tur, før man kan tage en ny bil
+  var NY_BIL_KRAV = 1000;
+  var SPARE_BOOST = 55;                       // mønter pr. ubrugt boost ved turens slut
 
   // Spillet: fremskridt + den aktuelle tur
   function createGame(progress) {
@@ -629,11 +658,14 @@
         var mult = multiplier(p.bil);
         r.distCoins = Math.floor(dist * 0.35 * mult);
         r.pickCoins = Math.floor(f.coins * mult);
+        // Ubrugte boost er værdifulde: +SPARE_BOOST mønter pr. stk. (gør "Gem boostet" konkurrencedygtigt)
+        r.spareBoosts = Math.max(0, f.boosts | 0);
+        r.spareCoins = dist >= 60 ? Math.floor(r.spareBoosts * SPARE_BOOST * mult) : 0;
         r.zoneBonus = []; var zb = 0;
         ZONER.forEach(function (z) { if (dist >= z.fra && p.zones.indexOf(z.id) < 0) { p.zones.push(z.id); r.zoneBonus.push({ id: z.id, navn: z.navn, beloen: z.bonus }); zb += z.bonus; } });
         r.goals = []; var gb = 0;
         activeGoals(p.goals).forEach(function (g) { if (g.test(r)) { p.goals.push(g.id); r.goals.push({ id: g.id, tekst: g.tekst, beloen: g.beloen }); gb += g.beloen; } });
-        r.total = r.distCoins + r.pickCoins + zb + gb;
+        r.total = r.distCoins + r.pickCoins + r.spareCoins + zb + gb;
         r.newBest = dist > p.best;
         p.coins += r.total; p.trips++; p.carScore += dist; if (dist > p.best) p.best = dist;
         game.flight = null; game.lastResult = r; tur = null;
@@ -670,6 +702,7 @@
     DT: DT, G: G, RAMPE: RAMPE, ZONER: ZONER, OPG: OPG, BILER: BILER, TING: TING, MAAL: MAAL,
     ANGLE_MIN: ANGLE_MIN, ANGLE_MAX: ANGLE_MAX, NY_BIL_KRAV: NY_BIL_KRAV,
     zoneAt: zoneAt, zoneIndex: zoneIndex, pris: pris, stats: stats, bilType: bilType, niveauSum: niveauSum,
+    SPARE_BOOST: SPARE_BOOST,
     course: course, chunk: chunk, seedForCar: seedForCar, seedForTrip: seedForTrip, synlig: synlig, newFlight: newFlight, clone: clone, step: step,
     advance: advance, predict: predict, runToTouch: runToTouch, cards: cards, field: field, applyCard: applyCard,
     windFor: windFor, windEstimate: windEstimate, VIND: VIND, activeGoals: activeGoals, goal: goal, multiplier: multiplier,

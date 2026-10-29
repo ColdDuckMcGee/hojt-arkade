@@ -422,6 +422,7 @@
     $('#res-reason').textContent = r.end === 'smadret' ? 'Bilen gik i stykker og blev stående.' : 'Bilen holder stille.';
     $('#res-coins').textContent = '+' + coinsText(r.total);
     var parts = [r.distCoins + ' for afstanden', r.pickCoins + ' samlet op'];
+    if (r.spareCoins) parts.push(r.spareCoins + ' for ' + r.spareBoosts + ' ubrugt boost' + (r.spareBoosts === 1 ? '' : 's'));
     r.zoneBonus.forEach(function (z) { parts.push(z.beloen + ' for at nå ' + z.navn.toLowerCase()); });
     r.goals.forEach(function (g) { parts.push(g.beloen + ' for målet "' + g.tekst + '"'); });
     if (game.p.bil > 1) parts.push('Bil ' + game.p.bil + ' giver +' + Math.round((L.multiplier(game.p.bil) - 1) * 100) + ' %');
