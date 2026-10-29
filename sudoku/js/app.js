@@ -198,6 +198,9 @@
     var bx = e.target.closest('.boxbtn');
     if (bx && zoom < 0) { zoomTo(+bx.dataset.box); return; }
     var c = e.target.closest('.cell');
+    // Felter uden for den zoomede boks og faste tal er inert (kun én klikbar flade pr. område for
+    // hjælpemidler som TD Browse). Med mus og tryk findes feltet ud fra punktet, så de virker som før.
+    if (!c && e.target === boardEl && (e.clientX || e.clientY)) c = cellAt(e.clientX, e.clientY);
     if (!c) return;
     var i = +c.dataset.i;
     if (zoom >= 0 && G.box(i) !== zoom) {
@@ -207,6 +210,15 @@
     }
     select(i);
   });
+
+  function cellAt(x, y) {
+    var cs = boardEl.querySelectorAll('.cell');
+    for (var j = 0; j < cs.length; j++) {
+      var r = cs[j].getBoundingClientRect();
+      if (x >= r.left && x < r.right && y >= r.top && y < r.bottom) return cs[j];
+    }
+    return null;
+  }
 
   // Første gåde laves i forvejen, mens menuen står stille (Svær og Ekspert kan tage
   // et par hundrede ms), så Start spil reagerer med det samme.

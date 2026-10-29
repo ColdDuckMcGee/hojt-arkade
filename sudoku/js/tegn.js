@@ -115,9 +115,11 @@
         var target = inZoom && view.live;
         el.tabIndex = target ? 0 : -1;
         if (target) el.removeAttribute('data-no-dwell'); else el.setAttribute('data-no-dwell', '');
-        // I oversigten ligger boks-knapperne oven på felterne. Felterne er da hverken klikbare
-        // eller synlige for hjælpemidler (fx TD Browse' farveprikker), så kun boksene tilbydes.
-        var covered = zoom < 0;
+        // Kun de tomme/udfyldelige felter i den zoomede boks er klikbare. I oversigten ligger
+        // boks-knapperne oven på felterne; ved zoom er felterne uden for boksen og de faste tal
+        // ikke mål. De er da hverken klikbare eller synlige for hjælpemidler (fx TD Browse'
+        // farveprikker), så kun én klikbar flade pr. område tilbydes. Tastaturet når dem stadig.
+        var covered = !inZoom || !!given[i];
         if (el.inert !== covered) el.inert = covered;
         if (covered) el.setAttribute('aria-hidden', 'true'); else el.removeAttribute('aria-hidden');
         var st = given[i] ? 'givet ' + v : v ? (s.tipped[i] ? 'tip ' : '') + v : s.wrong[i] ? 'tomt, forkert ' + s.wrong[i] : (nm ? 'tomt, noter ' + notesList(nm) : 'tomt');
