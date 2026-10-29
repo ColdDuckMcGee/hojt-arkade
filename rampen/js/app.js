@@ -253,6 +253,7 @@
     onSegmentEnd('top');
   }
   function startTrip() {
+    if (window.ArkadeHighscore) ArkadeHighscore.start();
     tegn.stop();
     if (tripInProgress()) { resumeTrip(); return; }
     game.flight = null;
@@ -427,6 +428,7 @@
     if (!r) return;
     phase = 'done';
     lastResult = r;
+    if (window.ArkadeHighscore) ArkadeHighscore.slut();
     var res = records.add('tur', r.dist, { bil: game.p.bil });
     saveProgress();
     if (r.end === 'smadret') sfx('crash'); else sfx('stop');

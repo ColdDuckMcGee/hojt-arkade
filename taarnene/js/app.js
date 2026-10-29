@@ -310,6 +310,7 @@
   });
 
   function startGame() {
+    if (window.ArkadeHighscore) ArkadeHighscore.start();
     stopAnim();
     game = L.createGame({ map: chooseMap() });
     paused = false; finished = false; restAuto = false; pendingPause = false;
@@ -699,6 +700,7 @@
   function saveRecord() {
     var out = game.end(), res = null;
     finished = true;
+    if (window.ArkadeHighscore) ArkadeHighscore.slut();
     if (out.score > 0) res = records.add(CAT, out.score, { waves: out.cleared, kills: game.state.kills, bane: game.state.map.bane });
     return res;
   }

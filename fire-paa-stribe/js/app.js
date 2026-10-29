@@ -200,6 +200,7 @@
 
   function clearTimers() { clearTimeout(cpuTimer); clearTimeout(animTimer); cpuTimer = animTimer = 0; pendingCpu = false; }
   function startGame() {
+    if (window.ArkadeHighscore) ArkadeHighscore.start();
     clearTimers();
     run = G.createSeries(level());
     paused = false; finished = false; busy = false; falling = -1;
@@ -462,6 +463,7 @@
   function saveRecord() {
     var s = run.state, out = run.end(), res = null;
     finished = true;
+    if (window.ArkadeHighscore) ArkadeHighscore.slut();
     if (out.score > 0) res = records.add(s.level, out.score, { wins: out.wins, draws: out.draws });
     return res;
   }

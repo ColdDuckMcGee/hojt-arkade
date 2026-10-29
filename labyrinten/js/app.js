@@ -181,6 +181,7 @@
   var BUMP_MS = 220;          // lille ryk mod en væg
 
   function startGame() {
+    if (window.ArkadeHighscore) ArkadeHighscore.start();
     cancelAnim();
     run = G.createRun({ difficulty: lab.get('difficulty') });
     paused = false;
@@ -408,6 +409,7 @@
     var s = run.state, cat = category(s.difficulty);
     var rankText = '';
     lastEntryId = null;
+    if (window.ArkadeHighscore) ArkadeHighscore.slut();
     if (s.score > 0) {
       var res = records.add(cat, s.score, { levels: s.cleared });
       if (res.rank === 1) { rankText = 'Ny rekord!'; sfx('record'); }

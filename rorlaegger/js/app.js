@@ -231,6 +231,7 @@
   });
 
   function startGame() {
+    if (window.ArkadeHighscore) ArkadeHighscore.start();
     run = L.createRun({ maxN: maxN() });
     paused = false; finished = false; flowing = false;
     curIdx = -1; lastNote = ''; noteCls = '';
@@ -427,6 +428,7 @@
   function saveRecord() {
     var out = run.end(), res = null;
     finished = true;
+    if (window.ArkadeHighscore) ArkadeHighscore.slut();
     if (out.score > 0) res = records.add(CAT, out.score, { levels: out.cleared });
     return res;
   }

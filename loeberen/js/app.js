@@ -195,6 +195,7 @@
   var LANE_NAMES = ['venstre bane', 'midterbanen', 'højre bane'];
 
   function startGame() {
+    if (window.ArkadeHighscore) ArkadeHighscore.start();
     run = G.createRun(bset.get('diff'));
     paused = false; busy = false; finished = false; anim = null; hitGlow = 0; previewAct = null;
     hideOverlays();
@@ -374,6 +375,7 @@
     if (!run || run.state.score <= 0) return null;
     if (savedFor === run) return savedRec;
     savedFor = run;
+    if (window.ArkadeHighscore) ArkadeHighscore.slut();
     savedRec = records.add(run.state.diff, run.state.score, { meters: run.state.meters, coins: run.state.coins });
     return savedRec;
   }

@@ -229,6 +229,7 @@
   var raf = 0, lastT = 0, acc = 0;
 
   function startGame(seed) {
+    if (window.ArkadeHighscore) ArkadeHighscore.start();
     stopLoop();
     run = L.createRun(seed !== undefined ? { seed: seed } : {});
     paused = false; finished = false;
@@ -441,6 +442,7 @@
   function saveRecord() {
     var out = run.end(), res = null;
     finished = true;
+    if (window.ArkadeHighscore) ArkadeHighscore.slut();
     if (out.score > 0) res = records.add(REC, out.score, { turns: out.turns, broken: out.broken });
     return res;
   }

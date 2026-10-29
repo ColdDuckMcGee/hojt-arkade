@@ -195,6 +195,7 @@
   var DIR_NAMES = { up: 'op', down: 'ned', left: 'venstre', right: 'højre' };
 
   function startGame() {
+    if (window.ArkadeHighscore) ArkadeHighscore.start();
     game = SlangenGame.createGame(slangen.get('boardSize'));
     paused = false;
     $('#pause-overlay').hidden = true;
@@ -274,6 +275,7 @@
     var s = game.state;
     var rankText = '';
     lastEntryId = null;
+    if (window.ArkadeHighscore) ArkadeHighscore.slut();
     if (s.score > 0) {
       var res = records.add(String(s.size), s.score);
       if (res.rank === 1) { rankText = 'Ny rekord!'; audio.play('record'); }

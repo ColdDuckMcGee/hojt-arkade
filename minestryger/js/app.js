@@ -178,6 +178,7 @@
   var board = MinestrygerBoard.create($('#board'), { onCell: onCell });
 
   function startGame() {
+    if (window.ArkadeHighscore) ArkadeHighscore.start();
     run = { size: effectiveSize(), maxLives: mine.get('lives'), lives: mine.get('lives'), score: 0, plateNo: 1, cleared: 0, over: false };
     paused = false;
     newPlate();
@@ -311,6 +312,7 @@
     var cat = category(run.maxLives, run.size);
     var rankText = '';
     lastEntryId = null;
+    if (window.ArkadeHighscore) ArkadeHighscore.slut();
     if (run.score > 0) {
       var res = records.add(cat, run.score, { plates: run.cleared });
       if (res.rank === 1) { rankText = 'Ny rekord!'; sfx('record'); }

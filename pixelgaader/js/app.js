@@ -250,6 +250,7 @@
   boardEl.addEventListener('pointerleave', function () { if (hoverIdx >= 0) { hoverIdx = -1; renderBoard(); } });
 
   function startGame() {
+    if (window.ArkadeHighscore) ArkadeHighscore.start();
     run = G.createRun(currentMode(), { maxSize: maxSize() });
     paused = false; finished = false; tool = 'udfyld';
     hoverIdx = -1; curIdx = -1; lastNote = ''; noteCls = '';
@@ -474,6 +475,7 @@
   function saveRecord() {
     var s = run.state, out = run.end(), res = null;
     finished = true;
+    if (window.ArkadeHighscore) ArkadeHighscore.slut();
     if (out.score > 0) res = records.add(s.mode, out.score, { levels: out.solved });
     return res;
   }

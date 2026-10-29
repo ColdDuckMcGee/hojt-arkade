@@ -230,6 +230,7 @@
   var tegn = KabaleTegn.create(boardEl);
 
   function startGame() {
+    if (window.ArkadeHighscore) ArkadeHighscore.start();
     var d = currentDraw();
     series = L.createSeries({ draw: d });
     finished = false; paused = false;
@@ -626,6 +627,7 @@
   function saveRecord(why) {
     var out = series.end(why), res = null;
     finished = true;
+    if (window.ArkadeHighscore) ArkadeHighscore.slut();
     if (out && out.score > 0) res = records.add(cat(series.draw), out.score, { levels: out.wins });
     return { out: out, res: res };
   }

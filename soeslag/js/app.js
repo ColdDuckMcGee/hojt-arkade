@@ -251,6 +251,7 @@
 
   function phase() { return run ? run.state.phase : 'place'; }
   function startGame() {
+    if (window.ArkadeHighscore) ArkadeHighscore.start();
     run = G.createRun(boardSize(), sset.get('level'));
     paused = false; finished = false;
     $('#pause-overlay').hidden = true;
@@ -647,6 +648,7 @@
     finished = true;
     var s = run.state, cat = catOf(s.level, s.sizeId), rankText = '';
     lastEntryId = null;
+    if (window.ArkadeHighscore) ArkadeHighscore.slut();
     if (s.score > 0) {
       var res = records.add(cat, s.score, { wins: s.wins, sunk: s.sunkTotal });
       if (res.rank === 1) { rankText = 'Ny rekord!'; sfx('record'); }

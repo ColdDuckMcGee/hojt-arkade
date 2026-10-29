@@ -219,6 +219,7 @@
   boardEl.addEventListener('pointerleave', function () { if (hoverIdx >= 0) { hoverIdx = -1; renderBoard(); } });
 
   function startGame() {
+    if (window.ArkadeHighscore) ArkadeHighscore.start();
     run = G.createRun(boardSize());
     paused = false; finished = false;
     selSlot = -1; selCell = -1; hoverIdx = -1; vanishing = {}; popping = {}; lastNote = '';
@@ -488,6 +489,7 @@
     finished = true;
     var s = run.state, cat = s.sizeId, rankText = '';
     lastEntryId = null;
+    if (window.ArkadeHighscore) ArkadeHighscore.slut();
     if (s.score > 0) {
       var res = records.add(cat, s.score, { lines: s.lines });
       if (res.rank === 1) { rankText = 'Ny rekord!'; sfx('record'); }

@@ -251,6 +251,7 @@
   var freezeK = 0, flash = {}, trail = [], acc = 0, lastT = 0, note = '', noteT = 0;
 
   function startGame() {
+    if (window.ArkadeHighscore) ArkadeHighscore.start();
     run = G.createRun({ table: fset.get('table'), speedId: fset.get('speed') });
     setupHud();
     paused = false; finished = false;
@@ -610,6 +611,7 @@
     var s = run.state, cat = recCat(s.tableId, s.speedId), rankText = '';
     lastEntryId = null;
     sfx('over');
+    if (window.ArkadeHighscore) ArkadeHighscore.slut();
     if (s.score > 0) {
       var res = records.add(cat, s.score, { mult: s.stats.bestMult, lights: s.stats.allLights, missions: s.stats.missions || 0, jackpots: s.stats.jackpots || 0 });
       if (res.rank === 1) { rankText = 'Ny rekord!'; sfx('record'); }

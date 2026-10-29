@@ -194,6 +194,7 @@
   var phase = 'idle'; // aim (din tur), flight, cpu (computeren sigter), wait, win, over
 
   function startGame() {
+    if (window.ArkadeHighscore) ArkadeHighscore.start();
     resetAnim();
     run = { no: 1, score: 0, wins: 0, hp: G.RULES.maxHp, over: false };
     paused = false;
@@ -532,6 +533,7 @@
   function gameOver() {
     var rankText = '';
     lastEntryId = null;
+    if (window.ArkadeHighscore) ArkadeHighscore.slut();
     if (run.score > 0) {
       var res = records.add(CATEGORY, run.score, { wins: run.wins });
       if (res.rank === 1) { rankText = 'Ny rekord!'; sfx('record'); }

@@ -275,6 +275,7 @@
     view = 'kort'; sidstSet = null; nyeNyheder(); slutVist = false;
   }
   function nyHandel() {
+    if (window.ArkadeHighscore) ArkadeHighscore.start();
     game = L.createGame();
     nulstilValg(); valgtVare = 'mad';
     setBesked('Velkommen til ' + pNavn(game.her()) + '! Vælg en planet for at se rejsetid, brændstof og fortjeneste.');
@@ -914,6 +915,7 @@
     if (!st.over || slutVist) return;
     slutVist = true;
     var point = game.point();
+    if (window.ArkadeHighscore) ArkadeHighscore.slut();
     var rank = records.add('point', point, { dage: st.dag, grund: st.grund, skibe: st.skibe.length }).rank;
     saveGame();
     var konkurs = st.grund === 'konkurs';

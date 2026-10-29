@@ -247,6 +247,7 @@
   function setBesked(t, cls) { besked = { tekst: t, cls: cls || '' }; }
 
   function nyRejse() {
+    if (window.ArkadeHighscore) ArkadeHighscore.start();
     game = L.createGame();
     slutVist = false; valgtVare = 'rom'; valgtHavn = null; afgang = null; retning = 0; clearTimeout(kursTimer);
     view = 'havn'; fane = 'marked';
@@ -894,6 +895,7 @@
     var over = game.state.over;
     if (!over || slutVist) return;
     slutVist = true;
+    if (window.ArkadeHighscore) ArkadeHighscore.slut();
     var rank = records.add('point', over.point, { dage: over.dage, skib: over.skib, grund: over.grund }).rank;
     saveGame();
     $('#slut-kicker').textContent = over.grund === 'land' ? 'Du gik i land' : 'Rejsen er slut';

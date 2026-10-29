@@ -190,6 +190,7 @@
   var DIR_NAMES = { up: 'op', down: 'ned', left: 'til venstre', right: 'til højre' };
 
   function startGame() {
+    if (window.ArkadeHighscore) ArkadeHighscore.start();
     run = G.createRun(bset.get('lives'));
     paused = false; busy = false; finished = false; fx = [];
     clearTimeout(pendingTimer);
@@ -384,6 +385,7 @@
     var cat = s.modeId;
     var rankText = '';
     lastEntryId = null;
+    if (window.ArkadeHighscore) ArkadeHighscore.slut();
     if (s.score > 0) {
       var res = records.add(cat, s.score, { level: s.level });
       if (res.rank === 1) { rankText = 'Ny rekord!'; sfx('record'); }

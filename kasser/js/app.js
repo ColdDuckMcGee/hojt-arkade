@@ -218,6 +218,7 @@
   var STEP_MS = 150;
 
   function startLevel(n) {
+    if (!run && window.ArkadeHighscore) ArkadeHighscore.start();
     cancelAnim();
     run = G.createLevel(n);
     progress.setLast(n);
@@ -462,6 +463,7 @@
   // pr. runde (med det bedste resultat i runden). Summen kommer på top 10.
   var lastEntryId = null;
   function endRound() {
+    if (window.ArkadeHighscore) ArkadeHighscore.slut();
     var r = progress.endRound(), rankText = '';
     lastEntryId = null;
     if (r.total > 0) {

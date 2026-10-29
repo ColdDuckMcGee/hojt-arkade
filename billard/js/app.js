@@ -243,6 +243,7 @@
   var CPU_THINK = 700, CPU_AIM = 1100, AFTER_PAUSE = 1300;   // ms (kan sættes ned i test)
 
   function startGame(seed) {
+    if (window.ArkadeHighscore) ArkadeHighscore.start();
     tegn.stop();
     clearTimers();
     runLevel = level();
@@ -570,6 +571,7 @@
   function saveRecord() {
     var out = run.end(), res = null;
     finished = true;
+    if (window.ArkadeHighscore) ArkadeHighscore.slut();
     if (out.score > 0) res = records.add(runLevel, out.score, { frames: out.framesWon, potted: out.potted });
     return res;
   }

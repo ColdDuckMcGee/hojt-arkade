@@ -232,6 +232,7 @@
   var auto = null, autoTimer = 0, sidstTast = 0;
 
   function startGame(seed) {
+    if (window.ArkadeHighscore) ArkadeHighscore.start();
     stopAuto();
     run = L.createRun(seed !== undefined ? { seed: seed } : {});
     paused = false; finished = false; kortVist = false; hover = null;
@@ -669,6 +670,7 @@
   function saveRecord() {
     var out = run.end(), res = null;
     finished = true;
+    if (window.ArkadeHighscore) ArkadeHighscore.slut();
     if (out.score > 0) res = records.add(REC, out.score, { etage: out.etage, skat: out.skat, drab: out.drab });
     return res;
   }

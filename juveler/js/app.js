@@ -247,6 +247,7 @@
   });
 
   function startGame() {
+    if (window.ArkadeHighscore) ArkadeHighscore.start();
     animToken++;
     run = G.createRun(currentMode());
     paused = false; finished = false; busy = false; shownHud = null; introQueue = []; shownTask = null; shownPN = 0;
@@ -617,6 +618,7 @@
   function saveRecord() {
     var s = run.state, out = run.end(), res = null;
     finished = true;
+    if (window.ArkadeHighscore) ArkadeHighscore.slut();
     if (out.score > 0) res = records.add(s.size, out.score, G.recordExtra(out));
     return res;
   }

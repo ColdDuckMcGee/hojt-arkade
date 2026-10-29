@@ -192,6 +192,7 @@
   function clone(o) { return JSON.parse(JSON.stringify(o)); }
 
   function startGame() {
+    if (window.ArkadeHighscore) ArkadeHighscore.start();
     run = G.createRun(bset.get('diff'));
     paused = false; busy = false; finished = false; fx = []; display = null; angle = 0;
     clearTimers();
@@ -429,6 +430,7 @@
     var cat = s.diff;
     var rankText = '';
     lastEntryId = null;
+    if (window.ArkadeHighscore) ArkadeHighscore.slut();
     if (s.score > 0) {
       var res = records.add(cat, s.score, { level: s.level });
       if (res.rank === 1) { rankText = 'Ny rekord!'; sfx('record'); }

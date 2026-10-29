@@ -225,6 +225,7 @@
   var ROLL_SPEED = 1.6;           // bolden ruller 1,6 gange hurtigere end virkelig tid
 
   function startGame(seed) {
+    if (window.ArkadeHighscore) ArkadeHighscore.start();
     tegn.stop();
     run = L.createRun(seed !== undefined ? { seed: seed } : {});
     runMode = mode();
@@ -451,6 +452,7 @@
   function saveRecord() {
     var out = run.end(), res = null;
     finished = true;
+    if (window.ArkadeHighscore) ArkadeHighscore.slut();
     if (out.score > 0) res = records.add(runMode, out.score, { holes: out.cleared });
     return res;
   }

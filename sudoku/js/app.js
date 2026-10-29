@@ -219,6 +219,7 @@
     }, 700);
   }
   function startGame() {
+    if (window.ArkadeHighscore) ArkadeHighscore.start();
     var m = currentMode(), pre = firstPuzzle && firstPuzzle.diff === m ? firstPuzzle : null;
     firstPuzzle = null; clearTimeout(firstTimer);
     run = G.createRun(m, pre ? { puzzle: pre } : undefined);
@@ -493,6 +494,7 @@
   function saveRecord() {
     var s = run.state, out = run.end(), res = null;
     finished = true;
+    if (window.ArkadeHighscore) ArkadeHighscore.slut();
     if (out.score > 0) res = records.add(s.diff, out.score, { levels: out.solved });
     return res;
   }
