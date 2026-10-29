@@ -82,6 +82,9 @@ html.rh-stille *, html.rh-stille *::before, html.rh-stille *::after { transition
 #records { justify-content: flex-start; padding-top: max(20px, 3vmin); gap: calc(var(--gap) * 0.6); }
 .records-panel { min-width: min(560px, 92vw); }
 .records li .plates { font-weight: 400; color: var(--muted); }
+.records li .rec-grund { font-weight: 700; }
+.records li .rec-grund.pension { color: var(--rh-ok); }
+.records li .rec-grund.konkurs { color: var(--rh-fejl); }
 ol.records .score { white-space: nowrap; }
 .rec-note { margin: 8px 0 0; text-align: center; font-size: 0.95rem; max-width: 34em; }
 @media (max-height: 640px) and (min-width: 700px) {
@@ -399,3 +402,10 @@ ol.records .score { white-space: nowrap; }
 #game.smal .vare-btn .vare-ill, #game.lay-lav .vare-btn .vare-ill { width: 24px; height: 24px; }
 #game.lay-lav .vare-tag { font-size: 0.66rem; }
 #game.lay-lav .vare-pris { font-size: 0.85rem; }
+
+/* Top 10 med Pension/Konkurs: på små skærme skjules antal dage, og datoen står under (højformat) eller skjules (tværformat) */
+.records li .rec-grund::before { content: " · "; font-weight: 400; color: var(--muted); }
+.rh-lille .records li .plates { display: none; }
+.rh-lille .records li { grid-template-columns: 2.4em 1fr; row-gap: 0; }
+.rh-lille .records li .date { grid-column: 2; font-size: 0.8em; line-height: 1.1; }
+.rh-lille .records li .date:empty, .rh-tvaers .records li .date { display: none; }

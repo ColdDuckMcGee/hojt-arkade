@@ -200,7 +200,7 @@ test('månedens regning forfalder hver 30. dag og vokser', function () {
   var g = nyt(); rolig(g); g.state.kredit = 1e6;
   assert.strictEqual(g.naesteForfald(), 30);
   var r1 = g.regning(); assert.strictEqual(r1.total, r1.renter + r1.afdrag + r1.licens + r1.drift + r1.forsikring);
-  assert.strictEqual(r1.renter, 300);
+  assert.strictEqual(r1.renter, 150, 'halv rente i startperioden'); assert.strictEqual(r1.afdrag, 0, 'afdragsfri i startperioden'); assert.ok(r1.start);
   while (g.state.dag < 30) g.vent();
   assert.strictEqual(g.state.maaneder, 1); assert.strictEqual(g.state.gaeld, 6000 - r1.afdrag);
   assert.strictEqual(g.naesteForfald(), 60);
@@ -225,14 +225,36 @@ test('konkurs, når regningen ikke kan betales = game over', function () {
 });
 test('passiv spiller går konkurs inden for få måneder', function () {
   var g = nyt(); while (!g.state.over) g.vent();
-  assert.ok(g.state.dag <= 150, 'dag ' + g.state.dag);
+  assert.ok(g.state.dag > 90 && g.state.dag <= 180, 'dag ' + g.state.dag);
 });
-test('point = højeste nettoformue inkl. skibe og bygninger; pension afslutter', function () {
+test('startperioden: de første 3 regninger er afdragsfri med halv rente, derefter fuld regning', function () {
+  var g = nyt(); rolig(g); g.state.kredit = 1e6;
+  for (var m = 1; m <= 3; m++) { var r = g.regning(); assert.ok(r.start); assert.strictEqual(r.afdrag, 0); assert.strictEqual(r.renter, Math.round(g.state.gaeld * L.RENTE * L.START_RENTE_ANDEL)); g._forfald(); }
+  assert.strictEqual(g.state.gaeld, 6000, 'ingen afdrag de første 90 dage');
+  var r4 = g.regning(); assert.ok(!r4.start); assert.strictEqual(r4.afdrag, 250); assert.strictEqual(r4.renter, 300);
+});
+test('nettoformue inkl. skibe og bygninger', function () {
   var g = nyt(); assert.strictEqual(g.nettoformue(), 2500 - 6000 + 3000);
   g.state.kredit = 50000; var f = g.nettoformue(); g.koebSkib('pelikan');
   assert.strictEqual(g.nettoformue(), f - 8000 + 4800);
-  g.vent(); var p = g.point(); assert.ok(p > 0);
-  g.pension(); assert.ok(g.state.over); assert.strictEqual(g.state.grund, 'pension'); assert.ok(g.point() >= p);
+});
+test('point = endelig nettoformue ved pension (ikke den højeste undervejs)', function () {
+  var g = nyt(); rolig(g); g.state.kredit = 50000; g.vent();
+  var hoej = g.point(); assert.strictEqual(hoej, g.nettoformue(), 'mens spillet kører: point hvis du går på pension nu');
+  g.state.kredit = 20000; var n = g.nettoformue(); assert.ok(n < hoej);
+  assert.ok(g.pension().ok); assert.ok(g.state.over); assert.strictEqual(g.state.grund, 'pension');
+  assert.strictEqual(g.point(), n, 'slutformuen tæller, ikke toppen');
+  g.state.kredit = 0; assert.strictEqual(g.point(), n, 'point ændrer sig ikke efter slut');
+});
+test('konkurs straffes: kun 25 % af slutformuen, aldrig under 0', function () {
+  var g = nyt(); g.state.kredit = 100; g.byg('lager'); g.state.bygninger.kepler = { lager: 4, varer: { luksus: 200 } };
+  g.state.gaeld = 0;
+  while (!g.state.over) g.vent();
+  assert.strictEqual(g.state.grund, 'konkurs');
+  assert.ok(g.state.slutFormue > 0);
+  assert.strictEqual(g.point(), Math.round(g.state.slutFormue * L.KONKURS_ANDEL));
+  var h = nyt(); h.state.kredit = 10; while (!h.state.over) h.vent();
+  assert.ok(h.state.slutFormue < 0); assert.strictEqual(h.point(), 0);
 });
 test('gem og genindlæs giver samme spil', function () {
   var g = nyt(11); rolig(g); g.koeb('mad', 5); g.flyv('vega');

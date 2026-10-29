@@ -5,6 +5,8 @@
 //   tilfaeldig flyver til en tilfældig nabo, køber en tilfældig vare og sælger alt ved ankomst
 //   handel    grådig handel med ét skib: vælger den bedste vare og planet (fortjeneste pr. dag)
 //   imperium  handel + køber skibe på faste ruter, bygger miner/fabrikker/lagre og forsikring
+//   handel+pension / imperium+pension  som ovenfor, men går på pension, når en regning, de ikke kan betale, nærmer sig
+// Point: konkurs = 25 % af slutformuen; pension og spil, der når max dage, = hele nettoformuen.
 'use strict';
 require('../js/logik.js');
 var L = globalThis.RumhandlerenLogik;
@@ -94,22 +96,35 @@ var STRATEGIER = {
   }
 };
 
+function medPension(base) {
+  return function (g) {
+    var nf = g.naesteForfald();
+    var last = 0; g.state.skibe.forEach(function (x) { last += g.lastVaerdi(x.last); });
+    if (!g.state.moede && nf - g.state.dag <= 10 && g.state.kredit + last < g.regning().total) { g.pension(); return; }
+    base(g);
+  };
+}
+STRATEGIER['handel+pension'] = medPension(STRATEGIER.handel);
+STRATEGIER['imperium+pension'] = medPension(STRATEGIER.imperium);
+
 function median(a) { a = a.slice().sort(function (x, y) { return x - y; }); return a.length ? a[Math.floor(a.length / 2)] : 0; }
 function pct(a, f) { return Math.round(100 * a.filter(f).length / a.length); }
 if (process.env.DBG) { module.exports = STRATEGIER; return; }
 var resultater = {};
 Object.keys(STRATEGIER).forEach(function (navn) {
-  var dage = [], point = [], ture = 0;
+  var dage = [], point = [], slut = [], pens = 0;
   for (var i = 0; i < N; i++) {
     var g = L.createGame({ seed: 1000 + i });
     var guard = 0;
     while (!g.state.over && g.state.dag < MAXDAGE && guard++ < 20000) STRATEGIER[navn](g);
-    dage.push(g.state.over ? g.state.dag : MAXDAGE + 1); point.push(g.point());
+    var konk = g.state.over && g.state.grund === 'konkurs';
+    if (g.state.grund === 'pension') pens++;
+    dage.push(konk ? g.state.dag : Infinity); slut.push(g.state.over ? g.state.dag : MAXDAGE + 1); point.push(g.point());
   }
   resultater[navn] = {
-    'median dage': median(dage), 'konkurs dag 30': pct(dage, function (d) { return d <= 30; }) + ' %',
+    'median dage': median(slut), 'konkurs dag 30': pct(dage, function (d) { return d <= 30; }) + ' %',
     'konkurs ≤ 180': pct(dage, function (d) { return d <= 180; }) + ' %', 'konkurs ≤ 365': pct(dage, function (d) { return d <= 365; }) + ' %',
-    'konkurs ≤ 730': pct(dage, function (d) { return d <= 730; }) + ' %', 'overlevede alle': pct(dage, function (d) { return d > MAXDAGE; }) + ' %',
+    'konkurs ≤ 730': pct(dage, function (d) { return d <= 730; }) + ' %', 'pension': Math.round(100 * pens / N) + ' %', 'nåede max dage': pct(slut, function (d) { return d > MAXDAGE; }) + ' %',
     'median point': median(point), 'bedste point': Math.max.apply(null, point)
   };
 });

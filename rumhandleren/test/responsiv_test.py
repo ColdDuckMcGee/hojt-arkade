@@ -190,11 +190,17 @@ def gameplay(pg, w, h, tag, big):
     if not st(pg, "!document.getElementById('slut-overlay').hidden"): fails.append(tag + ' pension viser ikke slut')
     check(pg, 'slut: pension', '#game', w, h, tag + '-slut-pension.png')
     # Konkurs
-    pg.evaluate("""(() => { const g = Rumhandleren.logik.createGame({ seed: 3 }); g.state.kredit = 0; g.state.dag = 29; Rumhandleren.setState(g.save(), 'kort'); })()""")
+    pg.evaluate("""(() => { const g = Rumhandleren.logik.createGame({ seed: 3 }); g.state.kredit = 0; g.state.gaeld = 0; g.flagskib().last = { [Rumhandleren.logik.VARER[6].id]: 15 }; g.state.dag = 29; Rumhandleren.setState(g.save(), 'kort'); })()""")
     pg.wait_for_timeout(40); pg.evaluate("Rumhandleren.vent()"); pg.wait_for_timeout(80)
     if st(pg, "Rumhandleren.game.state.grund") != 'konkurs': fails.append(tag + ' konkurs virker ikke')
     check(pg, 'game over (konkurs)', '#game', w, h, tag + '-gameover.png')
     if big and SHOT: pg.screenshot(path=SHOT + 'game-over.png')
+    if not st(pg, "(() => { const s = Rumhandleren.game.state, p = Rumhandleren.game.point(); return s.slutFormue > 0 && p > 0 && p === Math.round(s.slutFormue * Rumhandleren.logik.KONKURS_ANDEL); })()"):
+        fails.append(tag + ' konkurs-point er ikke 25 % af slutformuen')
+    pg.click('#btn-slut-rekorder'); pg.wait_for_timeout(60)
+    if st(pg, "document.querySelectorAll('#rec-list .rec-grund.pension').length") < 1 or st(pg, "document.querySelectorAll('#rec-list .rec-grund.konkurs').length") < 1:
+        fails.append(tag + ' top 10 viser ikke Pension/Konkurs')
+    check(pg, 'rekorder efter spil', '#records', w, h, tag + '-rekorder-efter.png')
 
 def run():
     only = os.environ.get('ONLY')

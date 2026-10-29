@@ -148,7 +148,7 @@
   var RISIKO_CLS = ['ok', 'adv', 'fejl'];
   var GRUND = {
     konkurs: 'Du kunne ikke betale månedens regning og gik konkurs.',
-    pension: 'Du gik på pension med din formue.'
+    pension: 'Du gik på pension i tide og beholdt hele din formue.'
   };
 
   // ---------- Skærme ----------
@@ -859,7 +859,7 @@
     var st = game.state, r = game.regning(), nf = game.naesteForfald();
     var rk = function (n, v) { return '<tr><td>' + n + '</td><td>' + cr(v) + '</td></tr>'; };
     var html = '<div class="rh-kort"><h4>' + T.ikon('forfald') + 'Regning dag ' + nf + ' (om ' + dage(nf - st.dag) + ')</h4><table>' +
-      rk('Renter (' + Math.round(L.RENTE * 100) + ' %)', r.renter) + rk('Afdrag', r.afdrag) + rk('Licens', r.licens) + (r.drift ? rk('Drift', r.drift) : '') + (r.forsikring ? rk('Forsikring', r.forsikring) : '') +
+      rk('Renter (' + String(Math.round(r.rentesats * 1000) / 10).replace('.', ',') + ' %)', r.renter) + rk(r.start ? 'Afdrag (fri)' : 'Afdrag', r.afdrag) + rk('Licens', r.licens) + (r.drift ? rk('Drift', r.drift) : '') + (r.forsikring ? rk('Forsikring', r.forsikring) : '') +
       '<tr class="sum"><td>I alt</td><td>' + cr(r.total) + '</td></tr></table>' +
       '<p class="' + (st.kredit < r.total ? 'fejl-t' : 'ok-t') + '">' + (st.kredit < r.total ? 'Du mangler ' + cr(r.total - st.kredit) + '!' : 'Du har råd.') + '</p></div>';
     html += '<div class="rh-kort"><h4>' + T.ikon('gaeld') + 'Lån</h4><p>Gæld ' + cr(st.gaeld) + ' · højst ' + cr(L.LAAN_MAX) + '</p><p class="muted-t forkl">Licensen vokser hver måned. Afdrag mindsker renterne.</p></div>';
@@ -917,11 +917,15 @@
     var rank = records.add('point', point, { dage: st.dag, grund: st.grund, skibe: st.skibe.length }).rank;
     saveGame();
     var konkurs = st.grund === 'konkurs';
-    $('#slut-kicker').textContent = konkurs ? 'Konkurs' : 'Du gik på pension';
+    var andel = Math.round(L.KONKURS_ANDEL * 100), sf = st.slutFormue != null ? st.slutFormue : game.nettoformue();
+    $('#slut-kicker').textContent = konkurs ? 'Konkurs' : 'Pension';
     $('#slut-title').textContent = tal(point) + ' point';
     $('#slut-grund').textContent = GRUND[st.grund] + (konkurs && st.manglede ? ' Du manglede ' + cr(st.manglede) + '.' : '');
     $('#slut-tal').textContent = stk(st.dag, 'dag', 'dage') + ' · ' + stk(st.skibe.length, 'skib', 'skibe') + ' · ' + stk(game.antalBygninger(), 'bygning', 'bygninger') + ' · ' +
-      stk(st.stat.kontrakter, 'kontrakt', 'kontrakter') + ' leveret. Point er den største nettoformue, du nåede.';
+      stk(st.stat.kontrakter, 'kontrakt', 'kontrakter') + ' leveret. ' +
+      (!konkurs ? 'Pension: hele din nettoformue på ' + cr(sf) + ' tæller.'
+        : sf > 0 ? 'Konkurs: kun ' + andel + '\u00a0% af din nettoformue på ' + cr(sf) + ' tæller. Gå på pension i tide!'
+        : 'Konkurs med en nettoformue på ' + cr(sf) + ' giver 0 point.');
     $('#slut-rank').textContent = rank ? (rank === 1 ? 'Ny rekord! Nummer 1 på listen.' : 'Nummer ' + rank + ' på top 10.') : '';
     hideOverlays();
     var ov = $('#slut-overlay');
@@ -941,7 +945,7 @@
     ov.hidden = !p;
     var pen = $('#btn-pension'), kan = !game.state.moede;
     pen.disabled = !kan;
-    $('.small', pen).textContent = kan ? 'point nu: ' + tal(Math.max(game.point(), game.nettoformue())) : 'ikke under et pirat-møde';
+    $('.small', pen).textContent = kan ? 'point nu: ' + tal(game.point()) : 'ikke under et pirat-møde';
     if (p) { fitScreen(ov); dwell.reset(); guardUnderGaze(ov); $('#btn-resume').focus({ preventScroll: true }); sfx('click'); }
     else { releaseGuard(); dwell.reset(); guardUnderGaze($('#game')); refresh(); }
   }
@@ -955,7 +959,7 @@
     var n = game.nettoformue();
     bekraeft({
       titel: 'Gå på pension?', ikon: 'pension', nej: 'Nej, handl videre', ja: 'Ja, gå på pension',
-      tekst: 'Spillet slutter, og du får ' + tal(Math.max(game.point(), n)) + ' point (den største nettoformue, du har nået). Din nettoformue er nu ' + cr(n) + '.',
+      tekst: 'Spillet slutter, og hele din nettoformue på ' + cr(n) + ' tæller: ' + tal(game.point()) + ' point. Går du konkurs senere, tæller kun ' + Math.round(L.KONKURS_ANDEL * 100) + ' %.',
       paaJa: function () { hideOverlays(); game.pension(); saveGame(); slutSpil(); }
     });
   });
@@ -963,7 +967,7 @@
   // ---------- Rekorder ----------
   var recordsReturn = 'menu';
   function openRecords(from) { recordsReturn = from || 'menu'; syncRecords(); show('records'); }
-  var GRUND_KORT = { konkurs: 'konkurs', pension: 'pension' };
+  var GRUND_KORT = { konkurs: 'Konkurs', pension: 'Pension' };
   function syncRecords() {
     var ol = $('#rec-list'), list = records.list('point');
     ol.innerHTML = '';
@@ -974,8 +978,9 @@
         var sc = li.querySelector('.score');
         sc.appendChild(document.createTextNode(tal(e.score) + ' point'));
         var x = document.createElement('span'); x.className = 'plates';
-        x.textContent = ' · ' + stk(e.dage || 0, 'dag', 'dage') + (e.grund ? ' · ' + (GRUND_KORT[e.grund] || '') : '');
+        x.textContent = ' · ' + stk(e.dage || 0, 'dag', 'dage');
         sc.appendChild(x);
+        if (e.grund && GRUND_KORT[e.grund]) { var gr = document.createElement('span'); gr.className = 'rec-grund ' + e.grund; gr.textContent = GRUND_KORT[e.grund]; sc.appendChild(gr); }
         li.querySelector('.date').textContent = ArkadeHighscores.formatDate(e.date);
       } else li.innerHTML = '<span class="score muted">–</span><span class="date"></span>';
       ol.appendChild(li);

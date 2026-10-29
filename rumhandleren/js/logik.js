@@ -83,9 +83,13 @@
   var RENTE = 0.05;                // rente pr. måned af gælden
   var AFDRAG0 = 250, AFDRAG_VAEKST = 1.2;   // afdraget vokser 20 % om måneden
   var LICENS0 = 60, LICENS_EKS = 1.7;       // handelslicensen vokser: 60 × måned^1,7
+  // Startperiode: de første START_MDR regninger (dag 30, 60 og 90) er afdragsfri, og renten er
+  // kun START_RENTE_ANDEL af den normale. Afdraget starter derefter på AFDRAG0 og vokser derfra.
+  var START_MDR = 3, START_RENTE_ANDEL = 0.5;
   var SKIB_DRIFT = 150;            // pr. skib ud over det første
   var FORSIKRING0 = 150, FORSIKRING_SKIB = 100;
   var LAAN_MAX = 40000, LAAN_TRIN = 2000;
+  var KONKURS_ANDEL = 0.25;          // ved konkurs tæller kun 25 % af nettoformuen som point
   var MAX_SKIBE = 8;   // flagskibet + 7 skibe – så oversigten kan stå uden rulning
   var SALG = 0.9;                  // salgspris = 90 % af købsprisen
   var SORTBOERS = 1.4;             // forbudte varer sælges dyrt, hvor de er forbudt
@@ -647,18 +651,19 @@
     function naesteForfald() { return Math.ceil((st.dag + (st.dag % MAANED === 0 ? 1 : 0)) / MAANED) * MAANED; }
     function regning() {
       var m = st.maaneder + 1;
-      var renter = Math.round(st.gaeld * RENTE);
-      var afdrag = Math.min(st.gaeld, Math.round(AFDRAG0 * Math.pow(AFDRAG_VAEKST, m - 1)));
+      var start = m <= START_MDR;
+      var renter = Math.round(st.gaeld * RENTE * (start ? START_RENTE_ANDEL : 1));
+      var afdrag = start ? 0 : Math.min(st.gaeld, Math.round(AFDRAG0 * Math.pow(AFDRAG_VAEKST, m - 1 - START_MDR)));
       var licens = Math.round(LICENS0 * Math.pow(m, LICENS_EKS));
       var drift = Math.max(0, st.skibe.length - 1) * SKIB_DRIFT;
       for (var k in st.bygninger) { var b = st.bygninger[k]; drift += (b.mine ? BYGNINGER.mine.drift : 0) + (b.fabrik ? BYGNINGER.fabrik.drift : 0) + (b.lager || 0) * BYGNINGER.lager.drift; }
       var forsikring = st.forsikring ? FORSIKRING0 + FORSIKRING_SKIB * Math.max(0, st.skibe.length - 1) : 0;
-      return { maaned: m, renter: renter, afdrag: afdrag, licens: licens, drift: drift, forsikring: forsikring, total: renter + afdrag + licens + drift + forsikring };
+      return { maaned: m, start: start, rentesats: RENTE * (start ? START_RENTE_ANDEL : 1), renter: renter, afdrag: afdrag, licens: licens, drift: drift, forsikring: forsikring, total: renter + afdrag + licens + drift + forsikring };
     }
     function forfald() {
       var r = regning();
       if (st.kredit < r.total) {
-        st.over = true; st.grund = 'konkurs'; st.manglede = Math.round(r.total - st.kredit);
+        st.over = true; st.grund = 'konkurs'; st.manglede = Math.round(r.total - st.kredit); st.slutFormue = nettoformue();
         nyhed('Konkurs! Regningen på ' + r.total + ' cr kunne ikke betales.', 'fejl');
         return;
       }
@@ -689,8 +694,16 @@
       }
       return Math.round(v);
     }
-    function point() { return Math.max(0, Math.round(Math.max(st.peak, st.over ? 0 : nettoformue()))); }
-    function pension() { if (st.over || st.moede) return { ok: false }; st.peak = Math.max(st.peak, nettoformue()); st.over = true; st.grund = 'pension'; return { ok: true }; }
+    // Point = nettoformuen, når spillet slutter. Ved pension tæller hele formuen,
+    // ved konkurs kun KONKURS_ANDEL af den (kreditorerne tager resten), og aldrig under 0.
+    // Mens spillet kører, viser point(), hvad du får, hvis du går på pension nu.
+    function slutFormue() { return st.over && st.slutFormue != null ? st.slutFormue : nettoformue(); }
+    function point() {
+      var f = slutFormue();
+      if (st.over && st.grund === 'konkurs') f = f * KONKURS_ANDEL;
+      return Math.max(0, Math.round(f));
+    }
+    function pension() { if (st.over || st.moede) return { ok: false }; st.peak = Math.max(st.peak, nettoformue()); st.over = true; st.grund = 'pension'; st.slutFormue = nettoformue(); return { ok: true }; }
     function vent() { if (st.over || st.moede) return { ok: false }; dag(); return { ok: true, dag: st.dag }; }
 
     return {
@@ -712,7 +725,7 @@
   global.RumhandlerenLogik = {
     createGame: createGame, VARER: VARER, VARE: VARE, PLANETER: PLANETER, PLANET: PLANET, FRAKTIONER: FRAKTIONER, FRAKTION: FRAKTION,
     RUTER: RUTER, NABOER: NABOER, SKIBSTYPER: SKIBSTYPER, SKIBSTYPE: SKIBSTYPE, BYGNINGER: BYGNINGER, BEGIVENHEDER: BEGIVENHEDER,
-    KORT: KORT, START: START, MAANED: MAANED, RENTE: RENTE, LAAN_MAX: LAAN_MAX, LAAN_TRIN: LAAN_TRIN, MAX_SKIBE: MAX_SKIBE, PIRAT: PIRAT,
+    KORT: KORT, START: START, KONKURS_ANDEL: KONKURS_ANDEL, START_MDR: START_MDR, START_RENTE_ANDEL: START_RENTE_ANDEL, MAANED: MAANED, RENTE: RENTE, LAAN_MAX: LAAN_MAX, LAAN_TRIN: LAAN_TRIN, MAX_SKIBE: MAX_SKIBE, PIRAT: PIRAT,
     ADGANG: ADGANG, TOLDFRI: TOLDFRI, BOEDE: BOEDE, SALG: SALG
   };
 })(typeof window !== 'undefined' ? window : globalThis);

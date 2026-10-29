@@ -1,8 +1,8 @@
 # Rumhandleren
 
-Et roligt, turbaseret handelsspil til Højt Arkade. Der er ingen kamp, ingen tåge og intet tidspres. Du starter på Kepler med en lille Spurv, 2.500 cr og et lån på 6.000 cr. Hele stjernekortet med 12 planeter kan ses fra start. Du handler 8 varer mellem planeterne, køber flere skibe og sender dem ud på faste ruter, og du bygger miner, fabrikker og lagre. Hver 30. dag kommer en regning, der vokser. Kan du ikke betale den, går du konkurs, og spillet er slut. Ellers er spillet endeløst, og du kan selv gå på **pension**.
+Et roligt, turbaseret handelsspil til Højt Arkade. Der er ingen kamp, ingen tåge og intet tidspres. Du starter på Kepler med en lille Spurv, 2.500 cr og et lån på 6.000 cr. Hele stjernekortet med 12 planeter kan ses fra start. Du handler 8 varer mellem planeterne, køber flere skibe og sender dem ud på faste ruter, og du bygger miner, fabrikker og lagre. Hver 30. dag kommer en regning, der vokser (de første 90 dage er nemmere, se nedenfor). Kan du ikke betale den, går du konkurs, og spillet er slut. Ellers er spillet endeløst, og du kan selv gå på **pension**.
 
-**Point = den største nettoformue, du nåede** (kredit − gæld + skibe, bygninger, lagre og last). Top 10 gemmes i arkadens fælles highscores (`ArkadeHighscores`, nøgle `rumhandleren`).
+**Point = din nettoformue, når spillet slutter** (kredit − gæld + skibe, bygninger, lagre og last). Går du på **pension**, tæller hele nettoformuen. Går du **konkurs**, tæller kun **25 %** af den (og aldrig under 0). Det kan altså betale sig at stoppe i tide. Slutskærmen viser nettoformuen og hvor stor en del, der tæller, og top 10 viser *Pension* eller *Konkurs* ved hver score. Top 10 gemmes i arkadens fælles highscores (`ArkadeHighscores`, nøgle `rumhandleren`).
 
 Spillet kører offline, også direkte fra `file://`. Det bruger ingen CDN og intet framework.
 
@@ -15,7 +15,7 @@ Der er seks faner. Tasterne `1`–`6` skifter mellem dem, og ingen af fanerne sk
 * **Skibe:** Køb flere skibe (Spurv, Pelikan og Hval, højst 8). Giv dem en **rute** mellem to planeter, så handler de selv hver dag. Du ser rutens forventede gevinst pr. måned og risiko. Flagskibet flyver du selv, og du kan skifte flagskib.
 * **Bygninger:** **Miner** producerer en vare hver dag. **Fabrikker** laver en vare om til en dyrere. **Lagre** gemmer varer, som du kan hente. Alle bygninger har drift på regningen.
 * **Kontrakter:** 3 fraktioner: Vega-unionen, Orion-kompagniet og Kantlauget. Lever en bestemt mængde varer til en planet inden fristen, og få betaling og omdømme. Højere omdømme giver rabat og lavere told, og det åbner de låste planeter.
-* **Økonomi:** Viser næste regning med renter, afdrag, licens, drift og forsikring. Her kan du afdrage, betale alt, låne mere (højst 40.000 cr) og slå forsikring til eller fra.
+* **Økonomi:** Viser næste regning med renter, afdrag, licens, drift og forsikring, og hvor mange point du får, hvis du går på pension nu. Her kan du afdrage, betale alt, låne mere (højst 40.000 cr) og slå forsikring til eller fra.
 
 **Pirater:** Usikre hop er markeret med ⚠. Møder du pirater, vælger du mellem tre ting:
 * **Betal** løsesummen.
@@ -24,18 +24,32 @@ Der er seks faner. Tasterne `1`–`6` skifter mellem dem, og ingen af fanerne sk
 
 Et spil i gang gemmes automatisk og kan fortsættes fra startskærmen.
 
+### Regningen og startperioden
+
+Regningen for måned *m* er renter + afdrag + licens + drift (+ forsikring):
+* **Renter:** 5 % af gælden.
+* **Afdrag:** 250 cr × 1,2^(m − 4). Det trækkes fra gælden.
+* **Licens:** 60 cr × m^1,7.
+* **Drift:** for ekstra skibe og bygninger.
+
+**Startperioden (dag 1–90):** De første 3 regninger (dag 30, 60 og 90) er **afdragsfri** og har **halv rente** (2,5 %). Afdraget begynder først ved regning 4 og starter på 250 cr. Før startperioden kom til, begyndte afdraget allerede ved regning 1. Startregningerne er derfor 210, 345 og 538 cr (+ drift) mod tidligere 610, 783 og 1.021 cr. Licensens vækst er uændret, så resten af spillet er lige så hårdt som før.
+
 ### Balancen (simulering)
 
-`node test/simulering.js 100 1500` spiller 100 spil pr. robotstrategi i op til 1500 dage:
+`node test/simulering.js 100 1500` spiller 100 spil pr. robotstrategi i op til 1500 dage. Point for spil, der når 1500 dage, er nettoformuen på dag 1500. *+pension* er den samme strategi, men den går på pension, når en regning, den ikke kan betale, er under 10 dage væk.
 
-| Strategi | Median dage | Konkurs dag 30 | Konkurs ≤ 180 | Konkurs ≤ 365 | Konkurs ≤ 730 | Overlevede alle 1500 | Median point | Bedste |
-|---|---|---|---|---|---|---|---|---|
-| passiv (venter) | 120 | 0 % | 100 % | 100 % | 100 % | 0 % | 0 | 0 |
-| tilfældig | 30 | 93 % | 100 % | 100 % | 100 % | 0 % | 0 | 1.864 |
-| handel (kun flagskibet) | 870 | 7 % | 7 % | 7 % | 8 % | 0 % | 80.038 | 130.960 |
-| imperium (ruter, bygninger og kontrakter) | 1501 | 5 % | 29 % | 37 % | 38 % | 62 % | 818.791 | 1.187.582 |
+| Strategi | Median dage | Konkurs dag 30 | Konkurs ≤ 180 | Konkurs ≤ 365 | Konkurs ≤ 730 | Pension | Nåede 1500 dage | Median point | Bedste |
+|---|---|---|---|---|---|---|---|---|---|
+| passiv (venter) | 150 | 0 % | 100 % | 100 % | 100 % | 0 % | 0 % | 0 | 0 |
+| tilfældig | 30 | 92 % | 100 % | 100 % | 100 % | 0 % | 0 % | 0 | 0 |
+| handel (kun flagskibet) | 870 | 2 % | 6 % | 6 % | 7 % | 0 % | 0 % | 3.471 | 5.607 |
+| imperium (ruter, bygninger og kontrakter) | 1501 | 0 % | 12 % | 27 % | 30 % | 0 % | 69 % | 849.297 | 1.163.922 |
+| handel + pension | 861 | 2 % | 2 % | 2 % | 2 % | 98 % | 0 % | 14.051 | 22.449 |
+| imperium + pension | 1501 | 0 % | 9 % | 9 % | 9 % | 22 % | 69 % | 849.297 | 1.163.922 |
 
-Hvis du ikke gør noget, går du altid konkurs. Fornuftig handel holder dig længe i live, men den voksende licens indhenter til sidst den, der kun handler med ét skib. Et imperium er nødvendigt for at overleve i længden.
+Før startperioden (samme pointregel, gammel regning): passiv døde median dag 120. Konkurs på dag 30: tilfældig 98 %, handel 7 %, imperium 5 %. Konkurs inden dag 180: handel 7 %, imperium 29 %. Imperium nåede 1500 dage i 62 % af spillene.
+
+Hvis du ikke gør noget, går du stadig altid konkurs (nu ved dag 150). Fornuftig handel holder dig længe i live, men den voksende licens indhenter til sidst den, der kun handler med ét skib. Går den på pension i tide, får den ca. 4 gange så mange point. Et imperium er nødvendigt for at overleve i længden.
 
 ## Styring
 
@@ -98,9 +112,13 @@ Test et nyt tema med `test/responsiv_test.py`. Der må ikke være rulning, kontr
 ## Test
 
 ```
-node test/logik.test.js                       # 29 logiktest
+node test/logik.test.js                       # 32 logiktest
 node test/simulering.js 100 1500              # strategisimulering (ca. 2 min)
 python3 test/responsiv_test.py                # Playwright (Chrome); fra arkadens rodmappe
 RUMHANDLEREN_SKAERMBILLEDER=<mappe> ...       # gemmer skærmbilleder
 ONLY=1366x768 ...                             # kun én opløsning
 ```
+
+## Senere versioner
+
+* **Ruter med op til 4 stop:** Faste ruter er i dag mellem 2 planeter (A ↔ B). En senere version kan lade et skib køre en rundtur med op til 4 stop og købe og sælge ved hvert stop.
