@@ -358,6 +358,11 @@
       lag.appendChild(b); planetBtns[p.id] = b;
     });
   })();
+  // Afstanden til nærmeste planet (vandret eller lodret – knapperne er kvadrater)
+  var naboAfstand = {};
+  L.PLANETER.forEach(function (p) {
+    naboAfstand[p.id] = Math.min.apply(null, L.PLANETER.filter(function (q) { return q !== p; }).map(function (q) { return Math.max(Math.abs(p.x - q.x), Math.abs(p.y - q.y)); }));
+  });
   function vaelgPlanet(id) { valgtPlanet = id; refresh(); }
   function skiftPlanet(d) {
     var ids = L.PLANETER.map(function (p) { return p.id; });
@@ -445,12 +450,15 @@
     var svg = $('#kort-svg'), valgt = valgtPlanet || game.her();
     T.kort(svg, { game: game, valgt: valgt, sti: sti, rute: ruteValg });
     // Knapperne over planeterne (til dwell, mus og touch)
+    // Mindst 84 px, når der er plads – men aldrig så store, at de rører naboplanetens
+    // knap (mindst 8 px imellem, så fx TD Browse's farveprikker kan skelne dem)
     var s = T.punkt(svg, 0, 0).skala;
     var str = Math.max(40, Math.min(14 * s, 150));
     L.PLANETER.forEach(function (p) {
       var b = planetBtns[p.id], pt = T.punkt(svg, p.x, p.y);
+      var sz = Math.max(str, Math.min(84, naboAfstand[p.id] * s - 8));
       b.style.left = pt.x + 'px'; b.style.top = (pt.y + 1.2 * s) + 'px';
-      b.style.width = str + 'px'; b.style.height = str + 'px';
+      b.style.width = sz + 'px'; b.style.height = sz + 'px';
       b.setAttribute('aria-pressed', String(p.id === valgt));
       b.setAttribute('aria-label', p.navn + (game.adgang(p.id) ? '' : ' (låst)') + (p.id === game.her() ? ' (du er her)' : ''));
     });
@@ -1084,6 +1092,8 @@
     if (overflows(gameEl) || overflows($('#spil'))) return true;
     if (vEl && (overflows(vEl) || $$('.vis, .side, .side .info, .knapper, .varer, .kortliste', vEl).some(overflows))) return true;
     if (overflows($('.faner')) || overflows($('#hud'))) return true;
+    // .side står nedefter (flex-end), så for mange knapper løber op over fanerne uden at scrollHeight opdager det
+    if (vEl && $$('.side', vEl).some(function (sd) { var t = sd.getBoundingClientRect().top; return [].some.call(sd.children, function (c) { return c.offsetParent && c.getBoundingClientRect().top < t - 1; }); })) return true;
     return btnOverflow();
   }
   function btnOverflow() {

@@ -1,4 +1,4 @@
-# Responsiv test af Rumhandleren: alle skærme ved 8 opløsninger.
+# Responsiv test af Rumhandleren: alle skærme ved 8 opløsninger og 3 klemte vinduer.
 # Tjekker: ingen rulning, intet klippet af, ingen overlap, tekst inden i knapperne,
 # mindste knap >= 84 px (planet-knapperne på kortet er klikflader og tælles ikke) og ingen fejl i konsollen.
 #
@@ -18,7 +18,8 @@ SHOT_DIR = os.environ.get('RUMHANDLEREN_SKAERMBILLEDER')
 SHOT = (SHOT_DIR.rstrip('/') + '/') if SHOT_DIR else None
 if SHOT: os.makedirs(SHOT + 'ekstra', exist_ok=True)
 CHROME = os.environ.get('CHROME', '/usr/bin/google-chrome')
-SIZES = [(1920,1080),(1366,768),(1280,720),(1024,768),(1024,1366),(1366,1024),(390,844),(844,390)]
+SIZES = [(1920,1080),(1366,768),(1280,720),(1024,768),(1024,1366),(1366,1024),(390,844),(844,390),
+         (900,800),(1280,600),(800,600)]  # klemte vinduer (fx Grid 3 eller TD Browse ved siden af)
 MIN_BTN = 84
 errs=[]; fails=[]; summary={}
 CHECK = """(sel) => {

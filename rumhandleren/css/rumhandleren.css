@@ -91,6 +91,13 @@ ol.records .score { white-space: nowrap; }
   .records { columns: 2; column-gap: 20px; }
   .records li { break-inside: avoid; }
 }
+/* To spalter i et klemt vindue (fx 800×600): antal dage skjules og datoen står under, så listen ikke skal zoomes og Tilbage-knappen bliver ved med at være 84 px */
+@media (max-height: 640px) and (min-width: 700px) and (max-width: 960px) {
+  .records li .plates { display: none; }
+  .records li { grid-template-columns: 2.4em 1fr; row-gap: 0; }
+  .records li .date { grid-column: 2; font-size: 0.8em; line-height: 1.1; }
+  .records li .date:empty { display: none; }
+}
 
 /* ---------- Om ---------- */
 #om { gap: calc(var(--gap) * 0.7); }
@@ -202,6 +209,11 @@ ol.records .score { white-space: nowrap; }
 .faner { grid-area: faner; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--ig, 10px); }
 .fane-btn { height: var(--fane-h, var(--btn)); flex-direction: row; gap: 10px; padding: 4px 8px; }
 .fane-btn svg { width: calc(var(--btn) * 0.32); height: calc(var(--btn) * 0.32); flex: none; }
+/* Klemte brede vinduer (fx 800×600, 900×800): ikonet over teksten, så 'Kontrakter' kan være der uden zoom */
+.lay-bred.tight .fane-btn { flex-direction: column; gap: 2px; }
+.lay-bred.tight .fane-btn svg { width: calc(var(--btn) * 0.28); height: calc(var(--btn) * 0.28); }
+#game.lay-bred.tight .hud-label { font-size: 0.64rem; letter-spacing: 0; }
+#game.lay-bred.tight .regning { grid-template-columns: repeat(2, minmax(0, 1fr)); font-size: 0.92rem; }
 
 .view { grid-area: view; min-height: 0; min-width: 0; display: grid; gap: var(--ig, 10px); grid-template-columns: minmax(0, 1fr) var(--side-w, 260px); grid-template-rows: minmax(0, 1fr); }
 .view[hidden] { display: none !important; }
