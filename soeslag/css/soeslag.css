@@ -117,7 +117,7 @@ html, body { height: 100%; height: 100dvh; }
 .ship-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 /* Mindst ca. 122 px mellem skibsknappernes midter (TD Browse' Color Links) */
 .ship-list { row-gap: max(8px, calc(122px - max(80px, calc(var(--btn) * 0.74)))); }
-.ship-btn { min-width: 0; min-height: 0; height: max(80px, calc(var(--btn) * 0.74)); padding: 6px 8px; gap: 6px; }
+.ship-btn { min-width: 0; min-height: 0; height: max(84px, calc(var(--btn) * 0.74)); padding: 6px 8px; gap: 6px; }
 .ship-btn .small { font-size: 0.95rem; line-height: 1.15; text-align: center; }
 .ship-btn:first-child { grid-column: 1 / -1; }
 .ship-btn[aria-pressed="true"] .small { color: var(--bg); }
@@ -392,6 +392,8 @@ button.cell.aim:hover, button.cell.aim.arkade-dwelling { box-shadow: none; }
 .trin-label { align-self: center; min-width: 6.5em; text-align: center; font-size: 1.1rem; font-weight: 700; color: var(--muted); text-shadow: 0 1px 4px #000; }
 .trin-nav .btn .icon { font-size: 2rem; }
 .tight .opt { display: none; }
+/* Store, men klemte vinduer (fx 800×600): noten om feltstørrelsen skjules hellere end at zoome knapperne under 84 px */
+:root:not(.bk-lille) #menu.tight .size-note { display: none; }
 
 /* ---------- Små skærme (korteste side under 560 px) ----------
  * Knapperne er mindst 84 px (sat i js/app.js), og der zoomes ikke.
@@ -472,6 +474,7 @@ ol.records .score { white-space: nowrap; }
 .bk-tvaers ol.records .plates, .bk-lille ol.records .plates { font-size: .85em; }
 /* Mobil på langs: på game over er der kun plads til point og dato (linjerne står under Rekorder) */
 .bk-tvaers #go-records .plates { display: none; }
+@media (max-width: 960px) { .go-split #go-records .plates { display: none; } }  /* ellers bliver de to spalter for brede i klemte vinduer */
 .bk-lille:not(.bk-tvaers) ol.records .score { white-space: normal; }
 /* Mobil: plads til fluebenet over teksten i størrelsesknapperne */
 .bk-lille #menu [data-size] { padding-top: 20px; }

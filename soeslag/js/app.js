@@ -965,7 +965,7 @@
     return { lay: lay, b: b, cell: cell, extra: extra };
   }
   function bestLayout(v, n) {
-    var small = isSmall(v), floor = small ? SMALL_MIN : 80, base = Math.max(floor, cssBtn(v.W, v.H));
+    var small = isSmall(v), floor = SMALL_MIN, base = Math.max(floor, cssBtn(v.W, v.H));
     var found = {};
     LAYOUTS.forEach(function (lay) {
       // Knapperne skrumper kun, hvis siderne ellers ikke kan være der.
@@ -1134,8 +1134,9 @@
   });
 
   // De andre skærme (og pauseboksen) tilpasses vinduet, til alt kan ses:
-  // 1) mindre knapper og afstande, 2) valgfri tekst skjules, 3) flere sider,
-  // 4) til allersidst zoom som nødløsning (kun hvis vinduet er meget lille).
+  // 1) mindre knapper og afstande (først ned til 84 px), 2) valgfri tekst skjules,
+  // 3) flere sider, 4) i store, men klemte vinduer derefter mindre --btn,
+  // 5) til allersidst zoom som nødløsning (kun hvis vinduet er meget lille).
   function fitScreen(el, resetPage) {
     if (!el || el.hidden) return;
     var v = viewport(), small = isSmall(v), gap = cssGap(v.W, v.H);
@@ -1150,7 +1151,7 @@
     if (pager) pager.reset();
     if (el === goEl) { if (resetPage) goShowRecords = false; setGoSplit(false); }
     var base = isOverlay ? (parseFloat(getComputedStyle(el).getPropertyValue('--btn')) || cssBtn(v.W, v.H)) : cssBtn(v.W, v.H);
-    var minB = small ? SMALL_MIN : 52;
+    var minB = SMALL_MIN; // først ned til 84 px – også i klemte vinduer (øjenstyring, Grid 3)
     if (base < minB) { base = minB; el.style.setProperty('--btn', base + 'px'); }
     var fits = function () {
       if (overflows(box)) return false;
@@ -1170,9 +1171,20 @@
       el.style.setProperty('--btn', b + 'px');
       el.style.setProperty('--gap', Math.max(10, gap * b / base) + 'px');
     }
-    if (!fits()) el.classList.add('tight');
+    if (!fits()) {
+      el.classList.add('tight');
+      // Lidt mindre afstande, før noget skjules eller zoomes (stadig mindst 12 px mellem knapperne)
+      el.style.setProperty('--gap', Math.max(12, Math.min(gap, gap * b / base) * 0.7) + 'px');
+    }
     if (!fits() && el === goEl) setGoSplit(true);
     if (!fits() && pager) pager.paginate(keepPage);
+    // Store vinduer, der er klemt (fx 800×600): først nu må --btn under 84 px –
+    // mange knapper har deres egen mindstehøjde og bliver ved med at være store
+    for (var k = 0; k < 12 && !small && !fits() && b > 52; k++) {
+      b = Math.max(52, b * 0.92);
+      el.style.setProperty('--btn', b + 'px');
+      el.style.setProperty('--gap', Math.max(10, gap * b / base) + 'px');
+    }
     var z = 1;
     for (var j = 0; j < 10 && !fits(); j++) {
       var r = Math.min(box.clientHeight / box.scrollHeight, box.clientWidth / box.scrollWidth, 0.97);
