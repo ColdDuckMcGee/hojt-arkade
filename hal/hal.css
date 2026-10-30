@@ -303,3 +303,33 @@ html { font-size: calc(18px * var(--fit, 1)); }
   .maskine.skift { animation: none; }
   .taeller-fyld { transition: none; }
 }
+
+/* Velkomst: link til Tobii-vejledningen under de fire valg. Et stort mål (mindst 84 px)
+   i fuld bredde med god afstand til valgene, så TD Browse' farveprikker rammer ét ad gangen.
+   Stiplet kant, så det ikke ligner et af de fire valg. */
+.btn.velkomst-tobii {
+  flex: none; width: min(100%, 1150px); min-height: 84px; min-width: 0; padding: 8px clamp(12px, 2.4vmin, 28px);
+  border-style: dashed; border-width: 3px; border-color: var(--accent); background: rgba(0, 0, 0, .55);
+  flex-direction: row; flex-wrap: wrap; justify-content: center; column-gap: .6em; row-gap: 2px; text-align: center;
+}
+.velkomst-tobii-titel { font-size: clamp(1rem, 2.6vmin, 1.3rem); font-weight: 800; color: var(--ui-text); }
+.velkomst-tobii-tekst { font-size: clamp(.95rem, 2.4vmin, 1.2rem); color: var(--text); text-decoration: underline; text-underline-offset: 3px; }
+@media (max-aspect-ratio: 6/5) and (min-height: 560px), (max-width: 699px) and (min-height: 560px) {
+  .btn.velkomst-tobii { width: min(100%, 720px); margin-top: 16px; } /* ekstra luft: mindst ca. 132 px mellem knapmidterne */
+}
+@media (max-width: 699px) and (max-height: 559px) {
+  .btn.velkomst-tobii { padding: 4px 8px; }
+  .velkomst-tobii-titel { font-size: 1rem; }
+  .velkomst-tobii-tekst { font-size: .85rem; }
+}
+/* Lavt vindue på langs (fx mobil på langs): lidt mindre tekst, så valgene og linket kan være der */
+@media (min-width: 700px) and (max-height: 450px) {
+  .velkomst { gap: calc(var(--gap) * 0.6); }
+  .velkomst-top .neon-sub { font-size: clamp(1.4rem, 6vmin, 2rem); }
+  .velkomst-hjaelp { margin-top: 2px; font-size: .95rem; }
+  .valg-titel { font-size: 1.1rem; }
+  .valg-tekst { font-size: .9rem; line-height: 1.2; }
+  .btn.valg { padding-top: 6px; padding-bottom: 6px; }
+}
+/* Indstillinger → Styring: link til Tobii-vejledningen ved siden af "Skift styring" */
+@media (max-width: 699px) { #btn-tobii-vejledning .small { display: none; } }

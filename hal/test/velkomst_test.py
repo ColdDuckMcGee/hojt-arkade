@@ -11,6 +11,7 @@
 #  - TD Browse/Electron genkendes: ingen velkomst, valg "eget", kort besked, ingen TD-boks;
 #  - Kontakt eller tastatur: kun taster (første knap har fokus, pile + Enter, Mellemrum);
 #    Spil-knappen får fokus, data-styring="kontakt", og i et spil har Start fokus;
+#  - linket til Tobii-vejledningen (/tobii/) under valgene: stort mål, kun på trin 1;
 #  - Indstillinger → Skift styring: viser nuværende valg, Escape fortryder, nyt valg gemmes;
 #  - alle 27 spil læser den fælles indstilling (kigge-ring vises / vises ikke).
 #
@@ -33,10 +34,10 @@ def check(ok, msg):
 LAYOUT = """() => { const se = document.scrollingElement, W = innerWidth, H = innerHeight;
   const vis = e => { const r = e.getBoundingClientRect(); return r.width > 1 && r.height > 1 && !e.closest('[hidden]'); };
   const sc = document.querySelector('#velkomst');
-  const bs = [...sc.querySelectorAll('button')].filter(vis);
+  const bs = [...sc.querySelectorAll('button, a[href]')].filter(vis);
   const c = bs.map(e => { const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, r }; });
   let tight = 0; c.forEach((a, i) => { if (c.filter((b, j) => j !== i && Math.hypot(a.x - b.x, a.y - b.y) < 120).length >= 2) tight++; });
-  const clipped = [...sc.querySelectorAll('button, h1, h2, p')].filter(vis).filter(e => { const r = e.getBoundingClientRect(); return r.left < -1 || r.top < -1 || r.right > W + 1 || r.bottom > H + 1; }).map(e => e.textContent.trim().slice(0, 20));
+  const clipped = [...sc.querySelectorAll('button, a, h1, h2, p')].filter(vis).filter(e => { const r = e.getBoundingClientRect(); return r.left < -1 || r.top < -1 || r.right > W + 1 || r.bottom > H + 1; }).map(e => e.textContent.trim().slice(0, 20));
   const textOut = bs.filter(b => [...b.children].some(k => { const a = k.getBoundingClientRect(), r = b.getBoundingClientRect(); return a.width > 0 && (a.bottom > r.bottom + 1 || a.top < r.top - 1 || a.right > r.right + 1 || a.left < r.left - 1); })).map(b => b.textContent.trim().slice(0, 20));
   return { n: bs.length, tight, min: Math.round(Math.min(...c.map(o => Math.min(o.r.width, o.r.height)))), clipped, textOut,
     scroll: se.scrollHeight > se.clientHeight || se.scrollWidth > se.clientWidth || sc.scrollHeight > sc.clientHeight + 1 || sc.scrollWidth > sc.clientWidth + 1 }; }"""
@@ -66,9 +67,9 @@ with sync_playwright() as p:
             if trin == 2: pg.evaluate("document.querySelector('#velkomst [data-styring=kigge]').click()"); pg.wait_for_timeout(200)
             r = pg.evaluate(LAYOUT)
             print('%4dx%-4d trin%d knapper=%d tætte=%d min=%dpx scroll=%s' % (w, h, trin, r['n'], r['tight'], r['min'], r['scroll']))
-            check(r['n'] == 4 and r['tight'] == 0 and r['min'] >= 84 and not r['scroll'] and not r['clipped'] and not r['textOut'],
+            check(r['n'] == (5 if trin == 1 else 4) and r['tight'] == 0 and r['min'] >= 84 and not r['scroll'] and not r['clipped'] and not r['textOut'],
                   '%dx%d trin %d: %s' % (w, h, trin, json.dumps(r, ensure_ascii=False)))
-            if SHOT and (w, h) in [(1280, 800), (390, 844)]:
+            if SHOT and (trin == 1 or (w, h) in [(1280, 800), (390, 844)]):
                 pg.mouse.move(2, 2); pg.wait_for_timeout(100)
                 pg.screenshot(path='%s/velkomst%s_%dx%d.png' % (SHOT.rstrip('/'), '' if trin == 1 else '_kiggetid', w, h))
         check(not errs, '%dx%d konsol: %s' % (w, h, errs))
@@ -133,7 +134,20 @@ with sync_playwright() as p:
     check(s['skaerm'] == 'hal' and s['valg'] == 'eget' and not s['dwell'] and s['besked'] and not s['tdBoks'] and s['styringAttr'] == 'eget', 'TD Browse: %s' % s)
     pg.reload(); pg.wait_for_timeout(400)
     check(not pg.evaluate(ST)['besked'], 'TD Browse: beskeden vises igen efter genindlæsning')
-    check(not errs, 'TD konsol: %s' % errs); c.close()
+    check(not errs, 'TD konsol: %s' % errs)
+    # TD-boksen (vises, hvis kigge-klik er slået til i TD Browse) har et stort link til vejledningen
+    pg.evaluate("sessionStorage.clear(); ArkadeDwell.showTdNotice()")
+    r = pg.evaluate("(() => { const a = document.getElementById('arkade-td-vejledning'), ok = document.querySelector('#arkade-td-besked button'); if (!a || !ok) return null; const x = a.getBoundingClientRect(), y = ok.getBoundingClientRect(); return { href: a.href, h: x.height, d: Math.abs((x.top + x.height / 2) - (y.top + y.height / 2)) }; })()")
+    check(r and r['href'].endswith('/tobii/') and r['h'] >= 84 and r['d'] >= 120, 'TD-boks: link til vejledningen: %s' % r)
+    c.close()
+    # Linket på velkomstskærmen fører til vejledningen
+    c, pg, errs = ctx(viewport={'width': 1280, 'height': 800})
+    pg.goto(HALL); pg.wait_for_timeout(400)
+    href = pg.evaluate("document.getElementById('velkomst-tobii').href")
+    check(href.endswith('/tobii/'), 'velkomst: link til vejledningen: %s' % href)
+    pg.evaluate("document.querySelector('#velkomst [data-styring=kigge]').click()"); pg.wait_for_timeout(100)
+    check(not pg.locator('#velkomst-tobii').is_visible(), 'velkomst: Tobii-linket vises på trin 2')
+    c.close()
 
     # ---------- 4. Kontakt eller tastatur (kun taster) ----------
     c, pg, errs = ctx(viewport={'width': 1280, 'height': 800})

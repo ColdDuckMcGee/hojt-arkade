@@ -29,6 +29,14 @@
   // ---------- TD Browse / Electron ----------
   var TD_UA = /Electron\/|TD ?Browse|Tobii|Dynavox/i;
   var NOTICE_KEY = 'hojtArkade.tdBrowseNotice';
+  // Adressen på Tobii-vejledningen (/tobii/) regnes ud fra, hvor dwell.js ligger (arkade/dwell.js),
+  // så linket virker både fra hallen og fra spillene.
+  var VEJLEDNING = (function () {
+    try {
+      var cs = global.document && global.document.currentScript;
+      return cs && cs.src ? new URL('../tobii/', cs.src).href : '';
+    } catch (e) { return ''; }
+  })();
   function isTdBrowse() {
     try { return TD_UA.test(global.navigator.userAgent || ''); } catch (e) { return false; }
   }
@@ -70,7 +78,22 @@
       if (noticeEl && noticeEl.parentNode) noticeEl.parentNode.removeChild(noticeEl);
       noticeEl = null;
     });
-    box.appendChild(h); box.appendChild(p1); box.appendChild(p2); box.appendChild(ok);
+    box.appendChild(h); box.appendChild(p1); box.appendChild(p2);
+    if (VEJLEDNING) {
+      // Stort link til vejledningen med 48 px luft til OK, så TD Browse' farveprikker rammer ét ad gangen.
+      var p3 = document.createElement('p');
+      css(p3, { margin: '0 0 12px' });
+      p3.textContent = 'Vil du undgå dobbeltvalg? Med TD Control og Edge eller Chrome vælger du med ét kig.';
+      var link = document.createElement('a');
+      link.href = VEJLEDNING;
+      link.id = 'arkade-td-vejledning';
+      link.textContent = 'Se vejledning';
+      css(link, { display: 'flex', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box', width: '100%', minHeight: '84px',
+        margin: '0 0 48px', padding: '0 18px', color: '#fff', background: 'transparent', border: '3px dashed #3ee0ff', borderRadius: '14px',
+        textDecoration: 'underline', font: '800 22px/1.2 system-ui, -apple-system, "Segoe UI", sans-serif' });
+      box.appendChild(p3); box.appendChild(link);
+    }
+    box.appendChild(ok);
     wrap.appendChild(box);
     document.body.appendChild(wrap);
     noticeEl = wrap;

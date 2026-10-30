@@ -430,7 +430,7 @@
     beskedTimer = setTimeout(function () { el.hidden = true; }, ms || 6000);
   }
   function velkomstTrin(n) {
-    $('#velkomst-trin1-top').hidden = $('#velkomst-trin1').hidden = n !== 1;
+    $('#velkomst-trin1-top').hidden = $('#velkomst-trin1').hidden = $('#velkomst-tobii').hidden = n !== 1;
     $('#velkomst-trin2-top').hidden = $('#velkomst-trin2').hidden = n !== 2;
     var v = styring.get('valg'), t = arkade.get('dwellTime');
     $$('#velkomst [data-styring]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-styring') === v)); });
@@ -491,7 +491,7 @@
       styring.set('valg', 'eget');
       arkade.set('dwell', false);
       if (window.ArkadeTaster) ArkadeTaster.setStyring('eget');
-      besked('TD Browse fundet: Hojt Arkade klikker ikke selv, så brug TD Browse’ egne prikker. Du kan skifte under Indstillinger → Skift styring.', 9000);
+      besked('TD Browse fundet: Hojt Arkade klikker ikke selv, så brug TD Browse’ egne prikker. Vil du undgå dobbeltvalg, så se Tobii-vejledningen under Indstillinger → Styring.', 10000);
     } else {
       visVelkomst(null);
     }
