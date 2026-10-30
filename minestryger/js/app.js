@@ -480,11 +480,14 @@
     for (var i = 0; i < a.length; i++) { if (a[i] > b[i] + 0.25) return true; if (a[i] < b[i] - 0.25) return false; }
     return false;
   }
+  var MIN_BTN_PX = 84;              // knapperne (Pause, Åbn/Flag) må ikke zoomes under 84 px
   function plan(sizeId) {
     var s = G.SIZES[sizeId], v = viewport(), p = pads(v), m = measureSide(), best = null;
-    [['col', false], ['compact', false], ['compact', true]].forEach(function (opt) {
+    // Mindste zoom, så knapperne stadig er 84 px. Er der slet ikke plads, prøves igen uden grænsen.
+    var zMin = Math.min(1, MIN_BTN_PX / m.btn);
+    for (var pass = 0; pass < 2 && !best; pass++, zMin = 0.3) [['col', false], ['compact', false], ['compact', true]].forEach(function (opt) {
       var sd = m[opt[0]];
-      for (var z = 1; z >= 0.3 - 1e-9; z -= 0.02) {
+      for (var z = 1; z >= Math.max(0.3, zMin) - 1e-9; z -= 0.02) {
         var sw = sd.w * z, sh = sd.h * z, aw, ah;
         if (!opt[1]) { if (sh > v.H - 2 * p.pad) continue; aw = v.W - 2 * p.pad - sw - p.gap; ah = v.H - 2 * p.pad; }
         else { if (sw > v.W - 2 * p.pad) continue; aw = v.W - 2 * p.pad; ah = v.H - 2 * p.pad - sh - p.gap; }
