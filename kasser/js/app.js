@@ -578,7 +578,7 @@
   }
   function applyScale(scale, compact) {
     var b = baseSizes();
-    root.style.setProperty('--btn', Math.max(80, Math.round(b.btn * scale)) + 'px');
+    root.style.setProperty('--btn', Math.max(84, Math.round(b.btn * scale)) + 'px');  // aldrig under 84 px (øjenstyring)
     root.style.setProperty('--gap', Math.max(6, Math.round(b.gap * scale)) + 'px');
     root.style.fontSize = (18 * Math.max(0.6, Math.min(1, 0.4 + 0.6 * scale))).toFixed(1) + 'px';
     root.classList.toggle('fit-compact', !!compact);
@@ -620,16 +620,19 @@
     var side = b * 1.2;
     var cA = Math.floor(Math.min((W - 2 * pad - 2 * side - 2 * g) / mw, (H - 2 * pad - 2 * b - 2 * g - nr) / mh));
     out.push({ name: 'rundt', cell: cA, score: cA * 1.15, b: b, g: g, side: side });
-    var hw = b * 1.25, hh = Math.max(80, b * 0.85), padW = 3 * b + 2 * g;
-    var colH = 4 * hh + 3 * g;
+    // Menu/bane/fortryd/genstart er mindst 84 px; er der trangt, bliver afstanden
+    // mellem dem mindre (dog mindst 10 px), før knapperne gør
+    var hw = b * 1.25, hh = Math.max(84, b * 0.85), padW = 3 * b + 2 * g;
+    var cg = Math.max(10, Math.min(g, (H - 2 * pad - 4 * hh) / 3)), colH = 4 * hh + 3 * cg;
     if (colH <= H - 2 * pad && padW <= H - 2 * pad) {
       var cB = Math.floor(Math.min((W - 2 * pad - hw - padW - 2 * g) / mw, (H - 2 * pad - nr) / mh));
-      out.push({ name: 'siden', cell: cB, score: cB, b: b, g: g, hw: hw, hh: hh, padW: padW });
+      out.push({ name: 'siden', cell: cB, score: cB, b: b, g: g, hw: hw, hh: hh, padW: padW, cg: cg });
     }
-    var boxW = Math.min(b * 1.3, (W - 2 * pad - 3 * g) / 4);
-    if (boxW >= b * 0.85 && padW <= W - 2 * pad) {
+    var rg = Math.max(10, Math.min(g, (W - 2 * pad - 4 * 84) / 3));
+    var boxW = Math.min(b * 1.3, (W - 2 * pad - 3 * rg) / 4);
+    if (boxW >= Math.max(84, b * 0.85) && padW <= W - 2 * pad) {
       var cC = Math.floor(Math.min((W - 2 * pad) / mw, (H - 2 * pad - hh - padW - 2 * g - nr) / mh));
-      out.push({ name: 'under', cell: cC, score: cC, b: b, g: g, boxW: boxW, hh: hh, padW: padW });
+      out.push({ name: 'under', cell: cC, score: cC, b: b, g: g, boxW: boxW, hh: hh, padW: padW, rg: rg });
     }
     return out.filter(function (l) { return l.cell >= 24; }).sort(function (a, c) { return c.score - a.score; })[0] || null;
   }
@@ -682,16 +685,16 @@
       place(E.restart, rx, low, side, b);
     } else if (L.name === 'siden') {
       var tw2 = L.hw + g + bw + g + L.padW, x1 = (W - tw2) / 2;
-      var colH = 4 * L.hh + 3 * g, cy0 = (H - colH) / 2;
-      [E.pause, E.hud, E.undo, E.restart].forEach(function (el, k) { place(el, x1, cy0 + k * (L.hh + g), L.hw, L.hh); });
+      var colH = 4 * L.hh + 3 * L.cg, cy0 = (H - colH) / 2;
+      [E.pause, E.hud, E.undo, E.restart].forEach(function (el, k) { place(el, x1, cy0 + k * (L.hh + L.cg), L.hw, L.hh); });
       var by2 = (H - bh - nr) / 2;
       place(E.board, x1 + L.hw + g, by2, bw, bh);
       place(E.note, x1 + L.hw + g - g / 2, by2 + bh + ns.gap, bw + g, ns.h);
       crossPad(x1 + L.hw + g + bw + g, (H - L.padW) / 2);
     } else {
       var th3 = L.hh + g + bh + nr + g + L.padW, y3 = (H - th3) / 2;
-      var rowW = 4 * L.boxW + 3 * g, rx3 = (W - rowW) / 2;
-      [E.pause, E.hud, E.undo, E.restart].forEach(function (el, k) { place(el, rx3 + k * (L.boxW + g), y3, L.boxW, L.hh); });
+      var rowW = 4 * L.boxW + 3 * L.rg, rx3 = (W - rowW) / 2;
+      [E.pause, E.hud, E.undo, E.restart].forEach(function (el, k) { place(el, rx3 + k * (L.boxW + L.rg), y3, L.boxW, L.hh); });
       place(E.board, (W - bw) / 2, y3 + L.hh + g, bw, bh);
       place(E.note, 8, y3 + L.hh + g + bh + ns.gap, W - 16, ns.h);
       crossPad((W - L.padW) / 2, y3 + L.hh + g + bh + nr + g);

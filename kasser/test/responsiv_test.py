@@ -1,6 +1,6 @@
 # Kasser – responsiv test og flowtest i headless Chromium.
-# Tjekker alle skærme ved 8 opløsninger: ingen rulning, intet klippet af, ingen overlap,
-# tekst inden i knapperne, mindste knapstørrelse >= 80 px og ingen fejl i konsollen.
+# Tjekker alle skærme ved 8 opløsninger og 3 klemte vinduer: ingen rulning, intet klippet af, ingen overlap,
+# tekst inden i knapperne, mindste knapstørrelse >= 84 px og ingen fejl i konsollen.
 # Spiller også rigtigt i browseren: taster, pileknapper, tryk på felter, fortryd, genstart,
 # dwell, fastlåst kasse, banesejr, afslut runde (game over) og top 10. Gemmer skærmbilleder.
 #
@@ -15,8 +15,9 @@ HALL = (ROOT.parent / 'index.html').as_uri()
 SHOT_DIR = os.environ.get('KASSER_SKAERMBILLEDER')
 SHOT = (SHOT_DIR.rstrip('/') + '/') if SHOT_DIR else None
 CHROME = os.environ.get('CHROME', '/usr/bin/google-chrome')
-SIZES = [(1920,1080),(1366,768),(1280,720),(1024,768),(1024,1366),(1366,1024),(390,844),(844,390)]
-MIN_BTN = 80
+SIZES = [(1920,1080),(1366,768),(1280,720),(1024,768),(1024,1366),(1366,1024),(390,844),(844,390),
+         (900,800),(1280,600),(800,600)]  # klemte vinduer (fx Grid 3 eller TD Browse ved siden af)
+MIN_BTN = 84
 errs=[]; fails=[]; summary={}
 CHECK = """(sel) => {
   const se = document.scrollingElement, W = se.clientWidth, H = se.clientHeight;

@@ -167,8 +167,10 @@ html, body { height: 100%; height: 100dvh; }
 .fit-tight .btn .icon { display: none; }
 .fit-tight .btn { padding: 4px 12px; }
 .fit-tight .overlay .panel p, .fit-tight .om-panel p { font-size: 1.05rem; }
+/* Meget lave skærme (fx mobil på langs): pauseteksten skjules hellere end at gøre knapperne mindre end 84 px */
+.fit-tight #pause-text { display: none; }
 /* På langs: resultat og rekorder ved siden af hinanden */
-@media (min-aspect-ratio: 5/4) { .go-layout { flex-wrap: nowrap; } .go-result { flex: 0 0 auto; } .go-records { min-width: min(460px, 52vw); } .go-records .records { min-width: 0; } }
+@media (min-aspect-ratio: 5/4) { .go-layout { flex-wrap: nowrap; } .go-result { flex: 0 0 auto; } .go-records { min-width: min(460px, 50vw); } .go-records .records { min-width: 0; } }
 
 /* Smalle skærme (højkant): indstillingernes etiket over knapperne */
 @media (max-aspect-ratio: 3/4) {
