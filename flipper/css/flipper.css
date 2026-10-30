@@ -369,9 +369,20 @@ ol.records .score { white-space: nowrap; }
 .fl-lille #menu .btn.option::after { top: 1px; right: 5px; font-size: 1rem; }
 .fl-lille .table-card { padding-top: 10px; }
 .fl-tvaers #records .tabs { flex-wrap: nowrap; gap: 10px; }
-.fl-tvaers #records .tabs .btn { padding-left: 10px; padding-right: 10px; }
+.fl-tvaers #records .tabs .btn { padding-left: 5px; padding-right: 5px; }  /* 8 knapper skal stå på én række uden zoom (mindst 84 px) */
 #records [data-rec-table] .big { hyphens: manual; text-align: center; }
 .fl-tvaers #records { padding-top: 10px; padding-bottom: 10px; gap: 10px; }
 .fl-tvaers #records .records-panel { padding-top: 8px; padding-bottom: 8px; }
 .fl-tvaers #records .records li { padding-top: 1px; padding-bottom: 1px; }
 .fl-tvaers #records .records-panel { max-width: 100%; box-sizing: border-box; min-width: 0; width: min(820px, 100%); }
+/* Klemte vinduer (fx 800×600 eller Grid 3 ved siden af): rekordskærmen gøres
+   tættere, før der zoomes – så knapperne bliver ved med at være mindst 84 px */
+#records.tight .tabs { gap: 10px; }
+#records.tight .tabs .btn { padding-left: 8px; padding-right: 8px; }
+#records.tight [data-hs-verden] .big { display: none; }
+#records.tight [data-hs-verden] .icon { font-size: 1.7em; }
+#records.tight .records-panel { padding-top: 8px; padding-bottom: 8px; }
+#records.tight .records li { padding-top: 1px; padding-bottom: 1px; }
+@media (max-width: 960px) { #records.tight .records .plates, .fl-tvaers #records .records .plates, .go-split .go-records .plates { display: none; } }  /* ellers bliver de to spalter for brede */
+.fl-tvaers #records.tight .tabs .btn { padding-left: 5px; padding-right: 5px; }
+.fl-tvaers #records .tabs .btn .big { font-size: 1.1rem; }  /* "Normal" og "Tilbage" kan stå inden for 84 px */

@@ -1003,9 +1003,10 @@
   });
 
   // De andre skærme (og pauseboksen) tilpasses vinduet, til alt kan ses:
-  // 1) mindre knapper og afstande (på små skærme aldrig under SMALL_MIN),
+  // 1) mindre knapper og afstande (først ned til SMALL_MIN = 84 px),
   // 2) valgfri tekst skjules, 3) indholdet deles på flere sider,
-  // 4) til allersidst zoom som nødløsning (kun hvis vinduet er meget lille).
+  // 4) i store, men klemte vinduer derefter mindre --btn,
+  // 5) til allersidst zoom som nødløsning (kun hvis vinduet er meget lille).
   function fitScreen(el, resetPage) {
     if (!el || el.hidden) return;
     var v = viewport(), small = isSmall(v), gap = cssGap(v.W, v.H);
@@ -1020,7 +1021,7 @@
     if (pager) pager.reset();
     if (el === goEl) { if (resetPage) goShowRecords = false; setGoSplit(false); }
     var base = isOverlay ? (parseFloat(getComputedStyle(el).getPropertyValue('--btn')) || cssBtn(v.W, v.H)) : cssBtn(v.W, v.H);
-    var minB = small ? SMALL_MIN : 52;
+    var minB = SMALL_MIN; // knapper aldrig under 84 px – heller ikke i klemte vinduer (øjenstyring, Grid 3)
     if (base < minB) { base = minB; el.style.setProperty('--btn', base + 'px'); }
     var fits = function () {
       if (overflows(box)) return false;
@@ -1043,6 +1044,13 @@
     if (!fits()) el.classList.add('tight');
     if (!fits() && el === goEl) setGoSplit(true);
     if (!fits() && pager) pager.paginate(keepPage);
+    // Store vinduer, der er klemt (fx 800×600): først nu må --btn under 84 px –
+    // mange knapper har deres egen mindstehøjde og bliver ved med at være store
+    for (var k = 0; k < 12 && !small && !fits() && b > 52; k++) {
+      b = Math.max(52, b * 0.92);
+      el.style.setProperty('--btn', b + 'px');
+      el.style.setProperty('--gap', Math.max(10, gap * b / base) + 'px');
+    }
     var z = 1;
     for (var j = 0; j < 10 && !fits(); j++) {
       var r = Math.min(box.clientHeight / box.scrollHeight, box.clientWidth / box.scrollWidth, 0.97);
