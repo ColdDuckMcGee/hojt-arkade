@@ -9,6 +9,8 @@ Fra et spil i sin egen mappe (fx `slangen/index.html`):
 ```html
 <link rel="icon" href="../arkade/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../arkade/arkade.css">
+<script src="../arkade/fejl.js"></script>
+<script src="../arkade/offline.js"></script>
 <script src="../arkade/settings.js"></script>
 <script src="../arkade/highscores.js"></script>
 <script src="../arkade/highscore.js"></script>
@@ -164,3 +166,12 @@ Et nyt tema kræver kun en ny `[data-theme=...]`-blok.
   i filen, så den ser ens ud alle steder.
   `<img class="arkade-logo" src="../arkade/logo.svg" alt="Hojt Arkade">`
 - `favicon.svg` – lille ikon (kursivt krom-H på stribet sol).
+
+## Offline (offline.js og ../sw.js)
+Ingen API; indlæses lige efter `fejl.js`. Registrerer service workeren i roden (kun over
+http/https – fra disken sker intet). Netværk først, så rettelser altid når spillerne med det
+samme. Uden net, eller hvis en side ikke kommer inden for 2,5 s, kommer siden fra den lokale
+kopi – og så kommer alle dens filer også derfra, så gamle og nye filer aldrig blandes. Et spil,
+der ikke er hentet endnu, viser uden net en rolig besked med en stor knap tilbage til hallen.
+`KERNE` i `sw.js` er de filer, hallen skal bruge, og som hentes ved første besøg; resten gemmes,
+når det bruges. Tilføjes en ny fælles fil, bør den også stå i `KERNE`.

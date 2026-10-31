@@ -10,7 +10,7 @@ Spillene er lavet til øjenstyring fra starten:
 - **Dwell er valgfrit.** Det er slået fra som standard, fordi mange allerede har dwell-klik i deres øjenstyringssystem, fx Tobii. Slås det til, vælger man en knap ved at kigge på den i 0,5–3 sekunder, og en ring viser, hvor langt man er.
 - **Synthwave-udtryk** med neon på mørk baggrund. Der er fire farvetemaer, heriblandt høj kontrast, og ingen blink.
 - **Dansk brugerflade.**
-- **Virker offline.** Det er ren HTML, CSS og JavaScript uden server, uden internet og uden eksterne filer.
+- **Virker offline.** Det er ren HTML, CSS og JavaScript uden server, uden internet og uden eksterne filer. På hjemmesiden gemmer en service worker (`sw.js`) hallen og de spil, man har spillet, så de også virker uden net og starter, selv når nettet er meget langsomt. Er der net, hentes alt altid friskt, så rettelser når spillerne med det samme.
 
 ## Spil
 
@@ -193,6 +193,7 @@ index.html        forsiden: arkadehallen (arkade.hojt.dk)
 games.js          listen over spil i hallen – ét spil pr. linje
 hal/              hallens kode (hal.js, hal.css) og skærmbilleder (skaerme/)
 CNAME             eget domæne til GitHub Pages: arkade.hojt.dk
+sw.js             service worker: offline og langsomt net (kun på hjemmesiden, ikke fra disken)
 arkade/           fælles moduler til alle spil
 slangen/          spillet Slangen (index.html, css/, js/)
 minestryger/      spillet Minestryger (index.html, css/, js/)
@@ -213,6 +214,7 @@ LICENSE           MIT-licens
 | `dwell.js`      | `ArkadeDwell` – dwell-motor med fremskridtsring til knapper og links. Ét blik = én handling: en knap kan først vælges igen, når blikket har forladt den, og en ny knap under blikket venter på et nyt blik. |
 | `bekraeft.js`   | `ArkadeBekraeft` – rolig ja/nej-dialog, fx "Vil du forlade spillet?", der ikke kan vælges ved et uheld med blikket. |
 | `audio.js`      | `ArkadeAudio` – synthwave-musik og lydeffekter lavet med Web Audio API (ingen lydfiler). |
+| `offline.js`    | Registrerer `sw.js` over http/https. Netværk først; uden net eller ved meget langsomt net (over 2,5 s) kommer hele siden fra den lokale kopi, aldrig blandet med nye filer. Test: `python3 arkade/test/offline_test.py`. |
 | `background.js` | `ArkadeBackground` – baggrundene Mørk, Solnedgang og Neonby. |
 | `arkade.css`    | Temaer, store knapper, paneler, rekordliste og dwell-ring. |
 | `logo.svg`, `favicon.svg` | Logo og ikon, tegnet som vektorstier uden skrifttyper. |
