@@ -42,42 +42,10 @@
 
   // ---------- Moduler ----------
   var bg = ArkadeBackground.create($('#baggrund'));
-  // Et dwell på en spilknap = ét træk. Samme knap kan først dwelles igen, når
-  // blikket har forladt den (så man ikke løber af sted ved et uheld).
-  var gazeLock = null, suppress = null;
-  var dwell = ArkadeDwell.create({
-    enabled: arkade.get('dwell'), timeMs: arkade.get('dwellTime') * 1000,
-    onActivate: function (el) {
-      if (!el.classList.contains('turn-btn')) return;
-      if (el === gazeLock) suppress = el; else gazeLock = el;
-    }
-  });
-  var lastPX = -1, lastPY = -1;
-  document.addEventListener('pointermove', function (e) {
-    if (e.pointerType !== 'touch') { lastPX = e.clientX; lastPY = e.clientY; }
-    if (gazeGuard) releaseGuard(e.clientX, e.clientY);
-    if (!gazeLock) return;
-    var r = gazeLock.getBoundingClientRect();
-    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) gazeLock = null;
-  }, { passive: true });
-  var gazeGuard = null;
-  function guardUnderGaze(rootEl) {
-    releaseGuard();
-    if (lastPX < 0) return;
-    var el = document.elementFromPoint(lastPX, lastPY);
-    var b = el && el.closest('button, a[href]');
-    if (b && rootEl.contains(b)) { gazeGuard = b; b.setAttribute('data-no-dwell', ''); }
-  }
-  function releaseGuard(x, y) {
-    if (!gazeGuard) return;
-    if (x !== undefined) {
-      var r = gazeGuard.getBoundingClientRect();
-      if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return;
-    }
-    gazeGuard.removeAttribute('data-no-dwell');
-    gazeGuard = null;
-  }
-  function swallowed(el) { if (suppress === el) { suppress = null; return true; } return false; }
+  // Ét blik = én handling: dwell.js' fælles blik-lås sørger for, at samme knap først kan vælges
+  // igen, når blikket har forladt den, og dialogvagten (dwell.guard) for knapper, der dukker op
+  // lige under blikket. (Før havde hvert spil sin egen kopi af begge dele.)
+  var dwell = ArkadeDwell.create({ enabled: arkade.get('dwell'), timeMs: arkade.get('dwellTime') * 1000 });
 
   var audio = ArkadeAudio.create({ sfx: arkade.get('sound'), music: arkade.get('music') });
   var SFX = { record: 'record', click: 'click', pause: 'pause' };
@@ -246,7 +214,7 @@
     refresh();
   }
   var OVERLAYS = ['#pause-overlay', '#confirm-overlay'];
-  function hideOverlays() { OVERLAYS.forEach(function (o) { $(o).hidden = true; }); releaseGuard(); }
+  function hideOverlays() { OVERLAYS.forEach(function (o) { $(o).hidden = true; }); dwell.unguard(); }
   function overlayOpen() { return OVERLAYS.some(function (o) { return !$(o).hidden; }); }
   function confirmOpen() { return !$('#confirm-overlay').hidden; }
   function live() { return run && !paused && !finished && run.state.fase === 'spil' && current === 'game' && !overlayOpen(); }
@@ -302,7 +270,7 @@
   }
   $$('#controls [data-act]').forEach(function (b) {
     b.classList.add('turn-btn');
-    b.addEventListener('click', function () { if (swallowed(b)) return; if (kortVist && b.dataset.act !== 'handling') setKort(false); doAct(b.dataset.act); });
+    b.addEventListener('click', function () { if (kortVist && b.dataset.act !== 'handling') setKort(false); doAct(b.dataset.act); });
   });
   function setKort(v) {
     kortVist = v; hover = null;
@@ -573,7 +541,7 @@
     $('#pause-overlay').hidden = !p;
     if (p) fitScreen($('#pause-overlay'));
     dwell.reset(); stopViewDwell();
-    if (p) guardUnderGaze($('#pause-overlay')); else releaseGuard();
+    if (p) dwell.guard($('#pause-overlay')); else dwell.unguard();
     sfx('pause');
     refresh();
     if (p) $('#btn-resume').focus({ preventScroll: true }); else startLoop();
@@ -594,13 +562,13 @@
     ov.hidden = false;
     fitScreen(ov);
     dwell.reset();
-    guardUnderGaze(ov);
+    dwell.guard(ov);
     $('#btn-confirm-no').focus({ preventScroll: true });
   }
   function cancelQuit() {
     if (!confirmOpen()) return;
     $('#confirm-overlay').hidden = true;
-    releaseGuard(); dwell.reset();
+    dwell.unguard(); dwell.reset();
     sfx('click');
     paused = false;
     if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
@@ -608,7 +576,7 @@
     refresh(); startLoop();
   }
   $('#btn-confirm-no').addEventListener('click', cancelQuit);
-  $('#btn-confirm-yes').addEventListener('click', function () { sfx('click'); releaseGuard(); finish('quit'); });
+  $('#btn-confirm-yes').addEventListener('click', function () { sfx('click'); dwell.unguard(); finish('quit'); });
   function quitToMenu() { run = null; paused = false; stopAuto(); clearTimeout(slutTimer); clearTimeout(butikTimer); hideOverlays(); show('menu'); }
 
   // ---------- Butik mellem etagerne ----------

@@ -35,46 +35,10 @@
   var reducedMotionMq = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
   // ---------- Moduler ----------
   var bg = ArkadeBackground.create($('#baggrund'));
-  // Et dwell = én handling. Dwell-modulet slipper sin lås, hvis en knap bliver
-  // deaktiveret et øjeblik (fx mens computeren tænker). Derfor holder spillet sin
-  // egen lås på kolonnerne, Slip, Fortryd og Tip: samme mål kan først dwelles
-  // igen, når blikket har forladt det.
-  var gazeLock = null, suppress = null;
-  var dwell = ArkadeDwell.create({
-    enabled: arkade.get('dwell'), timeMs: arkade.get('dwellTime') * 1000,
-    onActivate: function (el) {
-      if (!el.classList.contains('turn-btn')) return;
-      if (el === gazeLock) suppress = el; else gazeLock = el;
-    }
-  });
-  var lastPX = -1, lastPY = -1;
-  document.addEventListener('pointermove', function (e) {
-    if (e.pointerType !== 'touch') { lastPX = e.clientX; lastPY = e.clientY; }
-    if (gazeGuard) releaseGuard(e.clientX, e.clientY);
-    if (!gazeLock) return;
-    var r = gazeLock.getBoundingClientRect();
-    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) gazeLock = null;
-  }, { passive: true });
-  // Dwell-sikker dialog: når en ny boks åbnes, kan der ligge en knap præcis dér, hvor
-  // blikket allerede er. Den knap kan ikke dwelles, før blikket har forladt den én gang.
-  var gazeGuard = null;
-  function guardUnderGaze(root) {
-    releaseGuard();
-    if (lastPX < 0) return;
-    var el = document.elementFromPoint(lastPX, lastPY);
-    var b = el && el.closest('button, a[href]');
-    if (b && root.contains(b)) { gazeGuard = b; b.setAttribute('data-no-dwell', ''); }
-  }
-  function releaseGuard(x, y) {
-    if (!gazeGuard) return;
-    if (x !== undefined) {
-      var r = gazeGuard.getBoundingClientRect();
-      if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return;
-    }
-    gazeGuard.removeAttribute('data-no-dwell');
-    gazeGuard = null;
-  }
-  function swallowed(el) { if (suppress === el) { suppress = null; return true; } return false; }
+  // Ét blik = én handling: dwell.js' fælles blik-lås sørger for, at samme knap først kan vælges
+  // igen, når blikket har forladt den, og dialogvagten (dwell.guard) for knapper, der dukker op
+  // lige under blikket. (Før havde hvert spil sin egen kopi af begge dele.)
+  var dwell = ArkadeDwell.create({ enabled: arkade.get('dwell'), timeMs: arkade.get('dwellTime') * 1000 });
 
   var audio = ArkadeAudio.create({ sfx: arkade.get('sound'), music: arkade.get('music') });
   // Lydene kommer fra det fælles lydmodul (alle rolige). Fire på stribe bruger disse navne:
@@ -189,7 +153,7 @@
   function buildBoard() { tegn.build(); }
   boardEl.addEventListener('click', function (e) {
     var c = e.target.closest('.col');
-    if (!c || swallowed(c)) return;
+    if (!c) return;
     dropCol(+c.dataset.c);
   });
   // Ghost-brikken følger blikket og musen (ikke fingre: her slippes brikken ved tryk)
@@ -215,13 +179,13 @@
   }
   function beginGame() {
     $('#end-row').hidden = true; $('#act-row').hidden = false;
-    releaseGuard();
+    dwell.unguard();
     lastNote = run.state.starter === CPU ? 'Computeren starter dette parti' : 'Du starter dette parti';
     refresh();
     if (run.state.turn === CPU) scheduleCpu();
   }
   var OVERLAYS = ['#pause-overlay', '#confirm-overlay'];
-  function hideOverlays() { OVERLAYS.forEach(function (o) { $(o).hidden = true; }); releaseGuard(); }
+  function hideOverlays() { OVERLAYS.forEach(function (o) { $(o).hidden = true; }); dwell.unguard(); }
   function overlayOpen() { return OVERLAYS.some(function (o) { return !$(o).hidden; }); }
   function confirmOpen() { return !$('#confirm-overlay').hidden; }
   function live() { return run && !paused && !finished && !run.state.result && current === 'game' && !overlayOpen(); }
@@ -309,7 +273,7 @@
   }
   $('#btn-left').addEventListener('click', function () { moveCursor(curCol < 0 ? 0 : -1); });
   $('#btn-right').addEventListener('click', function () { moveCursor(curCol < 0 ? 0 : 1); });
-  $('#btn-drop').addEventListener('click', function () { if (!swallowed(this)) { if (curCol < 0) curCol = pickStart(); dropCol(curCol); } });
+  $('#btn-drop').addEventListener('click', function () { { if (curCol < 0) curCol = pickStart(); dropCol(curCol); } });
 
   // ---------- Tegning ----------
   // Visningen: hvad der skal vises ud fra spillets tilstand. Tegnelaget (js/tegn.js) tegner den.
@@ -377,8 +341,8 @@
   }
   var relayouting = false;
 
-  $('#btn-undo').addEventListener('click', function () { if (!swallowed(this)) undoMove(); });
-  $('#btn-tip').addEventListener('click', function () { if (!swallowed(this)) showTip(); });
+  $('#btn-undo').addEventListener('click', function () { undoMove(); });
+  $('#btn-tip').addEventListener('click', function () { showTip(); });
 
   // ---------- Partiet er slut ----------
   // Brættet bliver stående med de vindende fire markeret (uden blink). Fortryd og Tip
@@ -396,7 +360,7 @@
     refresh();
     layoutGame();
     dwell.reset();
-    guardUnderGaze(er);
+    dwell.guard(er);
     $('#btn-next').focus({ preventScroll: true });
   }
   function nextGame() {
@@ -418,7 +382,7 @@
     $('#pause-overlay').hidden = !p;
     if (p) fitScreen($('#pause-overlay'));
     dwell.reset();
-    if (p) guardUnderGaze($('#pause-overlay')); else releaseGuard();
+    if (p) dwell.guard($('#pause-overlay')); else dwell.unguard();
     sfx('pause');
     refresh();
     if (p) $('#btn-resume').focus({ preventScroll: true });
@@ -441,13 +405,13 @@
     ov.hidden = false;
     fitScreen(ov);
     dwell.reset();
-    guardUnderGaze(ov);
+    dwell.guard(ov);
     $('#btn-confirm-no').focus({ preventScroll: true });
   }
   function cancelQuit() {
     if (!confirmOpen()) return;
     $('#confirm-overlay').hidden = true;
-    releaseGuard();
+    dwell.unguard();
     dwell.reset();
     sfx('click');
     paused = false;
@@ -457,7 +421,7 @@
     resumeCpu();
   }
   $('#btn-confirm-no').addEventListener('click', cancelQuit);
-  $('#btn-confirm-yes').addEventListener('click', function () { sfx('click'); releaseGuard(); finish(); });
+  $('#btn-confirm-yes').addEventListener('click', function () { sfx('click'); dwell.unguard(); finish(); });
   function quitToMenu() { clearTimers(); run = null; paused = false; hideOverlays(); show('menu'); }
 
   // ---------- Slut ----------
@@ -929,7 +893,7 @@
   // Til test og fejlfinding
   window.FirePaaStribe = {
     level: level, askQuit: askQuit, cancelQuit: cancelQuit,
-    get guard() { return gazeGuard ? gazeGuard.id : null; },
+    get guard() { return dwell.guarded ? dwell.guarded.id : null; },
     get run() { return run; }, get cursor() { return curCol; }, get busy() { return busy; },
     settings: arkade, gameSettings: gset, records: records, dwell: dwell, audio: audio,
     start: startGame, show: show, drop: dropCol, undo: undoMove, tip: showTip, next: nextGame,

@@ -34,22 +34,10 @@
 
   // ---------- Moduler ----------
   var bg = ArkadeBackground.create($('#baggrund'));
-  // Hvert dwell er præcis ét valg. Samme knap kan først dwelles igen, når
-  // blikket har forladt den (også hvis knappen var slået fra et øjeblik).
-  var gazeLock = null, suppress = null;
-  var dwell = ArkadeDwell.create({
-    enabled: arkade.get('dwell'), timeMs: arkade.get('dwellTime') * 1000,
-    onActivate: function (el) {
-      if (!el.classList.contains('act')) return;
-      if (el === gazeLock) suppress = el; else gazeLock = el;
-    }
-  });
-  document.addEventListener('pointermove', function (e) {
-    if (!gazeLock) return;
-    var r = gazeLock.getBoundingClientRect();
-    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) gazeLock = null;
-  }, { passive: true });
-  function swallowed(el) { if (suppress === el) { suppress = null; return true; } return false; }
+  // Ét blik = én handling: dwell.js' fælles blik-lås sørger for, at samme knap først kan vælges
+  // igen, når blikket har forladt den, og dialogvagten (dwell.guard) for knapper, der dukker op
+  // lige under blikket. (Før havde hvert spil sin egen kopi af begge dele.)
+  var dwell = ArkadeDwell.create({ enabled: arkade.get('dwell'), timeMs: arkade.get('dwellTime') * 1000 });
   var audio = ArkadeAudio.create({ sfx: arkade.get('sound'), music: arkade.get('music') });
   var SFX = {
     side: 'move', up: 'bonusSpawn', down: 'move', hop: 'move', dyk: 'move', bliv: 'click', coin: 'eat', hit: 'crash',
@@ -322,7 +310,7 @@
     announce();
   }
   $$('.act').forEach(function (b) {
-    b.addEventListener('click', function () { if (!swallowed(b)) act(b.dataset.act); });
+    b.addEventListener('click', function () { act(b.dataset.act); });
     // Forhåndsvisning: den knap, man kigger på eller har markeret
     var on = function () { previewAct = b.dataset.act; refresh(); };
     var off = function () { if (previewAct === b.dataset.act) { previewAct = null; refresh(); } };

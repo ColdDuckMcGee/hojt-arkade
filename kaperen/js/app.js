@@ -43,43 +43,11 @@
 
   // ---------- Moduler ----------
   var bg = ArkadeBackground.create($('#baggrund'));
-  var gazeLock = null, suppress = null;
-  var dwell = ArkadeDwell.create({
-    enabled: arkade.get('dwell'), timeMs: arkade.get('dwellTime') * 1000,
-    onActivate: function (el) {
-      if (el.hasAttribute('data-dwell-repeat')) return;
-      if (el === gazeLock) suppress = el; else gazeLock = el;
-    }
-  });
-  var lastPX = -1, lastPY = -1;
-  document.addEventListener('pointermove', function (e) {
-    if (e.pointerType !== 'touch') { lastPX = e.clientX; lastPY = e.clientY; }
-    if (gazeGuard) releaseGuard(e.clientX, e.clientY);
-    if (!gazeLock) return;
-    var r = gazeLock.getBoundingClientRect();
-    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) gazeLock = null;
-  }, { passive: true });
-  // Dwell-sikre skift: når nye knapper dukker op dér, hvor blikket allerede er,
-  // kan knappen ikke dwelles, før blikket har forladt den én gang.
-  var gazeGuard = null;
-  function guardUnderGaze(rootEl) {
-    releaseGuard();
-    if (lastPX < 0 || !rootEl) return;
-    var el = document.elementFromPoint(lastPX, lastPY);
-    var b = el && el.closest('button, a[href]');
-    if (b && rootEl.contains(b)) { gazeGuard = b; b.setAttribute('data-no-dwell', ''); }
-  }
-  function releaseGuard(x, y) {
-    if (!gazeGuard) return;
-    if (x !== undefined) {
-      var r = gazeGuard.getBoundingClientRect();
-      if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return;
-    }
-    gazeGuard.removeAttribute('data-no-dwell');
-    gazeGuard = null;
-  }
-  function swallowed(el) { if (suppress === el) { suppress = null; return true; } return false; }
-  function onAct(el, fn) { el.addEventListener('click', function (e) { if (!swallowed(el)) fn(e); }); }
+  // Ét blik = én handling: dwell.js' fælles blik-lås sørger for, at samme knap først kan vælges
+  // igen, når blikket har forladt den, og dialogvagten (dwell.guard) for knapper, der dukker op
+  // lige under blikket. (Før havde hvert spil sin egen kopi af begge dele.)
+  var dwell = ArkadeDwell.create({ enabled: arkade.get('dwell'), timeMs: arkade.get('dwellTime') * 1000 });
+  function onAct(el, fn) { el.addEventListener('click', function (e) { fn(e); }); }
 
   var audio = ArkadeAudio.create({ sfx: arkade.get('sound'), music: arkade.get('music') });
   function volumeSetting() {
@@ -161,7 +129,7 @@
     dwell.reset();
     if (id === 'menu') syncMenu();
     if (id === 'game') { layoutGame(); } else fitScreen($('#' + id), true);
-    guardUnderGaze($('#' + id));
+    dwell.guard($('#' + id));
   }
 
   // ---------- Startmenu ----------
@@ -229,10 +197,10 @@
     bekraeftJa = o.paaJa;
     var ov = $('#bekraeft-overlay');
     bekraeftFra = document.activeElement;
-    ov.hidden = false; fitScreen(ov); dwell.reset(); guardUnderGaze(ov);
+    ov.hidden = false; fitScreen(ov); dwell.reset(); dwell.guard(ov);
     $('#btn-bekraeft-nej').focus({ preventScroll: true });
   }
-  function lukBekraeft() { $('#bekraeft-overlay').hidden = true; releaseGuard(); dwell.reset(); bekraeftJa = null; }
+  function lukBekraeft() { $('#bekraeft-overlay').hidden = true; dwell.unguard(); dwell.reset(); bekraeftJa = null; }
   function bekraeftOpen() { return !$('#bekraeft-overlay').hidden; }
   $('#btn-bekraeft-nej').addEventListener('click', function () {
     sfx('click'); lukBekraeft();
@@ -246,7 +214,7 @@
   var besked = { tekst: '', cls: '' }, moedeLog = '', paused = false, slutVist = false;
   var OVERLAYS = ['#pause-overlay', '#slut-overlay'];
   function overlayOpen() { return bekraeftOpen() || OVERLAYS.some(function (o) { return !$(o).hidden; }); }
-  function hideOverlays() { OVERLAYS.forEach(function (o) { $(o).hidden = true; }); paused = false; releaseGuard(); }
+  function hideOverlays() { OVERLAYS.forEach(function (o) { $(o).hidden = true; }); paused = false; dwell.unguard(); }
   function setBesked(t, cls) { besked = { tekst: t, cls: cls || '' }; }
 
   function nyRejse() {
@@ -276,7 +244,7 @@
     $$('#spil .view').forEach(function (el) { el.hidden = el.id !== 'v-' + v; });
     layoutGame();
     refresh();
-    guardUnderGaze($('#v-' + v));
+    dwell.guard($('#v-' + v));
   }
 
   // ---------- Havnen ----------
@@ -789,7 +757,7 @@
     saveGame();
     refresh();
     if (game.state.over) slutSpil();
-    else if (m.slut) { $('#btn-videre').focus({ preventScroll: true }); guardUnderGaze($('#moede-knapper')); }
+    else if (m.slut) { $('#btn-videre').focus({ preventScroll: true }); dwell.guard($('#moede-knapper')); }
   }
   onAct($('#btn-skyd'), function () { handling('skyd'); });
   onAct($('#btn-naermere'), function () { handling('naermere'); });
@@ -802,7 +770,7 @@
     moedeLog = (valg === 'laa' ? 'Du søger læ bag en ø og venter stormen af i 2 dage. Skroget tager ' + r.skade + ' i skade.' : 'Du rider stormen af. Bølgerne slår ' + r.skade + ' af skroget.') + (r.sult ? ' ' + sultTekst(r.sult) : '');
     sfx(valg === 'laa' ? 'boelger' : 'storm');
     saveGame(); refresh();
-    if (game.state.over) slutSpil(); else guardUnderGaze($('#moede-knapper'));
+    if (game.state.over) slutSpil(); else dwell.guard($('#moede-knapper'));
   }
   onAct($('#btn-ride'), function () { stormValg('ride'); });
   onAct($('#btn-laa'), function () { stormValg('laa'); });
@@ -909,7 +877,7 @@
     setTimeout(function () {
       if (current !== 'game') return;
       var ov = $('#slut-overlay');
-      ov.hidden = false; fitScreen(ov); dwell.reset(); guardUnderGaze(ov);
+      ov.hidden = false; fitScreen(ov); dwell.reset(); dwell.guard(ov);
       sfx(over.grund === 'land' ? 'sejr' : 'gameOver');
       $('#btn-slut-ny').focus({ preventScroll: true });
     }, over.grund === 'land' ? 0 : 900);
@@ -927,8 +895,8 @@
     var land = $('#btn-land'), iHavn = kanGaaILand();
     land.disabled = !iHavn;
     $('.small', land).textContent = iHavn ? 'slut og gem point' : 'kun i en havn';
-    if (p) { clearTimeout(kursTimer); fitScreen(ov); dwell.reset(); guardUnderGaze(ov); $('#btn-resume').focus({ preventScroll: true }); sfx('click'); }
-    else { releaseGuard(); dwell.reset(); guardUnderGaze($('#game')); if (kursAktiv() && view === 'hav') kursTimer = setTimeout(koerKurs, 300); }
+    if (p) { clearTimeout(kursTimer); fitScreen(ov); dwell.reset(); dwell.guard(ov); $('#btn-resume').focus({ preventScroll: true }); sfx('click'); }
+    else { dwell.unguard(); dwell.reset(); dwell.guard($('#game')); if (kursAktiv() && view === 'hav') kursTimer = setTimeout(koerKurs, 300); }
   }
   function kanGaaILand() { var st = game.state; return !!st.havn && !(st.moede && !st.moede.slut); }
   $('#btn-pause').addEventListener('click', function () { setPaused(true); });
@@ -1269,7 +1237,7 @@
   window.Kaperen = {
     get game() { return game; }, get view() { return view; }, get fane() { return fane; }, get sejler() { return kursAktiv(); },
     get valgtHavn() { return valgtHavn; }, get havLog() { return havLog.tekst; },
-    get paused() { return paused; }, get guard() { return gazeGuard ? gazeGuard.id : null; },
+    get paused() { return paused; }, get guard() { return dwell.guarded ? dwell.guarded.id : null; },
     settings: arkade, gameSettings: gset, records: records, dwell: dwell, audio: audio, lyd: lyd, logik: L,
     nyRejse: nyRejse, show: show, setView: setView, setFane: setFane, vaelgHavn: vaelgHavn, saetKurs: saetKurs,
     sejlRet: sejlRet, vent: venDag, aabnKort: aabnKort, tilSoes: tilSoes, stopKurs: stopKurs,

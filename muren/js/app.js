@@ -45,45 +45,10 @@
 
   // ---------- Moduler ----------
   var bg = ArkadeBackground.create($('#baggrund'));
-  // Et dwell på Skyd eller Spring frem = én handling. Drejeknapperne gentages
-  // (data-dwell-repeat). Spillet holder sin egen lås på de to knapper: samme
-  // knap kan først dwelles igen, når blikket har forladt den.
-  var gazeLock = null, suppress = null;
-  var dwell = ArkadeDwell.create({
-    enabled: arkade.get('dwell'), timeMs: arkade.get('dwellTime') * 1000,
-    onActivate: function (el) {
-      if (!el.classList.contains('turn-btn')) return;
-      if (el === gazeLock) suppress = el; else gazeLock = el;
-    }
-  });
-  var lastPX = -1, lastPY = -1;
-  document.addEventListener('pointermove', function (e) {
-    if (e.pointerType !== 'touch') { lastPX = e.clientX; lastPY = e.clientY; }
-    if (gazeGuard) releaseGuard(e.clientX, e.clientY);
-    if (!gazeLock) return;
-    var r = gazeLock.getBoundingClientRect();
-    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) gazeLock = null;
-  }, { passive: true });
-  // Dwell-sikker dialog: når en ny boks åbnes, kan der ligge en knap præcis dér, hvor
-  // blikket allerede er. Den knap kan ikke dwelles, før blikket har forladt den én gang.
-  var gazeGuard = null;
-  function guardUnderGaze(rootEl) {
-    releaseGuard();
-    if (lastPX < 0) return;
-    var el = document.elementFromPoint(lastPX, lastPY);
-    var b = el && el.closest('button, a[href]');
-    if (b && rootEl.contains(b)) { gazeGuard = b; b.setAttribute('data-no-dwell', ''); }
-  }
-  function releaseGuard(x, y) {
-    if (!gazeGuard) return;
-    if (x !== undefined) {
-      var r = gazeGuard.getBoundingClientRect();
-      if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return;
-    }
-    gazeGuard.removeAttribute('data-no-dwell');
-    gazeGuard = null;
-  }
-  function swallowed(el) { if (suppress === el) { suppress = null; return true; } return false; }
+  // Ét blik = én handling: dwell.js' fælles blik-lås sørger for, at samme knap først kan vælges
+  // igen, når blikket har forladt den, og dialogvagten (dwell.guard) for knapper, der dukker op
+  // lige under blikket. (Før havde hvert spil sin egen kopi af begge dele.)
+  var dwell = ArkadeDwell.create({ enabled: arkade.get('dwell'), timeMs: arkade.get('dwellTime') * 1000 });
 
   var audio = ArkadeAudio.create({ sfx: arkade.get('sound'), music: arkade.get('music') });
   // Knapper og menuer bruger det fælles lydmodul (alle rolige):
@@ -243,7 +208,7 @@
     refresh();
   }
   var OVERLAYS = ['#pause-overlay', '#confirm-overlay'];
-  function hideOverlays() { OVERLAYS.forEach(function (o) { $(o).hidden = true; }); releaseGuard(); }
+  function hideOverlays() { OVERLAYS.forEach(function (o) { $(o).hidden = true; }); dwell.unguard(); }
   function overlayOpen() { return OVERLAYS.some(function (o) { return !$(o).hidden; }); }
   function confirmOpen() { return !$('#confirm-overlay').hidden; }
   function playing() { return run && !paused && !finished && run.live() && current === 'game' && !overlayOpen(); }
@@ -294,8 +259,8 @@
   }
   $('#btn-fire').classList.add('turn-btn');
   $('#btn-skip').classList.add('turn-btn');
-  $('#btn-fire').addEventListener('click', function () { if (!swallowed(this)) fire(); });
-  $('#btn-skip').addEventListener('click', function () { if (!swallowed(this)) skip(); });
+  $('#btn-fire').addEventListener('click', function () { fire(); });
+  $('#btn-skip').addEventListener('click', function () { skip(); });
 
   function startLoop() {
     if (raf) return;
@@ -398,7 +363,7 @@
     $('#pause-overlay').hidden = !p;
     if (p) fitScreen($('#pause-overlay'));
     dwell.reset();
-    if (p) guardUnderGaze($('#pause-overlay')); else releaseGuard();
+    if (p) dwell.guard($('#pause-overlay')); else dwell.unguard();
     sfx('pause');
     refresh();
     if (p) { stopLoop(); $('#btn-resume').focus({ preventScroll: true }); }
@@ -421,13 +386,13 @@
     ov.hidden = false;
     fitScreen(ov);
     dwell.reset();
-    guardUnderGaze(ov);
+    dwell.guard(ov);
     $('#btn-confirm-no').focus({ preventScroll: true });
   }
   function cancelQuit() {
     if (!confirmOpen()) return;
     $('#confirm-overlay').hidden = true;
-    releaseGuard();
+    dwell.unguard();
     dwell.reset();
     sfx('click');
     paused = false;
@@ -436,7 +401,7 @@
     if (flying()) startLoop();
   }
   $('#btn-confirm-no').addEventListener('click', cancelQuit);
-  $('#btn-confirm-yes').addEventListener('click', function () { sfx('click'); releaseGuard(); finish('quit'); });
+  $('#btn-confirm-yes').addEventListener('click', function () { sfx('click'); dwell.unguard(); finish('quit'); });
   function quitToMenu() { run = null; paused = false; clearTimeout(afterTimer); stopLoop(); hideOverlays(); show('menu'); }
 
   // ---------- Slut ----------
@@ -891,7 +856,7 @@
   // Til test og fejlfinding
   window.Muren = {
     askQuit: askQuit, cancelQuit: cancelQuit,
-    get guard() { return gazeGuard ? gazeGuard.id : null; },
+    get guard() { return dwell.guarded ? dwell.guarded.id : null; },
     get run() { return run; }, get flying() { return flying(); }, get tegn() { return tegn; },
     settings: arkade, gameSettings: gset, records: records, dwell: dwell, audio: audio, lyd: lyd, logik: L,
     start: startGame, show: show, fire: fire, skip: skip, turn: turnAim, aimAt: aimAtScreen,

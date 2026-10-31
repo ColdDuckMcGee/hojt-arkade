@@ -288,7 +288,29 @@
       sawMove = true;
       if (holdPending && lastX === null && now() - createdAt > LOAD_HOLD_MS) holdPending = false;
       lastX = e.clientX; lastY = e.clientY; inside = true;
+      if (vagt && !inRect(rectOf(vagt.el), lastX, lastY)) unguard();   // knappens placering nu (en boks kan glide ind)
       loop();
+    }
+
+    // ---------- Dialogvagt ----------
+    // guard(scope): når en boks eller et nyt trin åbner, kan der ligge en knap præcis dér, hvor
+    // blikket er. Den knap (i scope) får data-no-dwell, til blikket har forladt den én gang.
+    // Virker også, hvis dwell slås til, mens boksen er åben. (Før havde hvert spil sin egen kopi.)
+    var vagt = null;
+    function guard(scope) {
+      unguard();
+      if (lastX === null || !scope) return null;
+      var el = document.elementFromPoint(lastX, lastY);
+      var b = el && el.closest ? el.closest('button, a[href]') : null;
+      if (!b || !scope.contains(b)) return null;
+      vagt = { el: b };
+      b.setAttribute('data-no-dwell', '');
+      return b;
+    }
+    function unguard() {
+      if (!vagt) return;
+      vagt.el.removeAttribute('data-no-dwell');
+      vagt = null;
     }
     function onOut(e) { if (!e.relatedTarget) { inside = false; clearTarget(); } }
     function onBlur() { inside = false; clearTarget(); }
@@ -315,8 +337,10 @@
       // Slipper låsen helt, så knappen under blikket kan vælges med det samme.
       release: function () { hold = null; holdPending = false; },
       isHeld: function () { return !!hold; },
+      guard: guard, unguard: unguard,
+      get guarded() { return vagt ? vagt.el : null; },
       destroy: function () {
-        enabled = false; clearTarget(); clearTimeout(watchTimer); clearTimeout(idleTimer);
+        enabled = false; clearTarget(); clearTimeout(watchTimer); clearTimeout(idleTimer); unguard();
         document.removeEventListener('pointerdown', onDown, true);
         document.removeEventListener('click', onClick, true);
         document.removeEventListener('pointermove', onMove);

@@ -28,23 +28,10 @@
 
   // ---------- Moduler ----------
   var bg = ArkadeBackground.create($('#baggrund'));
-  // Hvert dwell er præcis ét træk. Dwell-modulet slipper sin lås, hvis knappen
-  // bliver deaktiveret et øjeblik (fx en pil mod en mur). Derfor holder spillet
-  // sin egen lås: samme knap kan først dwelles igen, når blikket har forladt den.
-  var gazeLock = null, suppress = null;
-  var dwell = ArkadeDwell.create({
-    enabled: arkade.get('dwell'), timeMs: arkade.get('dwellTime') * 1000,
-    onActivate: function (el) {
-      if (!el.classList.contains('turn-btn')) return;
-      if (el === gazeLock) suppress = el; else gazeLock = el;
-    }
-  });
-  document.addEventListener('pointermove', function (e) {
-    if (!gazeLock) return;
-    var r = gazeLock.getBoundingClientRect();
-    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) gazeLock = null;
-  }, { passive: true });
-  function swallowed(el) { if (suppress === el) { suppress = null; return true; } return false; }
+  // Ét blik = én handling: dwell.js' fælles blik-lås sørger for, at samme knap først kan vælges
+  // igen, når blikket har forladt den, og dialogvagten (dwell.guard) for knapper, der dukker op
+  // lige under blikket. (Før havde hvert spil sin egen kopi af begge dele.)
+  var dwell = ArkadeDwell.create({ enabled: arkade.get('dwell'), timeMs: arkade.get('dwellTime') * 1000 });
   var audio = ArkadeAudio.create({ sfx: arkade.get('sound'), music: arkade.get('music') });
   // Lydene kommer fra det fælles lydmodul. Bomberne bruger disse navne:
   var SFX = {
@@ -305,10 +292,10 @@
     refresh();
     if (fx.length) animate();
   }
-  $$('.arrow').forEach(function (b) { b.addEventListener('click', function () { if (!swallowed(b)) act(b.dataset.dir); }); });
-  $('#btn-bomb').addEventListener('click', function () { if (!swallowed(this)) act('bomb'); });
-  $('#btn-wait').addEventListener('click', function () { if (!swallowed(this)) act('wait'); });
-  $('#btn-undo').addEventListener('click', function () { if (!swallowed(this)) undo(); });
+  $$('.arrow').forEach(function (b) { b.addEventListener('click', function () { act(b.dataset.dir); }); });
+  $('#btn-bomb').addEventListener('click', function () { act('bomb'); });
+  $('#btn-wait').addEventListener('click', function () { act('wait'); });
+  $('#btn-undo').addEventListener('click', function () { undo(); });
 
   function undo() {
     if (!run || busy || paused || current !== 'game') return;

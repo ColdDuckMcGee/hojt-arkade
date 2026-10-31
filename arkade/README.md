@@ -104,6 +104,12 @@ dwell.setEnabled(true); dwell.setTime(1500); dwell.reset(); dwell.release();
   under blikket, når siden indlæses med dwell slået til.
 - `dwell.reset()` rydder ringen og låser knappen under blikket (kald den ved
   skærmskift, dialoger og efter et træk). `dwell.release()` slipper låsen helt.
+- **Dialogvagt:** `dwell.guard(scope)` – når en boks eller et nyt trin åbner, får knappen
+  (i `scope`), der ligger lige under blikket, `data-no-dwell`, til blikket har forladt den.
+  Virker også, hvis dwell først slås til, mens boksen er åben. `dwell.unguard()` fjerner vagten,
+  og `dwell.guarded` er knappen med vagt (til test). Spillene har ikke længere egne kopier af
+  blik-låsen eller vagten; Kabalen og Sudoku har en udvidet vagt til kort og felter, der
+  glider på plads under blikket.
 - Ryster blikket kort ud over kanten (under `graceMs`, 250 ms), stopper ringen og
   fortsætter, i stedet for at starte forfra.
 - Test: `python3 arkade/test/dwell_test.py` (Playwright og Chrome).

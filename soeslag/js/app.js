@@ -41,23 +41,10 @@
 
   // ---------- Moduler ----------
   var bg = ArkadeBackground.create($('#baggrund'));
-  // Et dwell = én handling. Dwell-modulet slipper sin lås, hvis en knap bliver
-  // deaktiveret et øjeblik (fx Skyd lige efter et skud). Derfor holder spillet
-  // sin egen lås: samme knap kan først dwelles igen, når blikket har forladt den.
-  var gazeLock = null, suppress = null;
-  var dwell = ArkadeDwell.create({
-    enabled: arkade.get('dwell'), timeMs: arkade.get('dwellTime') * 1000,
-    onActivate: function (el) {
-      if (!el.classList.contains('turn-btn')) return;
-      if (el === gazeLock) suppress = el; else gazeLock = el;
-    }
-  });
-  document.addEventListener('pointermove', function (e) {
-    if (!gazeLock) return;
-    var r = gazeLock.getBoundingClientRect();
-    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) gazeLock = null;
-  }, { passive: true });
-  function swallowed(el) { if (suppress === el) { suppress = null; return true; } return false; }
+  // Ét blik = én handling: dwell.js' fælles blik-lås sørger for, at samme knap først kan vælges
+  // igen, når blikket har forladt den, og dialogvagten (dwell.guard) for knapper, der dukker op
+  // lige under blikket. (Før havde hvert spil sin egen kopi af begge dele.)
+  var dwell = ArkadeDwell.create({ enabled: arkade.get('dwell'), timeMs: arkade.get('dwellTime') * 1000 });
 
   var audio = ArkadeAudio.create({ sfx: arkade.get('sound'), music: arkade.get('music') });
   // Lydene kommer fra det fælles lydmodul. Søslag bruger disse navne:
@@ -312,7 +299,7 @@
   }
   boardEl.addEventListener('click', function (e) {
     var q = e.target.closest('.qbtn');
-    if (q) { if (!swallowed(q) && live()) { zoom = +q.dataset.q; sfx('click'); refresh(); } return; }
+    if (q) { if (live()) { zoom = +q.dataset.q; sfx('click'); refresh(); } return; }
     var c = e.target.closest('.cell');
     // Inerte felter rammes ikke af klik: find feltet under musen, og zoom dertil
     // hvis det ligger i en anden fjerdedel (ellers ignoreres klikket som før).
@@ -321,7 +308,7 @@
       if (hit >= 0 && quadOf(hit) !== zoom && qbtnEls[quadOf(hit)] && !qbtnEls[quadOf(hit)].inert) { zoom = quadOf(hit); sfx('click'); refresh(); }
       return;
     }
-    if (!c || swallowed(c)) return;
+    if (!c) return;
     if (c.getAttribute('aria-disabled') === 'true') return;
     pickCell(+c.dataset.i);
   });
@@ -591,7 +578,7 @@
         b.type = 'button';
         b.dataset.ship = d.id;
         b.innerHTML = shipIcon(d.len, 0, false) + '<span class="small">' + (k + 1) + '. ' + d.name + '</span>';
-        b.addEventListener('click', function () { if (!swallowed(b)) chooseShip(d.id); });
+        b.addEventListener('click', function () { chooseShip(d.id); });
         b.classList.add('turn-btn');
         list.appendChild(b);
       });
@@ -695,13 +682,13 @@
     if (ul.innerHTML !== html) ul.innerHTML = html;
     box.classList.toggle('lost', s.phase === 'lost');
   }
-  $('#btn-end').addEventListener('click', function () { if (!swallowed(this)) endAction(); });
+  $('#btn-end').addEventListener('click', function () { endAction(); });
   $('#btn-end').classList.add('turn-btn');
 
   $('#btn-fire').classList.add('turn-btn');
   $('#btn-place').classList.add('turn-btn');
-  $('#btn-fire').addEventListener('click', function () { if (!swallowed(this)) shoot(); });
-  $('#btn-place').addEventListener('click', function () { if (!swallowed(this)) placeShip(); });
+  $('#btn-fire').addEventListener('click', function () { shoot(); });
+  $('#btn-place').addEventListener('click', function () { placeShip(); });
   $('#btn-shuffle').addEventListener('click', function () { shuffle(); });
   $('#btn-begin').addEventListener('click', function () { beginBattle(); });
   $('#btn-view').addEventListener('click', function () { toggleView(); });

@@ -32,24 +32,10 @@
 
   // ---------- Moduler ----------
   var bg = ArkadeBackground.create($('#baggrund'));
-  // Drejeknapperne må gentage sig med dwell (data-dwell-repeat). Skyd, Byt og
-  // Fortryd må aldrig: dwell-modulet slipper sin lås, når en knap er deaktiveret
-  // et øjeblik (fx mens boblen flyver). Derfor holder spillet sin egen lås:
-  // samme knap kan først dwelles igen, når blikket har forladt den.
-  var gazeLock = null, suppress = null;
-  var dwell = ArkadeDwell.create({
-    enabled: arkade.get('dwell'), timeMs: arkade.get('dwellTime') * 1000,
-    onActivate: function (el) {
-      if (!el.classList.contains('once-btn')) return;
-      if (el === gazeLock) suppress = el; else gazeLock = el;
-    }
-  });
-  document.addEventListener('pointermove', function (e) {
-    if (!gazeLock) return;
-    var r = gazeLock.getBoundingClientRect();
-    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) gazeLock = null;
-  }, { passive: true });
-  function swallowed(el) { if (suppress === el) { suppress = null; return true; } return false; }
+  // Ét blik = én handling: dwell.js' fælles blik-lås sørger for, at samme knap først kan vælges
+  // igen, når blikket har forladt den, og dialogvagten (dwell.guard) for knapper, der dukker op
+  // lige under blikket. (Før havde hvert spil sin egen kopi af begge dele.)
+  var dwell = ArkadeDwell.create({ enabled: arkade.get('dwell'), timeMs: arkade.get('dwellTime') * 1000 });
   var audio = ArkadeAudio.create({ sfx: arkade.get('sound'), music: arkade.get('music') });
   // Lydene kommer fra det fælles lydmodul. Bobler bruger disse navne:
   var SFX = {
@@ -351,9 +337,9 @@
     else { busy = false; refresh(); }
   }
   function say(t) { $('#board-status').textContent = t; }
-  $('#btn-shoot').addEventListener('click', function () { if (!swallowed(this)) shoot(); });
-  $('#btn-swap').addEventListener('click', function () { if (!swallowed(this)) swap(); });
-  $('#btn-undo').addEventListener('click', function () { if (!swallowed(this)) undo(); });
+  $('#btn-shoot').addEventListener('click', function () { shoot(); });
+  $('#btn-swap').addEventListener('click', function () { swap(); });
+  $('#btn-undo').addEventListener('click', function () { undo(); });
 
   function swap() {
     if (!live() || run.state.current === run.state.next) return;

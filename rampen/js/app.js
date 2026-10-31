@@ -54,46 +54,12 @@
 
   // ---------- Moduler ----------
   var bg = ArkadeBackground.create($('#baggrund'));
-  // Et dwell på en handlingsknap = én handling. Samme knap kan først dwelles igen,
-  // når blikket har forladt den. Vinkelknapperne gentages (data-dwell-repeat).
-  var gazeLock = null, suppress = null;
-  var dwell = ArkadeDwell.create({
-    enabled: arkade.get('dwell'), timeMs: arkade.get('dwellTime') * 1000,
-    onActivate: function (el) {
-      if (el.hasAttribute('data-dwell-repeat')) return;
-      if (el === gazeLock) suppress = el; else gazeLock = el;
-    }
-  });
-  var lastPX = -1, lastPY = -1;
-  document.addEventListener('pointermove', function (e) {
-    if (e.pointerType !== 'touch') { lastPX = e.clientX; lastPY = e.clientY; }
-    if (gazeGuard) releaseGuard(e.clientX, e.clientY);
-    if (!gazeLock) return;
-    var r = gazeLock.getBoundingClientRect();
-    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) gazeLock = null;
-  }, { passive: true });
-  // Dwell-sikre skift: når nye knapper dukker op dér, hvor blikket allerede er,
-  // kan knappen ikke dwelles, før blikket har forladt den én gang.
-  var gazeGuard = null;
-  function guardUnderGaze(rootEl) {
-    releaseGuard();
-    if (lastPX < 0) return;
-    var el = document.elementFromPoint(lastPX, lastPY);
-    var b = el && el.closest('button, a[href]');
-    if (b && rootEl.contains(b)) { gazeGuard = b; b.setAttribute('data-no-dwell', ''); }
-  }
-  function releaseGuard(x, y) {
-    if (!gazeGuard) return;
-    if (x !== undefined) {
-      var r = gazeGuard.getBoundingClientRect();
-      if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return;
-    }
-    gazeGuard.removeAttribute('data-no-dwell');
-    gazeGuard = null;
-  }
-  function swallowed(el) { if (suppress === el) { suppress = null; return true; } return false; }
+  // Ét blik = én handling: dwell.js' fælles blik-lås sørger for, at samme knap først kan vælges
+  // igen, når blikket har forladt den, og dialogvagten (dwell.guard) for knapper, der dukker op
+  // lige under blikket. (Før havde hvert spil sin egen kopi af begge dele.)
+  var dwell = ArkadeDwell.create({ enabled: arkade.get('dwell'), timeMs: arkade.get('dwellTime') * 1000 });
   // Klik på en handlingsknap (ignoreres, hvis det er et gentaget dwell på samme knap)
-  function onAct(el, fn) { el.addEventListener('click', function (e) { if (!swallowed(el)) fn(e); }); }
+  function onAct(el, fn) { el.addEventListener('click', function (e) { fn(e); }); }
 
   var audio = ArkadeAudio.create({ sfx: arkade.get('sound'), music: arkade.get('music') });
   // Lydene kommer fra det fælles lydmodul (alle rolige). Rampen bruger disse navne:
@@ -185,7 +151,7 @@
     if (id === 'shop') syncShop();
     if (id === 'game') layoutGame(); else fitScreen($('#' + id), true);
     if (id !== 'game') drawCars();
-    guardUnderGaze($('#' + id));
+    dwell.guard($('#' + id));
   }
 
   // ---------- Startmenu ----------
@@ -270,7 +236,7 @@
     sfx('motor');
   }
   var OVERLAYS = ['#pause-overlay', '#result-overlay'];
-  function hideOverlays() { OVERLAYS.forEach(function (o) { $(o).hidden = true; }); releaseGuard(); }
+  function hideOverlays() { OVERLAYS.forEach(function (o) { $(o).hidden = true; }); dwell.unguard(); }
   function overlayOpen() { return OVERLAYS.some(function (o) { return !$(o).hidden; }); }
   function setNote(t, cls) { noteText = t; noteCls = cls || ''; }
   function can(ph) { return current === 'game' && !paused && !overlayOpen() && phase === ph && !playing; }
@@ -361,7 +327,7 @@
     opts = game.options();
     saveProgress();                 // turen gemmes ved hvert valg, så den kan fortsætte senere
     refresh();
-    guardUnderGaze(controls);
+    dwell.guard(controls);
   }
   // Valgkortene: tekst på kortet og en fuld forklaring til skærmlæsere (altid et interval)
   function feltTxt(k) { return 'ca. ' + k.felt.fra + '–' + k.felt.til + ' m'; }
@@ -460,7 +426,7 @@
     ov.hidden = false;
     fitScreen(ov);
     dwell.reset();
-    guardUnderGaze(ov);
+    dwell.guard(ov);
     $('#btn-res-shop').focus({ preventScroll: true });
     return f;
   }
@@ -546,7 +512,7 @@
     $('#btn-pause-shop').hidden = !!game.flight;
     if (p) fitScreen($('#pause-overlay'));
     dwell.reset();
-    if (p) guardUnderGaze($('#pause-overlay')); else releaseGuard();
+    if (p) dwell.guard($('#pause-overlay')); else dwell.unguard();
     sfx('pause');
     if (!p && pendingSeg) { var s = pendingSeg; pendingSeg = null; resumeSeg(s); }
     refresh();
@@ -758,10 +724,10 @@
     $('#newcar-text').textContent = 'Bil ' + game.p.bil + ' har kørt ' + m(game.p.carScore) + ' i alt. Den kommer på listen over biler. Den nye bil starter forfra som sæbekassebil på en ny bane, men giver ' +
       Math.round((L.multiplier(game.p.bil + 1) - 1) * 100) + ' % flere mønter på alle ture.';
     var ov = $('#newcar-overlay');
-    ov.hidden = false; fitScreen(ov); dwell.reset(); guardUnderGaze(ov);
+    ov.hidden = false; fitScreen(ov); dwell.reset(); dwell.guard(ov);
     $('#btn-newcar-no').focus({ preventScroll: true });
   }
-  function closeNewCar() { $('#newcar-overlay').hidden = true; releaseGuard(); dwell.reset(); }
+  function closeNewCar() { $('#newcar-overlay').hidden = true; dwell.unguard(); dwell.reset(); }
   function newCarOpen() { return !$('#newcar-overlay').hidden; }
   $('#btn-newcar').addEventListener('click', function () { sfx('click'); askNewCar(); });
   $('#btn-newcar-no').addEventListener('click', function () { sfx('click'); closeNewCar(); });
@@ -1135,7 +1101,7 @@
   // Til test og fejlfinding
   window.Rampen = {
     get game() { return game; }, get phase() { return phase; }, get playing() { return playing; }, get paused() { return paused; },
-    get guard() { return gazeGuard ? gazeGuard.id : null; }, get tegn() { return tegn; }, get options() { return opts; },
+    get guard() { return dwell.guarded ? dwell.guarded.id : null; }, get tegn() { return tegn; }, get options() { return opts; },
     settings: arkade, gameSettings: gset, records: records, dwell: dwell, audio: audio, lyd: lyd, logik: L,
     start: startTrip, show: show, launch: launch, angle: changeAngle, power: changePower, decide: decide, decideNr: decideNr,
     get cards() { return opts ? opts.kort : []; }, get udsyn() { return game.effStats().udsyn; },

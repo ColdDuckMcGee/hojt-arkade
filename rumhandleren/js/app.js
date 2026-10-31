@@ -44,44 +44,11 @@
 
   // ---------- Moduler ----------
   var bg = ArkadeBackground.create($('#baggrund'));
-  var gazeLock = null, suppress = null;
-  var dwell = ArkadeDwell.create({
-    enabled: arkade.get('dwell'), timeMs: arkade.get('dwellTime') * 1000,
-    onActivate: function (el) {
-      if (el.hasAttribute('data-dwell-repeat')) return;
-      if (el === gazeLock) suppress = el; else gazeLock = el;
-    }
-  });
-  var lastPX = -1, lastPY = -1;
-  document.addEventListener('pointermove', function (e) {
-    if (e.pointerType !== 'touch') { lastPX = e.clientX; lastPY = e.clientY; }
-    if (gazeGuard) releaseGuard(e.clientX, e.clientY);
-    if (!gazeLock) return;
-    var r = gazeLock.getBoundingClientRect();
-    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) gazeLock = null;
-  }, { passive: true });
-  // Dwell-sikre skift: når nye knapper dukker op dér, hvor blikket allerede er,
-  // kan knappen ikke dwelles, før blikket har forladt den én gang.
-  var gazeGuard = null;
-  function guardUnderGaze(rootEl) {
-    releaseGuard();
-    if (lastPX < 0 || !rootEl) return;
-    var el = document.elementFromPoint(lastPX, lastPY);
-    var b = el && el.closest('button, a[href]');
-    if (b && rootEl.contains(b)) { gazeGuard = b; b.setAttribute('data-no-dwell', ''); }
-  }
-  function releaseGuard(x, y) {
-    if (!gazeGuard) return;
-    if (x !== undefined) {
-      var r = gazeGuard.getBoundingClientRect();
-      if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return;
-    }
-    gazeGuard.removeAttribute('data-no-dwell');
-    gazeGuard = null;
-  }
-  // Samme knap kan ikke dwelles to gange i træk uden at blikket har forladt den (fx "Vent 1 dag")
-  function swallowed(el) { if (suppress === el) { suppress = null; return true; } return false; }
-  function onAct(el, fn) { el.addEventListener('click', function (e) { if (!swallowed(el)) fn(e); }); }
+  // Ét blik = én handling: dwell.js' fælles blik-lås sørger for, at samme knap først kan vælges
+  // igen, når blikket har forladt den, og dialogvagten (dwell.guard) for knapper, der dukker op
+  // lige under blikket. (Før havde hvert spil sin egen kopi af begge dele.)
+  var dwell = ArkadeDwell.create({ enabled: arkade.get('dwell'), timeMs: arkade.get('dwellTime') * 1000 });
+  function onAct(el, fn) { el.addEventListener('click', function (e) { fn(e); }); }
 
   var audio = ArkadeAudio.create({ sfx: arkade.get('sound'), music: arkade.get('music') });
   function volumeSetting() {
@@ -162,7 +129,7 @@
     dwell.reset();
     if (id === 'menu') syncMenu();
     if (id === 'game') { layoutGame(); } else fitScreen($('#' + id), true);
-    guardUnderGaze($('#' + id));
+    dwell.guard($('#' + id));
   }
 
   // ---------- Startmenu ----------
@@ -229,10 +196,10 @@
     bekraeftJa = o.paaJa;
     var ov = $('#bekraeft-overlay');
     bekraeftFra = document.activeElement;
-    ov.hidden = false; fitScreen(ov); dwell.reset(); guardUnderGaze(ov);
+    ov.hidden = false; fitScreen(ov); dwell.reset(); dwell.guard(ov);
     $('#btn-bekraeft-nej').focus({ preventScroll: true });
   }
-  function lukBekraeft() { $('#bekraeft-overlay').hidden = true; releaseGuard(); dwell.reset(); bekraeftJa = null; }
+  function lukBekraeft() { $('#bekraeft-overlay').hidden = true; dwell.unguard(); dwell.reset(); bekraeftJa = null; }
   function bekraeftOpen() { return !$('#bekraeft-overlay').hidden; }
   $('#btn-bekraeft-nej').addEventListener('click', function () {
     sfx('click'); lukBekraeft();
@@ -247,7 +214,7 @@
   var besked = { tekst: '', cls: '' }, paused = false, slutVist = false, sidstSet = null;
   var OVERLAYS = ['#pause-overlay', '#slut-overlay', '#pirat-overlay', '#skib-overlay'];
   function overlayOpen() { return bekraeftOpen() || OVERLAYS.some(function (o) { return !$(o).hidden; }); }
-  function hideOverlays() { OVERLAYS.forEach(function (o) { $(o).hidden = true; }); paused = false; releaseGuard(); }
+  function hideOverlays() { OVERLAYS.forEach(function (o) { $(o).hidden = true; }); paused = false; dwell.unguard(); }
   function setBesked(t, cls) { besked = { tekst: t, cls: cls || '' }; }
 
   // Nyheder, der er kommet til siden sidst (logikken lægger dem forrest i state.nyheder)
@@ -297,7 +264,7 @@
     if (v !== 'kort' && ruteValg) ruteValg = null;
     view = v;
     layoutGame();
-    guardUnderGaze($('#v-' + v));
+    dwell.guard($('#v-' + v));
   }
   $$('.fane-btn[data-fane]').forEach(function (b) {
     b.addEventListener('click', function () { if (!spilAktivt()) return; sfx('click'); setView(b.dataset.fane); });
@@ -523,7 +490,7 @@
     $('.small', f).textContent = Math.round(m.flugt * 100) + ' % chance · ellers mister du halvdelen';
     fo.disabled = !st.forsikring; $('.small', fo).textContent = st.forsikring ? 'de tager lasten, du får 80 %' : 'du har ingen forsikring';
     var ov = $('#pirat-overlay');
-    ov.hidden = false; fitScreen(ov); dwell.reset(); guardUnderGaze(ov);
+    ov.hidden = false; fitScreen(ov); dwell.reset(); dwell.guard(ov);
     sfx('pirat');
     (b.disabled ? f : b).focus({ preventScroll: true });
   }
@@ -532,7 +499,7 @@
       if (!game || !game.state.moede) return;
       var res = game.pirat(b.dataset.pirat);
       if (!res.ok) { sfx('nej'); return; }
-      $('#pirat-overlay').hidden = true; releaseGuard(); dwell.reset();
+      $('#pirat-overlay').hidden = true; dwell.unguard(); dwell.reset();
       sfx(res.valg === 'flygt' ? (res.slap ? 'slap' : 'tab') : res.valg === 'betal' ? 'saelg' : 'tab');
       efterRejse(res.rejse || {}, res.tekst);
     });
@@ -690,7 +657,7 @@
     ruteValg = { skib: s.id, a: null };
     valgtPlanet = s.pos || (s.rejse && s.rejse.til) || game.her();
     setBesked('Vælg to planeter på kortet til ' + s.navn + 's rute.');
-    view = 'kort'; layoutGame(); guardUnderGaze($('#v-kort'));
+    view = 'kort'; layoutGame(); dwell.guard($('#v-kort'));
   });
   function ruteTrin() {
     var id = valgtPlanet || game.her();
@@ -728,19 +695,19 @@
       $('.small', b).textContent = cr(t.pris) + ' · last ' + t.last + ' · tank ' + t.tank;
     });
     var ov = $('#skib-overlay');
-    ov.hidden = false; fitScreen(ov); dwell.reset(); guardUnderGaze(ov);
+    ov.hidden = false; fitScreen(ov); dwell.reset(); dwell.guard(ov);
     $('#btn-skib-luk').focus({ preventScroll: true });
   });
   $$('[data-skibtype]').forEach(function (b) {
     onAct(b, function () {
       var r = game.koebSkib(b.dataset.skibtype);
-      $('#skib-overlay').hidden = true; releaseGuard(); dwell.reset();
+      $('#skib-overlay').hidden = true; dwell.unguard(); dwell.reset();
       if (r.ok) { sfx('koeb'); valgtSkib = r.skib.id; setBesked('Du købte ' + r.skib.navn + '. Giv det en rute med "Ny rute".', 'ok'); }
       else { sfx('nej'); setBesked(r.grund === 'max' ? 'Du har allerede ' + L.MAX_SKIBE + ' skibe.' : 'Du har ikke penge nok.', 'fejl'); }
       saveGame(); refresh();
     });
   });
-  $('#btn-skib-luk').addEventListener('click', function () { sfx('click'); $('#skib-overlay').hidden = true; releaseGuard(); dwell.reset(); refresh(); });
+  $('#btn-skib-luk').addEventListener('click', function () { sfx('click'); $('#skib-overlay').hidden = true; dwell.unguard(); dwell.reset(); refresh(); });
 
   // ---------- Bygninger ----------
   function bygTekst(pid, b) {
@@ -942,7 +909,7 @@
     $('#slut-rank').textContent = rank ? (rank === 1 ? 'Ny rekord! Nummer 1 på listen.' : 'Nummer ' + rank + ' på top 10.') : '';
     hideOverlays();
     var ov = $('#slut-overlay');
-    ov.hidden = false; fitScreen(ov); dwell.reset(); guardUnderGaze(ov);
+    ov.hidden = false; fitScreen(ov); dwell.reset(); dwell.guard(ov);
     sfx(konkurs ? 'konkurs' : 'pension');
     $('#btn-slut-ny').focus({ preventScroll: true });
   }
@@ -959,8 +926,8 @@
     var pen = $('#btn-pension'), kan = !game.state.moede;
     pen.disabled = !kan;
     $('.small', pen).textContent = kan ? 'point nu: ' + tal(game.point()) : 'ikke under et pirat-møde';
-    if (p) { fitScreen(ov); dwell.reset(); guardUnderGaze(ov); $('#btn-resume').focus({ preventScroll: true }); sfx('click'); }
-    else { releaseGuard(); dwell.reset(); guardUnderGaze($('#game')); refresh(); }
+    if (p) { fitScreen(ov); dwell.reset(); dwell.guard(ov); $('#btn-resume').focus({ preventScroll: true }); sfx('click'); }
+    else { dwell.unguard(); dwell.reset(); dwell.guard($('#game')); refresh(); }
   }
   $('#btn-pause').addEventListener('click', function () { setPaused(true); });
   $('#btn-resume').addEventListener('click', function () { sfx('click'); setPaused(false); });

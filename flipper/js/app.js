@@ -61,23 +61,17 @@
 
   // ---------- Moduler ----------
   var bg = ArkadeBackground.create($('#baggrund'));
-  // Et dwell = ét valg. Samme knap kan først dwelles igen, når blikket har
-  // forladt den (knapperne genbruges ved hver frysning).
-  var gazeLock = null, suppress = null;
+  // Ét blik = én handling: dwell.js' fælles blik-lås sørger for, at samme knap først kan vælges
+  // igen, når blikket har forladt den, og dialogvagten (dwell.guard) for knapper, der dukker op
+  // lige under blikket. (Før havde hvert spil sin egen kopi af begge dele.)
+  // dwellClick: et klik fra dwell skal ikke tælle som tastatur (se viaKeys).
   var dwell = ArkadeDwell.create({
     enabled: arkade.get('dwell'), timeMs: arkade.get('dwellTime') * 1000,
     onActivate: function (el) {
       if (!el.classList.contains('turn-btn')) return;
-      if (el === gazeLock) suppress = el; else gazeLock = el;
       dwellClick = true; setTimeout(function () { dwellClick = false; }, 0);
     }
   });
-  document.addEventListener('pointermove', function (e) {
-    if (!gazeLock) return;
-    var r = gazeLock.getBoundingClientRect();
-    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) gazeLock = null;
-  }, { passive: true });
-  function swallowed(el) { if (suppress === el) { suppress = null; return true; } return false; }
 
   var audio = ArkadeAudio.create({ sfx: arkade.get('sound'), music: arkade.get('music') });
   // Lydene kommer fra det fælles lydmodul. Flipper bruger disse navne:
@@ -420,22 +414,21 @@
   }
 
   $$('#game [data-power]').forEach(function (b) {
-    b.addEventListener('click', function () { if (!swallowed(b)) setPower(+b.dataset.power); });
+    b.addEventListener('click', function () { setPower(+b.dataset.power); });
   });
-  $('#btn-shoot').addEventListener('click', function () { if (!swallowed(this)) shoot(); });
+  $('#btn-shoot').addEventListener('click', function () { shoot(); });
   function viaKeys(e) { return e && e.detail === 0 && !dwellClick; }
   var dwellClick = false;
   $$('#game [data-choice]').forEach(function (b) {
     b.addEventListener('click', function (e) {
-      if (swallowed(b)) return;
       var o = b.dataset.choice;
       if (o === 'none') choose('none'); else selectFlipper(o, b, viaKeys(e));
     });
   });
   $$('#game [data-timing]').forEach(function (b) {
-    b.addEventListener('click', function () { if (!swallowed(b) && pick) choose(pick, b.dataset.timing); });
+    b.addEventListener('click', function () { if (pick) choose(pick, b.dataset.timing); });
   });
-  $('#btn-timing-back').addEventListener('click', function (e) { if (!swallowed(this)) backToFlippers(this, viaKeys(e)); });
+  $('#btn-timing-back').addEventListener('click', function (e) { backToFlippers(this, viaKeys(e)); });
   // Blik, mus eller fokus på en knap viser præcis dens sigtelinje og udfald
   $$('#game [data-choice], #game [data-timing], #btn-timing-back').forEach(function (b) {
     var key = b.dataset.choice || b.dataset.timing || 'back';
@@ -459,7 +452,7 @@
     if (!p) return null;
     return { preview: p, color: p.fired || pick, mark: markFor(pick) };
   }
-  $('#btn-next').addEventListener('click', function () { if (!swallowed(this)) nextBall(); });
+  $('#btn-next').addEventListener('click', function () { nextBall(); });
 
   // ---------- Hændelser fra spillet: point, lys og lyd ----------
   var NOTES = {

@@ -38,24 +38,10 @@
 
   // ---------- Moduler ----------
   var bg = ArkadeBackground.create($('#baggrund'));
-  // Et dwell = én handling. Dwell-modulet slipper sin lås, hvis en knap bliver
-  // deaktiveret et øjeblik. Derfor holder spillet sin egen lås på knapperne
-  // (felter, brikker, Læg og Fortryd): samme knap kan først dwelles igen, når
-  // blikket har forladt den.
-  var gazeLock = null, suppress = null;
-  var dwell = ArkadeDwell.create({
-    enabled: arkade.get('dwell'), timeMs: arkade.get('dwellTime') * 1000,
-    onActivate: function (el) {
-      if (!el.classList.contains('turn-btn')) return;
-      if (el === gazeLock) suppress = el; else gazeLock = el;
-    }
-  });
-  document.addEventListener('pointermove', function (e) {
-    if (!gazeLock) return;
-    var r = gazeLock.getBoundingClientRect();
-    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) gazeLock = null;
-  }, { passive: true });
-  function swallowed(el) { if (suppress === el) { suppress = null; return true; } return false; }
+  // Ét blik = én handling: dwell.js' fælles blik-lås sørger for, at samme knap først kan vælges
+  // igen, når blikket har forladt den, og dialogvagten (dwell.guard) for knapper, der dukker op
+  // lige under blikket. (Før havde hvert spil sin egen kopi af begge dele.)
+  var dwell = ArkadeDwell.create({ enabled: arkade.get('dwell'), timeMs: arkade.get('dwellTime') * 1000 });
 
   var audio = ArkadeAudio.create({ sfx: arkade.get('sound'), music: arkade.get('music') });
   // Lydene kommer fra det fælles lydmodul. Blokke bruger disse navne:
@@ -280,9 +266,9 @@
   }
   boardEl.addEventListener('click', function (e) {
     var q = e.target.closest('.qbtn');
-    if (q) { if (!swallowed(q)) setZoom(+q.dataset.q); return; }
+    if (q) { setZoom(+q.dataset.q); return; }
     var c = e.target.closest('.cell');
-    if (c) { if (!swallowed(c)) selectCell(+c.dataset.i); return; }
+    if (c) { selectCell(+c.dataset.i); return; }
     // Inert felt: i en anden fjerdedel zoomes der dertil, ellers er klikket som
     // på et ulovligt felt før (rød skygge, intet lægges).
     var i = cellFromEvent(e);
@@ -534,12 +520,12 @@
 
   $$('.piece-btn').forEach(function (b) {
     b.classList.add('turn-btn');
-    b.addEventListener('click', function () { if (!swallowed(b)) selectPiece(+b.dataset.slot); });
+    b.addEventListener('click', function () { selectPiece(+b.dataset.slot); });
   });
   $('#btn-place').classList.add('turn-btn');
   $('#btn-undo').classList.add('turn-btn');
-  $('#btn-place').addEventListener('click', function () { if (!swallowed(this)) place(); });
-  $('#btn-undo').addEventListener('click', function () { if (!swallowed(this)) undoAction(); });
+  $('#btn-place').addEventListener('click', function () { place(); });
+  $('#btn-undo').addEventListener('click', function () { undoAction(); });
 
   // ---------- Ingen flere træk ----------
   function showStuck() {
