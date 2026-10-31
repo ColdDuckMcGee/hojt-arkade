@@ -818,7 +818,7 @@
 
   function candidates(b, W, H, small) {
     var d = spacing(W, H), p = d.p, g = d.g;
-    var ig = Math.max(LUFT, Math.min(32, b * 0.2));
+    var ig = small ? Math.max(8, Math.min(14, b * 0.09)) : Math.max(LUFT, Math.min(32, b * 0.2));   // mobil (under 560 px): som før
     var titleH = small ? 34 : 44;
     var ctlW = 3 * b + 2 * ig, ctlH = titleH + ig + 2 * b + ig;
     var pauseS = Math.max(SMALL_MIN, Math.min(b, 104));

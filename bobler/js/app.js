@@ -587,7 +587,7 @@
   function cssBtn(W, H) { var cm = 96 / 2.54; return Math.max(3 * cm, Math.min(0.15 * Math.min(W, H), 4.2 * cm)); }
   function cssGap(W, H) { return Math.max(0.8 * 96 / 2.54, 0.03 * Math.min(W, H)); }
   function spacing(W, H) { var mn = Math.min(W, H); return { p: Math.max(8, mn * 0.016), g: Math.max(8, Math.min(26, mn * 0.022)) }; }
-  function ctlGap(b) { return Math.round(Math.max(LUFT, Math.min(32, b * 0.2))); }
+  function ctlGap(b) { return Math.min(innerWidth, innerHeight) < 560 ? Math.round(Math.max(6, Math.min(14, b * 0.09))) : Math.round(Math.max(LUFT, Math.min(32, b * 0.2))); }   // mobil (under 560 px): som før
 
   // Boblestørrelse (px pr. boble) for hvert layout ved knapstørrelse b. meas = målte højder.
   function candidates(b, W, H, meas) {

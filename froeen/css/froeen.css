@@ -195,7 +195,7 @@ html, body { height: 100%; height: 100dvh; }
 .act-btn:disabled svg, .act-btn[aria-disabled="true"] svg { opacity: .7; }
 
 /* Kompakt: små skærme (lay-below og lay-side) */
-.compact .side { width: 100%; flex-direction: row; flex-wrap: nowrap; justify-content: center; align-items: center; gap: 24px;   /* LUFT: mindst 24 px mellem knapper */ }
+.compact .side { width: 100%; flex-direction: row; flex-wrap: nowrap; justify-content: center; align-items: center; gap: var(--luft, 24px);   /* LUFT: mindst 24 px mellem knapper */ }
 .compact .side-logo, .compact .legend, .compact .hud-power { display: none; }
 .lay-below .side-logo, .lay-tall .side-logo { display: block; height: calc(var(--hud-h, 56px) * 0.8); }
 .compact .hud-grid { display: flex; gap: 6px; flex: 0 1 auto; min-width: 0; }

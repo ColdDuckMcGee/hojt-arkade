@@ -114,9 +114,9 @@ html, body { height: 100%; height: 100dvh; }
 [data-theme="kontrast"] .sicon i.x::before, [data-theme="kontrast"] .sicon i.x::after { background: #000; }
 
 /* Placering: knapper til de fem skibe */
-.ship-list { display: grid; grid-template-columns: 1fr 1fr; gap: 24px;   /* LUFT: mindst 24 px mellem knapper */ }
+.ship-list { display: grid; grid-template-columns: 1fr 1fr; gap: var(--luft, 24px);   /* LUFT: mindst 24 px mellem knapper */ }
 /* Mindst ca. 122 px mellem skibsknappernes midter (TD Browse' Color Links) */
-.ship-list { row-gap: max(24px, calc(122px - max(80px, calc(var(--btn) * 0.74)))); }   /* LUFT: mindst 24 px mellem knapper */
+.ship-list { row-gap: max(var(--luft, 24px), calc(122px - max(80px, calc(var(--btn) * 0.74)))); }   /* LUFT: mindst 24 px mellem knapper */
 .ship-btn { min-width: 0; min-height: 0; height: max(84px, calc(var(--btn) * 0.74)); padding: 6px 8px; gap: 6px; }
 .ship-btn .small { font-size: 0.95rem; line-height: 1.15; text-align: center; }
 .ship-btn:first-child { grid-column: 1 / -1; }
@@ -289,7 +289,7 @@ button.cell.aim:hover, button.cell.aim.arkade-dwelling { box-shadow: none; }
 .compact .act-btn.ph-place .big, .compact .orient-row .act-btn .big { white-space: normal; text-align: center; line-height: 1.1; }
 
 /* ---------- Kompakt: lay-side og lay-below ---------- */
-.compact .side { width: var(--panel-w, 100%); flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: stretch; gap: 24px;   /* LUFT: mindst 24 px mellem knapper */ }
+.compact .side { width: var(--panel-w, 100%); flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: stretch; gap: var(--luft, 24px);   /* LUFT: mindst 24 px mellem knapper */ }
 .compact .side-left .side-logo { display: none; }
 .compact .hud-grid { display: flex; gap: 6px; flex: 1 1 0; min-width: 0; justify-content: center; }
 .compact .hud { padding: 3px 8px; border-radius: 10px; min-width: 0; flex: 1 1 0; display: flex; flex-direction: column; justify-content: center; }
@@ -307,7 +307,7 @@ button.cell.aim:hover, button.cell.aim.arkade-dwelling { box-shadow: none; }
 #game[data-phase="place"] .compact .hud-grid { display: none; }
 .compact .ship-box { flex: 1 1 0; min-width: 0; padding: 0; background: none; border: 0; }
 .compact .ship-box .fleet-title { display: none; }
-.compact .ship-list { display: flex; flex-wrap: wrap; gap: max(24px, calc(122px - var(--btn))); }   /* LUFT: mindst 24 px mellem knapper */
+.compact .ship-list { display: flex; flex-wrap: wrap; gap: max(var(--luft, 24px), calc(122px - var(--btn))); }   /* LUFT: mindst 24 px mellem knapper */
 .compact .ship-btn { flex: 1 1 var(--btn); height: var(--btn); min-width: var(--btn); padding: 4px; }
 .compact .ship-btn:first-child { grid-column: auto; }
 .compact .ship-btn .small { font-size: 0.82rem; }

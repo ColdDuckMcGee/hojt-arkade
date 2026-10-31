@@ -526,7 +526,7 @@
   // Banens størrelse for hvert layout ved knapstørrelse b. meas = målt statuspanel.
   function candidates(b, W, H, meas) {
     meas = meas || {};
-    var d = spacing(W, H), p = d.p, g = d.g, pg = Math.max(LUFT, Math.round(g * 0.6));
+    var d = spacing(W, H), p = d.p, g = d.g, pg = Math.max(Math.min(W, H) < 560 ? 8 : LUFT, Math.round(g * 0.6));   // mobil (under 560 px): som før
     var pad = 3 * b + 2 * pg;
     var sideW = Math.min(360, Math.max(220, b * 1.9));
     var hudH = meas.hudH || Math.max(SMALL_MIN, 90), hudW = meas.hudW || 270;

@@ -59,6 +59,10 @@
 }
 
 /* ---------- Grundlag ---------- */
+/* Luft mellem knapper med forskellig betydning: en øjenstyring rammer typisk inden for 20–40 px.
+   På meget små skærme (mobil under 560 px) er der ikke plads, og der bruges mindre luft. */
+:root { --luft: 24px; }
+@media (max-width: 559px), (max-height: 559px) { :root { --luft: 8px; } }
 :root {
   --btn: max(3cm, min(15vmin, 4.2cm));     /* mindst ca. 3×3 cm */
   --gap: max(0.8cm, 3vmin);                 /* god afstand mellem knapper */

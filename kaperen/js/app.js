@@ -1089,7 +1089,7 @@
   }
   function applyGame(b, v) {
     var land = v.W >= v.H * 1.1, lav = land && v.H < 600, mn = Math.min(v.W, v.H);
-    var pad = Math.max(8, Math.round(mn * 0.014)), ig = Math.max(LUFT, Math.min(32, Math.round(mn * 0.02)));
+    var pad = Math.max(8, Math.round(mn * 0.014)), ig = mn < 560 ? Math.max(8, Math.min(16, Math.round(mn * 0.012))) : Math.max(LUFT, Math.min(32, Math.round(mn * 0.02)));   // mobil (under 560 px): som før
     var hud8 = land && v.W - 2 * pad - b - ig >= 8 * 88;
     gameEl.classList.toggle('lay-bred', land); gameEl.classList.toggle('lay-hoej', !land);
     gameEl.classList.toggle('lav', lav); gameEl.classList.toggle('hud8', hud8);

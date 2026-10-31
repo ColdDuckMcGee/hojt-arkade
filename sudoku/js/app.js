@@ -691,7 +691,7 @@
   function spacing(W, H) { var mn = Math.min(W, H); return { p: Math.max(8, mn * 0.016), g: Math.max(8, Math.min(28, mn * 0.024)) }; }
   var MAX_BOARD = 1400;
   function candidates(b, W, H, small) {
-    var d = spacing(W, H), p = d.p, g = d.g, ig = LUFT;
+    var d = spacing(W, H), p = d.p, g = d.g, ig = small ? 8 : LUFT;   // mobil (under 560 px): som før
     var hudH = Math.round(Math.max(48, Math.min(80, b * 0.55)));
     var hintH = small ? 44 : 58;
     var res = { p: p, g: g, ig: ig, hudH: hudH, hintH: hintH, side: 0, below: 0 };

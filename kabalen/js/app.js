@@ -983,13 +983,13 @@
   }
   function bestLayoutWith(v, draw) {
     var sp = spacing(v.W, v.H), p = sp.p, g = sp.g;
-    var small = Math.min(v.W, v.H) < 560, ig = LUFT;
+    var small = Math.min(v.W, v.H) < 560, ig = small ? 8 : LUFT;
     var b0 = Math.max(BTN_MIN, cssBtn(v.W, v.H)), best = null;
     for (var b = b0; ; b = Math.max(BTN_MIN, b * 0.93)) {
       var bb = Math.floor(b);
       // Afstand mellem knappernes midter mindst ca. 122 px (TD Browse' farveprikker viser ellers
       // flere valg på én gang), når der er plads. Små skærme beholder den smalle afstand.
-      ig = Math.max(LUFT, Math.min(40, 122 - bb));
+      ig = small ? 8 : Math.max(LUFT, Math.min(40, 122 - bb));
       [1, 2].forEach(function (k) {
         var hintH = k === 1 ? (small ? 96 : 118) : (small ? 64 : 76);
         var pn = panelSize(k, bb, ig, hintH);

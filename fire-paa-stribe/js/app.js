@@ -648,7 +648,7 @@
   function spacing(W, H) { var mn = Math.min(W, H); return { p: Math.max(8, mn * 0.016), g: Math.max(8, Math.min(26, mn * 0.022)) }; }
 
   function candidates(b, W, H, small) {
-    var d = spacing(W, H), p = d.p, g = d.g, ig = LUFT;
+    var d = spacing(W, H), p = d.p, g = d.g, ig = Math.min(W, H) < 560 ? 8 : LUFT;   // mobil (under 560 px): som før
     var hudH = Math.max(52, Math.min(84, b * 0.62)), pauseS = Math.max(small ? SMALL_MIN : 84, hudH);
     var top = Math.max(hudH + 6, pauseS), hint = 52;
     var gw = Math.max(10, cssGap(W, H) * 0.45);

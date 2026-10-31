@@ -811,7 +811,7 @@
     return { w: Math.floor(w), h: Math.floor(h), a: w * h };
   }
   function candidates(b, W, H) {
-    var d = spacing(W, H), p = d.p, g = d.g, ig = LUFT;
+    var d = spacing(W, H), p = d.p, g = d.g, ig = Math.min(W, H) < 560 ? 10 : LUFT;   // mobil (under 560 px): som før
     var ctl = 3 * b + 2 * ig, res = { p: p, g: g, ig: ig, ctl: ctl };
     // wide: status lodret til venstre
     var statusW = Math.max(150, Math.min(250, b * 1.6));

@@ -156,7 +156,7 @@ html, body { height: 100%; height: 100dvh; }
 .hint.ok { color: var(--pg-ok); }
 .hint.err { color: var(--pg-err); }
 .hint.tipnote { color: var(--pg-tip); }
-.tools { display: grid; grid-template-columns: repeat(var(--tool-cols, 1), minmax(0, 1fr)); gap: 24px; }   /* LUFT: mindst 24 px mellem knapper */
+.tools { display: grid; grid-template-columns: repeat(var(--tool-cols, 1), minmax(0, 1fr)); gap: var(--luft, 24px); }   /* LUFT: mindst 24 px mellem knapper */
 .tool-btn, .act-btn { flex-direction: row; justify-content: flex-start; gap: 14px; padding: 6px 16px; text-align: left; height: var(--btn); min-height: 0; min-width: 0; }
 .tool-btn svg, .act-btn svg { width: calc(var(--btn) * 0.44); height: calc(var(--btn) * 0.44); flex: none; }
 .tool-btn .big, .act-btn .big { font-size: clamp(1.1rem, calc(var(--btn) * 0.2), 1.6rem); }

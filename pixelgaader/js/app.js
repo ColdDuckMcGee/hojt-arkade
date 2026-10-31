@@ -669,7 +669,7 @@
   }
   var MAX_CELL = 190;
   function candidates(n, b, W, H, small) {
-    var d = spacing(W, H), p = d.p, g = d.g, ig = LUFT, hf = hintFactors(n);
+    var d = spacing(W, H), p = d.p, g = d.g, ig = Math.min(W, H) < 560 ? 10 : LUFT, hf = hintFactors(n);   // mobil (under 560 px): som før
     var hudH = Math.max(52, Math.min(84, b * 0.62)), hint = 60;
     function cell(aw, ah) { return Math.min(MAX_CELL, Math.floor(Math.min((aw - FRAME) / (n + hf.rw), (ah - FRAME) / (n + hf.ch)))); }
     var res = { p: p, g: g, hudH: hudH, ig: ig };
