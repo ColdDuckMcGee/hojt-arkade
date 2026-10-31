@@ -13,9 +13,23 @@
  *  - Deaktiverede knapper, aria-disabled="true", [data-no-dwell] og skjulte
  *    elementer ignoreres.
  *  - [data-dwell-repeat]: knappen aktiveres igen efter endnu en fuld dwell-tid,
- *    hvis blikket bliver på den (bruges til pileknapper). Ellers skal blikket
- *    forlade knappen, før den kan aktiveres igen.
+ *    hvis blikket bliver på den (bruges til drejeknapper og evt. pile).
  *  - Touch ignoreres (der virker almindeligt tryk). Almindeligt klik virker altid.
+ *
+ * Ét blik = én handling (blik-låsen):
+ *  - Efter en aktivering kan samme knap først vælges igen, når blikket har været
+ *    uden for knappens kant. Det gælder også, hvis knappen imens bliver deaktiveret,
+ *    skjult eller udskiftet (fx under computerens tur eller en animation).
+ *  - En ANDEN knap, der dukker op lige dér, hvor blikket er (ny skærm, dialog, zoom),
+ *    kan først vælges, når blikket har flyttet sig mindst opts.settlePx (48 px) fra
+ *    punktet, hvor valget skete – eller har forladt den gamle knap.
+ *  - Det samme gælder knappen under blikket, når siden indlæses med dwell slået til,
+ *    og når spillet kalder reset() (skærmskift, dialog, nyt træk).
+ *  - reset() rydder ringen og låser knappen under blikket. release() slipper låsen
+ *    helt (bruges kun, hvis man med vilje vil kunne vælge igen med det samme).
+ *  - Ryster blikket et øjeblik ud over kanten (under opts.graceMs, 250 ms), stopper
+ *    ringen og fortsætter, når blikket er tilbage, i stedet for at starte forfra.
+ *
  *  - TD Browse (Tobii Dynavox, en Electron-browser) flytter ikke musen efter blikket,
  *    så dwell kan ikke virke dér. Er dwell slået til, og er browseren TD Browse/Electron
  *    (user agent), eller kommer der klik uden en eneste musebevægelse i 10 s efter, at
@@ -67,7 +81,7 @@
     p1.textContent = 'Hojt Arkades egen dwell (kig på en knap for at vælge den) virker ikke i TD Browse, fordi musen ikke følger blikket dér.';
     var p2 = document.createElement('p');
     css(p2, { margin: '0 0 18px' });
-    p2.textContent = 'Brug i stedet TD Browse\u2019 Click Mode: kig på en knap, og vælg den farvede prik ved knappen. Du kan slå Hojt-dwell fra under Indstillinger.';
+    p2.textContent = 'Brug i stedet TD Browse’ Click Mode: kig på en knap, og vælg den farvede prik ved knappen. Du kan slå Hojt-dwell fra under Indstillinger.';
     var ok = document.createElement('button');
     ok.type = 'button';
     ok.textContent = 'OK';
@@ -106,9 +120,17 @@
     var enabled = !!opts.enabled;
     var timeMs = opts.timeMs || 1200;
     var onActivate = opts.onActivate || null;
+    var settlePx = opts.settlePx != null ? opts.settlePx : 48;   // så langt skal blikket flytte sig, før en ny knap kan vælges
+    var graceMs = opts.graceMs != null ? opts.graceMs : 250;     // så længe må blikket ryste ud over kanten uden at ringen starter forfra
 
     var lastX = null, lastY = null, inside = false;
-    var target = null, start = 0, locked = null, raf = 0;
+    var target = null, acc = 0, prev = 0, offSince = 0, raf = 0;
+    // Blik-låsen: { el, rect, x, y, moved }. el kan ikke vælges, før blikket har været uden for
+    // rect; andre knapper kan ikke vælges, før blikket er flyttet settlePx fra (x, y) eller ud af rect.
+    var hold = null;
+    // Lås knappen under blikket ved første kendte position, når siden indlæses med dwell slået til
+    // (fx Start spil lige dér, hvor man valgte Spil i hallen).
+    var holdPending = enabled;
 
     var ring = document.createElement('div');
     ring.className = 'arkade-dwell-ring';
@@ -127,12 +149,50 @@
       if (el.closest('[hidden],[inert]')) return false;
       return true;
     }
-    function findTarget(x, y) {
+    function rawTarget(x, y) {
       var el = document.elementFromPoint(x, y);
       if (!el || el === ring) return null;
-      var t = el.closest(selector);
+      return el.closest(selector);
+    }
+    function findTarget(x, y) {
+      var t = rawTarget(x, y);
       return isUsable(t) ? t : null;
     }
+    function inRect(r, x, y) { return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom; }
+    function rectOf(el) {
+      var r = el.getBoundingClientRect();
+      return { left: r.left, top: r.top, right: r.right, bottom: r.bottom };
+    }
+
+    // Lås el (eller knappen under blikket, hvis el mangler). Knapper med gentagelse låses ikke.
+    function holdAt(el) {
+      if (!enabled) { holdPending = false; hold = null; return; }   // låsen gælder kun, mens dwell er slået til
+      if (lastX === null) { holdPending = true; hold = null; return; }
+      holdPending = false;
+      if (el === undefined) el = rawTarget(lastX, lastY);
+      if (el && el.hasAttribute('data-dwell-repeat')) { hold = null; return; }  // gentagelse må fortsætte
+      if (!el) {
+        // Ingen knap under blikket nu, men en knap, der dukker op samme sted, skal vente på et nyt blik
+        hold = { el: null, rect: { left: lastX - settlePx, top: lastY - settlePx, right: lastX + settlePx, bottom: lastY + settlePx },
+          x: lastX, y: lastY, moved: false };
+        return;
+      }
+      hold = { el: el, rect: rectOf(el), x: lastX, y: lastY, moved: false };
+    }
+    // Opdatér låsen ud fra blikket. Giver true, hvis t ikke må vælges lige nu.
+    function blocked(t) {
+      if (!hold) return false;
+      var out = !inRect(hold.rect, lastX, lastY);
+      if (out) { hold = null; return false; }          // blikket har forladt den gamle knap: låsen er væk
+      if (!hold.moved) {
+        var dx = lastX - hold.x, dy = lastY - hold.y;
+        if (dx * dx + dy * dy >= settlePx * settlePx) hold.moved = true;
+      }
+      if (!t) return false;
+      if (t === hold.el) return true;                  // samme knap: kræver, at blikket forlader den
+      return !hold.moved;                              // ny knap samme sted: kræver, at blikket flytter sig
+    }
+
     function showRing(el, p) {
       var r = el.getBoundingClientRect();
       var size = Math.max(56, Math.min(140, Math.min(r.width, r.height) * 0.8));
@@ -143,17 +203,19 @@
       ring.style.display = 'block';
     }
     function hideRing() { ring.style.display = 'none'; }
-    function clearTarget() {
+    function setTarget(t) {
+      if (target === t) return;
       if (target) target.classList.remove('arkade-dwelling');
-      target = null;
-      hideRing();
+      target = t; acc = 0; offSince = 0;
+      if (target) target.classList.add('arkade-dwelling');
     }
-    function activate(el, now) {
+    function clearTarget() { setTarget(null); hideRing(); }
+    function activate(el) {
       if (el.hasAttribute('data-dwell-repeat')) {
-        start = now;
+        acc = 0;
       } else {
-        locked = el;
         clearTarget();
+        holdAt(el);
       }
       if (onActivate) { try { onActivate(el); } catch (e) { console.error(e); } }
       if (el.tagName === 'A' && el.target === '_blank' && el.href) {
@@ -167,26 +229,31 @@
     }
     function tick(now) {
       raf = 0;
-      if (!enabled || !inside || lastX === null) { clearTarget(); return; }
+      var dt = prev ? Math.min(100, Math.max(0, now - prev)) : 0;
+      prev = now;
+      if (!enabled || !inside || lastX === null) { clearTarget(); prev = 0; return; }
+      if (holdPending) holdAt();
       var t = findTarget(lastX, lastY);
-      if (locked && t !== locked) locked = null;
-      if (t === locked) t = null;
-      if (t !== target) {
-        if (target) target.classList.remove('arkade-dwelling');
-        target = t;
-        start = now;
-        if (target) target.classList.add('arkade-dwelling');
+      if (blocked(t)) t = null;
+      if (t && t !== target) {
+        setTarget(t);
+      } else if (!t && target) {
+        // Blikket er gledet af: vent lidt, før ringen starter forfra (rystende blik)
+        if (!offSince) offSince = now;
+        if (now - offSince > graceMs || !isUsable(target) || !document.contains(target)) clearTarget();
       }
-      if (target) {
-        var p = Math.min(1, (now - start) / timeMs);
+      if (target && t === target) {
+        offSince = 0;
+        acc += dt;
+        var p = Math.min(1, acc / timeMs);
         showRing(target, p);
-        if (p >= 1) activate(target, now);
-      } else {
+        if (p >= 1) activate(target);
+      } else if (!target) {
         hideRing();
       }
       raf = requestAnimationFrame(tick);
     }
-    function loop() { if (!raf && enabled) raf = requestAnimationFrame(tick); }
+    function loop() { if (!raf && enabled) { prev = 0; raf = requestAnimationFrame(tick); } }
 
     // Overvågning: klik uden en eneste musebevægelse, efter dwell er slået til, tyder på
     // TD Browse (eller en anden browser, hvor markøren ikke følger blikket).
@@ -223,14 +290,17 @@
     return {
       setEnabled: function (v) {
         enabled = !!v;
-        locked = null;
         if (!enabled) { clearTarget(); clearTimeout(watchTimer); watchTimer = 0; if (raf) { cancelAnimationFrame(raf); raf = 0; } }
         else { loop(); watchStart(); }
       },
       isEnabled: function () { return enabled; },
       setTime: function (ms) { timeMs = Math.max(200, Number(ms) || 1200); },
       getTime: function () { return timeMs; },
-      reset: function () { locked = null; clearTarget(); },
+      // Rydder ringen og låser knappen under blikket (fx efter skærmskift eller et træk).
+      reset: function () { clearTarget(); holdAt(); },
+      // Slipper låsen helt, så knappen under blikket kan vælges med det samme.
+      release: function () { hold = null; holdPending = false; },
+      isHeld: function () { return !!hold; },
       destroy: function () {
         enabled = false; clearTarget(); clearTimeout(watchTimer);
         document.removeEventListener('pointerdown', onDown, true);

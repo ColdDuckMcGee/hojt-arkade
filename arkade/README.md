@@ -83,7 +83,8 @@ Kigge-klik selv styres stadig af den fælles `arkade.dwell`/`dwellTime`.
 ## ArkadeDwell (dwell.js)
 ```js
 const dwell = ArkadeDwell.create({ enabled: false, timeMs: 1200 });
-dwell.setEnabled(true); dwell.setTime(1500); dwell.reset();
+dwell.setEnabled(true); dwell.setTime(1500); dwell.reset(); dwell.release();
+// valgfrit: ArkadeDwell.create({ ..., settlePx: 48, graceMs: 250 })
 ```
 - Virker på alle `<button>`, links (`a[href]`) og `[data-dwell]`. Links med
   `target="_blank"` åbnes i ny fane; blokerer browseren det, åbnes de i samme fane.
@@ -92,8 +93,19 @@ dwell.setEnabled(true); dwell.setTime(1500); dwell.reset();
 - Deaktiverede knapper, `aria-disabled="true"`, `[data-no-dwell]` og skjulte
   elementer ignoreres. Alt andet (fx spillebrættet) er rolige zoner.
 - `data-dwell-repeat` på en knap: den gentages for hver fuld dwell-tid, så
-  længe blikket bliver der (pileknapper). Andre knapper kræver, at blikket
+  længe blikket bliver der (drejeknapper). Andre knapper kræver, at blikket
   forlader knappen, før de kan vælges igen.
+- **Ét blik = én handling (blik-låsen).** Efter et valg kan samme knap først vælges
+  igen, når blikket har været uden for knappens kant – også selv om knappen imens
+  blev deaktiveret, skjult eller udskiftet. En anden knap, der dukker op lige under
+  blikket (ny skærm, dialog, zoom), kan først vælges, når blikket har flyttet sig
+  mindst `settlePx` (48 px) eller har forladt den gamle knap. Det samme gælder knappen
+  under blikket, når siden indlæses med dwell slået til.
+- `dwell.reset()` rydder ringen og låser knappen under blikket (kald den ved
+  skærmskift, dialoger og efter et træk). `dwell.release()` slipper låsen helt.
+- Ryster blikket kort ud over kanten (under `graceMs`, 250 ms), stopper ringen og
+  fortsætter, i stedet for at starte forfra.
+- Test: `python3 arkade/test/dwell_test.py` (Playwright og Chrome).
 - Touch ignoreres (almindeligt tryk virker). Ringen styles i arkade.css
   (`.arkade-dwell-ring`) og bruger temaets `--accent`.
 
