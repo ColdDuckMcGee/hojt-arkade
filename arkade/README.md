@@ -167,11 +167,21 @@ Et nyt tema kræver kun en ny `[data-theme=...]`-blok.
   `<img class="arkade-logo" src="../arkade/logo.svg" alt="Hojt Arkade">`
 - `favicon.svg` – lille ikon (kursivt krom-H på stribet sol).
 
-## Offline (offline.js og ../sw.js)
-Ingen API; indlæses lige efter `fejl.js`. Registrerer service workeren i roden (kun over
-http/https – fra disken sker intet). Netværk først, så rettelser altid når spillerne med det
-samme. Uden net, eller hvis en side ikke kommer inden for 2,5 s, kommer siden fra den lokale
-kopi – og så kommer alle dens filer også derfra, så gamle og nye filer aldrig blandes. Et spil,
-der ikke er hentet endnu, viser uden net en rolig besked med en stor knap tilbage til hallen.
-`KERNE` i `sw.js` er de filer, hallen skal bruge, og som hentes ved første besøg; resten gemmes,
-når det bruges. Tilføjes en ny fælles fil, bør den også stå i `KERNE`.
+## Offline og nyeste udgave (offline.js og ../sw.js)
+```js
+ArkadeOffline.tjek();      // tjek nu for en ny udgave (løfte: true/false)
+ArkadeOffline.ventende;    // true, når en ny udgave venter på et sikkert øjeblik
+```
+Indlæses lige efter `fejl.js`. Kun over http/https – fra disken sker intet.
+- **Altid nyeste udgave:** er der net, spørger service workeren altid serveren først
+  (`cache: 'no-cache'`), og alle svar til siden mærkes `Cache-Control: no-cache`, så browseren
+  heller ikke kan genbruge en gammel fil fra sin egen hukommelse (GitHub Pages sender
+  `max-age=600`). Uændrede filer koster kun et lille "uændret"-svar. Langsomt net venter på serveren.
+- **Uden net** kommer siden fra den lokale kopi, og så kommer alle dens filer også derfra (aldrig
+  blandet). Et spil, der ikke er hentet endnu, viser en rolig besked med en stor knap tilbage.
+- **Åbne sider:** kort efter indlæsning, hver 10. minut, når siden bliver synlig igen, og når nettet
+  kommer tilbage, sammenlignes sidens filer med serverens (ETag/Last-Modified via HEAD, uden at
+  hente dem). Er der en ny udgave, genindlæses siden, når spilleren går til menuen (eller tilbage
+  til hallen) – aldrig midt i et spil eller mens en dialog er åben.
+- `KERNE` i `sw.js` er de filer, hallen skal bruge, og som hentes ved første besøg; resten gemmes,
+  når det bruges. Tilføjes en ny fælles fil, bør den også stå i `KERNE`.

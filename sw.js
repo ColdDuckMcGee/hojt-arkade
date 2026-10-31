@@ -1,26 +1,25 @@
 /*
- * Hojt Arkade – service worker (offline og langsomt net)
+ * Hojt Arkade – service worker: altid nyeste udgave, og offline efter første besøg
  *
- * Mål: spillene virker uden net efter første besøg og starter, selv når nettet er meget langsomt –
- * uden at nogen bliver hængende på en gammel version.
- *
- *  - Netværk først. Er der net, hentes alt friskt fra hjemmesiden, præcis som uden service worker,
- *    så en rettelse når spillerne med det samme. Hvert svar gemmes også i en lokal kopi.
- *  - Kommer siden ikke inden for VENT_MS (ingen net eller meget langsomt net), bruges den lokale kopi.
- *  - Ingen blanding: en side og alle dens filer kommer samme sted fra. Kom siden fra nettet, hentes
- *    dens filer fra nettet (den lokale kopi bruges kun, hvis en fil slet ikke kan hentes). Kom siden
- *    fra den lokale kopi, hentes dens filer også derfra. Så kan en ny side aldrig køre med gamle
- *    scripts eller omvendt.
+ * Spillerne skal altid have den nyeste udgave. Derfor:
+ *  - Er der net, spørges serveren ALTID først (også selv om browseren har en kopi, som serveren
+ *    har sagt må genbruges i 10 minutter). Uændrede filer koster kun et lille "uændret"-svar.
+ *    En rettelse når derfor spillerne ved næste sideindlæsning, uanset browserens cache.
+ *  - Den lokale kopi bruges KUN, når serveren slet ikke kan nås (ingen net). Langsomt net venter
+ *    på serveren, så man aldrig får en gammel udgave, mens der faktisk er net.
+ *  - Ingen blanding: kom siden fra den lokale kopi, kommer alle dens filer også derfra, så en side
+ *    aldrig kører med filer fra en anden udgave.
+ *  - Sider, der står åbne længe, tjekker selv for en ny udgave og genindlæses ved næste sikre
+ *    øjeblik (se arkade/offline.js).
  *  - Et spil, der ikke er hentet endnu, viser uden net en rolig besked med en stor knap tilbage.
  *  - Kun filer fra arkaden selv. Rekordlisten (et andet domæne) og alt andet end GET røres ikke.
  *
  * Registreres af arkade/offline.js (kun over http/https; fra disken er der ingen service worker).
- * En ny udgave af denne fil tages i brug ved næste besøg. Ændres KOPI, ryddes den gamle kopi.
+ * Browseren henter selv denne fil igen ved hvert besøg; en ny udgave tages i brug med det samme.
  */
 'use strict';
 
-var KOPI = 'hojt-arkade-v1';
-var VENT_MS = 2500;
+var KOPI = 'hojt-arkade-v2';
 // Det, hallen skal bruge, hentes med det samme, så forsiden virker uden net efter første besøg.
 // Resten (spillene) gemmes, når de bliver spillet.
 var KERNE = [
@@ -62,11 +61,27 @@ function gem(req, res) {
 function fraKopi(req) {
   return caches.open(KOPI).then(function (c) { return c.match(req, { ignoreSearch: req.mode === 'navigate' }); });
 }
-function medTidsfrist(p, ms) {
-  return new Promise(function (ok, fejl) {
-    var t = setTimeout(function () { fejl(new Error('tidsfrist')); }, ms);
-    p.then(function (v) { clearTimeout(t); ok(v); }, function (x) { clearTimeout(t); fejl(x); });
-  });
+// Svar til siden mærkes "no-cache": ellers må browseren genbruge en fil fra sin egen hukommelse
+// i op til 10 minutter (GitHub Pages sender max-age=600) helt uden om service workeren.
+// Med "no-cache" skal den spørge først, og spørgsmålet går gennem service workeren til serveren.
+function frisk(res) {
+  if (!res || res.type !== 'basic' || res.status !== 200) return res;
+  var h = new Headers(res.headers);
+  h.set('Cache-Control', 'no-cache');
+  return new Response(res.body, { status: res.status, statusText: res.statusText, headers: h });
+}
+
+// Altid spørg serveren (cache: 'no-cache'): browserens egen kopi må kun bruges, hvis serveren
+// svarer "uændret". Så kan en side og dens filer aldrig være fra hver sin udgave.
+function fraNet(req) {
+  if (req.mode === 'navigate') {
+    // En side kan ikke laves om til en ny Request; hent adressen med samme indstillinger.
+    return fetch(req.url, { cache: 'no-cache', credentials: 'same-origin', redirect: 'follow' }).then(function (res) {
+      // Er siden flyttet (fx /slangen -> /slangen/), skal browseren selv gå til den nye adresse
+      return res.redirected ? Response.redirect(res.url, 302) : res;
+    });
+  }
+  return fetch(new Request(req, { cache: 'no-cache' }));
 }
 
 function offlineSide() {
@@ -90,16 +105,14 @@ self.addEventListener('fetch', function (e) {
   if (url.origin !== self.location.origin) return;            // rekordlisten og andre domæner røres ikke
 
   if (req.mode === 'navigate') {
-    // En side: netværk først med tidsfrist, ellers den lokale kopi. Husk kilden for sidens filer.
-    var net = fetch(req).then(function (res) { return gem(req, res); });
-    e.respondWith(medTidsfrist(net, VENT_MS).then(function (res) {
+    // En side: altid serveren først. Kun hvis den slet ikke kan nås, bruges den lokale kopi.
+    e.respondWith(fraNet(req).then(function (res) {
       husk(e.resultingClientId, 'net');
-      return res;
+      return res.status === 302 ? res : frisk(gem(req, res));
     }).catch(function () {
       return fraKopi(req).then(function (hit) {
-        if (hit) { husk(e.resultingClientId, 'kopi'); return hit; }
-        // Ingen kopi: vent på nettet alligevel (meget langsomt net), ellers en rolig offline-side
-        return net.then(function (res) { husk(e.resultingClientId, 'net'); return res; }).catch(offlineSide);
+        if (hit) { husk(e.resultingClientId, 'kopi'); return frisk(hit); }
+        return offlineSide();
       });
     }));
     return;
@@ -108,11 +121,12 @@ self.addEventListener('fetch', function (e) {
   // En fil på en side: samme kilde som siden
   if (kilde.get(e.clientId) === 'kopi') {
     e.respondWith(fraKopi(req).then(function (hit) {
-      return hit || fetch(req).then(function (res) { return gem(req, res); });
+      return frisk(hit || null) || fraNet(req).then(function (res) { return frisk(gem(req, res)); });
     }));
     return;
   }
-  e.respondWith(fetch(req).then(function (res) { return gem(req, res); }).catch(function () {
-    return fraKopi(req).then(function (hit) { return hit || Response.error(); });
+  e.respondWith(fraNet(req).then(function (res) { return frisk(gem(req, res)); }).catch(function () {
+    // Nettet forsvandt midt i indlæsningen: hellere kopien end en ødelagt side
+    return fraKopi(req).then(function (hit) { return hit ? frisk(hit) : Response.error(); });
   }));
 });
