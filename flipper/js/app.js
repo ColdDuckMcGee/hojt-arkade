@@ -114,6 +114,7 @@
       light1: cssVar('--p-light1'), light2: cssVar('--p-light2')
     });
     renderer.readColors();
+    drawKey = '';
     draw();
     drawThumbs(true);
   }
@@ -572,6 +573,15 @@
     if (note && performance.now() - noteT > 4000) refreshHud();
     draw();
   }
+  // Ældre maskiner: bordet tegnes kun, når billedet ændrer sig. Tegningen afhænger kun af
+  // spillets tilstand og valgene herunder (ingen tid), så samme nøgle giver præcis samme billede.
+  // Mens spillet er frosset og venter på et valg, skal der derfor ikke tegnes 60 gange i sekundet.
+  var drawKey = '', objIds = typeof WeakMap === 'function' ? new WeakMap() : null, objNr = 0;
+  function objId(o) {
+    if (!o || typeof o !== 'object') return String(o);
+    if (!objIds) return String(Math.random());               // uden WeakMap: tegn altid
+    var id = objIds.get(o); if (!id) { id = ++objNr; objIds.set(o, id); } return id;
+  }
   function draw() {
     if (!run || current !== 'game') return;
     var aim = fset.get('aim');
@@ -579,14 +589,20 @@
     var shown = shownChoice();
     var fl = flash;
     if (calm) { fl = {}; for (var k in flash) fl[k] = Math.min(0.5, flash[k]); }
-    renderer.draw(run, {
+    var o = {
       freezeK: calm ? (run.state.phase === 'decision' ? Math.max(freezeK, 0.6) : freezeK) : freezeK,
       preview: aim && shown && shown.preview ? shown.preview : null,
       previewKey: shown && shown.color,
       mark: shown && shown.mark,
       launchPreview: aim ? launchPreview : null,
       trail: trail, calm: calm, flash: fl
-    });
+    };
+    var last = trail.length ? trail[trail.length - 1] : null;
+    var key = JSON.stringify(run.state) + '|' + o.freezeK + '|' + objId(o.preview) + '|' + o.previewKey + '|' + JSON.stringify(o.mark || null) +
+      '|' + objId(o.launchPreview) + '|' + calm + '|' + JSON.stringify(fl) + '|' + trail.length + '|' + (last ? last.x + ',' + last.y : '') + '|' + objId(run);
+    if (key === drawKey) return;
+    drawKey = key;
+    renderer.draw(run, o);
   }
   requestAnimationFrame(frame);
 
@@ -867,6 +883,7 @@
     st.setProperty('--board-h', bh + 'px');
     gameEl.dataset.layout = lay;
     renderer.resize(bw, bh);
+    drawKey = '';
   }
   function bestFor(b, v, small) {
     var res = candidates(b, v.W, v.H, small), lay = pickLayout(res, v.W, v.H);

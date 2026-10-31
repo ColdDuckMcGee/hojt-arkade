@@ -4,6 +4,12 @@
  * (synthwave-sol og gitter i perspektiv) og 'neonby' (svag by med langsomt
  * svævende lys). Kun langsom, jævn bevægelse – aldrig blink.
  *
+ * Ydelse (ældre maskiner, især uden grafikkort): det store lærred tegnes kun, når noget
+ * ændrer sig (størrelse, farver, tilstand). Det, der bevæger sig, ligger i egne små lag:
+ *  - solnedgang: de vandrette gitterlinjer på et gennemsigtigt lærred, der kun dækker gulvet,
+ *  - neonby: hvert svævende lys som sit eget lille lag, som browseren blot flytter.
+ * Billedet er det samme som før; det er kun mængden af pixel pr. billede, der er mindre.
+ *
  *   const bg = ArkadeBackground.create(canvasEl);
  *   bg.setPalette({ bg0, bg1, sky0, sky1, sky2, sun0, sun1, grid, light1, light2 });
  *   bg.setMode('solnedgang'); bg.setAnimated(true);
@@ -32,6 +38,55 @@
     var staticLayer = document.createElement('canvas');
     var sctx = staticLayer.getContext('2d');
     var particles = [];
+    var floor = null, fctx = null, floorTop = 0;   // solnedgang: lærred kun over gulvet
+    var dotsEl = null;                              // neonby: beholder til lysenes egne lag
+
+    function lag(el) {
+      el.setAttribute('aria-hidden', 'true');
+      var s = el.style;
+      s.position = 'fixed'; s.left = '0'; s.top = '0'; s.pointerEvents = 'none';
+      s.zIndex = global.getComputedStyle(canvas).zIndex || '0';
+      canvas.parentNode.insertBefore(el, dotsEl && el !== dotsEl ? dotsEl : canvas.nextSibling);
+      return el;
+    }
+    function ensureFloor() {
+      if (!floor) { floor = lag(document.createElement('canvas')); fctx = floor.getContext('2d'); }
+      floorTop = Math.max(0, Math.floor(horizonY() - 12));
+      var h = Math.max(1, H - floorTop);
+      floor.width = Math.round(W * dpr); floor.height = Math.round(h * dpr);
+      floor.style.width = W + 'px'; floor.style.height = h + 'px';
+      floor.style.transform = 'translate(0,' + floorTop + 'px)';
+    }
+    function buildDots() {
+      if (!dotsEl) { dotsEl = lag(document.createElement('div')); dotsEl.style.width = '0'; dotsEl.style.height = '0'; dotsEl.style.overflow = 'visible'; }
+      dotsEl.textContent = '';
+      particles.forEach(function (p) {
+        var c = particleSprite(p);
+        c.style.position = 'absolute'; c.style.left = '0'; c.style.top = '0';
+        c.style.width = (c.width / dpr) + 'px'; c.style.height = (c.height / dpr) + 'px';
+        c.style.willChange = 'transform';
+        p.el = c; p.half = c.width / 2 / dpr;
+        dotsEl.appendChild(c);
+      });
+    }
+    // Lyset tegnes én gang i fuld opløsning (samme gradient som før) og genbruges.
+    function particleSprite(p) {
+      var R = p.size * 4, px = Math.ceil(R * 2 * dpr) + 2;
+      var c = document.createElement('canvas');
+      c.width = c.height = px;
+      var x = c.getContext('2d'), m = px / 2;
+      var g = x.createRadialGradient(m, m, 0, m, m, R * dpr);
+      g.addColorStop(0, hexToRgba(p.color, p.alpha));
+      g.addColorStop(0.3, hexToRgba(p.color, p.alpha * 0.4));
+      g.addColorStop(1, hexToRgba(p.color, 0));
+      x.fillStyle = g;
+      x.fillRect(m - R * dpr, m - R * dpr, R * 2 * dpr, R * 2 * dpr);
+      return c;
+    }
+    function showLayers() {
+      if (floor) floor.style.display = mode === 'solnedgang' ? 'block' : 'none';
+      if (dotsEl) dotsEl.style.display = mode === 'neonby' ? 'block' : 'none';
+    }
 
     function resize() {
       dpr = Math.min(2, global.devicePixelRatio || 1);
@@ -41,6 +96,8 @@
       staticLayer.width = canvas.width; staticLayer.height = canvas.height;
       buildStatic();
       buildParticles();
+      ensureFloor();
+      drawFull();
       draw(performance.now());
     }
 
@@ -164,26 +221,31 @@
           color: r() < 0.6 ? pal.light1 : pal.light2, alpha: 0.25 + r() * 0.35
         });
       }
+      buildDots();
     }
 
     // ---------- dynamiske dele ----------
     function drawSunsetGrid(t) {
       var hz = horizonY();
       var phase = animated ? (t / 5000) % 1 : 0.35;
-      ctx.save();
-      ctx.strokeStyle = hexToRgba(pal.grid, 0.6); ctx.lineWidth = 1.5;
-      ctx.shadowColor = pal.grid; ctx.shadowBlur = 6;
-      ctx.beginPath();
+      var c = fctx;
+      c.setTransform(1, 0, 0, 1, 0, 0);
+      c.clearRect(0, 0, floor.width, floor.height);
+      c.setTransform(dpr, 0, 0, dpr, 0, -floorTop * dpr);   // samme koordinater som hele skærmen
+      c.save();
+      c.strokeStyle = hexToRgba(pal.grid, 0.6); c.lineWidth = 1.5;
+      c.shadowColor = pal.grid; c.shadowBlur = 6;
+      c.beginPath();
       for (var k = 0; k < 40; k++) {
         var d = k + 1 - phase;
         if (d <= 0.3) continue;
         var y = hz + (H - hz) * (0.35 / d);
         if (y > H + 2) continue;
         if (y - hz < 1.5) break;
-        ctx.moveTo(0, y); ctx.lineTo(W, y);
+        c.moveTo(0, y); c.lineTo(W, y);
       }
-      ctx.stroke();
-      ctx.restore();
+      c.stroke();
+      c.restore();
     }
     function drawParticles(t) {
       var sec = t / 1000;
@@ -193,20 +255,21 @@
           y = ((p.y - sec * p.speed) % (H + 40) + (H + 40)) % (H + 40) - 20;
           x = p.x + Math.sin(sec * 0.25 + p.phase) * p.sway;
         }
-        var g = ctx.createRadialGradient(x, y, 0, x, y, p.size * 4);
-        g.addColorStop(0, hexToRgba(p.color, p.alpha));
-        g.addColorStop(0.3, hexToRgba(p.color, p.alpha * 0.4));
-        g.addColorStop(1, hexToRgba(p.color, 0));
-        ctx.fillStyle = g;
-        ctx.fillRect(x - p.size * 4, y - p.size * 4, p.size * 8, p.size * 8);
+        if (p.el) p.el.style.transform = 'translate(' + (x - p.half) + 'px,' + (y - p.half) + 'px)';
       });
     }
 
-    function draw(t) {
+    // Det store lærred: kun det faste billede, tegnet når noget ændrer sig.
+    // Himlen ved horisonten er halvgennemsigtig; før blev laget tegnet oven i sig selv i hvert
+    // billede, så den blev dækkende. Det samme resultat laves her én gang.
+    function drawFull() {
       if (!W) return;
       ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.drawImage(staticLayer, 0, 0);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      for (var n = animated && mode !== 'mork' ? 12 : 1; n > 0; n--) ctx.drawImage(staticLayer, 0, 0);
+      showLayers();
+    }
+    function draw(t) {
+      if (!W) return;
       if (mode === 'solnedgang') drawSunsetGrid(t);
       else if (mode === 'neonby') drawParticles(t);
     }
@@ -217,6 +280,7 @@
     }
     function restart() {
       if (raf) { cancelAnimationFrame(raf); raf = 0; }
+      drawFull();
       draw(performance.now());
       if (animated && mode !== 'mork') raf = requestAnimationFrame(frame);
     }
@@ -225,7 +289,7 @@
     resize();
 
     return {
-      setMode: function (m) { mode = m; buildStatic(); restart(); },
+      setMode: function (m) { mode = m; buildStatic(); ensureFloor(); restart(); },
       setAnimated: function (a) { animated = !!a; restart(); },
       setPalette: function (p) { Object.assign(pal, p); buildStatic(); buildParticles(); restart(); },
       getMode: function () { return mode; },

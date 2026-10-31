@@ -126,6 +126,7 @@
 
     var lastX = null, lastY = null, inside = false;
     var target = null, acc = 0, prev = 0, offSince = 0, raf = 0;
+    var idleTimer = 0, ringShown = false, IDLE_MS = 80;
     // Blik-låsen: { el, rect, x, y, moved }. el kan ikke vælges, før blikket har været uden for
     // rect; andre knapper kan ikke vælges, før blikket er flyttet settlePx fra (x, y) eller ud af rect.
     var hold = null;
@@ -204,9 +205,9 @@
       ring.style.left = (r.left + r.width / 2 - size / 2) + 'px';
       ring.style.top = (r.top + r.height / 2 - size / 2) + 'px';
       progressEl.style.strokeDashoffset = String(100 - p * 100);
-      ring.style.display = 'block';
+      if (!ringShown) { ring.style.display = 'block'; ringShown = true; }
     }
-    function hideRing() { ring.style.display = 'none'; }
+    function hideRing() { if (ringShown) { ring.style.display = 'none'; ringShown = false; } }
     function setTarget(t) {
       if (target === t) return;
       if (target) target.classList.remove('arkade-dwelling');
@@ -255,9 +256,17 @@
       } else if (!target) {
         hideRing();
       }
-      raf = requestAnimationFrame(tick);
+      // Fuld fart kun, mens ringen fylder. Uden mål tjekkes der roligt (ca. 12 gange i sekundet),
+      // så motoren ikke tvinger browseren til at tegne 60 billeder i sekundet på ældre maskiner.
+      if (target) raf = requestAnimationFrame(tick);
+      else { prev = 0; idle(); }
     }
-    function loop() { if (!raf && enabled) { prev = 0; raf = requestAnimationFrame(tick); } }
+    function idle() {
+      if (raf || idleTimer || !enabled) return;
+      idleTimer = setTimeout(function () { idleTimer = 0; if (!raf && enabled) raf = requestAnimationFrame(tick); }, IDLE_MS);
+    }
+    // Ved en bevægelse: tjek med det samme, medmindre et roligt tjek allerede er på vej.
+    function loop() { if (!raf && !idleTimer && enabled) { prev = 0; raf = requestAnimationFrame(tick); } }
 
     // Overvågning: klik uden en eneste musebevægelse, efter dwell er slået til, tyder på
     // TD Browse (eller en anden browser, hvor markøren ikke følger blikket).
@@ -295,7 +304,7 @@
     return {
       setEnabled: function (v) {
         enabled = !!v;
-        if (!enabled) { clearTarget(); clearTimeout(watchTimer); watchTimer = 0; if (raf) { cancelAnimationFrame(raf); raf = 0; } }
+        if (!enabled) { clearTarget(); clearTimeout(watchTimer); watchTimer = 0; clearTimeout(idleTimer); idleTimer = 0; if (raf) { cancelAnimationFrame(raf); raf = 0; } }
         else { loop(); watchStart(); }
       },
       isEnabled: function () { return enabled; },
@@ -307,7 +316,7 @@
       release: function () { hold = null; holdPending = false; },
       isHeld: function () { return !!hold; },
       destroy: function () {
-        enabled = false; clearTarget(); clearTimeout(watchTimer);
+        enabled = false; clearTarget(); clearTimeout(watchTimer); clearTimeout(idleTimer);
         document.removeEventListener('pointerdown', onDown, true);
         document.removeEventListener('click', onClick, true);
         document.removeEventListener('pointermove', onMove);

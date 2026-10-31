@@ -78,7 +78,9 @@ html, body {
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
 }
-#baggrund { position: fixed; inset: 0; z-index: 0; display: block; }
+#baggrund { position: fixed; inset: 0; z-index: 0; display: block;
+  /* Eget lag: når baggrunden bevæger sig, skal resten af siden ikke males igen (vigtigt uden grafikkort) */
+  will-change: transform; transform: translateZ(0); }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 [hidden] { display: none !important; }
 

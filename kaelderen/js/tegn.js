@@ -74,6 +74,12 @@
     var spriteRects = [], dybde = [];
     var svaevere = [], skadeT = null, skudT = null, spoegelser = [];
     var kortGeo = null, sidsteState = null, sidstAnimeret = true;
+    // Lys-genvej (ældre maskiner): står billedet stille, er det eneste, der ændrer sig fra billede
+    // til billede, lampernes bløde flimmer (tallet flim). Hver pixel er lineær i flim:
+    //   pixel = fast + flim × lampe
+    // Ved første stille billede gemmes de to dele (fang), og de næste billeder blandes blot,
+    // i stedet for at hele 3D-billedet regnes igen. Resultatet er det samme billede.
+    var fang = false, lysS = null, lysL = null, lysCache = null, stilNr = 0;
 
     function restyle() {
       s = readStyle();
@@ -82,6 +88,7 @@
       Object.keys(T.sprites).forEach(function (n) { var d = T.sprites[n]; var b = bygBillede(d.tegn, d.gloed, s); b.str = d.str; b.sted = d.sted; spr[n] = b; });
       ['taage', 'moerke', 'lampe-lys', 'lygte-lys'].forEach(function (n) { var c = T.rgb(s[n]); farve[n] = [c[0] / 255, c[1] / 255, c[2] / 255]; });
       lysNoegle = '';
+      stilNr++; lysCache = null;
     }
 
     function resize(w, h) {
@@ -90,6 +97,7 @@
       canvas.width = Math.round(cssW * dpr); canvas.height = Math.round(cssH * dpr);
       canvas.style.width = cssW + 'px'; canvas.style.height = cssH + 'px';
       iw = 0; // intern opløsning laves igen ved næste billede
+      lysCache = null;
     }
     function setKvalitet(k) { kvalitet = k; if (k === 'lav') skala = 0.4; if (k === 'hoej') skala = 1; }
 
@@ -217,13 +225,52 @@
         svaevere.some(function (v) { return !v.statisk && now - v.t0 < 900; }) || spoegelser.length);
     }
 
+    // Alt, der kan ændre 3D-billedet, bortset fra lampernes flimmer
+    function sceneNoegle(st) {
+      var k = [stilNr, iw, ih, cam.x, cam.y, cam.a, lysNoegle, st.trappe ? st.trappe.x + ',' + st.trappe.y : '-'];
+      for (var i = 0; i < st.ting.length; i++) { var g = st.ting[i]; k.push(g.type + g.x + ',' + g.y); }
+      for (var j = 0; j < st.fjender.length; j++) { var f = st.fjender[j]; k.push(f.type + f.x + ',' + f.y); }
+      for (var l = 0; l < st.lamper.length; l++) k.push('l' + st.lamper[l].x + ',' + st.lamper[l].y);
+      return k.join('|');
+    }
+    // Hurtigt billede: kun lyset ændrer sig. Overlejringer, glød og tekst tegnes som altid.
+    function lysBillede(st, view, now) {
+      var c = lysCache, flim = 1 + s['flimmer'] * (Math.sin(now / 1000 * 1.9) * 0.6 + Math.sin(now / 1000 * 3.3 + 1.3) * 0.4);
+      for (var i = 0, n = buf.length; i < n; i += 4) {
+        buf[i] = lysS[i] + flim * lysL[i];
+        buf[i + 1] = lysS[i + 1] + flim * lysL[i + 1];
+        buf[i + 2] = lysS[i + 2] + flim * lysL[i + 2];
+      }
+      ictx.putImageData(img, 0, 0);
+      var DW = canvas.width, DH = canvas.height;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.imageSmoothingEnabled = true;
+      ctx.drawImage(intern, 0, 0, DW, DH);
+      if (s['bloom'] > 0 && view.gloed) { lctx.imageSmoothingEnabled = true; lctx.drawImage(intern, 0, 0, lille.width, lille.height); }
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      overlays(st, view, now, cssW / iw, c.P, c.dirX, c.dirY, c.plX, c.plY, c.invDet, c.sc);
+      if (sidstFrame) { var dt = now - sidstFrame; if (dt > 0 && dt < 500) fpsEma = fpsEma * 0.9 + (1000 / dt) * 0.1; }
+      sidstFrame = now;
+    }
+
     // ---------- Selve billedet ----------
     function render(st, view, now) {
       var t0 = performance.now();
+      if (view.animeret && lysCache && !anim && !aktiv(now)) {
+        sidsteState = st; sidstAnimeret = true;
+        klarBuffer(); byggLys(st); opdaterKamera(now, st);
+        if (sceneNoegle(st) === lysCache.key) { lysBillede(st, view, now); return; }
+      }
       sidsteState = st;
       sidstAnimeret = !!view.animeret;
       klarBuffer(); byggLys(st);
       opdaterKamera(now, st);
+      lysCache = null;
+      fang = !!view.animeret && !anim && !aktiv(now);
+      if (fang) {
+        if (!lysS || lysS.length !== buf.length) { lysS = new Float32Array(buf.length); lysL = new Float32Array(buf.length); }
+        lysS.set(buf); lysL.fill(0);   // pixel, der ikke tegnes nu, beholder deres værdi (som før)
+      }
       var W = st.W, H = st.H, cells = st.cells, rum = st.rum;
       var w = iw, h = ih, half = h / 2;
       var dirX = Math.cos(cam.a), dirY = Math.sin(cam.a);
@@ -270,7 +317,8 @@
         var y0 = Math.max(0, Math.floor(ds)), y1 = Math.min(h, Math.ceil(de));
         top[x] = y0; bot[x] = y1;
         colInfo[x] = { mx: mx, my: my, c: c, fx: fxc, fy: fyc, top: ds, bot: de, d: perp };
-        var lv = lysI(st, hx - rx * 0.06, hy - ry * 0.06) * LA * flim, ly = lygte(perp) * cone[x], fg = fogAt(perp), sh = side ? 0.78 : 1;
+        var lvB = lysI(st, hx - rx * 0.06, hy - ry * 0.06) * LA, lv = lvB * flim, ly = lygte(perp) * cone[x], fg = fogAt(perp), sh = side ? 0.78 : 1;
+        var kL = lvB * (1 - fg) * sh, kLR = kL * lam[0], kLG = kL * lam[1], kLB = kL * lam[2];
         var mR = (A * amb[0] + lv * lam[0] + ly * lyg[0]) * (1 - fg) * sh, mG = (A * amb[1] + lv * lam[1] + ly * lyg[1]) * (1 - fg) * sh, mB = (A * amb[2] + lv * lam[2] + ly * lyg[2]) * (1 - fg) * sh;
         var fR = fog[0] * 255 * fg, fG = fog[1] * 255 * fg, fB = fog[2] * 255 * fg, em = EM * (1 - 0.75 * fg);
         var col = tx.col, emA = tx.em, step = TS / lineH, tpos = (y0 - ds) * step;
@@ -280,6 +328,8 @@
           var r = col[ti] * mR + fR, g = col[ti + 1] * mG + fG, b = col[ti + 2] * mB + fB;
           if (emA && emA[ti + 3]) { var ea = emA[ti + 3] / 255 * em; r += emA[ti] * ea; g += emA[ti + 1] * ea; b += emA[ti + 2] * ea; }
           buf[o] = r * v; buf[o + 1] = g * v; buf[o + 2] = b * v; buf[o + 3] = 255;
+          if (fang) { var lr = col[ti] * kLR * v, lg = col[ti + 1] * kLG * v, lb = col[ti + 2] * kLB * v;
+            lysL[o] = lr; lysL[o + 1] = lg; lysL[o + 2] = lb; lysS[o] = r * v - flim * lr; lysS[o + 1] = g * v - flim * lg; lysS[o + 2] = b * v - flim * lb; lysS[o + 3] = 255; }
         }
       }
 
@@ -297,19 +347,23 @@
           if (cxx < 0 || cyy < 0 || cxx >= W || cyy >= H) continue;
           var ci = cyy * W + cxx, ir = rum[ci] >= 0;
           var ttx = ((fx - cxx) * TS) | 0, tty = ((fy - cyy) * TS) | 0, tI = (tty * TS + ttx) * 4;
-          var lv2 = lysI(st, fx, fy) * LA * flim, ly2 = lyR * cone[x3], k1 = 1 - fgR;
+          var lvB2 = lysI(st, fx, fy) * LA, lv2 = lvB2 * flim, ly2 = lyR * cone[x3], k1 = 1 - fgR, kL2 = lvB2 * k1;
           var mR2 = (A * amb[0] + lv2 * lam[0] + ly2 * lyg[0]) * k1, mG2 = (A * amb[1] + lv2 * lam[1] + ly2 * lyg[1]) * k1, mB2 = (A * amb[2] + lv2 * lam[2] + ly2 * lyg[2]) * k1;
           if (gulv) {
             var gx = ci === trI ? gtr : ir ? gr : gt, gc = gx.col, ge = gx.em, o2 = (yy * w + x3) * 4, v2 = vig[yy * w + x3];
             var r2 = gc[tI] * mR2 + fR2, g2 = gc[tI + 1] * mG2 + fG2, b2 = gc[tI + 2] * mB2 + fB2;
             if (ge && ge[tI + 3]) { var ea2 = ge[tI + 3] / 255 * emR; r2 += ge[tI] * ea2; g2 += ge[tI + 1] * ea2; b2 += ge[tI + 2] * ea2; }
             buf[o2] = r2 * v2; buf[o2 + 1] = g2 * v2; buf[o2 + 2] = b2 * v2; buf[o2 + 3] = 255;
+            if (fang) { var l2r = gc[tI] * kL2 * lam[0] * v2, l2g = gc[tI + 1] * kL2 * lam[1] * v2, l2b = gc[tI + 2] * kL2 * lam[2] * v2;
+              lysL[o2] = l2r; lysL[o2 + 1] = l2g; lysL[o2 + 2] = l2b; lysS[o2] = r2 * v2 - flim * l2r; lysS[o2 + 1] = g2 * v2 - flim * l2g; lysS[o2 + 2] = b2 * v2 - flim * l2b; lysS[o2 + 3] = 255; }
           }
           if (loft) {
             var lx = ir ? lr2 : lt, lc = lx.col, le = lx.em, o3 = (yc * w + x3) * 4, v3 = vig[yc * w + x3];
             var r3 = lc[tI] * mR2 * 0.85 + fR2, g3 = lc[tI + 1] * mG2 * 0.85 + fG2, b3 = lc[tI + 2] * mB2 * 0.85 + fB2;
             if (le && le[tI + 3]) { var ea3 = le[tI + 3] / 255 * emR; r3 += le[tI] * ea3; g3 += le[tI + 1] * ea3; b3 += le[tI + 2] * ea3; }
             buf[o3] = r3 * v3; buf[o3 + 1] = g3 * v3; buf[o3 + 2] = b3 * v3; buf[o3 + 3] = 255;
+            if (fang) { var l3r = lc[tI] * kL2 * lam[0] * 0.85 * v3, l3g = lc[tI + 1] * kL2 * lam[1] * 0.85 * v3, l3b = lc[tI + 2] * kL2 * lam[2] * 0.85 * v3;
+              lysL[o3] = l3r; lysL[o3 + 1] = l3g; lysL[o3 + 2] = l3b; lysS[o3] = r3 * v3 - flim * l3r; lysS[o3 + 1] = g3 * v3 - flim * l3g; lysS[o3 + 2] = b3 * v3 - flim * l3b; lysS[o3 + 3] = 255; }
           }
         }
       }
@@ -343,7 +397,7 @@
         var yA = Math.max(0, Math.floor(topY)), yB = Math.min(h, Math.ceil(topY + size));
         if (o.synk) yB = Math.min(yB, Math.ceil(floorY));
         if (x1 < 0 || x0 >= w || yB <= yA) return;
-        var lv3 = lysI(st, o.x, o.y) * LA * flim, ly3 = lygte(d), fg3 = fogAt(d), k3 = 1 - fg3;
+        var lvB3 = lysI(st, o.x, o.y) * LA, lv3 = lvB3 * flim, ly3 = lygte(d), fg3 = fogAt(d), k3 = 1 - fg3, kL3 = lvB3 * k3;
         var mR3 = (A * amb[0] + lv3 * lam[0] + ly3 * lyg[0]) * k3, mG3 = (A * amb[1] + lv3 * lam[1] + ly3 * lyg[1]) * k3, mB3 = (A * amb[2] + lv3 * lam[2] + ly3 * lyg[2]) * k3;
         var fR3 = fog[0] * 255 * fg3, fG3 = fog[1] * 255 * fg3, fB3 = fog[2] * 255 * fg3, em3 = EM * (1 - 0.75 * fg3);
         var col3 = im.col, emB = im.em, synlig = false, vx0 = w, vx1 = -1;
@@ -357,6 +411,8 @@
             var r4 = col3[ti3] * mR3 + fR3, g4 = col3[ti3 + 1] * mG3 + fG3, b4 = col3[ti3 + 2] * mB3 + fB3;
             if (emB && emB[ti3 + 3]) { var ea4 = emB[ti3 + 3] / 255 * em3; r4 += emB[ti3] * ea4; g4 += emB[ti3 + 1] * ea4; b4 += emB[ti3 + 2] * ea4; }
             buf[o4] = r4 * v4; buf[o4 + 1] = g4 * v4; buf[o4 + 2] = b4 * v4;
+            if (fang) { var l4r = col3[ti3] * kL3 * lam[0] * v4, l4g = col3[ti3 + 1] * kL3 * lam[1] * v4, l4b = col3[ti3 + 2] * kL3 * lam[2] * v4;
+              lysL[o4] = l4r; lysL[o4 + 1] = l4g; lysL[o4 + 2] = l4b; lysS[o4] = r4 * v4 - flim * l4r; lysS[o4 + 1] = g4 * v4 - flim * l4g; lysS[o4 + 2] = b4 * v4 - flim * l4b; }
             synlig = true;
           }
           if (xs < vx0) vx0 = xs; if (xs > vx1) vx1 = xs;
@@ -372,6 +428,7 @@
       if (s['bloom'] > 0 && view.gloed) { lctx.imageSmoothingEnabled = true; lctx.drawImage(intern, 0, 0, lille.width, lille.height); }
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       var k2 = cssW / w;
+      if (fang) { fang = false; lysCache = { key: sceneNoegle(st), P: P, dirX: dirX, dirY: dirY, plX: plX, plY: plY, invDet: invDet, sc: sc }; }
       overlays(st, view, now, k2, P, dirX, dirY, plX, plY, invDet, sc);
       // Billedrate og automatisk opløsning
       var ms = performance.now() - t0;
