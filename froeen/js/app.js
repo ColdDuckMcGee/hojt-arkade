@@ -324,12 +324,27 @@
     $('#death-reason').textContent = (CAUSES[s.deathCause] || '') + (last ? '' : ' Du har ' + livesText(s.lives) + ' tilbage.');
     $('#btn-continue-label').textContent = last ? 'Se resultat' : 'Klar';
     $('#btn-continue-sub').textContent = last ? 'Spillet er slut' : 'Frøen starter i bunden igen';
+    // Et utilsigtet blik må kunne rettes: én fortryd pr. bane, også ved det sidste liv
+    $('#btn-death-undo').hidden = !run.canUndo();
     $('#death-overlay').hidden = false;
     fitScreen($('#death-overlay'));
     refresh();
     dwell.reset();
     $('#btn-continue').focus({ preventScroll: true });
   }
+  // ---------- Fortryd sidste træk ----------
+  function undoMove() {
+    if (!run || busy || !run.canUndo()) return false;
+    if (!run.undo()) return false;
+    sfx('click');
+    $('#death-overlay').hidden = true;
+    fx = [];
+    dwell.reset();
+    refresh();
+    return true;
+  }
+  $('#btn-death-undo').addEventListener('click', function () { undoMove(); });
+
   $('#btn-continue').addEventListener('click', function () {
     if (!run) return;
     sfx('click');
@@ -507,6 +522,9 @@
   document.addEventListener('keydown', function (e) {
     if (e.altKey || e.ctrlKey || e.metaKey) return;
     if (current !== 'game') { if (KEYS[e.key]) e.preventDefault(); return; }
+    if ((e.key === 'z' || e.key === 'Z' || e.key === 'Backspace') && !paused && (!overlayOpen() || !$('#death-overlay').hidden)) {
+      e.preventDefault(); if (!e.repeat) undoMove(); return;   // fortryd: under spillet og i dødsboksen
+    }
     if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') { e.preventDefault(); setPaused(!paused); return; }
     if (overlayOpen()) return; // Enter og mellemrum virker på den fokuserede knap
     var a = gameKey(e);

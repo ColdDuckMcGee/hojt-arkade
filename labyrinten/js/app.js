@@ -344,6 +344,8 @@
         ? 'Vagterne fangede dig på bane ' + s.level + '.'
         : 'Du har ' + (s.lives === 1 ? '1 liv' : s.lives + ' liv') + ' tilbage. Alle stiller sig på plads igen, og prikkerne bliver liggende.';
       $('#btn-continue .big').textContent = res.result === 'over' ? 'Se resultatet' : 'Fortsæt';
+      // Et utilsigtet blik må kunne rettes: én fortryd pr. bane, også ved det sidste liv
+      $('#btn-caught-undo').hidden = !run.canUndo();
       showOverlay('#caught-overlay', '#btn-continue');
       status.textContent = $('#caught-text').textContent;
     } else if (res.result === 'cleared') {
@@ -360,6 +362,19 @@
       status.textContent = s.score + ' point. ' + (s.fright > 0 ? 'Vagterne er sårbare i ' + movesText(s.fright) + ' endnu.' : '');
     }
   }
+
+  // ---------- Fortryd sidste træk ----------
+  function undoMove() {
+    if (!run || busy() || !run.canUndo()) return false;
+    if (!run.undo()) return false;
+    sfx('click');
+    $('#caught-overlay').hidden = true;
+    dwell.reset();
+    refresh();
+    $('#board-status').textContent = 'Sidste træk er fortrudt. Du kan fortryde én gang på hver bane.';
+    return true;
+  }
+  $('#btn-caught-undo').addEventListener('click', function () { undoMove(); });
 
   $('#btn-continue').addEventListener('click', function () {
     if (!run) return;
@@ -529,6 +544,11 @@
   document.addEventListener('keydown', function (e) {
     if (e.altKey || e.ctrlKey || e.metaKey) return;
     if (current !== 'game') { if (KEYS[e.key]) e.preventDefault(); return; }
+    if (e.key === 'z' || e.key === 'Z' || e.key === 'Backspace') {
+      // Fortryd: under spillet og i Fanget-boksen (ikke i pausen)
+      if (!paused && (canPlay() || !$('#caught-overlay').hidden)) { e.preventDefault(); if (!e.repeat) undoMove(); }
+      return;
+    }
     if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') { e.preventDefault(); setPaused(!paused); return; }
     if (KEYS[e.key]) {
       e.preventDefault();

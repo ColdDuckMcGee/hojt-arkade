@@ -337,6 +337,7 @@
   }
 
   // ---------- Et helt spil ----------
+  var UNDO_PER_LEVEL = 1;
   function createRun(opts) {
     opts = opts || {};
     var s = {
@@ -344,11 +345,26 @@
       level: 1, score: 0, lives: 3, maxLives: 3, cleared: 0, moves: 0
     };
     freshLevelState(s);
+    // Fortryd sidste træk: én gang pr. bane, også lige efter man er fanget (et utilsigtet blik
+    // på en pil må kunne rettes). Spillet er deterministisk, så en kopi af tilstanden er nok.
+    var snap = null, undoLeft = UNDO_PER_LEVEL;
 
     var api = {
       get state() { return s; },
+      get undoLeft() { return undoLeft; },
       canMove: function (dir) { return s.status === 'play' && canMoveFrom(s, s.player.x, s.player.y, dir); },
-      move: function (dir) { return doMove(s, dir); },
+      move: function (dir) {
+        var before = s.status === 'play' ? cloneState(s) : null;
+        var r = doMove(s, dir);
+        if (before && !r.ignored && !r.bump) snap = before;
+        return r;
+      },
+      canUndo: function () { return !!snap && undoLeft > 0 && s.status !== 'cleared'; },
+      undo: function () {
+        if (!api.canUndo()) return false;
+        s = snap; snap = null; undoLeft--;
+        return true;
+      },
       // Forhåndsvisning af et træk på en kopi af tilstanden.
       preview: function (dir) {
         if (s.status !== 'play') return null;
@@ -367,6 +383,7 @@
       guardPlan: function (g) { return s.status === 'play' ? planFor(s, g) : null; },
       continueAfterCatch: function () {
         if (s.status !== 'caught') return false;
+        snap = null;      // efter Fortsæt kan fangsten ikke fortrydes
         placeActors(s);   // prikkerne bliver liggende
         return true;
       },
@@ -374,6 +391,7 @@
         if (s.status !== 'cleared') return false;
         s.level++; s.cleared++;
         freshLevelState(s);
+        snap = null; undoLeft = UNDO_PER_LEVEL;
         return true;
       }
     };

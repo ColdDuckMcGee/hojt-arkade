@@ -13,7 +13,8 @@
     bonusPoints: 50,
     bonusMoves: 15,     // bonusmad forsvinder efter så mange træk
     bonusEvery: 3,      // ny bonusmad efter hver 3. almindelige mad
-    obstacleEvery: 5    // én ny forhindring for hver 5. mad
+    obstacleEvery: 5,   // én ny forhindring for hver 5. mad
+    undoPerGame: 3      // fortryd sidste træk: så mange gange pr. spil (et utilsigtet blik må kunne rettes)
   };
 
   function createGame(size, opts) {
@@ -21,8 +22,11 @@
     var s = {
       size: size, snake: [], dir: 'right', food: null, bonus: null, obstacles: [],
       score: 0, foodEaten: 0, bonusEaten: 0, moves: 0,
-      over: false, won: false, reason: null, crash: null
+      over: false, won: false, reason: null, crash: null,
+      undoLeft: RULES.undoPerGame
     };
+    var prev = null;   // tilstanden før sidste træk (til fortryd)
+    function clone(o) { return JSON.parse(JSON.stringify(o)); }
     var key = function (x, y) { return y * size + x; };
     var inside = function (x, y) { return x >= 0 && y >= 0 && x < size && y < size; };
 
@@ -161,6 +165,7 @@
     function step(dir) {
       var events = [];
       if (!canMove(dir)) return { ignored: true, events: events };
+      prev = clone(s);
       var h = s.snake[0], d = DIRS[dir];
       var nh = { x: h.x + d.x, y: h.y + d.y };
       s.dir = dir;
@@ -205,10 +210,24 @@
       return { ignored: false, events: events };
     }
 
+    // Fortryd sidste træk (også lige efter et sammenstød). Tilstanden sættes tilbage i
+    // samme objekt, så game.state stadig peger på den.
+    function canUndo() { return !!prev && s.undoLeft > 0 && !s.won; }
+    function undo() {
+      if (!canUndo()) return false;
+      var left = s.undoLeft - 1;
+      Object.keys(prev).forEach(function (k) { s[k] = prev[k]; });
+      s.undoLeft = left;
+      prev = null;
+      return true;
+    }
+
     return {
       state: s,
       step: step,
       canMove: canMove,
+      canUndo: canUndo,
+      undo: undo,
       // kun til test
       _obstacleOk: obstacleOk,
       _placeObstacle: placeObstacle

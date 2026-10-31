@@ -188,6 +188,7 @@
   }
   function newPlate() {
     plate = G.createPlate(run.size, run.plateNo);
+    run.undoLeft = UNDO_PER_PLATE;
     $('#pause-overlay').hidden = true;
     $('#clear-overlay').hidden = true;
     board.reset();
@@ -244,28 +245,42 @@
     if (res.cleared) plateCleared();
   }
 
+  // Et utilsigtet blik på et felt kan ramme en mine. Én gang pr. plade kan man fortryde:
+  // så får man livet tilbage, og minen bliver liggende afsløret (man får ikke et nyt gæt).
+  var UNDO_PER_PLATE = 1;
   function hitMine(i) {
     run.lives--;
     refresh();
     sfx('boom');
     var calm = !animationOn();
     var ex = board.explode(i, calm);
-    if (run.lives > 0) {
-      ex.done.then(function () { return wait(calm ? 300 : 550); }).then(function () {
-        sfx('rewind');
-        return ex.rewind();
-      }).then(function () {
-        refresh();
-        board.focusCursor();
-      });
-    } else {
-      run.over = true;
-      ex.done.then(function () { return wait(calm ? 500 : 900); }).then(function () {
-        ex.end();
-        gameOver();
-      });
+    var last = run.lives <= 0;
+    if (last) run.over = true;
+    function rewind() {
+      sfx('rewind');
+      return ex.rewind().then(function () { refresh(); board.focusCursor(); });
     }
+    function proceed() {
+      if (!last) { rewind(); return; }
+      ex.end();
+      gameOver();
+    }
+    ex.done.then(function () { return wait(calm ? (last ? 500 : 300) : (last ? 900 : 550)); }).then(function () {
+      if (!run || !(run.undoLeft > 0) || !window.ArkadeBekraeft) { proceed(); return; }
+      ArkadeBekraeft.spoerg({
+        titel: 'Du ramte en mine',
+        tekst: 'Var det et uheld? Du kan fortryde én gang på hver plade. Så får du livet tilbage, og minen bliver liggende afsløret.',
+        nej: 'Fortryd', nejLille: 'få livet tilbage',
+        ja: last ? 'Se resultat' : 'Fortsæt', jaLille: last ? 'spillet er slut' : livesText(run.lives) + ' tilbage',
+        onNej: function () {
+          run.undoLeft--; run.lives++; run.over = false; last = false;
+          rewind();
+        },
+        onJa: proceed
+      });
+    });
   }
+  function livesText(n) { return n === 1 ? '1 liv' : n + ' liv'; }
   function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
 
   function plateCleared() {

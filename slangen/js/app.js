@@ -244,7 +244,32 @@
     if (ev.indexOf('bonusSpawn') >= 0) audio.play('bonusSpawn');
     updateHud();
     drawBoard();
-    if (game.state.over) gameOver();
+    if (game.state.over) afterCrash();
+  }
+
+  // ---------- Fortryd sidste træk ----------
+  // Et utilsigtet blik på en pil må ikke koste hele spillet. Efter et sammenstød spørges der,
+  // før resultatet gemmes, så længe der er fortryd tilbage (3 pr. spil). Z og Backspace virker også.
+  var CRASH_TITLES = { wall: 'Slangen ramte væggen', self: 'Slangen ramte sig selv', obstacle: 'Slangen ramte en forhindring' };
+  function undoText(n) { return n === 1 ? '1 fortryd tilbage' : n + ' fortryd tilbage'; }
+  function afterCrash() {
+    var s = game.state;
+    if (s.won || !game.canUndo() || !window.ArkadeBekraeft) { gameOver(); return; }
+    ArkadeBekraeft.spoerg({
+      titel: CRASH_TITLES[s.reason] || 'Slangen stødte ind i noget',
+      tekst: 'Var det et uheld? Du kan fortryde det sidste træk ' + (s.undoLeft === 1 ? 'én gang mere' : s.undoLeft + ' gange mere') + ' i dette spil.',
+      nej: 'Fortryd sidste træk', nejLille: undoText(s.undoLeft - 1) + ' bagefter',
+      ja: 'Se resultat', jaLille: 'spillet er slut',
+      onNej: undoMove, onJa: gameOver
+    });
+  }
+  function undoMove() {
+    if (!game || current !== 'game' || !game.undo()) return false;
+    audio.play('bonusGone');
+    updateHud();
+    drawBoard();
+    dwell.reset();
+    return true;
   }
   $$('.arrow').forEach(function (b) {
     b.addEventListener('click', function () { move(b.dataset.dir); });
@@ -383,6 +408,9 @@
       if (KEYS[e.key]) {
         e.preventDefault();
         if (!e.repeat) move(KEYS[e.key]);
+      } else if ((e.key === 'z' || e.key === 'Z' || e.key === 'Backspace') && !paused && !e.repeat) {
+        e.preventDefault();
+        undoMove();
       } else if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') {
         e.preventDefault();
         setPaused(!paused);

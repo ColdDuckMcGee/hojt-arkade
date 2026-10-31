@@ -38,7 +38,8 @@
     pointsStep: 10,     // hvert nyt skridt fremad (ny højeste række i dette forsøg)
     pointsHole: 50,     // hvert fyldt hul
     levelBonus: 200,    // klaret bane: 200 × banens nummer
-    minRing: 14         // hver bane er mindst 14 felter rundt (brættet er 11)
+    minRing: 14,        // hver bane er mindst 14 felter rundt (brættet er 11)
+    undoPerLevel: 1     // fortryd sidste træk: så mange gange pr. bane
   };
   var DIRS = { up: { x: 0, y: -1 }, right: { x: 1, y: 0 }, down: { x: 0, y: 1 }, left: { x: -1, y: 0 } };
 
@@ -235,6 +236,24 @@
       if (h2) return die(ev, h2);
       return ev;
     }
+    // ---------- Fortryd sidste træk ----------
+    // Én gang pr. bane, også lige efter et mistet liv (et utilsigtet blik på en pil må kunne
+    // rettes). Banerne rykker altid på samme faste måde, så en kopi af tilstanden er nok.
+    var snap = null, undoLeft = RULES.undoPerLevel;
+    function play(action) {
+      var before = playable() ? clone(s) : null;
+      var ev = act(action);
+      if (before && !ev.ignored) snap = before;
+      if (s.cleared) snap = null;
+      return ev;
+    }
+    function canUndo() { return !!snap && undoLeft > 0 && !s.cleared; }
+    function undo() {
+      if (!canUndo()) return false;
+      s = snap; snap = null; undoLeft--;
+      api.state = s;
+      return true;
+    }
     // Hvad ville der ske ved dette træk? (uden at ændre noget) – null = sikkert
     function simulate(action) {
       var keep = clone(s);
@@ -246,6 +265,7 @@
     // Efter et mistet liv: frøen starter i bunden, når spilleren er klar.
     function respawn() {
       if (!s.dead || s.over) return false;
+      snap = null;      // efter Klar kan livet ikke fortrydes
       s.dead = false; s.deathCause = null;
       resetFrog();
       return true;
@@ -253,13 +273,15 @@
     function nextLevel() {
       if (!s.cleared) return s;
       buildLevel(s.level + 1);
+      snap = null; undoLeft = RULES.undoPerLevel;
       return s;
     }
 
     buildLevel(opts.level || 1);
 
     var api = {
-      state: s, act: act, canMove: canMove, blocked: blocked, playable: playable, respawn: respawn, nextLevel: nextLevel,
+      state: s, act: play, canMove: canMove, canUndo: canUndo, undo: undo,
+      get undoLeft() { return undoLeft; }, blocked: blocked, playable: playable, respawn: respawn, nextLevel: nextLevel,
       simulate: simulate, hazard: function () { return hazard(); }, topAt: topAt,
       laneAt: laneAt, objAt: objAt, spans: spans, movesNext: movesNext, nextOffset: nextOffset,
       _setState: function (ns) { s = ns; api.state = s; }

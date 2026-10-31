@@ -25,6 +25,7 @@ står helt stille ind imellem.
 - **Bræt:** man vælger lille (10 × 10), mellem (15 × 15) eller stor (20 × 20).
 - **Rekorder:** der er en lokal top 10 med dato for hver brætstørrelse.
 - **Pause:** der er en stor pauseknap, og Esc eller P virker også.
+- **Fortryd:** rammer slangen noget, kan man fortryde det sidste træk, før resultatet gemmes, 3 gange pr. spil. Z eller Backspace fortryder også.
 
 ### Minestryger
 Et roligt minestrygerspil uden ur. Man spiller plade efter plade, indtil man
@@ -35,6 +36,7 @@ har mistet sine liv.
 - **Bræt:** man vælger lille (6 × 6), mellem (8 × 8) eller stor (10 × 8). På en 1920 × 1080-skærm bliver felterne mindst ca. 3 × 3 cm. På mindre skærme siger startskærmen til, hvis felterne bliver mindre.
 - **Plader og miner:** første plade har 4, 8 eller 10 miner. Hver ny plade har én mine mere, op til et loft på 8, 14 eller 18 miner (ca. 22 % af felterne).
 - **Liv:** man vælger **ét liv** eller **tre liv**. Rammer man en mine, springer pladen i luften. Har man et liv tilbage, spoles eksplosionen baglæns, så pladen samler sig igen. Minen ligger derefter afsløret, og man spiller videre. Livene følger med fra plade til plade.
+- **Fortryd:** rammer man en mine ved et uheld, kan man én gang pr. plade fortryde. Så får man livet tilbage, og minen bliver liggende afsløret.
 - **Point:** 10 point for hvert sikkert felt, der åbnes, også felter, der åbnes automatisk. En ryddet plade giver en bonus på 25 point pr. mine på pladen.
 - **Rekorder:** der er en lokal top 10 med point, antal ryddede plader og dato for hver kombination af liv og brætstørrelse.
 - **Rolig visning:** der er ingen blink og ingen hvide lysglimt. Er animation slået fra, eller er computeren sat til mindre bevægelse, bliver eksplosionen og tilbagespolingen til en rolig fade.
@@ -68,6 +70,7 @@ og skildpadder rykker sig kun, når man selv hopper eller venter.
 - **Floden:** frøen skal stå på en stamme eller en skildpadde, og den følger med, når de rykker. Bliver den båret ud over kanten, mister man et liv.
 - **Liv:** man vælger tre liv eller ét liv på startskærmen. Man mister et liv, hvis en bil rammer frøen, hvis den falder i vandet, eller hvis den bliver båret ud over kanten. Bagefter starter frøen i bunden igen, når man er klar.
 - **Muren og fyldte huller:** står frøen lige under muren eller et hul, der allerede er fyldt, er pilen op slået fra og nedtonet, ligesom pile mod en mur i Bomberne. På pilen står en kort forklaring ("Muren er i vejen" eller "Hullet er optaget"), og feltet over frøen får et roligt kryds. Piletasten op gør heller intet, og et dwell på pilen bliver ikke til et træk, så man mister hverken et træk eller et liv.
+- **Fortryd:** mister man et liv, kan man én gang pr. bane fortryde det sidste træk i boksen *Du mistede et liv*. Z eller Backspace virker også.
 - **Baner:** når alle fem huller er fyldt, starter en ny bane uden ende. Hver bane har flere og længere biler og færre eller kortere stammer, og færre baner rykker langsomt. Det testes, at hver bane altid kan klares.
 - **Point:** 10 point for hver ny række, frøen når frem til i et forsøg, 50 for et fyldt hul og 200 gange banens nummer for en klaret bane.
 - **Alle skærme:** man skal aldrig rulle. På store skærme står pilene rundt om brættet. På lave skærme, tablets og mobiler står pilekors og knapper under eller ved siden af brættet og er så store som muligt. Startskærmen siger til, hvis felterne bliver under ca. 1,2 cm.
