@@ -110,6 +110,15 @@ def sideindlaesning(pg):
     pg.wait_for_timeout(DWELL + 200)
     assert klik(pg) == ['a'], 'efter et nyt blik skal knappen kunne vælges, fik %s' % klik(pg)
 
+def sent_blik_efter_indlaesning(pg):
+    # Kommer blikket først ind på knappen et stykke tid efter indlæsningen, låses den ikke
+    pg.goto(URL)
+    pg.evaluate('() => { window.klik = []; }')
+    pg.wait_for_timeout(900)
+    kig(pg, *midt(pg, '#a'))
+    pg.wait_for_timeout(DWELL + 200)
+    assert klik(pg) == ['a'], 'et blik, der kommer senere end 0,6 s efter indlæsning, skal virke, fik %s' % klik(pg)
+
 def rystelse_over_kanten(pg):
     # Blikket glider kort ud over kanten (150 ms): ringen fortsætter i stedet for at starte forfra
     x, y = midt(pg, '#a')
@@ -156,6 +165,7 @@ with sync_playwright() as p:
         ('reset() låser en dialog, der åbner under blikket', reset_laaser_dialog),
         ('data-dwell-repeat gentager stadig, også efter reset()', gentagelse_virker),
         ('knappen under blikket ved sideindlæsning vælges ikke', sideindlaesning),
+        ('blik, der kommer senere efter indlæsning, virker', sent_blik_efter_indlaesning),
         ('kort rystelse over kanten nulstiller ikke ringen', rystelse_over_kanten),
         ('rigtigt blik væk nulstiller ringen', laengere_vaek_nulstiller),
         ('release() slipper låsen', release_slipper),
@@ -164,5 +174,5 @@ with sync_playwright() as p:
         test(navn, fn, br)
     br.close()
 
-print('%d test, %d fejl' % (9, len(fails)))
+print('%d test, %d fejl' % (10, len(fails)))
 sys.exit(1 if fails else 0)

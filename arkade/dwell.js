@@ -23,8 +23,9 @@
  *  - En ANDEN knap, der dukker op lige dér, hvor blikket er (ny skærm, dialog, zoom),
  *    kan først vælges, når blikket har flyttet sig mindst opts.settlePx (48 px) fra
  *    punktet, hvor valget skete – eller har forladt den gamle knap.
- *  - Det samme gælder knappen under blikket, når siden indlæses med dwell slået til,
- *    og når spillet kalder reset() (skærmskift, dialog, nyt træk).
+ *  - Det samme gælder knappen under blikket, når siden indlæses med dwell slået til
+ *    (hvis blikket allerede er der inden for 0,6 s), og når spillet kalder reset()
+ *    (skærmskift, dialog, nyt træk).
  *  - reset() rydder ringen og låser knappen under blikket. release() slipper låsen
  *    helt (bruges kun, hvis man med vilje vil kunne vælge igen med det samme).
  *  - Ryster blikket et øjeblik ud over kanten (under opts.graceMs, 250 ms), stopper
@@ -130,7 +131,10 @@
     var hold = null;
     // Lås knappen under blikket ved første kendte position, når siden indlæses med dwell slået til
     // (fx Start spil lige dér, hvor man valgte Spil i hallen).
-    var holdPending = enabled;
+    // En øjenstyring flytter markøren næsten konstant, så kommer den første bevægelse senere end
+    // LOAD_HOLD_MS, er blikket først kommet ind på knappen bagefter, og så låses der ikke.
+    var holdPending = enabled, createdAt = now(), LOAD_HOLD_MS = 600;
+    function now() { return (global.performance && global.performance.now) ? global.performance.now() : Date.now(); }
 
     var ring = document.createElement('div');
     ring.className = 'arkade-dwell-ring';
@@ -167,7 +171,7 @@
     // Lås el (eller knappen under blikket, hvis el mangler). Knapper med gentagelse låses ikke.
     function holdAt(el) {
       if (!enabled) { holdPending = false; hold = null; return; }   // låsen gælder kun, mens dwell er slået til
-      if (lastX === null) { holdPending = true; hold = null; return; }
+      if (lastX === null) { hold = null; return; }
       holdPending = false;
       if (el === undefined) el = rawTarget(lastX, lastY);
       if (el && el.hasAttribute('data-dwell-repeat')) { hold = null; return; }  // gentagelse må fortsætte
@@ -273,6 +277,7 @@
     function onMove(e) {
       if (e.pointerType === 'touch') return;
       sawMove = true;
+      if (holdPending && lastX === null && now() - createdAt > LOAD_HOLD_MS) holdPending = false;
       lastX = e.clientX; lastY = e.clientY; inside = true;
       loop();
     }

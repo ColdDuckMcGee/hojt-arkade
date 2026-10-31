@@ -102,7 +102,8 @@ with sync_playwright() as p:
     # alle spil: kigge-ringen vises, når musen hviler på en knap
     bad = []
     for g in GAMES:
-        pg.goto((ROOT / g / 'index.html').as_uri()); pg.wait_for_timeout(350)
+        # Blikket starter et andet sted: knappen under blikket ved sideindlæsning låses (dwell.js)
+        pg.goto((ROOT / g / 'index.html').as_uri()); pg.mouse.move(2, 2); pg.wait_for_timeout(350)
         loc = pg.locator('#btn-start, #btn-continue').first
         if not loc.count() or not loc.is_visible(): bad.append(g + ':ingen start'); continue
         x, y = center(pg, '#btn-start:visible, #btn-continue:visible'); pg.mouse.move(x - 4, y); pg.mouse.move(x, y); pg.wait_for_timeout(350)
