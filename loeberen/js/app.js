@@ -365,7 +365,11 @@
   $('#btn-pause').addEventListener('click', function () { setPaused(!paused); });
   $('#btn-resume').addEventListener('click', function () { setPaused(false); });
   $('#btn-pause-settings').addEventListener('click', function () { sfx('click'); openSettings('game'); });
-  $('#btn-quit').addEventListener('click', function () { sfx('click'); quitToMenu(); });
+  $('#btn-quit').addEventListener('click', function () {
+    sfx('click');
+    // Spørg først: ét blik eller klik må aldrig smide et spil i gang væk (arkade/bekraeft.js)
+    ArkadeBekraeft.spoerg({ onJa: function () { quitToMenu(); } });
+  });
   function quitToMenu() { run = null; paused = false; busy = false; anim = null; hideOverlays(); show('menu'); }
 
   // ---------- Game over ----------

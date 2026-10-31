@@ -455,7 +455,11 @@
   $('#btn-resume').addEventListener('click', function () { setPaused(false); });
   $('#btn-pause-levels').addEventListener('click', function () { sfx('click'); paused = false; $('#pause-overlay').hidden = true; openLevels('game'); });
   $('#btn-pause-settings').addEventListener('click', function () { sfx('click'); openSettings('game'); });
-  $('#btn-quit').addEventListener('click', function () { sfx('click'); quitToMenu(); });
+  $('#btn-quit').addEventListener('click', function () {
+    sfx('click');
+    // Spørg først: ét blik eller klik må aldrig smide et spil i gang væk (arkade/bekraeft.js)
+    ArkadeBekraeft.spoerg({ tekst: 'Runden stopper, og pointene gemmes ikke. Vil du gemme dem, så vælg Afslut runde i stedet.', onJa: function () { quitToMenu(); } });
+  });
   $('#btn-pause-end-round').addEventListener('click', function () { sfx('click'); endRound(); });
   function quitToMenu() { cancelAnim(); run = null; paused = false; hideOverlays(); show('menu'); }
 

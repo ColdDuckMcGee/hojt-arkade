@@ -207,7 +207,8 @@ LICENSE           MIT-licens
 |-----|---------|
 | `settings.js`   | `ArkadeSettings` – indstillinger i localStorage. Fælles indstillinger (dwell, tema, baggrund, lyd …) gemmes under `arkade`, så de følger spilleren fra spil til spil. |
 | `highscores.js` | `ArkadeHighscores` – lokal top 10 pr. kategori med dato, uden navne. |
-| `dwell.js`      | `ArkadeDwell` – dwell-motor med fremskridtsring til knapper og links. |
+| `dwell.js`      | `ArkadeDwell` – dwell-motor med fremskridtsring til knapper og links. Ét blik = én handling: en knap kan først vælges igen, når blikket har forladt den, og en ny knap under blikket venter på et nyt blik. |
+| `bekraeft.js`   | `ArkadeBekraeft` – rolig ja/nej-dialog, fx "Vil du forlade spillet?", der ikke kan vælges ved et uheld med blikket. |
 | `audio.js`      | `ArkadeAudio` – synthwave-musik og lydeffekter lavet med Web Audio API (ingen lydfiler). |
 | `background.js` | `ArkadeBackground` – baggrundene Mørk, Solnedgang og Neonby. |
 | `arkade.css`    | Temaer, store knapper, paneler, rekordliste og dwell-ring. |

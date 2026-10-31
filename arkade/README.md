@@ -14,6 +14,7 @@ Fra et spil i sin egen mappe (fx `slangen/index.html`):
 <script src="../arkade/highscore.js"></script>
 <script src="../arkade/dwell.js"></script>
 <script src="../arkade/taster.js"></script>
+<script src="../arkade/bekraeft.js"></script>
 <script src="../arkade/audio.js"></script>
 <script src="../arkade/background.js"></script>
 ```
@@ -108,6 +109,24 @@ dwell.setEnabled(true); dwell.setTime(1500); dwell.reset(); dwell.release();
 - Test: `python3 arkade/test/dwell_test.py` (Playwright og Chrome).
 - Touch ignoreres (almindeligt tryk virker). Ringen styles i arkade.css
   (`.arkade-dwell-ring`) og bruger temaets `--accent`.
+
+## ArkadeBekraeft (bekraeft.js) – spørg, før noget ikke kan fortrydes
+```js
+ArkadeBekraeft.spoerg({
+  titel: 'Vil du forlade spillet?',                 // standard
+  tekst: 'Spillet stopper, og pointene gemmes ikke.', // standard
+  nej: 'Nej, spil videre', ja: 'Ja, til menuen', jaLille: 'pointene gemmes ikke',
+  onJa: function () { quitToMenu(); }, onNej: function () {}
+});
+ArkadeBekraeft.aaben();   // true, mens dialogen er åben
+```
+Indlæses efter `taster.js` og henter selv `bekraeft.css`. To store knapper med mindst 48 px
+imellem; **Nej** står først og har fokus, og Esc er det samme som Nej. Knappen, der dukker op
+lige under blikket, kan ikke vælges, før blikket har forladt den – med Hojt-dwell og med klik
+fra et eget øjenstyringsprogram – så valget, der åbnede dialogen, aldrig også vælger i den.
+Klik ved siden af knapperne gør ingenting, resten af siden er `inert`, og tastetryk når ikke
+spillet. Bruges af *Til menuen* i pausen i de spil, der ikke gemmer pointene, når man går.
+Test: `python3 arkade/test/bekraeft_test.py`.
 
 ## ArkadeAudio (audio.js)
 ```js

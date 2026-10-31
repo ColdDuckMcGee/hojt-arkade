@@ -262,7 +262,11 @@
   $('#btn-pause').addEventListener('click', function () { setPaused(!paused); });
   $('#btn-resume').addEventListener('click', function () { setPaused(false); });
   $('#btn-pause-settings').addEventListener('click', function () { audio.play('click'); openSettings('game'); });
-  $('#btn-quit').addEventListener('click', function () { audio.play('click'); game = null; paused = false; $('#pause-overlay').hidden = true; syncMenu(); show('menu'); });
+  $('#btn-quit').addEventListener('click', function () {
+    audio.play('click');
+    // Spørg først: ét blik eller klik må aldrig smide et spil i gang væk (arkade/bekraeft.js)
+    ArkadeBekraeft.spoerg({ onJa: function () { game = null; paused = false; $('#pause-overlay').hidden = true; syncMenu(); show('menu'); } });
+  });
 
   // ---------- Game over ----------
   var REASONS = {
