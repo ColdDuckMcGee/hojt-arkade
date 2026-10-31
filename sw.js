@@ -25,7 +25,7 @@ var KOPI = 'hojt-arkade-v2';
 var KERNE = [
   './', 'index.html', 'games.js', 'hal/hal.js', 'hal/hal.css',
   'arkade/arkade.css', 'arkade/settings.js', 'arkade/highscores.js', 'arkade/highscore.js', 'arkade/highscore.css',
-  'arkade/dwell.js', 'arkade/taster.js', 'arkade/bekraeft.js', 'arkade/bekraeft.css', 'arkade/audio.js',
+  'arkade/dwell.js', 'arkade/taster.js', 'arkade/bekraeft.js', 'arkade/bekraeft.css', 'arkade/effekter.js', 'arkade/audio.js',
   'arkade/background.js', 'arkade/fejl.js', 'arkade/offline.js', 'arkade/logo.svg', 'arkade/favicon.svg'
 ];
 

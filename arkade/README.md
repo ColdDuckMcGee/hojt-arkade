@@ -17,6 +17,7 @@ Fra et spil i sin egen mappe (fx `slangen/index.html`):
 <script src="../arkade/dwell.js"></script>
 <script src="../arkade/taster.js"></script>
 <script src="../arkade/bekraeft.js"></script>
+<script src="../arkade/effekter.js"></script>
 <script src="../arkade/audio.js"></script>
 <script src="../arkade/background.js"></script>
 ```
@@ -185,3 +186,24 @@ Indlæses lige efter `fejl.js`. Kun over http/https – fra disken sker intet.
   til hallen) – aldrig midt i et spil eller mens en dialog er åben.
 - `KERNE` i `sw.js` er de filer, hallen skal bruge, og som hentes ved første besøg; resten gemmes,
   når det bruges. Tilføjes en ny fælles fil, bør den også stå i `KERNE`.
+
+## Begræns effekter (ArkadeEffekter i settings.js, effekter.js)
+```js
+ArkadeEffekter.begraenset();      // true, når "Effekter: Begrænsede" er valgt
+ArkadeEffekter.anvend(true);      // kald ved ændring (sætter <html data-effekter>, sender 'arkade:effekter')
+```
+Fælles indstilling `arkade.begraensEffekter` (false som standard) i hallen og alle spils
+Indstillinger → Udseende (Effekter: Fulde / Begrænsede). Hurtigere på langsomme computere:
+- `html[data-effekter="begraenset"]` sætter `--glow: 0` og fjerner tekstglød (arkade.css), så knapper
+  og de spil, der læser `--glow` til lærredet, tegner uden glød. Spil med egen Glød-indstilling
+  slår den fra (`applyGlow`). Hallens slørede lyspletter skjules.
+- Baggrunden står stille (background.js), uanset Animation-indstillingen.
+- Kælderen: ingen glorie og scanlinjer, lav opløsning og lys, der opdateres ca. 10 gange i sekundet.
+- Et nyt spil skal have `begraensEffekter: false` i sine fælles standardværdier og kalde
+  `ArkadeEffekter.anvend(value); applyTheme();` ved ændring (se fx slangen/js/app.js).
+
+`effekter.js` foreslår indstillingen én gang: bruger mindst en fjerdedel af tiden i mindst 20 s spil
+på billeder over 50 ms (long-animation-frame/longtask, målt passivt), vises en ja/nej-dialog, næste
+gang spilleren går til menuen eller hallen. Svaret huskes (`hojtArkade.effekterForslag`).
+
+`settings.js` bevarer gemte nøgler, som en side ikke kender, når den gemmer.
