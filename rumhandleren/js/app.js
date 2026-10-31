@@ -8,6 +8,8 @@
  */
 (function () {
   'use strict';
+  /* LUFT: mindst 24 px mellem knapper med forskellig betydning – en øjenstyring rammer inden for ca. 20–40 px */
+  var LUFT = 24;
 
   var $ = function (sel, r) { return (r || document).querySelector(sel); };
   var $$ = function (sel, r) { return Array.prototype.slice.call((r || document).querySelectorAll(sel)); };
@@ -1101,7 +1103,7 @@
   }
   function applyGame(b, v) {
     var land = v.W >= v.H * 1.1, lav = land && v.H < 600, mn = Math.min(v.W, v.H);
-    var pad = Math.max(8, Math.round(mn * 0.014)), ig = Math.max(8, Math.min(16, Math.round(mn * 0.012)));
+    var pad = Math.max(8, Math.round(mn * 0.014)), ig = Math.max(LUFT, Math.min(32, Math.round(mn * 0.02)));
     var inner = v.W - 2 * pad;
     gameEl.classList.toggle('lay-bred', land && !lav); gameEl.classList.toggle('lay-lav', lav); gameEl.classList.toggle('lay-hoej', !land);
     gameEl.classList.toggle('smal', !land && v.W < 600);

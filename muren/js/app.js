@@ -14,6 +14,8 @@
  */
 (function () {
   'use strict';
+  /* LUFT: mindst 24 px mellem knapper med forskellig betydning – en øjenstyring rammer inden for ca. 20–40 px */
+  var LUFT = 24;
 
   var $ = function (sel, root) { return (root || document).querySelector(sel); };
   var $$ = function (sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
@@ -596,7 +598,7 @@
     return { w: Math.floor(L.W * k), h: Math.floor(L.H * k), k: k };
   }
   function candidates(b, W, H, small) {
-    var d = spacing(W, H), p = d.p, g = d.g, ig = 10;
+    var d = spacing(W, H), p = d.p, g = d.g, ig = Math.min(W, H) < 560 ? 10 : LUFT;   // mobil: som før
     var hudH = Math.max(50, Math.min(84, b * 0.62)), hint = small ? 44 : 58, head = small ? 32 : 40;
     var res = { p: p, g: g, hudH: hudH, ig: ig, head: head, hint: hint };
     // wide: status | bræt | sigte og skud (2 kolonner)

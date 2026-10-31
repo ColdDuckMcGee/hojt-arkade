@@ -8,6 +8,8 @@
  */
 (function () {
   'use strict';
+  /* LUFT: mindst 24 px mellem knapper med forskellig betydning – en øjenstyring rammer inden for ca. 20–40 px */
+  var LUFT = 24;
 
   var $ = function (sel, root) { return (root || document).querySelector(sel); };
   var $$ = function (sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
@@ -677,7 +679,7 @@
     });
     variants.forEach(function (v) {
       for (var s = Math.floor(capS); s >= 30; s--) {
-        var g = clampN(0.15 * s, 6, 20);
+        var g = clampN(0.2 * s, Math.min(LUFT, 0.22 * s), 32);   // på meget små skærme lidt mindre luft, så knapperne bliver mindst 80 px
         var turnH = clampN(0.36 * s, 26, 46);
         var headH = v.inline ? 0 : clampN(0.36 * s, 22, 46);
         var topH = v.pauseFull ? s : clampN(0.62 * s, 40, 84);

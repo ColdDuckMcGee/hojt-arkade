@@ -9,6 +9,8 @@
  */
 (function () {
   'use strict';
+  /* LUFT: mindst 24 px mellem knapper med forskellig betydning – en øjenstyring rammer inden for ca. 20–40 px */
+  var LUFT = 24;
 
   var $ = function (sel, root) { return (root || document).querySelector(sel); };
   var $$ = function (sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
@@ -667,7 +669,7 @@
   }
   var MAX_CELL = 190;
   function candidates(n, b, W, H, small) {
-    var d = spacing(W, H), p = d.p, g = d.g, ig = 10, hf = hintFactors(n);
+    var d = spacing(W, H), p = d.p, g = d.g, ig = LUFT, hf = hintFactors(n);
     var hudH = Math.max(52, Math.min(84, b * 0.62)), hint = 60;
     function cell(aw, ah) { return Math.min(MAX_CELL, Math.floor(Math.min((aw - FRAME) / (n + hf.rw), (ah - FRAME) / (n + hf.ch)))); }
     var res = { p: p, g: g, hudH: hudH, ig: ig };

@@ -4,6 +4,8 @@
  */
 (function () {
   'use strict';
+  /* LUFT: mindst 24 px mellem knapper med forskellig betydning – en øjenstyring rammer inden for ca. 20–40 px */
+  var LUFT = 24;
 
   var $ = function (sel, root) { return (root || document).querySelector(sel); };
   var $$ = function (sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
@@ -524,7 +526,7 @@
   // Banens størrelse for hvert layout ved knapstørrelse b. meas = målt statuspanel.
   function candidates(b, W, H, meas) {
     meas = meas || {};
-    var d = spacing(W, H), p = d.p, g = d.g, pg = Math.max(8, Math.round(g * 0.6));
+    var d = spacing(W, H), p = d.p, g = d.g, pg = Math.max(LUFT, Math.round(g * 0.6));
     var pad = 3 * b + 2 * pg;
     var sideW = Math.min(360, Math.max(220, b * 1.9));
     var hudH = meas.hudH || Math.max(SMALL_MIN, 90), hudW = meas.hudW || 270;

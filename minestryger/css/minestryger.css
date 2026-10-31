@@ -221,7 +221,7 @@ html, body { height: 100%; height: 100dvh; }
 .side {
   position: relative; z-index: 2; /* felterne flyver bag om panelet */
   flex: none; width: max(300px, calc(var(--btn) * 2.4));
-  display: flex; flex-direction: column; align-items: stretch; gap: calc(var(--gap) * 0.6);
+  display: flex; flex-direction: column; align-items: stretch; gap: max(24px, calc(var(--gap) * 0.6));   /* LUFT: mindst 24 px mellem knapper */
 }
 .side-logo { height: clamp(60px, 10vh, 110px); align-self: center; }
 .hud-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
