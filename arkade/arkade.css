@@ -58,6 +58,14 @@
   --p-sun0: #ffffff; --p-sun1: #888888; --p-grid: #555555; --p-light1: #777777; --p-light2: #555555;
 }
 
+/* ---------- Begræns effekter (ArkadeEffekter i settings.js) ----------
+   Hurtigere på langsomme computere: ingen neon-glød (knapper, lærred, tekst), og hallens store
+   slørede lyspletter skjules. Baggrunden står stille (background.js). Spillene slår deres egen
+   glød fra, og Kælderen slår glorie og scanlinjer fra. Farver, knapper og regler er uændrede. */
+html[data-effekter="begraenset"] { --glow: 0 !important; }
+html[data-effekter="begraenset"] *, html[data-effekter="begraenset"] *::before, html[data-effekter="begraenset"] *::after { text-shadow: none !important; }
+html[data-effekter="begraenset"] .neon, html[data-effekter="begraenset"] .v-neon { display: none !important; }
+
 /* ---------- Grundlag ---------- */
 /* Luft mellem knapper med forskellig betydning: en øjenstyring rammer typisk inden for 20–40 px.
    På meget små skærme (mobil under 560 px) er der ikke plads, og der bruges mindre luft. */

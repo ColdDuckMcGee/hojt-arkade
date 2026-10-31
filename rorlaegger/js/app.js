@@ -22,6 +22,7 @@
 
   // ---------- Indstillinger (fælles for Hojt Arkade + spillets egne) ----------
   var arkade = ArkadeSettings.create('arkade', {
+    begraensEffekter: false,
     dwell: false, dwellTime: 1.2, theme: 'neon', background: 'mork',
     animation: true, sound: true, music: true
   });
@@ -80,7 +81,7 @@
   if (reducedMotionMq.addEventListener) reducedMotionMq.addEventListener('change', applyAnimation);
 
   arkade.onChange(function (key, value) {
-    if (key === 'theme') applyTheme();
+    if (key === 'theme') applyTheme(); if (key === 'begraensEffekter') { ArkadeEffekter.anvend(value); applyTheme(); applyGlow(); }
     if (key === 'background') applyBackground();
     if (key === 'animation') applyAnimation();
     if (key === 'dwell') dwell.setEnabled(value);
@@ -89,7 +90,7 @@
     if (key === 'music') { audio.unlock(); audio.setMusic(value); }
     syncSettingsUi();
   });
-  function applyGlow() { root.setAttribute('data-rl-gloed', bset.get('gloed') ? 'til' : 'fra'); }
+  function applyGlow() { root.setAttribute('data-rl-gloed', bset.get('gloed') && !ArkadeEffekter.begraenset() ? 'til' : 'fra'); }
   bset.onChange(function (key) {
     if (key === 'gloed') applyGlow();
     syncSettingsUi();

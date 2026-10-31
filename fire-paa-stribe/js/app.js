@@ -19,6 +19,7 @@
 
   // ---------- Indstillinger (fælles for Hojt Arkade + spillets egne) ----------
   var arkade = ArkadeSettings.create('arkade', {
+    begraensEffekter: false,
     dwell: false, dwellTime: 1.2, theme: 'neon', background: 'mork',
     animation: true, sound: true, music: true
   });
@@ -76,7 +77,7 @@
   if (reducedMotionMq.addEventListener) reducedMotionMq.addEventListener('change', applyAnimation);
 
   arkade.onChange(function (key, value) {
-    if (key === 'theme') applyTheme();
+    if (key === 'theme') applyTheme(); if (key === 'begraensEffekter') { ArkadeEffekter.anvend(value); applyTheme(); applyGlow(); }
     if (key === 'background') applyBackground();
     if (key === 'animation') applyAnimation();
     if (key === 'dwell') dwell.setEnabled(value);
@@ -86,7 +87,7 @@
     syncSettingsUi();
   });
   // Glød er en temaeffekt: data-gloed="fra" på <html> slår den fra i temaets CSS
-  function applyGlow() { root.setAttribute('data-gloed', gset.get('gloed') ? 'til' : 'fra'); }
+  function applyGlow() { root.setAttribute('data-gloed', gset.get('gloed') && !ArkadeEffekter.begraenset() ? 'til' : 'fra'); }
   gset.onChange(function (key) {
     if (key === 'ghost') { syncSettingsUi(); renderBoard(); }
     if (key === 'gloed') { applyGlow(); syncSettingsUi(); }

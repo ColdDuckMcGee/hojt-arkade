@@ -23,6 +23,7 @@
 
   // ---------- Indstillinger (fælles for Hojt Arkade + spillets egne) ----------
   var arkade = ArkadeSettings.create('arkade', {
+    begraensEffekter: false,
     dwell: false, dwellTime: 1.2, theme: 'neon', background: 'mork',
     animation: true, sound: true, music: true
   });
@@ -87,7 +88,7 @@
   if (reducedMotionMq.addEventListener) reducedMotionMq.addEventListener('change', applyAnimation);
 
   arkade.onChange(function (key, value) {
-    if (key === 'theme') applyTheme();
+    if (key === 'theme') applyTheme(); if (key === 'begraensEffekter') { ArkadeEffekter.anvend(value); applyTheme(); applyGlow(); tegn.setKvalitet(kvalitet()); }
     if (key === 'background') applyBackground();
     if (key === 'animation') applyAnimation();
     if (key === 'dwell') { dwell.setEnabled(value); stopViewDwell(); }
@@ -97,9 +98,12 @@
     if (key === 'music') { audio.unlock(); audio.setMusic(value); }
     syncSettingsUi();
   });
-  function applyGlow() { root.setAttribute('data-kaelder-gloed', gset.get('gloed') ? 'til' : 'fra'); restyle(); }
+  // Begræns effekter: ingen glød, glorie og scanlines, lav opløsning og roligere lys i 3D-billedet
+  function gloedTil() { return gset.get('gloed') && !ArkadeEffekter.begraenset(); }
+  function kvalitet() { return ArkadeEffekter.begraenset() ? 'lav' : gset.get('kvalitet'); }
+  function applyGlow() { root.setAttribute('data-kaelder-gloed', gset.get('gloed') && !ArkadeEffekter.begraenset() ? 'til' : 'fra'); restyle(); }
   function applyKvalitet() {
-    tegn.setKvalitet(gset.get('kvalitet'));
+    tegn.setKvalitet(kvalitet());
     $('#kvalitet-note').textContent = gset.get('kvalitet') === 'auto' ? 'Auto tilpasser sig computeren' : gset.get('kvalitet') === 'lav' ? 'Grovere, men hurtig på svage computere' : 'Skarpest – kræver en hurtig computer';
   }
   gset.onChange(function (key) {
@@ -161,7 +165,7 @@
     if (!demoTegn) { demoTegn = KaelderTegn.create(c); demoTegn.setKvalitet('hoej'); }
     demoTegn.resize(r.width, r.height);
     demoTegn.overgang(null, DEMO.spiller, 0, false);
-    demoTegn.render(DEMO, { animeret: false, gloed: gset.get('gloed'), minikort: false, trusler: [], vaabenSkjult: true }, performance.now());
+    demoTegn.render(DEMO, { animeret: false, gloed: gloedTil(), minikort: false, trusler: [], vaabenSkjult: true }, performance.now());
   }
   function syncMenu() { if (current === 'menu') { fitScreen($('#menu')); drawMenuDemo(); } }
   $('#btn-start').addEventListener('click', function () { sfx('click'); startGame(); });
@@ -460,14 +464,14 @@
     if (!run || current !== 'game') return;
     var travl = tegn.aktiv(now) || !!maaling;
     var lys = animationOn() && !paused;
-    if (travl || (lys && now - sidstTegnet > 48)) renderView(now);
+    if (travl || (lys && now - sidstTegnet > (ArkadeEffekter.begraenset() ? 100 : 48))) renderView(now);
     if (maaling) { maaling.n++; maaling.ms += tegn.renderMs; if (now - maaling.t0 >= maaling.varighed) { var m = maaling; maaling = null; m.ok({ fps: m.n * 1000 / (now - m.t0), billeder: m.n, renderMs: tegn.renderMs, skala: tegn.skala, intern: tegn.intern }); } }
     if (travl || lys) raf = requestAnimationFrame(tick);
   }
   function viewState() {
     var s = run.state;
     return {
-      animeret: animationOn(), gloed: gset.get('gloed'), minikort: gset.get('minikort'),
+      animeret: animationOn(), gloed: gloedTil(), minikort: gset.get('minikort'),
       kort: kortVist, hover: hover, trusler: run.trusler(),
       sigter: !!L.maalForan(s), rute: kortVist && auto && auto.rute ? auto.rute : null,
       kortValg: kortVist && hover && hover.kort ? { x: hover.x, y: hover.y } : null,

@@ -286,11 +286,16 @@
     }
 
     global.addEventListener('resize', function () { resize(); restart(); });
+    var onsket = animated;
+    function begraenset() { return !!(global.ArkadeEffekter && global.ArkadeEffekter.begraenset()); }
+    animated = onsket && !begraenset();
+    global.addEventListener('arkade:effekter', function () { animated = onsket && !begraenset(); restart(); });
     resize();
 
     return {
       setMode: function (m) { mode = m; buildStatic(); ensureFloor(); restart(); },
-      setAnimated: function (a) { animated = !!a; restart(); },
+      // Med "Begræns effekter" står baggrunden stille, uanset Animation-indstillingen
+      setAnimated: function (a) { onsket = !!a; animated = onsket && !begraenset(); restart(); },
       setPalette: function (p) { Object.assign(pal, p); buildStatic(); buildParticles(); restart(); },
       getMode: function () { return mode; },
       refresh: function () { resize(); restart(); }

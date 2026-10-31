@@ -44,6 +44,7 @@
 
   // ---------- Indstillinger (fælles for alle spil) ----------
   var arkade = ArkadeSettings.create('arkade', {
+    begraensEffekter: false,
     dwell: false, dwellTime: 1.2, theme: 'neon', background: 'mork', animation: true, sound: true, music: true
   });
   var hal = ArkadeSettings.create('hal', { valgt: '' });
@@ -377,7 +378,7 @@
     if (key === 'dwellTime') dwell.setTime(value * 1000);
     if (key === 'sound') audio.setSfx(value);
     if (key === 'music') { audio.unlock(); audio.setMusic(value); }
-    if (key === 'theme') applyTheme();
+    if (key === 'theme') applyTheme(); if (key === 'begraensEffekter') { ArkadeEffekter.anvend(value); applyTheme(); }
     if (key === 'background') applyBackground();
     if (key === 'animation') applyAnimation();
     syncSettings();

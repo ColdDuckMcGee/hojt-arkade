@@ -8,6 +8,12 @@
  *
  * Kun nøgler, der findes i defaults, kan bruges. Gemte værdier med forkert
  * type ignoreres, så et nyt spil aldrig går i stykker på gamle data.
+ * Gemte nøgler, som siden ikke kender (fx en ny fælles indstilling), bevares, når der gemmes.
+ *
+ * ArkadeEffekter: den fælles indstilling "Begræns effekter" (arkade.begraensEffekter).
+ * Sættes som <html data-effekter="begraenset">, så snart denne fil indlæses – før spillet tegner.
+ *   ArkadeEffekter.begraenset()   // true/false
+ *   ArkadeEffekter.anvend(true)   // når indstillingen ændres; sender hændelsen 'arkade:effekter'
  */
 (function (global) {
   'use strict';
@@ -34,9 +40,11 @@
     var listeners = [];
 
     var raw = storageGet(storageKey);
+    var ukendte = {};   // gemte nøgler, som denne side ikke kender: bevares, når der gemmes
     if (raw) {
       try {
         var saved = JSON.parse(raw);
+        if (saved && typeof saved === 'object') Object.keys(saved).forEach(function (k) { if (!(k in defaults)) ukendte[k] = saved[k]; });
         Object.keys(defaults).forEach(function (k) {
           if (saved && Object.prototype.hasOwnProperty.call(saved, k) &&
               typeof saved[k] === typeof defaults[k]) {
@@ -46,7 +54,7 @@
       } catch (e) { /* ødelagte data: brug defaults */ }
     }
 
-    function save() { storageSet(storageKey, JSON.stringify(values)); }
+    function save() { storageSet(storageKey, JSON.stringify(Object.assign({}, ukendte, values))); }
     function emit(key, value) {
       listeners.slice().forEach(function (fn) {
         try { fn(key, value, api); } catch (e) { console.error(e); }
@@ -84,4 +92,21 @@
   }
 
   global.ArkadeSettings = { create: create };
+
+  // ---------- Begræns effekter (fælles for hallen og alle spil) ----------
+  var begr = false;
+  try { var a = JSON.parse(storageGet('hojtArkade.arkade.indstillinger') || '{}'); begr = !!(a && a.begraensEffekter === true); } catch (e) { begr = false; }
+  function saetAttr() {
+    var r = global.document && global.document.documentElement;
+    if (!r) return;
+    if (begr) r.setAttribute('data-effekter', 'begraenset'); else r.removeAttribute('data-effekter');
+  }
+  saetAttr();
+  global.ArkadeEffekter = {
+    begraenset: function () { return begr; },
+    anvend: function (v) {
+      begr = !!v; saetAttr();
+      try { global.dispatchEvent(new global.Event('arkade:effekter')); } catch (e) { /* ældre browser */ }
+    }
+  };
 })(window);
