@@ -317,3 +317,25 @@ html, body { height: 100%; height: 100dvh; }
 .kort .hud-value { font-size: 1.4rem; line-height: 1.15; }
 .kort .hearts { min-height: 1.6rem; }
 .lb-lille .act .big { font-size: clamp(0.78rem, calc(var(--btn) * 0.16), 1.15rem); }
+
+/* ---------- Stile (arkade/stil.js): lærredet læser de samme variabler ---------- */
+html[data-stil="tegneserie"] {
+  --lb-frame: #1b1b1f; --lb-ground: #8ed36b; --lb-road: #6b6f78; --lb-lane-hi: rgba(255, 210, 63, 0.25); --lb-grid: rgba(27, 27, 31, 0.3);
+  --lb-edge: #1b1b1f; --lb-lane-line: rgba(255, 255, 255, 0.85); --lb-city: #9aa7b8; --lb-city-win: rgba(255, 210, 63, 0.8);
+  --lb-tower: #ffffff; --lb-tower-edge1: #1b1b1f; --lb-tower-edge2: #1b1b1f; --lb-tower-win: rgba(79, 195, 247, 0.8); --lb-gate: #9b6bff;
+  --lb-low: #1b1b1f; --lb-low-fill: #ff9f1c; --lb-high: #1b1b1f; --lb-high-fill: #4fc3f7;
+  --lb-block: #1b1b1f; --lb-block-fill: #9b6bff; --lb-block-side: #7a52cc; --lb-block-top: rgba(255, 255, 255, 0.45); --lb-ramp-fill: rgba(61, 190, 90, 0.35);
+  --lb-wall: #1b1b1f; --lb-wall-fill: rgba(232, 67, 58, 0.6); --lb-coin: #1b1b1f; --lb-coin-fill: #ffd23f;
+  --lb-runner: #1b1b1f; --lb-runner-fill: #3dbe5a; --lb-ok: #2a9d4a; --lb-warn: #b37b00; --lb-ghost: #1b1b1f; --lb-danger: #e8433a;
+}
+html[data-stil="pixel"] {
+  --lb-frame: #fff1e8; --lb-ground: #000000; --lb-road: #1d2b53; --lb-lane-hi: rgba(255, 119, 168, 0.15); --lb-grid: rgba(41, 173, 255, 0.5);
+  --lb-edge: #29adff; --lb-lane-line: rgba(255, 241, 232, 0.8); --lb-city: #1d2b53; --lb-city-win: rgba(255, 236, 39, 0.7);
+  --lb-tower: #0b1026; --lb-tower-edge1: #ff77a8; --lb-tower-edge2: #29adff; --lb-tower-win: rgba(41, 173, 255, 0.6); --lb-gate: #a77bff;
+  --lb-low: #ffa300; --lb-low-fill: #000000; --lb-high: #29adff; --lb-high-fill: #000000;
+  --lb-block: #a77bff; --lb-block-fill: #1d2b53; --lb-block-side: #0b1026; --lb-block-top: rgba(167, 123, 255, 0.3); --lb-ramp-fill: rgba(0, 228, 54, 0.25);
+  --lb-wall: #ff004d; --lb-wall-fill: rgba(255, 0, 77, 0.25); --lb-coin: #ffec27; --lb-coin-fill: #ab5236;
+  --lb-runner: #00e436; --lb-runner-fill: #000000; --lb-ok: #00e436; --lb-warn: #ffec27; --lb-ghost: #fff1e8; --lb-danger: #ff004d;
+}
+html[data-stil="tegneserie"] #board { border: 5px solid var(--ink); box-shadow: 8px 8px 0 var(--ink); }
+html[data-stil="pixel"] #board { --k: var(--lb-frame); border: 0; border-radius: 0; box-shadow: var(--pixelkant); }

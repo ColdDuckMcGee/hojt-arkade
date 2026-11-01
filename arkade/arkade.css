@@ -216,6 +216,9 @@ html[data-stil="tegneserie"] {
   --font: "Fredoka", "Segoe UI", system-ui, sans-serif;
   --titel-font: "Bangers", "Impact", sans-serif;
   --skygge: 6px 6px 0 var(--ink);
+  /* himmel og sol, som spillene tegner på lærredet (Løberen, Rampen …) */
+  --p-bg0: #ffe9ae; --p-bg1: #fff4cc; --p-sky0: #8fd3ff; --p-sky1: #cdeeff; --p-sky2: #fff4cc;
+  --p-sun0: #ffd23f; --p-sun1: #ff9f1c; --p-grid: #1b1b1f; --p-light1: #e8433a; --p-light2: #2f80ed;
 }
 html[data-stil="tegneserie"] *, html[data-stil="tegneserie"] *::before, html[data-stil="tegneserie"] *::after { text-shadow: none; }
 html[data-stil="tegneserie"] body { font-weight: 500; }
@@ -286,6 +289,8 @@ html[data-stil="pixel"] {
   --font: "VT323", "Courier New", monospace;
   --titel-font: "Pixelify Sans", "Courier New", monospace;
   --pxk: 4px;                                   /* tykkelse på pixelkanten */
+  --p-bg0: #0b1026; --p-bg1: #1d2b53; --p-sky0: #0b1026; --p-sky1: #1d2b53; --p-sky2: #7e2553;
+  --p-sun0: #ffec27; --p-sun1: #ff77a8; --p-grid: #29adff; --p-light1: #ff77a8; --p-light2: #29adff;
 }
 /* Pixelkanten regnes ud på hvert element, så --k (kantfarven) kan sættes lokalt.
    --k arves ikke: knapper inde i et panel med grå kant får stadig deres egen hvide kant. */
