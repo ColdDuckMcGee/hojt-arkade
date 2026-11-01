@@ -318,3 +318,34 @@ ol.records .score { white-space: nowrap; }
 .golf-lille .confirm-btn { min-width: calc(var(--btn) * 1.5); }
 .golf-lille:not(.golf-tvaers) .confirm-row { flex-direction: column; gap: 32px; }
 .golf-lille:not(.golf-tvaers) .confirm-btn { width: min(100%, 16em); }
+
+/* ---------- Stile (arkade/stil.js): kun temaets variabler ændres ---------- */
+html[data-stil="tegneserie"] {
+  --golf-flade: #8ed36b; --golf-flade-2: #7ac45a; --golf-flade-moenster: rgba(255, 255, 255, 0.18);
+  --golf-kant: #1b1b1f; --golf-kant-inde: rgba(27, 27, 31, 0.25); --golf-bande: #c9884a; --golf-bande-kerne: #1b1b1f;
+  --golf-kontur: #1b1b1f; --golf-kontur-w: 3;
+  --golf-sand: #f3dcae; --golf-sand-moenster: rgba(201, 136, 74, 0.6); --golf-vand: #4fc3f7; --golf-vand-boelge: #ffffff;
+  --golf-skraaning: rgba(27, 27, 31, 0.08); --golf-skraaning-pil: rgba(27, 27, 31, 0.5);
+  --golf-tee: rgba(255, 255, 255, 0.35); --golf-tee-kant: #1b1b1f; --golf-hul: #1b1b1f; --golf-hul-kant: #1b1b1f;
+  --golf-flag: #e8433a; --golf-flagstang: #1b1b1f; --golf-bold: #ffffff; --golf-bold-kant: #1b1b1f;
+  --golf-sigte: #1b1b1f; --golf-sigte-pil: #e8433a; --golf-spor: rgba(27, 27, 31, 0.4); --golf-slutpunkt: #e8433a;
+  --golf-gloed: 0; --golf-skygge-farve: #1b1b1f; --golf-skygge-x: 3; --golf-skygge-y: 3;
+  --golf-board-bg: #fffaf0; --golf-frame: #1b1b1f; --golf-ok: #2a9d4a; --golf-fejl: #e8433a; --golf-vand-tekst: #2f80ed;
+  --golf-shadow: transparent; --golf-overlay-bg: rgba(255, 233, 174, 0.8); --golf-overlay-soft: rgba(255, 233, 174, 0.6);
+  --golf-meter: #e8433a; --golf-meter-tom: rgba(27, 27, 31, 0.2); --golf-frame-w: 5px; --golf-bold-kant-w: 3;
+}
+html[data-stil="pixel"] {
+  --golf-flade: #008751; --golf-flade-2: #007045; --golf-flade-moenster: rgba(0, 228, 54, 0.15);
+  --golf-kant: #fff1e8; --golf-kant-inde: rgba(255, 241, 232, 0.25); --golf-bande: #5f574f; --golf-bande-kerne: #c2c3c7;
+  --golf-kontur: #000000; --golf-kontur-w: 2;
+  --golf-sand: #ffccaa; --golf-sand-moenster: rgba(171, 82, 54, 0.6); --golf-vand: #1d2b53; --golf-vand-boelge: #29adff;
+  --golf-skraaning: rgba(0, 0, 0, 0.15); --golf-skraaning-pil: rgba(255, 241, 232, 0.6);
+  --golf-tee: rgba(255, 241, 232, 0.12); --golf-tee-kant: #fff1e8; --golf-hul: #000000; --golf-hul-kant: #fff1e8;
+  --golf-flag: #ff004d; --golf-flagstang: #fff1e8; --golf-bold: #fff1e8; --golf-bold-kant: #000000;
+  --golf-sigte: #ffec27; --golf-sigte-pil: #ffec27; --golf-spor: rgba(255, 241, 232, 0.4); --golf-slutpunkt: #ffec27;
+  --golf-gloed: 0; --golf-board-bg: #000000; --golf-frame: #fff1e8; --golf-ok: #00e436; --golf-fejl: #ff004d; --golf-vand-tekst: #29adff;
+  --golf-shadow: transparent; --golf-meter: #ffec27; --golf-meter-tom: #1d2b53; --golf-frame-w: 4px; --golf-radius-felt: 0;
+}
+html[data-stil="pixel"] { --golf-radius-board: 0px; --golf-radius-hud: 0px; --golf-radius-hud-small: 0px; --golf-radius-swatch: 0px; --golf-radius-meter: 0px; }
+html[data-stil="tegneserie"] { --golf-board-glow: 8px 8px 0 var(--ink); --golf-score-glow: none; --golf-points-glow: none; --golf-text-shadow: none; --golf-text-shadow-strong: none; }
+html[data-stil="pixel"] { --golf-board-glow: 0 0 0 4px #29adff; --golf-score-glow: none; --golf-points-glow: none; --golf-text-shadow: none; --golf-text-shadow-strong: none; }
