@@ -180,3 +180,21 @@ html, body { height: 100%; height: 100dvh; }
 @media (prefers-reduced-motion: reduce) {
   .lab-anim .overlay.soft:not([hidden]), .lab-anim .arrow.bumped svg { animation: none; }
 }
+
+/* ---------- Stile (arkade/stil.js): lærredet læser de samme variabler ---------- */
+html[data-stil="tegneserie"] {
+  --lab-board: #ffffff; --lab-wall: #1b1b1f; --lab-wall-fill: #4fc3f7; --lab-dot: #ff9f1c; --lab-pellet: #e8433a;
+  --lab-player: #ffd23f; --lab-player-rim: #1b1b1f;
+  --lab-g-jaeger: #e8433a; --lab-g-afskaerer: #ff6fae; --lab-g-patrulje: #3dbe5a; --lab-g-lurer: #9b6bff;
+  --lab-visor: #ffffff; --lab-visor-dot: #1b1b1f; --lab-scared: #2f80ed; --lab-scared-rim: #1b1b1f; --lab-scared-text: #ffffff;
+  --lab-eyes: #ffffff; --lab-pupil: #1b1b1f; --lab-preview: #e8433a; --lab-danger: #e8433a;
+}
+html[data-stil="tegneserie"] #board { border: 5px solid var(--ink); border-radius: 10px; box-shadow: 8px 8px 0 var(--ink); }
+html[data-stil="pixel"] {
+  --lab-board: #000000; --lab-wall: #3a6bff; --lab-wall-fill: #1d2b53; --lab-dot: #ffccaa; --lab-pellet: #fff1e8;
+  --lab-player: #ffec27; --lab-player-rim: #000000;
+  --lab-g-jaeger: #ff004d; --lab-g-afskaerer: #ff77a8; --lab-g-patrulje: #00e436; --lab-g-lurer: #ffa300;
+  --lab-visor: #fff1e8; --lab-visor-dot: #1d2b53; --lab-scared: #3a6bff; --lab-scared-rim: #fff1e8; --lab-scared-text: #fff1e8;
+  --lab-eyes: #fff1e8; --lab-pupil: #1d2b53; --lab-preview: #ffec27; --lab-danger: #ff004d;
+}
+html[data-stil="pixel"] #board { --k: #fff1e8; border: 0; border-radius: 0; box-shadow: var(--pixelkant); }
