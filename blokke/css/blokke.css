@@ -365,3 +365,31 @@ ol.records .score { white-space: nowrap; }
 /* Mobil: plads til fluebenet over teksten i størrelsesknapperne */
 .bk-lille #menu [data-size] { padding-top: 20px; }
 .bk-lille #menu [data-size][aria-pressed="true"]::after { top: 2px; right: 8px; font-size: 1rem; }
+
+/* ---------- Stile (arkade/stil.js) ---------- */
+html[data-stil="tegneserie"] {
+  --bk-board: #ffffff; --bk-grid: #ebe3cc; --bk-frame: var(--ink);
+  --bk-c1: #ff6fae; --bk-c2: #4fc3f7; --bk-c3: #ff9f1c; --bk-c4: #9b6bff; --bk-c5: #3dbe5a; --bk-c6: #e8433a; --bk-c7: #ffd23f;
+  --bk-ok: #2a9d4a; --bk-bad: #e8433a; --bk-clear: #ffd23f; --bk-sel: #ffffff; --bk-hover: var(--ink);
+}
+html[data-stil="tegneserie"] .board { border: 5px solid var(--ink); box-shadow: 8px 8px 0 var(--ink); }
+html[data-stil="tegneserie"] .cell.f .blk { background: var(--c); border: 3px solid var(--ink); border-radius: 18%; box-shadow: inset 0 calc(var(--cell, 60px) * 0.08) 0 rgba(255, 255, 255, 0.45); }
+html[data-stil="tegneserie"] .cell.clr.f .blk { box-shadow: 0 0 0 4px var(--bk-clear); }
+html[data-stil="tegneserie"] .cell.g-ok .gh { box-shadow: none; border-color: var(--ink); }
+html[data-stil="tegneserie"] .piece-btn .mini i.on { background: var(--c); border: 2px solid var(--ink); box-shadow: none; }
+html[data-stil="tegneserie"] .piece-btn[aria-pressed="true"] { background: #fff4cc; border-color: var(--ink); box-shadow: var(--skygge); }
+html[data-stil="tegneserie"] .piece-btn[aria-pressed="true"] .piece-num, html[data-stil="tegneserie"] .piece-btn[aria-pressed="true"]::after { color: var(--roed); }
+
+html[data-stil="pixel"] {
+  --bk-board: #000000; --bk-grid: #111a3d; --bk-frame: #fff1e8;
+  --bk-c1: #ff77a8; --bk-c2: #29adff; --bk-c3: #ffa300; --bk-c4: #a77bff; --bk-c5: #00e436; --bk-c6: #ff004d; --bk-c7: #ffec27;
+  --bk-ok: #00e436; --bk-bad: #ff004d; --bk-clear: #fff1e8; --bk-sel: #fff1e8; --bk-hover: #fff1e8;
+}
+html[data-stil="pixel"] .board { --k: var(--bk-frame); border: 0; border-radius: 0; box-shadow: var(--pixelkant); }
+html[data-stil="pixel"] .cell .blk, html[data-stil="pixel"] .cell .gh { inset: 4%; border-radius: 0; }
+html[data-stil="pixel"] .cell.f .blk { background: var(--c); border: 0; box-shadow: inset calc(var(--cell, 60px) * 0.1) calc(var(--cell, 60px) * 0.1) 0 rgba(255, 255, 255, 0.45), inset calc(var(--cell, 60px) * -0.1) calc(var(--cell, 60px) * -0.1) 0 rgba(0, 0, 0, 0.35); }
+html[data-stil="pixel"] .cell.clr.f .blk { box-shadow: inset 0 0 0 6px var(--bk-clear); }
+html[data-stil="pixel"] .cell.g-ok .gh { box-shadow: none; }
+html[data-stil="pixel"] .piece-btn .mini i { border-radius: 0; }
+html[data-stil="pixel"] .piece-btn .mini i.on { background: var(--c); border: 0; box-shadow: inset 3px 3px 0 rgba(255, 255, 255, 0.45), inset -3px -3px 0 rgba(0, 0, 0, 0.35); }
+html[data-stil="pixel"] .piece-btn[aria-pressed="true"] { background: #2a3f78; box-shadow: 0 -4px 0 var(--gul), 0 4px 0 var(--gul), -4px 0 0 var(--gul), 4px 0 0 var(--gul); }
