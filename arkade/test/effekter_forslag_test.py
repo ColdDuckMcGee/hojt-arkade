@@ -3,6 +3,8 @@
 #     spilleren går til menuen. Ja slår indstillingen til og genindlæser.
 #  2. Nej: der spørges aldrig igen, heller ikke i et andet spil.
 #  3. En hurtig computer (ingen lange billeder) får intet forslag.
+#  4. Uden grafikkort: forslaget kommer straks i hallen (og i et spils menu), men aldrig midt i et spil.
+#  5. Grafikkort-tjekket selv: software-renderere genkendes, et rigtigt grafikkort gør ikke.
 #   python3 arkade/test/effekter_forslag_test.py
 import os, sys, pathlib
 from playwright.sync_api import sync_playwright
@@ -67,6 +69,42 @@ with sync_playwright() as p:
     m = pg.evaluate("() => ArkadeEffekterForslag.maaling")
     til_menu(pg)
     check(not pg.evaluate(DIALOG), 'hurtig: intet forslag (målt %s)' % m)
+    pg.close()
+
+    # 4. Uden grafikkort
+    GPU = TOM[:-2] + " localStorage.setItem('hojtArkade.effekterTestGpu', 'ja'); }"
+    GDIALOG = "() => !!window.ArkadeBekraeft && ArkadeBekraeft.aaben() && /grafikkort/.test(document.querySelector('.arkade-bk').textContent)"
+    pg = br.new_page(viewport={'width': 1280, 'height': 720}); errs = []; pg.on('pageerror', lambda e: errs.append(str(e)))
+    pg.goto((ROOT / 'index.html').as_uri()); pg.evaluate(GPU); pg.reload(); pg.wait_for_timeout(2500)
+    check(pg.evaluate(GDIALOG), 'grafikkort: forslaget kommer straks i hallen')
+    pg.mouse.move(2, 2); pg.locator('.arkade-bk-nej').click(); pg.wait_for_timeout(300)
+    check(pg.evaluate("() => localStorage.getItem('hojtArkade.effekterForslag')") == 'nej', 'grafikkort: Nej huskes')
+    pg.reload(); pg.wait_for_timeout(2500)
+    check(not pg.evaluate("() => ArkadeBekraeft.aaben()"), 'grafikkort: der spørges ikke igen efter Nej')
+    check(not errs, 'grafikkort: ingen JS-fejl (%s)' % errs[:2])
+    pg.close()
+    # i et spil: ikke midt i spillet, men i menuen
+    pg = br.new_page(viewport={'width': 1280, 'height': 720})
+    pg.goto((ROOT / 'slangen' / 'index.html').as_uri()); pg.evaluate(GPU); pg.reload(); pg.wait_for_timeout(200)
+    pg.locator('#btn-start').click(); pg.wait_for_timeout(3000)
+    check(not pg.evaluate(GDIALOG), 'grafikkort: intet forslag midt i spillet')
+    til_menu(pg)
+    check(pg.evaluate(GDIALOG), 'grafikkort: forslaget kommer i spillets menu')
+    pg.close()
+
+    # 5. Selve tjekket
+    pg = br.new_page(viewport={'width': 1280, 'height': 720})
+    pg.goto((ROOT / 'index.html').as_uri()); pg.wait_for_timeout(200)
+    r = pg.evaluate("""() => {
+      const ud = { sw: ArkadeEffekterForslag.utenGrafikkort() };   // denne testmaskine har intet grafikkort (SwiftShader)
+      const orig = HTMLCanvasElement.prototype.getContext;
+      const falsk = navn => function () { return { getExtension: x => x === 'WEBGL_debug_renderer_info' ? { UNMASKED_RENDERER_WEBGL: 1 } : null, getParameter: () => navn, RENDERER: 2 }; };
+      for (const [k, n] of [['nvidia', 'ANGLE (NVIDIA, NVIDIA GeForce GTX 1050 Direct3D11 vs_5_0 ps_5_0)'], ['intel', 'ANGLE (Intel, Intel(R) UHD Graphics 620 Direct3D11)'],
+                            ['basic', 'ANGLE (Microsoft, Microsoft Basic Render Driver Direct3D11)'], ['llvm', 'llvmpipe (LLVM 15.0.7, 256 bits)']]) {
+        HTMLCanvasElement.prototype.getContext = falsk(n); ud[k] = ArkadeEffekterForslag.utenGrafikkort(); }
+      HTMLCanvasElement.prototype.getContext = () => null; ud.ingenWebgl = ArkadeEffekterForslag.utenGrafikkort();
+      HTMLCanvasElement.prototype.getContext = orig; return ud; }""")
+    check(r == {'sw': True, 'nvidia': False, 'intel': False, 'basic': True, 'llvm': True, 'ingenWebgl': True}, 'tjek: software genkendes, rigtige grafikkort ikke (%s)' % r)
     pg.close()
     br.close()
 print('%d fejl' % len(fails)); sys.exit(1 if fails else 0)

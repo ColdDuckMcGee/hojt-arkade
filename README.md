@@ -215,7 +215,7 @@ LICENSE           MIT-licens
 | `dwell.js`      | `ArkadeDwell` – dwell-motor med fremskridtsring til knapper og links. Ét blik = én handling: en knap kan først vælges igen, når blikket har forladt den, og en ny knap under blikket venter på et nyt blik. |
 | `bekraeft.js`   | `ArkadeBekraeft` – rolig ja/nej-dialog, fx "Vil du forlade spillet?", der ikke kan vælges ved et uheld med blikket. |
 | `audio.js`      | `ArkadeAudio` – synthwave-musik og lydeffekter lavet med Web Audio API (ingen lydfiler). |
-| `effekter.js`   | Foreslår "Begræns effekter" én gang, hvis spillet hakker tydeligt (måler passivt, viser forslaget i menuen). Selve indstillingen er `ArkadeEffekter` i `settings.js`. Test: `python3 arkade/test/effekter_test.py` og `effekter_forslag_test.py`. |
+| `effekter.js`   | Foreslår "Begræns effekter" én gang, hvis spillet hakker tydeligt (måler passivt, viser forslaget i menuen) – eller med det samme, hvis browseren tegner uden grafikkort. Selve indstillingen er `ArkadeEffekter` i `settings.js`. Test: `python3 arkade/test/effekter_test.py` og `effekter_forslag_test.py`. |
 | `offline.js`    | Registrerer `sw.js` over http/https og holder åbne sider opdaterede (`ArkadeOffline.tjek()`). Serveren spørges altid først; den lokale kopi bruges kun uden net, og så kommer hele siden derfra. En åben side tjekker hver 10. minut for en ny udgave og genindlæses, når spilleren går til menuen. Test: `python3 arkade/test/offline_test.py`. |
 | `background.js` | `ArkadeBackground` – baggrundene Mørk, Solnedgang og Neonby. |
 | `arkade.css`    | Temaer, store knapper, paneler, rekordliste og dwell-ring. |

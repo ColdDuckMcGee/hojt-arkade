@@ -204,6 +204,8 @@ Indstillinger → Udseende (Effekter: Fulde / Begrænsede). Hurtigere på langso
 
 `effekter.js` foreslår indstillingen én gang: bruger mindst en fjerdedel af tiden i mindst 20 s spil
 på billeder over 50 ms (long-animation-frame/longtask, målt passivt), vises en ja/nej-dialog, næste
-gang spilleren går til menuen eller hallen. Svaret huskes (`hojtArkade.effekterForslag`).
+gang spilleren går til menuen eller hallen. Tegner browseren uden grafikkort (WebGL-rendereren er
+SwiftShader, llvmpipe, Microsoft Basic Render Driver o.l., eller WebGL mangler helt), spørges der
+med det samme i menuen/hallen, også ved første besøg. Svaret huskes (`hojtArkade.effekterForslag`).
 
 `settings.js` bevarer gemte nøgler, som en side ikke kender, når den gemmer.

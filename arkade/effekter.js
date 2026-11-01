@@ -9,10 +9,15 @@
  *    menuen eller hallen – aldrig midt i et spil. "Nej tak" står først og har fokus.
  *  - Ja: indstillingen slås til, og siden genindlæses i menuen. Nej: der spørges aldrig igen.
  *  - Er effekterne allerede begrænset, eller er der svaret før, måles der ikke.
- *  - Under automatiske tests (navigator.webdriver) kun med localStorage['hojtArkade.effekterTest'] = '1'.
+ *  - Tegner browseren uden grafikkort (WebGL-rendereren er SwiftShader, llvmpipe, Microsoft Basic
+ *    Render Driver …, eller WebGL mangler helt), spørges der med det samme i menuen/hallen –
+ *    også ved første besøg, uden at vente på målingen.
+ *  - Under automatiske tests (navigator.webdriver) kun med localStorage['hojtArkade.effekterTest'] = '1';
+ *    grafikkort-tjekket tæller da kun med localStorage['hojtArkade.effekterTestGpu'] = 'ja'.
  *
  *   ArkadeEffekterForslag.langsom()   // markér som langsom (test)
  *   ArkadeEffekterForslag.maaling     // { spilMs, langsomMs }
+ *   ArkadeEffekterForslag.utenGrafikkort()   // true når browseren tegner i software
  * Indlæses efter settings.js og bekraeft.js. Kun ES5.
  */
 (function (global) {
@@ -25,7 +30,8 @@
   function set(k, v) { try { if (ls) ls.setItem(k, v); } catch (e) { /* ignore */ } }
 
   var maaling = { spilMs: 0, langsomMs: 0 }, flag = false, aktiv = true;
-  global.ArkadeEffekterForslag = { langsom: function () { flag = true; vis(); }, get maaling() { return maaling; } };
+  global.ArkadeEffekterForslag = { langsom: function () { flag = true; vis(); }, get maaling() { return maaling; },
+                                   utenGrafikkort: function () { return utenGrafikkort(); } };
 
   if (!doc || !global.PerformanceObserver) { aktiv = false; return; }
   if (global.navigator && global.navigator.webdriver && get('hojtArkade.effekterTest') !== '1') { aktiv = false; }
@@ -53,6 +59,23 @@
     if (iSpil()) maaling.langsomMs += dur;
     if (maaling.spilMs >= MIN_SPIL_MS && maaling.langsomMs / maaling.spilMs >= ANDEL) flag = true;
   }
+  // ---------- Tegner browseren uden grafikkort? ----------
+  // Så kan der spørges med det samme (ved første besøg i hallen) i stedet for efter 20 s hakken.
+  // Software-tegning ses på WebGL-rendereren (SwiftShader, llvmpipe, Microsoft Basic Render Driver …);
+  // giver browseren slet ingen WebGL, har den som regel også slået grafikkortet fra (blokeret driver).
+  var SOFTWARE = /swiftshader|llvmpipe|softpipe|software|basic render/i;
+  function utenGrafikkort() {
+    try {
+      var c = doc.createElement('canvas'), gl = c.getContext('webgl') || c.getContext('experimental-webgl');
+      if (!gl) return true;
+      var info = gl.getExtension('WEBGL_debug_renderer_info');
+      var navn = String(gl.getParameter(info ? info.UNMASKED_RENDERER_WEBGL : gl.RENDERER) || '');
+      var tab = gl.getExtension('WEBGL_lose_context'); if (tab) tab.loseContext();   // frigiv med det samme
+      return SOFTWARE.test(navn);
+    } catch (e) { return false; }
+  }
+  var grund = 'langsom';
+
   var typer = (global.PerformanceObserver.supportedEntryTypes || []);
   var type = typer.indexOf('long-animation-frame') >= 0 ? 'long-animation-frame' : typer.indexOf('longtask') >= 0 ? 'longtask' : '';
   if (type && skalSpoerge()) {
@@ -76,9 +99,11 @@
   function vis() {
     if (!flag || !skalSpoerge() || !global.ArkadeBekraeft || !SIKRE[skaerm()] || dialogAaben()) return;
     flag = false;
+    var gpu = grund === 'grafikkort';
     global.ArkadeBekraeft.spoerg({
-      titel: 'Spillet kører langsomt på denne computer',
-      tekst: 'Vil du begrænse effekterne? Så slukkes neon-gløden, og baggrunden står stille, så spillene kører hurtigere. Du kan altid ændre det under Indstillinger → Udseende.',
+      titel: gpu ? 'Computeren tegner uden grafikkort' : 'Spillet kører langsomt på denne computer',
+      tekst: (gpu ? 'Browseren får ikke hjælp fra grafikkortet, så spillene kan hakke. ' : '') +
+        'Vil du begrænse effekterne? Så slukkes neon-gløden, og baggrunden står stille, så spillene kører hurtigere. Du kan altid ændre det under Indstillinger → Udseende.',
       nej: 'Nej tak', nejLille: 'spørg ikke igen',
       ja: 'Ja, begræns', jaLille: 'kører hurtigere',
       onNej: function () { set(SVAR, 'nej'); },
@@ -99,6 +124,18 @@
       var nu = skaerm();
       if (nu !== forrige) { forrige = nu; if (SIKRE[nu]) vis(); }
     }).observe(doc.body, { subtree: true, attributes: true, attributeFilter: ['hidden'] });
+    // Uden grafikkort: spørg kort efter indlæsning, hvis siden allerede står i menuen/hallen
+    // (ellers ved næste skærmskift dertil). Står en anden dialog åben, prøves igen lidt senere.
+    global.setTimeout(function () {
+      var test = global.navigator && global.navigator.webdriver;   // under tests: kun når testen beder om det
+      if (!skalSpoerge() || !(test ? get('hojtArkade.effekterTestGpu') === 'ja' : utenGrafikkort())) return;
+      flag = true; grund = 'grafikkort';
+      var forsoeg = 0;
+      (function proev() {
+        vis();
+        if (flag && ++forsoeg < 20) global.setTimeout(proev, 3000);
+      })();
+    }, 1500);
   }
   if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', start); else start();
 })(window);
