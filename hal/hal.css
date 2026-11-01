@@ -333,3 +333,51 @@ html { font-size: calc(18px * var(--fit, 1)); }
 }
 /* Indstillinger → Styring: link til Tobii-vejledningen ved siden af "Skift styring" */
 @media (max-width: 699px) { #btn-tobii-vejledning .small { display: none; } }
+
+/* =====================================================================
+   Stile (arkade/stil.js): hallen bag maskinen og selve maskinen (hal.js tegner
+   en maskine pr. stil). Ingen neonlys, ingen sløring og ingen spejling.
+   ===================================================================== */
+html[data-stil="tegneserie"] .hal-baggrund, html[data-stil="pixel"] .hal-baggrund { background: none; }
+html[data-stil="tegneserie"] .hal-baggrund > *, html[data-stil="pixel"] .hal-baggrund > * { display: none; }
+html[data-stil="tegneserie"] .maskine svg, html[data-stil="pixel"] .maskine svg { -webkit-box-reflect: unset; }
+html[data-stil="tegneserie"] .mk-titel { font-family: var(--titel-font); letter-spacing: 0.04em; }
+html[data-stil="pixel"] .mk-titel { font-family: var(--titel-font); font-weight: 700; }
+
+/* Tegneserie: et gulv af sort/hvide fliser med en tyk streg, som i en tegneserierute */
+html[data-stil="tegneserie"]:has(#hal:not([hidden])) .hal-baggrund::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 24vh;
+  border-top: 6px solid var(--ink);
+  background: repeating-conic-gradient(#ffffff 0 25%, #f1e3b8 0 50%) 0 0 / 64px 64px;
+}
+html[data-stil="tegneserie"] .neon-pil { background: var(--papir); border-color: var(--ink); }
+html[data-stil="tegneserie"] .neon-pil svg { stroke: var(--roed); stroke-width: 16; filter: none; }
+html[data-stil="tegneserie"] .neon-pil:hover, html[data-stil="tegneserie"] .neon-pil.arkade-dwelling { background: #fff4cc; box-shadow: var(--skygge); }
+html[data-stil="tegneserie"] .neon-pil .small { color: var(--ink); }
+html[data-stil="tegneserie"] .spil-info { background: var(--papir); border-color: var(--ink); }
+html[data-stil="tegneserie"] .info-status { color: var(--roed); }
+html[data-stil="tegneserie"] .info-status.snart { color: #b36b00; }
+html[data-stil="tegneserie"] .taeller-tal { color: var(--ink); }
+html[data-stil="tegneserie"] .taeller-ialt { color: var(--muted); }
+html[data-stil="tegneserie"] .taeller-linje { height: 12px; border-radius: 0; background: var(--papir); box-shadow: inset 0 0 0 3px var(--ink); }
+html[data-stil="tegneserie"] .taeller-fyld { border-radius: 0; background: var(--roed); box-shadow: inset 0 0 0 3px var(--ink); }
+html[data-stil="tegneserie"] .btn.spil-knap.snart { background: #fff4cc; color: var(--ink); border: 4px dashed var(--ink); box-shadow: none; }
+
+/* Retro-pixel: pixelhimmel og bjerge fra baggrunden; et gulv af fliser i to blå */
+html[data-stil="pixel"]:has(#hal:not([hidden])) .hal-baggrund::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 22vh;
+  border-top: 8px solid #29adff;
+  background: repeating-conic-gradient(#1d2b53 0 25%, #16224a 0 50%) 0 0 / 64px 64px;
+}
+html[data-stil="pixel"] .neon-pil { background: var(--natblaa); }
+html[data-stil="pixel"] .neon-pil svg { stroke: var(--gul); stroke-width: 14; stroke-linecap: square; stroke-linejoin: miter; filter: none; }
+html[data-stil="pixel"] .neon-pil:hover, html[data-stil="pixel"] .neon-pil.arkade-dwelling { background: #2a3f78; box-shadow: var(--pixelkant), inset 0 -6px 0 rgba(0, 0, 0, 0.35); }
+html[data-stil="pixel"] .neon-pil .small { color: var(--hvid); }
+html[data-stil="pixel"] .spil-info { background: var(--nat); }
+html[data-stil="pixel"] .info-status { color: var(--gul); }
+html[data-stil="pixel"] .info-status.snart { color: var(--roed); }
+html[data-stil="pixel"] .info-navn { font-family: var(--titel-font); font-weight: 700; color: var(--hvid); }
+html[data-stil="pixel"] .taeller-tal { font-family: var(--titel-font); font-weight: 700; color: var(--hvid); background: var(--ink); padding: 4px 8px; }
+html[data-stil="pixel"] .taeller-linje { height: 12px; border-radius: 0; background: var(--ink); box-shadow: 0 0 0 4px var(--graa); }
+html[data-stil="pixel"] .taeller-fyld { border-radius: 0; background: var(--gul); box-shadow: none; }
+html[data-stil="pixel"] .btn.spil-knap.snart { background: var(--nat); color: var(--gul); outline: 4px dashed var(--gul); box-shadow: none; }

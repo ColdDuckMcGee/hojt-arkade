@@ -103,7 +103,129 @@
   // ---------- Tegning af maskinen (SVG) ----------
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 
+  // Stilene tegneserie og retro-pixel har hver deres maskine (arkade/stil.js)
+  var STIL = window.ArkadeStil ? ArkadeStil.stil() : 'neon';
+  var STIL_FARVER = {
+    tegneserie: { 'pink': '#ff6fae', 'cyan': '#4fc3f7', 'orange': '#ff9f1c', 'gul': '#ffd23f', 'grøn': '#3dbe5a', 'lilla': '#9b6bff', 'blå': '#2f80ed', 'rød': '#e8433a' },
+    pixel:      { 'pink': '#ff77a8', 'cyan': '#29adff', 'orange': '#ffa300', 'gul': '#ffec27', 'grøn': '#00e436', 'lilla': '#a77bff', 'blå': '#3a6bff', 'rød': '#ff004d' }
+  };
+  function stilFarve(g, i) {
+    var t = STIL_FARVER[STIL], neon = FARVER;
+    for (var k in neon) if (neon[k][0] === g.farve[0]) return i ? t[{ 'pink': 'cyan', 'cyan': 'pink', 'orange': 'gul', 'gul': 'rød', 'grøn': 'blå', 'lilla': 'pink', 'blå': 'grøn', 'rød': 'gul' }[k]] : t[k];
+    return i ? t['cyan'] : t['pink'];
+  }
+  function skaermBillede(g) {
+    // Skærmbillede i stilens udseende (hal/skaerme/<stil>/<id>.png), ellers neon-billedet
+    if (STIL !== 'neon' && window.HOJT_STIL_SKAERME && HOJT_STIL_SKAERME.indexOf(g.id) >= 0) return 'hal/skaerme/' + STIL + '/' + g.id + '.png';
+    return g.skaerm;
+  }
+
+  function maskineTegneserie(g) {
+    var c1 = stilFarve(g, 0), c2 = stilFarve(g, 1), on = g.aktiv, INK = '#1b1b1f';
+    var navn = esc(g.navn.toUpperCase()), lang = g.navn.length > 9;
+    var tl = lang ? ' textLength="250" lengthAdjust="spacingAndGlyphs"' : '';
+    var bil = skaermBillede(g);
+    var skaerm = on && bil
+      ? '<image href="' + esc(bil) + '" x="80" y="174" width="240" height="218" preserveAspectRatio="xMidYMid slice"/>'
+      : on ? '<rect x="80" y="174" width="240" height="218" fill="#ffffff"/><text x="200" y="292" text-anchor="middle" class="mk-titel" font-size="40" fill="' + INK + '">' + navn + '</text>'
+           : '<rect x="80" y="174" width="240" height="218" fill="#c9c0a8"/>';
+    var skilt = on ? '' :
+      '<g transform="rotate(-5 200 284)">' +
+        '<rect x="96" y="236" width="216" height="100" fill="' + INK + '"/>' +
+        '<rect x="88" y="228" width="216" height="100" fill="#ffd23f" stroke="' + INK + '" stroke-width="6"/>' +
+        '<text x="196" y="272" text-anchor="middle" class="mk-titel" font-size="38" fill="' + INK + '">KOMMER</text>' +
+        '<text x="196" y="314" text-anchor="middle" class="mk-titel" font-size="38" fill="#e8433a">SNART!</text>' +
+      '</g>';
+    var S = ' stroke="' + INK + '" stroke-width="7" stroke-linejoin="round"';
+    return '<svg viewBox="0 0 400 760" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">' +
+      // hård skygge bag hele maskinen
+      '<path d="M54 44H378V756H54Z" fill="' + INK + '"/>' +
+      '<path d="M40 30H360V742H40Z" fill="' + (on ? c1 : '#b9b09a') + '"' + S + '/>' +
+      '<path d="M40 30H82V742H40Z M318 30H360V742H318Z" fill="#000" opacity=".14"/>' +
+      '<rect x="30" y="14" width="340" height="24" rx="6" fill="#ffffff"' + S + '/>' +
+      // skilt (marquee) som en tegneserietekst-boks
+      '<rect x="52" y="48" width="296" height="86" rx="6" fill="' + (on ? '#ffd23f' : '#e6dfc9') + '"' + S + '/>' +
+      '<text x="200" y="' + (lang ? 106 : 110) + '" text-anchor="middle" class="mk-titel" font-size="' + (lang ? 46 : 54) + '" fill="' + (on ? '#e8433a' : '#8a8270') + '" stroke="' + INK + '" stroke-width="2.5" paint-order="stroke"' + tl + '>' + navn + '</text>' +
+      // skærm
+      '<rect x="54" y="150" width="292" height="268" rx="16" fill="' + INK + '"/>' +
+      '<g clip-path="url(#mkt-clip)">' + skaerm + '</g>' +
+      '<clipPath id="mkt-clip"><rect x="80" y="174" width="240" height="218" rx="12"/></clipPath>' +
+      '<rect x="80" y="174" width="240" height="218" rx="12" fill="none" stroke="#ffffff" stroke-width="4"/>' +
+      '<path d="M96 190h40M96 202h18" stroke="#ffffff" stroke-width="6" stroke-linecap="round" opacity=".7"/>' +
+      skilt +
+      // kontrolpanel
+      '<path d="M44 428H356L390 470H10Z" fill="' + c2 + '"' + S + '/>' +
+      '<rect x="10" y="470" width="380" height="42" fill="#ffffff"' + S + '/>' +
+      '<rect x="114" y="404" width="12" height="44" fill="#d9d2c0"' + S.replace('7', '5') + '/>' +
+      '<circle cx="120" cy="402" r="17" fill="#e8433a"' + S.replace('7', '5') + '/>' +
+      '<circle cx="114" cy="396" r="5" fill="#ffffff"/>' +
+      '<ellipse cx="214" cy="452" rx="16" ry="8" fill="#ffd23f"' + S.replace('7', '5') + '/>' +
+      '<ellipse cx="256" cy="444" rx="16" ry="8" fill="#e8433a"' + S.replace('7', '5') + '/>' +
+      '<ellipse cx="298" cy="452" rx="16" ry="8" fill="#2f80ed"' + S.replace('7', '5') + '/>' +
+      // stribe og møntindkast
+      '<path d="M40 546H360" stroke="' + INK + '" stroke-width="7"/>' +
+      '<rect x="128" y="574" width="144" height="116" rx="10" fill="#ffffff"' + S + '/>' +
+      '<rect x="150" y="592" width="40" height="56" rx="4" fill="' + INK + '"/><rect x="210" y="592" width="40" height="56" rx="4" fill="' + INK + '"/>' +
+      '<rect x="158" y="600" width="24" height="16" rx="2" fill="' + (on ? '#ffd23f' : '#6b6250') + '"/><rect x="218" y="600" width="24" height="16" rx="2" fill="' + (on ? '#ffd23f' : '#6b6250') + '"/>' +
+      '<rect x="168" y="626" width="4" height="16" fill="#ffffff"/><rect x="228" y="626" width="4" height="16" fill="#ffffff"/>' +
+      '<rect x="40" y="704" width="320" height="38" fill="' + INK + '"/>' +
+      '</svg>';
+  }
+
+  function maskinePixel(g) {
+    var c1 = stilFarve(g, 0), c2 = stilFarve(g, 1), on = g.aktiv, K = '#000000', H = '#fff1e8';
+    var navn = esc(g.navn.toUpperCase()), lang = g.navn.length > 8;
+    var tl = lang ? ' textLength="268" lengthAdjust="spacingAndGlyphs"' : '';
+    var bil = skaermBillede(g);
+    var krop = on ? c1 : '#5f574f';
+    var skaerm = on && bil
+      ? '<image href="' + esc(bil) + '" x="80" y="176" width="240" height="216" preserveAspectRatio="xMidYMid slice" style="image-rendering:pixelated"/>'
+      : on ? '<rect x="80" y="176" width="240" height="216" fill="#0b1026"/><text x="200" y="292" text-anchor="middle" class="mk-titel" font-size="28" fill="' + c1 + '">' + navn + '</text>'
+           : '<rect x="80" y="176" width="240" height="216" fill="#1d2b53"/>';
+    var skilt = on ? '' :
+      '<rect x="92" y="236" width="216" height="96" fill="' + K + '"/>' +
+      '<rect x="100" y="244" width="200" height="80" fill="#ffec27"/>' +
+      '<text x="200" y="278" text-anchor="middle" class="mk-titel" font-size="26" fill="#1d2b53">KOMMER</text>' +
+      '<text x="200" y="312" text-anchor="middle" class="mk-titel" font-size="26" fill="#1d2b53">SNART</text>';
+    return '<svg viewBox="0 0 400 760" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" shape-rendering="crispEdges">' +
+      // kant og krop: firkantede trin i stedet for skrå linjer
+      '<rect x="32" y="24" width="336" height="726" fill="' + K + '"/>' +
+      '<rect x="40" y="32" width="320" height="710" fill="' + krop + '"/>' +
+      '<rect x="40" y="32" width="24" height="710" fill="#000" opacity=".25"/><rect x="336" y="32" width="24" height="710" fill="#000" opacity=".25"/>' +
+      '<rect x="64" y="32" width="8" height="710" fill="#fff" opacity=".18"/>' +
+      '<rect x="24" y="12" width="352" height="20" fill="' + K + '"/><rect x="32" y="16" width="336" height="12" fill="' + H + '"/>' +
+      // skilt
+      '<rect x="56" y="48" width="288" height="88" fill="' + K + '"/>' +
+      '<rect x="64" y="56" width="272" height="72" fill="#0b1026"/>' +
+      '<text x="200" y="' + (lang ? 104 : 108) + '" text-anchor="middle" class="mk-titel" font-size="' + (lang ? 30 : 36) + '" fill="' + (on ? '#ffec27' : '#5f574f') + '"' + tl + '>' + navn + '</text>' +
+      // skærm
+      '<rect x="56" y="152" width="288" height="264" fill="' + K + '"/>' +
+      '<rect x="72" y="168" width="256" height="232" fill="#1d2b53"/>' +
+      skaerm +
+      '<rect x="88" y="184" width="32" height="8" fill="#fff" opacity=".45"/><rect x="88" y="192" width="8" height="16" fill="#fff" opacity=".45"/>' +
+      skilt +
+      // kontrolpanel i trin
+      '<rect x="40" y="424" width="320" height="16" fill="' + K + '"/><rect x="24" y="440" width="352" height="16" fill="' + K + '"/><rect x="8" y="456" width="384" height="60" fill="' + K + '"/>' +
+      '<rect x="48" y="428" width="304" height="12" fill="' + c2 + '"/><rect x="32" y="440" width="336" height="16" fill="' + c2 + '"/><rect x="16" y="456" width="368" height="20" fill="' + c2 + '"/>' +
+      '<rect x="16" y="476" width="368" height="32" fill="#1d2b53"/>' +
+      '<rect x="112" y="400" width="16" height="48" fill="' + K + '"/><rect x="116" y="404" width="8" height="40" fill="#c2c3c7"/>' +
+      '<rect x="100" y="384" width="40" height="32" fill="' + K + '"/><rect x="104" y="388" width="32" height="24" fill="#ff004d"/><rect x="108" y="392" width="8" height="8" fill="#fff"/>' +
+      '<rect x="196" y="444" width="32" height="16" fill="' + K + '"/><rect x="200" y="446" width="24" height="10" fill="#ffec27"/>' +
+      '<rect x="240" y="436" width="32" height="16" fill="' + K + '"/><rect x="244" y="438" width="24" height="10" fill="#ff004d"/>' +
+      '<rect x="284" y="444" width="32" height="16" fill="' + K + '"/><rect x="288" y="446" width="24" height="10" fill="#29adff"/>' +
+      // stribe og møntindkast
+      '<rect x="40" y="540" width="320" height="8" fill="' + K + '"/><rect x="40" y="552" width="320" height="8" fill="' + H + '" opacity=".6"/>' +
+      '<rect x="128" y="576" width="144" height="112" fill="' + K + '"/><rect x="136" y="584" width="128" height="96" fill="#5f574f"/>' +
+      '<rect x="152" y="596" width="40" height="52" fill="' + K + '"/><rect x="208" y="596" width="40" height="52" fill="' + K + '"/>' +
+      '<rect x="160" y="604" width="24" height="12" fill="' + (on ? '#ffa300' : '#3a1a16') + '"/><rect x="216" y="604" width="24" height="12" fill="' + (on ? '#ffa300' : '#3a1a16') + '"/>' +
+      '<rect x="168" y="624" width="8" height="16" fill="#c2c3c7"/><rect x="224" y="624" width="8" height="16" fill="#c2c3c7"/>' +
+      '<rect x="40" y="704" width="320" height="38" fill="' + K + '"/>' +
+      '</svg>';
+  }
+
   function maskineSvg(g) {
+    if (STIL === 'tegneserie') return maskineTegneserie(g);
+    if (STIL === 'pixel') return maskinePixel(g);
     var c1 = g.farve[0], c2 = g.farve[1], on = g.aktiv;
     var navn = esc(g.navn.toUpperCase());
     var lang = g.navn.length > 9;
