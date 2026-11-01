@@ -187,6 +187,29 @@ Indlæses lige efter `fejl.js`. Kun over http/https – fra disken sker intet.
 - `KERNE` i `sw.js` er de filer, hallen skal bruge, og som hentes ved første besøg; resten gemmes,
   når det bruges. Tilføjes en ny fælles fil, bør den også stå i `KERNE`.
 
+## Stile: neon, tegneserie og retro-pixel (stil.js)
+```js
+ArkadeStil.stil();         // 'neon' | 'tegneserie' | 'pixel'
+ArkadeStil.pixel();        // true i retro-pixel
+ArkadeStil.skift('pixel'); // gem og genindlæs siden
+```
+Fælles indstilling `arkade.stil` (Indstillinger → Udseende → Stil i hallen). `stil.js` indlæses i
+`<head>` lige efter `arkade.css` og sætter `<html data-stil="…">`, før noget tegnes.
+- **Neon** er udgangspunktet. **Tegneserie**: tykke sorte konturer, flade farver, rasterprikker og
+  hårde skygger (Bangers + Fredoka). **Retro-pixel**: firkantede former, PICO-8-agtige farver,
+  pixelkant uden runde hjørner (Pixelify Sans til titler, VT323 til tekst). Ingen af dem har glød
+  eller sløring, så de er billige at tegne.
+- `arkade.css` styler alle fælles flader pr. stil (knapper, paneler, HUD, dialoger, rekorder,
+  kigge-klik-ringen, logo) og sætter `--glow: 0`, himmel- og solfarver (`--p-*`) m.m. Baggrunden
+  (`background.js`) tegner stilens egen stille baggrund. Tema og Baggrund skjules i Indstillinger.
+- Hvert spil ændrer kun sine egne farvevariabler og flader under `html[data-stil="…"]`:
+  spil med temamappe i `tema/tegneserie/tema.css` og `tema/pixel/tema.css` (indlæses altid efter
+  `tema/neon/tema.css`), de andre nederst i spillets egen CSS. Lærrederne læser variablerne som før.
+- Pixelkanten: `box-shadow: var(--pixelkant)` med kantfarven i `--k` (arves ikke).
+- Skrifterne ligger i `skrift/` (SIL OFL, se `skrift/LICENS.txt`) og hentes kun i den valgte stil.
+- **Forhåndsvisning:** indtil stilene åbnes for alle, kan de kun vælges efter at hallen er åbnet
+  med `?stilforhaand=1` (huskes i browseren; `?stilforhaand=0` slår det fra). Ellers er alt neon.
+
 ## Begræns effekter (ArkadeEffekter i settings.js, effekter.js)
 ```js
 ArkadeEffekter.begraenset();      // true, når "Effekter: Begrænsede" er valgt

@@ -115,8 +115,8 @@
     return i ? t['cyan'] : t['pink'];
   }
   function skaermBillede(g) {
-    // Skærmbillede i stilens udseende (hal/skaerme/<stil>/<id>.png), ellers neon-billedet
-    if (STIL !== 'neon' && window.HOJT_STIL_SKAERME && HOJT_STIL_SKAERME.indexOf(g.id) >= 0) return 'hal/skaerme/' + STIL + '/' + g.id + '.png';
+    // Skærmbillede i stilens udseende (hal/skaerme/<stil>/<id>.webp, lavet med hal/skaerme/lav_stilbilleder.py), ellers neon-billedet
+    if (STIL !== 'neon' && window.HOJT_STIL_SKAERME && HOJT_STIL_SKAERME.indexOf(g.id) >= 0) return 'hal/skaerme/' + STIL + '/' + g.id + '.webp';
     return g.skaerm;
   }
 
