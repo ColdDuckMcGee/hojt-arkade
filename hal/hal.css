@@ -377,7 +377,14 @@ html[data-stil="pixel"] .spil-info { background: var(--nat); }
 html[data-stil="pixel"] .info-status { color: var(--gul); }
 html[data-stil="pixel"] .info-status.snart { color: var(--roed); }
 html[data-stil="pixel"] .info-navn { font-family: var(--titel-font); font-weight: 700; color: var(--hvid); }
-html[data-stil="pixel"] .taeller-tal { font-family: var(--titel-font); font-weight: 700; color: var(--hvid); background: var(--ink); padding: 4px 8px; }
+html[data-stil="pixel"] .taeller-tal { font-family: var(--font); font-weight: 400; color: var(--hvid); background: var(--ink); padding: 4px 8px; }
 html[data-stil="pixel"] .taeller-linje { height: 12px; border-radius: 0; background: var(--ink); box-shadow: 0 0 0 4px var(--graa); }
 html[data-stil="pixel"] .taeller-fyld { border-radius: 0; background: var(--gul); box-shadow: none; }
 html[data-stil="pixel"] .btn.spil-knap.snart { background: var(--nat); color: var(--gul); outline: 4px dashed var(--gul); box-shadow: none; }
+
+/* Udseende har i neon fem rækker (Stil, Tema, Baggrund, Animation, Effekter): knapperne gøres lidt
+   lavere her, så det hele kan ses uden at rulle. I de andre stile er Tema og Baggrund skjult. */
+html[data-stil="neon"] #indstillinger:has(#panel-udseende:not([hidden])) { --btn-h: calc((100dvh - 2 * var(--pad) - 7 * var(--gap) - 4.5rem) / 5.6); }
+@media (orientation: landscape) and (max-height: 700px) {
+  html[data-stil="neon"] #indstillinger:has(#panel-udseende:not([hidden])) #panel-udseende { --btn: min(var(--btn-ideal), calc((100dvh - 2 * var(--pad) - 5 * var(--gap)) / 5.6)); }
+}

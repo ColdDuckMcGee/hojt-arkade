@@ -40,3 +40,6 @@ window.HOJT_SPIL = [
   { navn: 'Kabalen',       sti: 'kabalen/',       farve: 'grøn',  status: 'aktiv', tekst: 'Klassisk kabale: byg fire bunker op fra es til konge. Kortene blandes helt tilfældigt, og der er intet ur.', skaerm: 'hal/skaerme/kabalen.svg' },
   { navn: 'Rampen',        sti: 'rampen/',        farve: 'orange', status: 'aktiv', tekst: 'Send bilen ud over rampen, saml mønter, og byg den om til en raketbil. Spillet fryser, når du skal vælge.', skaerm: 'hal/skaerme/rampen.svg' }
 ];
+
+// Skærmbilleder i stilene tegneserie og retro-pixel (hal/skaerme/<stil>/), lavet med hal/skaerme/lav_stilbilleder.py
+window.HOJT_STIL_SKAERME = ['billard', 'blokke', 'bobler', 'bomberne', 'fire-paa-stribe', 'flipper', 'froeen', 'golf', 'juveler', 'kabalen', 'kaelderen', 'kanonen', 'kaperen', 'kasser', 'labyrinten', 'loeberen', 'lys-ud', 'minestryger', 'muren', 'pixelgaader', 'rampen', 'rorlaegger', 'rumhandleren', 'slangen', 'soeslag', 'sudoku', 'taarnene'];
