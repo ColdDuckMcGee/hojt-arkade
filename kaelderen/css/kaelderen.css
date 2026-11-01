@@ -344,3 +344,39 @@ ol.records .score { white-space: nowrap; }
 .kaelder-lille .butik-status { font-size: 0.95rem; }
 .kaelder-lille .butik-besked { font-size: 1rem; min-height: 1.3em; }
 
+
+/* ---------- Stile (arkade/stil.js): 3D-billedet læser temaets variabler ---------- */
+html[data-stil="tegneserie"] {
+  --kaelder-vaeg-a: #e8d6b0; --kaelder-vaeg-b: #cdb68a; --kaelder-vaeg-fuge: #1b1b1f; --kaelder-vaeg-neon: #e8433a;
+  --kaelder-rum-a: #9fd3f0; --kaelder-rum-b: #7ab8dc; --kaelder-rum-fuge: #1b1b1f; --kaelder-rum-lys: #ffd23f;
+  --kaelder-doer-a: #c9884a; --kaelder-doer-b: #a0693a; --kaelder-doer-lys: #3dbe5a; --kaelder-laas: #e8433a;
+  --kaelder-gulv-a: #b8a37a; --kaelder-gulv-b: #a89268; --kaelder-gulv-fuge: #1b1b1f; --kaelder-rumgulv-a: #8fc0de; --kaelder-rumgulv-b: #7aafcf; --kaelder-rumgulv-neon: #2f80ed;
+  --kaelder-trappe-a: #c9884a; --kaelder-trappe-neon: #ffd23f; --kaelder-loft-a: #fff4cc; --kaelder-loft-b: #f3e3b0; --kaelder-rumloft-a: #e3f6ff; --kaelder-rumloft-neon: #ff6fae;
+  --kaelder-kravler: #3dbe5a; --kaelder-kravler-oeje: #e8433a; --kaelder-skytte: #9b6bff; --kaelder-skytte-visir: #ffd23f; --kaelder-kolos: #e8433a; --kaelder-kolos-kerne: #ffd23f;
+  --kaelder-metal-lys: #ffffff; --kaelder-metal-moerk: #1b1b1f; --kaelder-taage: #fff4cc; --kaelder-moerke: #cdb68a;
+  --kaelder-livbar: #3dbe5a; --kaelder-livbar-lav: #e8433a; --kaelder-livbar-bund: #1b1b1f; --kaelder-livbar-kant: #1b1b1f;
+  --kaelder-markering: #e8433a; --kaelder-sigte: #1b1b1f; --kaelder-tekst: #1b1b1f; --kaelder-tekst-kant: #ffffff;
+  --kaelder-vaaben: #6b7a8f; --kaelder-vaaben-lys: #ffffff; --kaelder-vaaben-moerk: #1b1b1f; --kaelder-vaaben-neon: #e8433a;
+  --kaelder-kort-bund: rgba(255, 255, 255, 0.92); --kaelder-kort-gulv: #e8d6b0; --kaelder-kort-rum: #9fd3f0; --kaelder-kort-vaeg: #1b1b1f;
+  --kaelder-kort-doer: #3dbe5a; --kaelder-kort-laast: #e8433a; --kaelder-kort-trappe: #b37b00; --kaelder-kort-spiller: #2f80ed; --kaelder-kort-fjende: #e8433a;
+  --kaelder-kort-kant: #1b1b1f; --kaelder-ramme: #1b1b1f;
+  --kaelder-ok: #2a9d4a; --kaelder-fejl: #e8433a; --kaelder-advarsel: #c25e00; --kaelder-shadow: transparent;
+  --kaelder-overlay-bg: rgba(255, 233, 174, 0.8); --kaelder-overlay-soft: rgba(255, 233, 174, 0.6); --kaelder-besked-bg: rgba(255, 255, 255, 0.9); --kaelder-vare-bg: rgba(255, 255, 255, 0.85);
+  --kaelder-aktion-tekst: #e8433a; --kaelder-skrift-vaegt: 700;
+  --kaelder-gloed: 0; --kaelder-bloom: 0; --kaelder-scanlines: 0; --kaelder-vignet: 0.2; --kaelder-lys-omgivelse: 0.75;
+  --kaelder-text-shadow: none; --kaelder-text-shadow-strong: none; --kaelder-view-glow: 8px 8px 0 var(--ink);
+}
+html[data-stil="pixel"] {
+  --kaelder-vaeg-a: #5f574f; --kaelder-vaeg-b: #3a3530; --kaelder-vaeg-fuge: #000000; --kaelder-vaeg-neon: #ff77a8;
+  --kaelder-rum-a: #1d2b53; --kaelder-rum-b: #16224a; --kaelder-rum-fuge: #29adff; --kaelder-rum-lys: #29adff;
+  --kaelder-doer-a: #ab5236; --kaelder-doer-b: #7a3a26; --kaelder-doer-lys: #00e436; --kaelder-laas: #ff77a8;
+  --kaelder-gulv-a: #3a3530; --kaelder-gulv-b: #5f574f; --kaelder-gulv-fuge: #000000; --kaelder-rumgulv-a: #111a3d; --kaelder-rumgulv-b: #1d2b53; --kaelder-rumgulv-neon: #29adff;
+  --kaelder-trappe-a: #ab5236; --kaelder-trappe-neon: #ffec27; --kaelder-loft-a: #0b1026; --kaelder-loft-b: #1d2b53; --kaelder-rumloft-a: #0b1026; --kaelder-rumloft-neon: #ff77a8;
+  --kaelder-kravler: #00e436; --kaelder-kravler-oeje: #ff004d; --kaelder-skytte: #c2c3c7; --kaelder-skytte-visir: #29adff; --kaelder-kolos: #ab5236; --kaelder-kolos-kerne: #ffa300;
+  --kaelder-taage: #000000; --kaelder-livbar: #00e436; --kaelder-livbar-lav: #ff004d; --kaelder-livbar-kant: #fff1e8;
+  --kaelder-markering: #ffec27; --kaelder-ramme: #fff1e8; --kaelder-kort-kant: #29adff;
+  --kaelder-ok: #00e436; --kaelder-fejl: #ff004d; --kaelder-advarsel: #ffa300; --kaelder-shadow: transparent;
+  --kaelder-skrift: var(--titel-font); --kaelder-skrift-vaegt: 700;
+  --kaelder-gloed: 0; --kaelder-bloom: 0; --kaelder-scanlines: 0;
+  --kaelder-text-shadow: none; --kaelder-text-shadow-strong: none; --kaelder-view-glow: 0 0 0 4px #29adff;
+}
