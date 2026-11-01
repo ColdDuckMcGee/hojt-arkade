@@ -12,7 +12,7 @@
 
   // ---------- Indstillinger (fælles for Hojt Arkade + spillets egne) ----------
   var arkade = ArkadeSettings.create('arkade', {
-    begraensEffekter: false,
+    begraensEffekter: false, stil: 'neon',
     dwell: false, dwellTime: 1.2, theme: 'neon', background: 'mork',
     animation: true, sound: true, music: true
   });
@@ -82,7 +82,7 @@
   if (reducedMotionMq.addEventListener) reducedMotionMq.addEventListener('change', applyAnimation);
 
   arkade.onChange(function (key, value) {
-    if (key === 'theme') applyTheme(); if (key === 'begraensEffekter') { ArkadeEffekter.anvend(value); applyTheme(); }
+    if (key === 'theme') applyTheme(); if (key === 'stil' && window.ArkadeStil) { ArkadeStil.skift(value); return; } if (key === 'begraensEffekter') { ArkadeEffekter.anvend(value); applyTheme(); }
     if (key === 'background') applyBackground();
     if (key === 'animation') applyAnimation();
     if (key === 'dwell') dwell.setEnabled(value);
@@ -139,7 +139,7 @@
     sfx('click');
     audio.setMusic(false); // stopper kun musikken nu – den gemte indstilling ændres ikke
     [arkade, lab].forEach(function (s) {
-      try { localStorage.setItem(s.storageKey, JSON.stringify(s.all())); } catch (e) { /* fx privat tilstand */ }
+      try { s.flush(); } catch (e) { /* fx privat tilstand */ }
     });
     location.href = $('#btn-hall').dataset.href;
   }

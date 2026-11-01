@@ -3,7 +3,7 @@
  * Små, genbrugelige indstillinger gemt i localStorage.
  *
  *   const s = ArkadeSettings.create('arkade', { dwell: false, dwellTime: 1.2 });
- *   s.get('dwell'); s.set('dwell', true); s.all(); s.reset();
+ *   s.get('dwell'); s.set('dwell', true); s.all(); s.flush(); s.reset();
  *   const off = s.onChange((key, value) => { ... }); off();
  *
  * Kun nøgler, der findes i defaults, kan bruges. Gemte værdier med forkert
@@ -77,6 +77,7 @@
       },
       toggle: function (key) { api.set(key, !values[key]); return values[key]; },
       all: function () { return Object.assign({}, values); },
+      flush: save,   // gem nu (fx lige før siden forlades) – bevarer nøgler, siden ikke kender (fx stil)
       defaults: function () { return Object.assign({}, defaults); },
       reset: function () {
         values = Object.assign({}, defaults);

@@ -17,7 +17,7 @@
 
   // ---------- Indstillinger (fælles for Hojt Arkade + spillets egne) ----------
   var arkade = ArkadeSettings.create('arkade', {
-    begraensEffekter: false,
+    begraensEffekter: false, stil: 'neon',
     dwell: false, dwellTime: 1.2, theme: 'neon', background: 'mork',
     animation: true, sound: true, music: true
   });
@@ -86,7 +86,7 @@
   }
   if (reducedMotionMq.addEventListener) reducedMotionMq.addEventListener('change', applyAnimation);
   arkade.onChange(function (key, value) {
-    if (key === 'theme') applyTheme(); if (key === 'begraensEffekter') { ArkadeEffekter.anvend(value); applyTheme(); applyGlow(); }
+    if (key === 'theme') applyTheme(); if (key === 'stil' && window.ArkadeStil) { ArkadeStil.skift(value); return; } if (key === 'begraensEffekter') { ArkadeEffekter.anvend(value); applyTheme(); applyGlow(); }
     if (key === 'background') applyBackground();
     if (key === 'animation') applyAnimation();
     if (key === 'dwell') dwell.setEnabled(value);
@@ -162,7 +162,7 @@
   function goToHall() {
     sfx('click');
     audio.setMusic(false);
-    [arkade, gset].forEach(function (s) { try { localStorage.setItem(s.storageKey, JSON.stringify(s.all())); } catch (e) { /* */ } });
+    [arkade, gset].forEach(function (s) { try { s.flush(); } catch (e) { /* */ } });
     saveGame();
     location.href = $('#btn-hall').dataset.href;
   }
