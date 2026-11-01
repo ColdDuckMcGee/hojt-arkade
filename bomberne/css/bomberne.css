@@ -363,3 +363,29 @@ html, body { height: 100%; height: 100dvh; }
 .bb-lille #settings .trin-bund { gap: 10px; margin-top: auto; }
 .bb-tvaers #menu .size-note { font-size: 0.9rem; line-height: 1.25; max-width: 52em; }
 .bb-lille .value-box { min-width: 4.2em; font-size: 1.5rem; }
+
+/* ---------- Stile (arkade/stil.js): lærredet læser de samme variabler ---------- */
+html[data-stil="tegneserie"] {
+  --bb-floor: #a8e07a; --bb-grid: rgba(27, 27, 31, 0.08); --bb-frame: var(--ink);
+  --bb-pillar-fill: #6b7a8f; --bb-pillar-edge: var(--ink);
+  --bb-crate: var(--ink); --bb-crate-glass1: #ff9f1c; --bb-crate-glass2: #c96a3a; --bb-crate-shine: #ffe2a8;
+  --bb-player: var(--ink); --bb-player-fill: #4fc3f7;
+  --bb-bomb: var(--ink); --bb-bomb-fill: #1b1b1f; --bb-bomb-core: #3a3a44; --bb-bomb-text: #ffffff; --bb-fuse: #ff9f1c; --bb-fuse-tip: #e8433a;
+  --bb-flame: #ff9f1c; --bb-flame-core: #ffd23f; --bb-flame-edge: rgba(232, 67, 58, 0); --bb-danger: #e8433a;
+  --bb-e-wander: #3dbe5a; --bb-e-chaser: #e8433a; --bb-e-slow: #9b6bff; --bb-enemy-fill: #ffffff;
+  --bb-door: var(--ink); --bb-door-fill: #ffd23f; --bb-door-closed: #6b6250; --bb-pickup: var(--ink); --bb-pickup-fill: #ffffff;
+}
+html[data-stil="pixel"] {
+  --bb-floor: #008751; --bb-grid: rgba(0, 0, 0, 0.15); --bb-frame: #fff1e8;
+  --bb-pillar-fill: #5f574f; --bb-pillar-edge: #c2c3c7;
+  --bb-crate: #000000; --bb-crate-glass1: #ffa300; --bb-crate-glass2: #ab5236; --bb-crate-shine: #ffccaa;
+  --bb-player: #000000; --bb-player-fill: #29adff;
+  --bb-bomb: #000000; --bb-bomb-fill: #1d2b53; --bb-bomb-core: #5f574f; --bb-bomb-text: #fff1e8; --bb-fuse: #ffa300; --bb-fuse-tip: #ffec27;
+  --bb-flame: #ffa300; --bb-flame-core: #ffec27; --bb-flame-edge: rgba(255, 0, 77, 0); --bb-danger: #ff004d;
+  --bb-e-wander: #00e436; --bb-e-chaser: #ff004d; --bb-e-slow: #a77bff; --bb-enemy-fill: #000000;
+  --bb-door: #ffec27; --bb-door-fill: rgba(255, 236, 39, 0.25); --bb-door-closed: #5f574f; --bb-pickup: #29adff; --bb-pickup-fill: #000000;
+}
+html[data-stil="tegneserie"] #board { border: 5px solid var(--ink); box-shadow: 8px 8px 0 var(--ink); }
+html[data-stil="pixel"] #board { --k: var(--bb-frame); border: 0; border-radius: 0; box-shadow: var(--pixelkant); }
+html[data-stil="tegneserie"] .heart { fill: #e8433a; stroke: var(--ink); stroke-width: 6; filter: none; }
+html[data-stil="pixel"] .heart { fill: #ff004d; stroke: #000; stroke-width: 4; filter: none; }
