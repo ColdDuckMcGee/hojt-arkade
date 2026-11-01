@@ -264,3 +264,18 @@ html, body { font-size: calc(18px * var(--kfit)); }
 @media (prefers-reduced-motion: reduce) {
   .hp-bar span, .wind-arrow { transition: none; }
 }
+
+/* ---------- Stile (arkade/stil.js): lærredet læser de samme variabler ---------- */
+html[data-stil="tegneserie"] {
+  --kn-player: #2f80ed; --kn-cpu: #e8433a; --kn-ground: #1b1b1f; --kn-ground-fill0: #8ed36b; --kn-ground-fill1: #5aa94a; --kn-grid-alpha: 0.08;
+  --kn-sky0: #8fd3ff; --kn-sky1: #fff4cc; --kn-sun0: #ffd23f; --kn-sun1: #ff9f1c; --kn-sun-alpha: 1; --kn-star: #ffffff;
+  --kn-boom: #ff9f1c; --kn-boom2: #ffd23f; --kn-wind: #1b1b1f; --kn-cannon-fill: #ffffff;
+}
+html[data-stil="pixel"] {
+  --kn-player: #29adff; --kn-cpu: #ff77a8; --kn-ground: #00e436; --kn-ground-fill0: #008751; --kn-ground-fill1: #1d2b53; --kn-grid-alpha: 0.15;
+  --kn-sky0: #0b1026; --kn-sky1: #1d2b53; --kn-sun0: #ffec27; --kn-sun1: #ffa300; --kn-sun-alpha: 1; --kn-star: #fff1e8;
+  --kn-boom: #ffa300; --kn-boom2: #ffec27; --kn-wind: #ffec27; --kn-cannon-fill: #000000;
+}
+html[data-stil="tegneserie"] #field { border: 5px solid var(--ink); border-radius: 10px; box-shadow: 8px 8px 0 var(--ink); }
+html[data-stil="pixel"] #field { --k: #fff1e8; border: 0; border-radius: 0; box-shadow: var(--pixelkant); }
+html[data-stil="tegneserie"] .hp-bar, html[data-stil="pixel"] .hp-bar { border-radius: 0; }
