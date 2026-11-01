@@ -21,33 +21,24 @@
  *   ArkadeStil.pixelStr        // CSS-px pr. "pixel" i pixel-stil (lærreder tegnes i lav opløsning)
  *   ArkadeStil.skift('pixel')  // gem og genindlæs siden
  *
- * Indtil alle spil er klar, kan stilene kun vælges i forhåndsvisning: åbn hallen med
- * ?stilforhaand=1 (huskes i browseren; ?stilforhaand=0 slår den fra igen).
  * Kun ES5, virker fra file://.
  */
 (function (global) {
   'use strict';
   var doc = global.document;
   var STILE = ['neon', 'tegneserie', 'pixel'];
-  var KEY = 'hojtArkade.arkade.indstillinger', FORH = 'hojtArkade.stilForhaand';
+  var KEY = 'hojtArkade.arkade.indstillinger';
   function get(k) { try { return global.localStorage.getItem(k); } catch (e) { return null; } }
-  function set(k, v) { try { if (v === null) global.localStorage.removeItem(k); else global.localStorage.setItem(k, v); } catch (e) { /* ignore */ } }
+  function set(k, v) { try { global.localStorage.setItem(k, v); } catch (e) { /* ignore */ } }
 
-  // Forhåndsvisning: ?stilforhaand=1 / =0
-  var m = /[?&]stilforhaand=([01])/.exec(global.location.search || '');
-  if (m) set(FORH, m[1] === '1' ? '1' : null);
-  var aaben = get(FORH) === '1';
-
-  var gemt = 'neon';
-  try { var a = JSON.parse(get(KEY) || '{}'); if (a && STILE.indexOf(a.stil) >= 0) gemt = a.stil; } catch (e) { gemt = 'neon'; }
-  var stil = aaben ? gemt : 'neon';
+  var stil = 'neon';
+  try { var a = JSON.parse(get(KEY) || '{}'); if (a && STILE.indexOf(a.stil) >= 0) stil = a.stil; } catch (e) { stil = 'neon'; }
   if (doc && doc.documentElement) doc.documentElement.setAttribute('data-stil', stil);
 
   function valgt(har) { return har && har.indexOf(stil) >= 0 ? stil : 'neon'; }
 
   global.ArkadeStil = {
     STILE: STILE,
-    aaben: aaben,
     pixelStr: 4,
     stil: function () { return stil; },
     pixel: function () { return stil === 'pixel'; },

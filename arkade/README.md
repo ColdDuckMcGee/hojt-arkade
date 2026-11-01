@@ -207,8 +207,6 @@ Fælles indstilling `arkade.stil` (Indstillinger → Udseende → Stil i hallen)
   `tema/neon/tema.css`), de andre nederst i spillets egen CSS. Lærrederne læser variablerne som før.
 - Pixelkanten: `box-shadow: var(--pixelkant)` med kantfarven i `--k` (arves ikke).
 - Skrifterne ligger i `skrift/` (SIL OFL, se `skrift/LICENS.txt`) og hentes kun i den valgte stil.
-- **Forhåndsvisning:** indtil stilene åbnes for alle, kan de kun vælges efter at hallen er åbnet
-  med `?stilforhaand=1` (huskes i browseren; `?stilforhaand=0` slår det fra). Ellers er alt neon.
 
 ## Begræns effekter (ArkadeEffekter i settings.js, effekter.js)
 ```js

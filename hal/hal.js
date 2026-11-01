@@ -509,9 +509,6 @@
     }
     syncSettings();
   });
-  // Stil kan indtil videre kun vælges i forhåndsvisning (se arkade/stil.js)
-  var stilRaekke = $('#indstillinger .setting-stil');
-  if (stilRaekke) stilRaekke.hidden = !(window.ArkadeStil && ArkadeStil.aaben);
 
   // ---------- Tastatur ----------
   document.addEventListener('keydown', function (e) {
