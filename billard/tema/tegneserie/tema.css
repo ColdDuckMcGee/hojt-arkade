@@ -1,0 +1,21 @@
+/* Tegneserie-stilen (arkade/stil.js): kun variabler og flader, der adskiller sig fra neon.
+ * Indlæses altid efter tema/neon/tema.css og gælder kun under <html data-stil="tegneserie">. */
+html[data-stil="tegneserie"] {
+  --billard-bord: #a0522d; --billard-bord-2: #8a4424; --billard-bord-kant: #1b1b1f; --billard-diamant: #ffd23f;
+  --billard-filt: #2a9d4a; --billard-filt-2: #23863f; --billard-filt-moenster: rgba(255, 255, 255, 0.06); --billard-linje: rgba(255, 255, 255, 0.55);
+  --billard-bande: #1f7a38; --billard-bande-kant: #1b1b1f; --billard-hul: #1b1b1f; --billard-hul-kant: #1b1b1f;
+  --billard-kugle-1: #ffd23f; --billard-kugle-2: #2f80ed; --billard-kugle-3: #e8433a; --billard-kugle-4: #9b6bff; --billard-kugle-5: #ff9f1c;
+  --billard-kugle-6: #3dbe5a; --billard-kugle-7: #a8324a; --billard-kugle-8: #1b1b1f; --billard-kugle-9: #ffd23f; --billard-kugle-10: #2f80ed;
+  --billard-kugle-11: #e8433a; --billard-kugle-12: #9b6bff; --billard-kugle-13: #ff9f1c; --billard-kugle-14: #3dbe5a; --billard-kugle-15: #a8324a;
+  --billard-kugle-stoed: #ffffff; --billard-kugle-hvid: #ffffff; --billard-kugle-tal: #1b1b1f; --billard-kugle-tal-bund: #ffffff;
+  --billard-kugle-kant: #1b1b1f; --billard-kugle-kant-w: 2.5; --billard-kugle-glans: rgba(255, 255, 255, 0.6);
+  --billard-otte-ring: #ffffff; --billard-otte-kant: #1b1b1f; --billard-maal: #ffd23f; --billard-haand: #ffffff;
+  --billard-koe: #f0d9a8; --billard-koe-2: #1b1b1f; --billard-koe-spids: #2f80ed;
+  --billard-sigte: #ffffff; --billard-sigte-spoegelse: rgba(255, 255, 255, 0.9); --billard-sigte-obj: #ffd23f; --billard-sigte-stoed: rgba(255, 255, 255, 0.85); --billard-sigte-advarsel: #e8433a;
+  --billard-gloed: 0; --billard-skygge-farve: rgba(27, 27, 31, 0.55); --billard-skygge-x: 2; --billard-skygge-y: 3;
+  --billard-kontur: #1b1b1f; --billard-kontur-w: 2.5; --billard-bord-kant-w: 5;
+  --billard-ok: #2a9d4a; --billard-fejl: #e8433a; --billard-shadow: transparent;
+  --billard-overlay-bg: rgba(255, 233, 174, 0.8); --billard-overlay-soft: rgba(255, 233, 174, 0.6);
+  --billard-meter: #e8433a; --billard-meter-tom: rgba(27, 27, 31, 0.2);
+  --billard-board-glow: 8px 8px 0 var(--ink); --billard-score-glow: none; --billard-points-glow: none; --billard-text-shadow: none; --billard-text-shadow-strong: none;
+}

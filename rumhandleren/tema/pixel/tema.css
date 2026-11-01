@@ -1,0 +1,38 @@
+/* Retro-pixel-stilen (arkade/stil.js): kun variabler og flader, der adskiller sig fra neon.
+ * Indlæses altid efter tema/neon/tema.css og gælder kun under <html data-stil="pixel">. */
+html[data-stil="pixel"] {
+  --rh-rum-1: #000000; --rh-rum-2: #0b1026; --rh-stjerne: #fff1e8; --rh-taage: rgba(126, 37, 83, 0.25);
+  --rh-gitter: rgba(41, 173, 255, 0.08); --rh-rute: #5f574f; --rh-rute-1: #ffa300; --rh-rute-2: #ff004d;
+  --rh-sti: #ffec27; --rh-ruteskib-sti: rgba(41, 173, 255, 0.6);
+  --rh-planet-vega: #29adff; --rh-planet-vega-kant: #fff1e8; --rh-planet-orion: #ff77a8; --rh-planet-orion-kant: #fff1e8;
+  --rh-planet-kant: #ffa300; --rh-planet-kant-kant: #fff1e8; --rh-planet-detalje: rgba(0, 0, 0, 0.35);
+  --rh-laas: #fff1e8; --rh-navn: #fff1e8; --rh-navn-valgt: #ffec27; --rh-navn-kant: #000000;
+  --rh-valg: #ffec27; --rh-her: #00e436; --rh-skib: #00e436; --rh-ruteskib: #29adff; --rh-begivenhed: #ffec27; --rh-bygning: #c2c3c7;
+  --rh-vare: #fff1e8; --rh-vare-forbudt: #ff004d;
+  --rh-skrog: #c2c3c7; --rh-skrog-kant: #000000; --rh-motor: #ff004d; --rh-vindue: #29adff;
+  --rh-ok: #00e436; --rh-fejl: #ff004d; --rh-advarsel: #ffec27; --rh-kredit: #ffec27; --rh-billig: #00e436; --rh-dyr: #ff004d;
+  --rh-frak-vega: #29adff; --rh-frak-orion: #ff77a8; --rh-frak-kant: #ffa300;
+  --rh-shadow: transparent; --rh-kort-bg: #0b1026; --rh-kort-valgt: #1d2b53;
+  --rh-bar: #00e436; --rh-bar-lav: #ff004d; --rh-bar-tom: #1d2b53;
+  --rh-font: var(--font); --rh-frame-w: 4px; --rh-radius-kort: 0px; --rh-radius-hud: 0px; --rh-radius-swatch: 0px; --rh-radius-bar: 0px;
+  --rh-gloed-filter: none; --rh-gloed-filter-accent: none; --rh-planet-gloed: none; --rh-text-shadow: none;
+  --rh-kort-gloed: 0 0 0 4px #29adff; --rh-kredit-gloed: none;
+}
+html[data-stil="pixel"] #game svg {
+  shape-rendering: crispEdges;
+}
+html[data-stil="pixel"] .btn[aria-pressed="true"] {
+  --ico-fill: currentColor; --ico-line: currentColor;
+}
+html[data-stil="pixel"] .planet-btn {
+  background: transparent; border: var(--rh-block-w) solid transparent; box-shadow: none;
+}
+html[data-stil="pixel"] .planet-btn:is(:hover {
+  background: var(--rh-kort-valgt); border-color: var(--rh-valg); box-shadow: none;
+}
+html[data-stil="pixel"] .planet-btn[aria-pressed="true"] {
+  background: transparent; border-color: transparent; box-shadow: none;
+}
+html[data-stil="pixel"] .planet-btn[aria-pressed="true"]::after {
+  content: none;
+}

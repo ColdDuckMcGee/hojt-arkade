@@ -1,0 +1,19 @@
+/* Tegneserie-stilen (arkade/stil.js): kun variabler og flader, der adskiller sig fra neon.
+ * Indlæses altid efter tema/neon/tema.css og gælder kun under <html data-stil="tegneserie">. */
+html[data-stil="tegneserie"] {
+  --golf-flade: #8ed36b; --golf-flade-2: #7ac45a; --golf-flade-moenster: rgba(255, 255, 255, 0.18);
+  --golf-kant: #1b1b1f; --golf-kant-inde: rgba(27, 27, 31, 0.25); --golf-bande: #c9884a; --golf-bande-kerne: #1b1b1f;
+  --golf-kontur: #1b1b1f; --golf-kontur-w: 3;
+  --golf-sand: #f3dcae; --golf-sand-moenster: rgba(201, 136, 74, 0.6); --golf-vand: #4fc3f7; --golf-vand-boelge: #ffffff;
+  --golf-skraaning: rgba(27, 27, 31, 0.08); --golf-skraaning-pil: rgba(27, 27, 31, 0.5);
+  --golf-tee: rgba(255, 255, 255, 0.35); --golf-tee-kant: #1b1b1f; --golf-hul: #1b1b1f; --golf-hul-kant: #1b1b1f;
+  --golf-flag: #e8433a; --golf-flagstang: #1b1b1f; --golf-bold: #ffffff; --golf-bold-kant: #1b1b1f;
+  --golf-sigte: #1b1b1f; --golf-sigte-pil: #e8433a; --golf-spor: rgba(27, 27, 31, 0.4); --golf-slutpunkt: #e8433a;
+  --golf-gloed: 0; --golf-skygge-farve: #1b1b1f; --golf-skygge-x: 3; --golf-skygge-y: 3;
+  --golf-board-bg: #fffaf0; --golf-frame: #1b1b1f; --golf-ok: #2a9d4a; --golf-fejl: #e8433a; --golf-vand-tekst: #2f80ed;
+  --golf-shadow: transparent; --golf-overlay-bg: rgba(255, 233, 174, 0.8); --golf-overlay-soft: rgba(255, 233, 174, 0.6);
+  --golf-meter: #e8433a; --golf-meter-tom: rgba(27, 27, 31, 0.2); --golf-frame-w: 5px; --golf-bold-kant-w: 3;
+}
+html[data-stil="tegneserie"] {
+  --golf-board-glow: 8px 8px 0 var(--ink); --golf-score-glow: none; --golf-points-glow: none; --golf-text-shadow: none; --golf-text-shadow-strong: none;
+}

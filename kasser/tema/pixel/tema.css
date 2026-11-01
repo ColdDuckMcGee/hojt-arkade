@@ -1,0 +1,13 @@
+/* Retro-pixel-stilen (arkade/stil.js): kun variabler og flader, der adskiller sig fra neon.
+ * Indlæses altid efter tema/neon/tema.css og gælder kun under <html data-stil="pixel">. */
+html[data-stil="pixel"] {
+  --ks-floor: #000000; --ks-floor-line: rgba(41, 173, 255, 0.12); --ks-wall: #5f574f; --ks-wall-fill: #ab5236; --ks-wall-shine: rgba(255, 204, 170, 0.35);
+  --ks-goal: #29adff; --ks-goal-fill: rgba(41, 173, 255, 0.18); --ks-box: #000000; --ks-box-fill: #ffa300;
+  --ks-box-done: #000000; --ks-box-done-fill: #00e436; --ks-check: #fff1e8;
+  --ks-player: #000000; --ks-player-fill: #ff77a8; --ks-preview: #ffec27; --ks-stuck: #ff004d; --ks-stuck-text: #fff1e8;
+  --ks-radius-box: 0; --ks-radius-preview: 0; --ks-radius-note: 0px; --ks-radius-hud: 0; --ks-radius-swatch: 0px;
+  --ks-text-shadow: none; --ks-text-shadow-lead: none; --ks-suggest-glow: 0px; --ks-score-glow: 0px;
+}
+html[data-stil="pixel"] #board {
+  --k: #29adff; box-shadow: var(--pixelkant);
+}

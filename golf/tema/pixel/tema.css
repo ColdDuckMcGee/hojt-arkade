@@ -1,0 +1,20 @@
+/* Retro-pixel-stilen (arkade/stil.js): kun variabler og flader, der adskiller sig fra neon.
+ * Indlæses altid efter tema/neon/tema.css og gælder kun under <html data-stil="pixel">. */
+html[data-stil="pixel"] {
+  --golf-flade: #008751; --golf-flade-2: #007045; --golf-flade-moenster: rgba(0, 228, 54, 0.15);
+  --golf-kant: #fff1e8; --golf-kant-inde: rgba(255, 241, 232, 0.25); --golf-bande: #5f574f; --golf-bande-kerne: #c2c3c7;
+  --golf-kontur: #000000; --golf-kontur-w: 2;
+  --golf-sand: #ffccaa; --golf-sand-moenster: rgba(171, 82, 54, 0.6); --golf-vand: #1d2b53; --golf-vand-boelge: #29adff;
+  --golf-skraaning: rgba(0, 0, 0, 0.15); --golf-skraaning-pil: rgba(255, 241, 232, 0.6);
+  --golf-tee: rgba(255, 241, 232, 0.12); --golf-tee-kant: #fff1e8; --golf-hul: #000000; --golf-hul-kant: #fff1e8;
+  --golf-flag: #ff004d; --golf-flagstang: #fff1e8; --golf-bold: #fff1e8; --golf-bold-kant: #000000;
+  --golf-sigte: #ffec27; --golf-sigte-pil: #ffec27; --golf-spor: rgba(255, 241, 232, 0.4); --golf-slutpunkt: #ffec27;
+  --golf-gloed: 0; --golf-board-bg: #000000; --golf-frame: #fff1e8; --golf-ok: #00e436; --golf-fejl: #ff004d; --golf-vand-tekst: #29adff;
+  --golf-shadow: transparent; --golf-meter: #ffec27; --golf-meter-tom: #1d2b53; --golf-frame-w: 4px; --golf-radius-felt: 0;
+}
+html[data-stil="pixel"] {
+  --golf-radius-board: 0px; --golf-radius-hud: 0px; --golf-radius-hud-small: 0px; --golf-radius-swatch: 0px; --golf-radius-meter: 0px;
+}
+html[data-stil="pixel"] {
+  --golf-board-glow: 0 0 0 4px #29adff; --golf-score-glow: none; --golf-points-glow: none; --golf-text-shadow: none; --golf-text-shadow-strong: none;
+}

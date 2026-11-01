@@ -261,35 +261,3 @@ ol.records .score { white-space: nowrap; }
 .end-row .act-btn .big { white-space: nowrap; font-size: clamp(1.05rem, calc(var(--side-w, 300px) * 0.068), 1.6rem); }
 .compact .end-row .act-btn .big { font-size: clamp(1rem, calc(var(--btn) * 0.17), 1.5rem); }
 .end-row .act-btn { column-gap: 10px; padding-left: 12px; padding-right: 12px; }
-
-/* ---------- Stile (arkade/stil.js) ---------- */
-html[data-stil="tegneserie"] {
-  --fp-board: #2f80ed; --fp-board2: #2f80ed; --fp-frame: var(--ink); --fp-hole: #fffaf0; --fp-hole-ring: var(--ink);
-  --fp-p1: #e8433a; --fp-p1-core: #ff8f86; --fp-p2: #ffd23f; --fp-p2-core: #fff1b8;
-  --fp-tip: #2a9d4a; --fp-cursor: var(--ink); --fp-win: var(--ink); --fp-ok: #2a9d4a; --fp-lost: #e8433a;
-}
-html[data-stil="tegneserie"] .board { background: var(--fp-board); border: 5px solid var(--ink); box-shadow: 8px 8px 0 var(--ink); }
-html[data-stil="tegneserie"] .col-num { color: #ffffff; }
-html[data-stil="tegneserie"] .slot::before { box-shadow: inset 0 0 0 4px var(--ink); }
-html[data-stil="tegneserie"] .slot.p1 .disc { background: var(--fp-p1); box-shadow: inset 0 0 0 4px var(--ink), inset 0 0 0 calc(var(--cell, 100px) * .1) var(--fp-p1), inset 0 0 0 calc(var(--cell, 100px) * .1 + 4px) var(--ink); }
-html[data-stil="tegneserie"] .slot.p2 .disc { background: var(--fp-p2); box-shadow: inset 0 0 0 4px var(--ink); }
-html[data-stil="tegneserie"] .slot.p2 .disc::after { background: var(--ink); }
-html[data-stil="tegneserie"] .slot.ghost .disc { border-color: var(--ink); background: rgba(232, 67, 58, 0.3); }
-html[data-stil="tegneserie"] .slot.tipslot .disc { box-shadow: none; }
-html[data-stil="tegneserie"] .slot.win .disc { box-shadow: inset 0 0 0 4px var(--ink); }
-
-html[data-stil="pixel"] {
-  --fp-board: #1d2b53; --fp-board2: #1d2b53; --fp-frame: #29adff; --fp-hole: #000000; --fp-hole-ring: #29adff;
-  --fp-p1: #ff004d; --fp-p1-core: #ff77a8; --fp-p2: #ffec27; --fp-p2-core: #fff1e8;
-  --fp-tip: #00e436; --fp-cursor: #fff1e8; --fp-win: #fff1e8; --fp-ok: #00e436; --fp-lost: #ff004d;
-}
-html[data-stil="pixel"] .board { --k: var(--fp-frame); background: var(--fp-board); border: 0; border-radius: 0; box-shadow: var(--pixelkant); }
-html[data-stil="pixel"] .slot::before, html[data-stil="pixel"] .disc {
-  border-radius: 0; clip-path: polygon(30% 0, 70% 0, 70% 10%, 90% 10%, 90% 30%, 100% 30%, 100% 70%, 90% 70%, 90% 90%, 70% 90%, 70% 100%, 30% 100%, 30% 90%, 10% 90%, 10% 70%, 0 70%, 0 30%, 10% 30%, 10% 10%, 30% 10%);
-}
-html[data-stil="pixel"] .slot::before { box-shadow: none; }
-html[data-stil="pixel"] .slot.p1 .disc { background: var(--fp-p1); box-shadow: inset -6px -6px 0 #a3002f, inset 6px 6px 0 var(--fp-p1-core); }
-html[data-stil="pixel"] .slot.p2 .disc { background: var(--fp-p2); box-shadow: inset -6px -6px 0 #d9a800, inset 6px 6px 0 var(--fp-p2-core); }
-html[data-stil="pixel"] .slot.p2 .disc::after { border-radius: 0; background: #1d2b53; }
-html[data-stil="pixel"] .slot.tipslot .disc { box-shadow: none; }
-html[data-stil="pixel"] .slot.win .disc { outline: 0; box-shadow: inset 0 0 0 6px var(--fp-win); }

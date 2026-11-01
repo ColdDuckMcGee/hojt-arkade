@@ -1,0 +1,14 @@
+/* Tegneserie-stilen (arkade/stil.js): kun variabler og flader, der adskiller sig fra neon.
+ * Indlæses altid efter tema/neon/tema.css og gælder kun under <html data-stil="tegneserie">. */
+html[data-stil="tegneserie"] {
+  --rl-board: #fffaf0; --rl-frame: var(--ink); --rl-grid: #e6dcc0; --rl-felt: transparent; --rl-felt-hover: rgba(255, 210, 63, 0.45);
+  --rl-ror: #9aa7b8; --rl-ror-kant: var(--ink); --rl-ror-forb: #c9d3df; --rl-flange: #6b7a8f; --rl-flange-forb: #9aa7b8;
+  --rl-vand: #2f80ed; --rl-vand-kerne: #8fc0ff;
+  --rl-kilde: #2f80ed; --rl-kilde-kant: var(--ink); --rl-kilde-ikon: #ffffff;
+  --rl-afloeb: #ffd23f; --rl-afloeb-kant: var(--ink); --rl-afloeb-rist: var(--ink); --rl-afloeb-vaad: #2f80ed;
+  --rl-cursor: #e8433a; --rl-fejl: #e8433a; --rl-ok: #2a9d4a; --rl-shadow: transparent;
+  --rl-overlay-bg: rgba(255, 233, 174, 0.8); --rl-overlay-soft: rgba(255, 233, 174, 0.6);
+  --rl-frame-w: 5px; --rl-radius-board: 10px; --rl-ror-kant-w: 42; --rl-flange-kant-w: 5; --rl-kilde-kant-w: 6;
+  --rl-board-glow: 8px 8px 0 var(--ink); --rl-vand-glow: none; --rl-kilde-glow: none; --rl-afloeb-glow: none; --rl-score-glow: none; --rl-points-glow: none;
+  --rl-text-shadow: none; --rl-text-shadow-strong: none;
+}

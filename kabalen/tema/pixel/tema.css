@@ -1,0 +1,14 @@
+/* Retro-pixel-stilen (arkade/stil.js): kun variabler og flader, der adskiller sig fra neon.
+ * Indlæses altid efter tema/neon/tema.css og gælder kun under <html data-stil="pixel">. */
+html[data-stil="pixel"] {
+  --ka-kort-bg: #fff1e8; --ka-kort-kant: #000000; --ka-rod: #ff004d; --ka-sort: #1d2b53;
+  --ka-bag-bg: #29adff; --ka-bag-bg2: #1d2b53; --ka-bag-line: #fff1e8; --ka-bag-kant: #000000; --ka-bag-fill: rgba(255, 241, 232, 0.2);
+  --ka-plads-kant: #5f574f; --ka-plads-bg: rgba(0, 0, 0, 0.35); --ka-plads-ikon: #5f574f;
+  --ka-valgt: #ffec27; --ka-valgt-bg: #3a3500; --ka-maal: #00e436; --ka-maal-bg: rgba(0, 228, 54, 0.2); --ka-tip: #29adff;
+  --ka-tal-bg: #000000; --ka-tal: #fff1e8; --ka-tal-kant: #fff1e8; --ka-ok: #00e436; --ka-err: #ff004d; --ka-shadow: transparent;
+  --ka-bagside: repeating-conic-gradient(var(--ka-bag-bg) 0 25%, var(--ka-bag-bg2) 0 50%) 0 0 / 16px 16px;
+  --ka-font-kort: var(--font); --ka-weight-kort: 400; --ka-weight-tal: 700; --ka-kort-kant-w: 4px;
+  --ka-radius-kort: 0px; --ka-radius-hud: 0px; --ka-radius-tal: 0px; --ka-radius-swatch: 0px; --ka-radius-maal: 0;
+  --ka-kort-skygge: 4px 4px 0 #000; --ka-kort-glow: none; --ka-kulor-glow: none; --ka-valgt-glow: none; --ka-maal-glow: none;
+  --ka-tip-glow: none; --ka-bag-glow: none; --ka-score-glow: none; --ka-points-glow: none; --ka-text-shadow: none; --ka-text-shadow-strong: none;
+}

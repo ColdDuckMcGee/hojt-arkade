@@ -1,0 +1,15 @@
+/* Retro-pixel-stilen (arkade/stil.js): kun variabler og flader, der adskiller sig fra neon.
+ * Indlæses altid efter tema/neon/tema.css og gælder kun under <html data-stil="pixel">. */
+html[data-stil="pixel"] {
+  --pg-board: #000000; --pg-grid: #1d2b53; --pg-block: #5f574f; --pg-frame: #fff1e8;
+  --pg-fill: #ff77a8; --pg-fill-core: #ff77a8; --pg-cross: #c2c3c7; --pg-auto: #5f574f;
+  --pg-err: #ff004d; --pg-tip: #00e436; --pg-tip-ring: #000000;
+  --pg-clue: #fff1e8; --pg-clue-bg: #0b1026; --pg-clue-hl: #ffec27; --pg-done: #00e436;
+  --pg-cursor: #ffec27; --pg-line: #29adff; --pg-heart: #ff004d; --pg-ok: #00e436; --pg-shadow: transparent;
+  --pg-corner-bg: #000000; --pg-pic-bg: #000000;
+  --pg-fill-bg: var(--pg-fill);
+  --pg-frame-w: 4px; --pg-block-w: 4px; --pg-grid-w: 2px;
+  --pg-radius-board: 0px; --pg-radius-hud: 0px; --pg-radius-hud-small: 0px; --pg-radius-mark: 0%; --pg-radius-cross: 0px; --pg-radius-swatch: 0px; --pg-pic-rx: 0;
+  --pg-board-glow: 0 0 0 4px #29adff; --pg-fill-glow: inset -5px -5px 0 #c2507a, inset 5px 5px 0 #ffb3cf; --pg-heart-glow: none;
+  --pg-score-glow: none; --pg-points-glow: none; --pg-text-shadow: none; --pg-text-shadow-strong: none;
+}

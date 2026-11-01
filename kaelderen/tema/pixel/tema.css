@@ -1,0 +1,16 @@
+/* Retro-pixel-stilen (arkade/stil.js): kun variabler og flader, der adskiller sig fra neon.
+ * Indlæses altid efter tema/neon/tema.css og gælder kun under <html data-stil="pixel">. */
+html[data-stil="pixel"] {
+  --kaelder-vaeg-a: #5f574f; --kaelder-vaeg-b: #3a3530; --kaelder-vaeg-fuge: #000000; --kaelder-vaeg-neon: #ff77a8;
+  --kaelder-rum-a: #1d2b53; --kaelder-rum-b: #16224a; --kaelder-rum-fuge: #29adff; --kaelder-rum-lys: #29adff;
+  --kaelder-doer-a: #ab5236; --kaelder-doer-b: #7a3a26; --kaelder-doer-lys: #00e436; --kaelder-laas: #ff77a8;
+  --kaelder-gulv-a: #3a3530; --kaelder-gulv-b: #5f574f; --kaelder-gulv-fuge: #000000; --kaelder-rumgulv-a: #111a3d; --kaelder-rumgulv-b: #1d2b53; --kaelder-rumgulv-neon: #29adff;
+  --kaelder-trappe-a: #ab5236; --kaelder-trappe-neon: #ffec27; --kaelder-loft-a: #0b1026; --kaelder-loft-b: #1d2b53; --kaelder-rumloft-a: #0b1026; --kaelder-rumloft-neon: #ff77a8;
+  --kaelder-kravler: #00e436; --kaelder-kravler-oeje: #ff004d; --kaelder-skytte: #c2c3c7; --kaelder-skytte-visir: #29adff; --kaelder-kolos: #ab5236; --kaelder-kolos-kerne: #ffa300;
+  --kaelder-taage: #000000; --kaelder-livbar: #00e436; --kaelder-livbar-lav: #ff004d; --kaelder-livbar-kant: #fff1e8;
+  --kaelder-markering: #ffec27; --kaelder-ramme: #fff1e8; --kaelder-kort-kant: #29adff;
+  --kaelder-ok: #00e436; --kaelder-fejl: #ff004d; --kaelder-advarsel: #ffa300; --kaelder-shadow: transparent;
+  --kaelder-skrift: var(--titel-font); --kaelder-skrift-vaegt: 700;
+  --kaelder-gloed: 0; --kaelder-bloom: 0; --kaelder-scanlines: 0;
+  --kaelder-text-shadow: none; --kaelder-text-shadow-strong: none; --kaelder-view-glow: 0 0 0 4px #29adff;
+}

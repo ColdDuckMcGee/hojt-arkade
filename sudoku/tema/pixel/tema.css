@@ -1,0 +1,15 @@
+/* Retro-pixel-stilen (arkade/stil.js): kun variabler og flader, der adskiller sig fra neon.
+ * Indlæses altid efter tema/neon/tema.css og gælder kun under <html data-stil="pixel">. */
+html[data-stil="pixel"] {
+  --su-board: #000000; --su-frame: #fff1e8; --su-grid: #1d2b53; --su-block: #c2c3c7;
+  --su-given: #fff1e8; --su-placed: #ffec27; --su-tip: #00e436; --su-err: #ff004d;
+  --su-note: #c2c3c7; --su-note-same: #fff1e8;
+  --su-peer-bg: rgba(41, 173, 255, 0.16); --su-same-bg: rgba(255, 119, 168, 0.4); --su-same: #fff1e8;
+  --su-sel-bg: rgba(41, 173, 255, 0.45); --su-cursor: #ffec27; --su-zoom: #ff77a8; --su-zoom-bg: rgba(255, 119, 168, 0.08);
+  --su-box-hover-bg: rgba(41, 173, 255, 0.25); --su-ok: #00e436; --su-shadow: transparent;
+  --su-font-digit: var(--font); --su-weight-given: 400; --su-weight-placed: 400; --su-weight-note: 400;
+  --su-frame-w: 4px; --su-block-w: 4px; --su-grid-w: 2px; --su-radius-board: 0px; --su-radius-zoom: 0px;
+  --su-radius-hud: 0px; --su-radius-hud-small: 0px; --su-radius-swatch: 0px;
+  --su-board-glow: 0 0 0 4px #29adff; --su-zoom-glow: none; --su-digit-glow: none; --su-score-glow: none; --su-points-glow: none;
+  --su-text-shadow: none; --su-text-shadow-strong: none;
+}

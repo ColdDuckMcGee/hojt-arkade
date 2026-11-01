@@ -1,0 +1,21 @@
+/* Retro-pixel-stilen (arkade/stil.js): kun variabler og flader, der adskiller sig fra neon.
+ * Indlæses altid efter tema/neon/tema.css og gælder kun under <html data-stil="pixel">. */
+html[data-stil="pixel"] {
+  --tt-board: #008751; --tt-frame: #fff1e8; --tt-grid: rgba(0, 0, 0, 0.18); --tt-felt: transparent;
+  --tt-felt-hover: rgba(255, 236, 39, 0.35); --tt-felt-valgt: rgba(255, 236, 39, 0.6);
+  --tt-sti: #ab5236; --tt-sti-kant: #000000; --tt-sti-midte: rgba(0, 0, 0, 0.25); --tt-sti-ende: square; --tt-sti-hjoerne: miter;
+  --tt-indgang: #29adff; --tt-maal: #ff004d; --tt-maal-fyld: rgba(255, 0, 77, 0.2);
+  --tt-taarn-fod: #5f574f; --tt-taarn-kant: #000000;
+  --tt-taarn-laser: #ff77a8; --tt-taarn-puls: #ffec27; --tt-taarn-frost: #29adff; --tt-taarn-kanon: #ffa300; --tt-taarn-kerne: #fff1e8;
+  --tt-niveau: #fff1e8; --tt-niveau-kant: #000000;
+  --tt-fjende-kugle: #a77bff; --tt-fjende-pil: #00e436; --tt-fjende-kasse: #ffa300; --tt-fjende-kaempe: #ff004d; --tt-fjende-kant: #000000; --tt-fjende-detalje: rgba(0, 0, 0, 0.7);
+  --tt-saenket: #29adff; --tt-hp: #00e436; --tt-hp-bund: #000000;
+  --tt-raekkevidde: #fff1e8; --tt-raekkevidde-fyld: rgba(255, 241, 232, 0.1);
+  --tt-cursor: #ffec27; --tt-ok: #00e436; --tt-fejl: #ff004d; --tt-liv: #ff004d; --tt-penge: #ffec27; --tt-shadow: transparent;
+  --tt-frame-w: 4px; --tt-radius-board: 0px; --tt-radius-felt: 0; --tt-radius-hud: 0px; --tt-radius-hud-small: 0px; --tt-radius-swatch: 0px; --tt-radius-taarn-knap: 0px;
+  --tt-board-glow: 0 0 0 4px #29adff; --tt-taarn-glow: none; --tt-fjende-glow: none; --tt-maal-glow: none; --tt-points-glow: none; --tt-score-glow: none; --tt-skud-glow: none; --tt-sti-glow: none;
+  --tt-text-shadow: none; --tt-text-shadow-strong: none;
+}
+html[data-stil="pixel"] #game svg {
+  shape-rendering: crispEdges;
+}

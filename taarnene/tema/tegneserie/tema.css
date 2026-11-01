@@ -1,0 +1,20 @@
+/* Tegneserie-stilen (arkade/stil.js): kun variabler og flader, der adskiller sig fra neon.
+ * Indlæses altid efter tema/neon/tema.css og gælder kun under <html data-stil="tegneserie">. */
+html[data-stil="tegneserie"] {
+  --tt-board: #a8e07a; --tt-frame: var(--ink); --tt-grid: rgba(27, 27, 31, 0.08); --tt-felt: transparent;
+  --tt-felt-hover: rgba(255, 210, 63, 0.55); --tt-felt-valgt: rgba(255, 210, 63, 0.85);
+  --tt-sti: #f3dcae; --tt-sti-kant: var(--ink); --tt-sti-midte: rgba(27, 27, 31, 0.18);
+  --tt-indgang: #2f80ed; --tt-maal: #e8433a; --tt-maal-fyld: rgba(232, 67, 58, 0.18);
+  --tt-taarn-fod: #ffffff; --tt-taarn-kant: var(--ink);
+  --tt-taarn-laser: #ff6fae; --tt-taarn-puls: #ffd23f; --tt-taarn-frost: #4fc3f7; --tt-taarn-kanon: #ff9f1c; --tt-taarn-kerne: #ffffff;
+  --tt-niveau: #ffffff; --tt-niveau-kant: var(--ink);
+  --tt-fjende-kugle: #9b6bff; --tt-fjende-pil: #3dbe5a; --tt-fjende-kasse: #ff9f1c; --tt-fjende-kaempe: #e8433a; --tt-fjende-kant: var(--ink); --tt-fjende-detalje: rgba(27, 27, 31, 0.75);
+  --tt-saenket: #4fc3f7; --tt-hp: #3dbe5a; --tt-hp-bund: var(--ink);
+  --tt-skud-laser: #ff6fae; --tt-skud-puls: #ffd23f; --tt-skud-frost: #4fc3f7; --tt-skud-kanon: var(--ink);
+  --tt-raekkevidde: var(--ink); --tt-raekkevidde-fyld: rgba(255, 255, 255, 0.25);
+  --tt-cursor: #e8433a; --tt-ok: #2a9d4a; --tt-fejl: #e8433a; --tt-liv: #e8433a; --tt-penge: #b37b00; --tt-shadow: transparent;
+  --tt-overlay-bg: rgba(255, 233, 174, 0.8); --tt-overlay-soft: rgba(255, 233, 174, 0.5);
+  --tt-frame-w: 5px; --tt-radius-board: 10px; --tt-sti-kant-w: 76; --tt-taarn-kant-w: 6; --tt-fjende-kant-w: 6;
+  --tt-board-glow: 8px 8px 0 var(--ink); --tt-taarn-glow: none; --tt-fjende-glow: none; --tt-maal-glow: none; --tt-points-glow: none; --tt-score-glow: none; --tt-skud-glow: none; --tt-sti-glow: none;
+  --tt-text-shadow: none; --tt-text-shadow-strong: none;
+}

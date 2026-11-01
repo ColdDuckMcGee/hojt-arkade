@@ -370,29 +370,3 @@ ol.records .score { white-space: nowrap; }
 #game[data-kompakt="ja"] .hud-value, #game[data-kompakt="lille"] .hud-value { font-size: max(0.85rem, calc(var(--btn) * 0.3)); }
 #game[data-kompakt="ja"] .hud-sub { font-size: 0.68rem; }
 #game[data-kompakt="ja"] .hint, #game[data-kompakt="lille"] .hint { font-size: 0.9rem; }
-
-/* ---------- Stile (arkade/stil.js): kun temaets variabler ændres ---------- */
-html[data-stil="tegneserie"] {
-  --ka-kort-bg: #ffffff; --ka-kort-kant: var(--ink); --ka-rod: #e8433a; --ka-sort: var(--ink);
-  --ka-bag-bg: #2f80ed; --ka-bag-bg2: #2a72d4; --ka-bag-line: #ffffff; --ka-bag-kant: var(--ink); --ka-bag-fill: rgba(255, 255, 255, 0.25);
-  --ka-plads-kant: rgba(27, 27, 31, 0.45); --ka-plads-bg: rgba(255, 255, 255, 0.45); --ka-plads-ikon: rgba(27, 27, 31, 0.3);
-  --ka-valgt: #ffd23f; --ka-valgt-bg: #fff4cc; --ka-maal: #2a9d4a; --ka-maal-bg: rgba(61, 190, 90, 0.2); --ka-tip: #2f80ed;
-  --ka-tal-bg: var(--ink); --ka-tal: #ffffff; --ka-tal-kant: var(--ink); --ka-ok: #2a9d4a; --ka-err: #e8433a; --ka-shadow: transparent;
-  --ka-overlay-bg: rgba(255, 233, 174, 0.8); --ka-overlay-soft: rgba(255, 233, 174, 0.6);
-  --ka-bagside: repeating-linear-gradient(45deg, var(--ka-bag-bg) 0 10px, var(--ka-bag-bg2) 10px 20px);
-  --ka-weight-kort: 700; --ka-weight-tal: 700; --ka-kort-kant-w: 3px; --ka-valgt-w: 5px;
-  --ka-kort-skygge: 4px 4px 0 var(--ink); --ka-kort-glow: none; --ka-kulor-glow: none; --ka-valgt-glow: none; --ka-maal-glow: none;
-  --ka-tip-glow: none; --ka-bag-glow: none; --ka-score-glow: none; --ka-points-glow: none; --ka-text-shadow: none; --ka-text-shadow-strong: none;
-}
-html[data-stil="pixel"] {
-  --ka-kort-bg: #fff1e8; --ka-kort-kant: #000000; --ka-rod: #ff004d; --ka-sort: #1d2b53;
-  --ka-bag-bg: #29adff; --ka-bag-bg2: #1d2b53; --ka-bag-line: #fff1e8; --ka-bag-kant: #000000; --ka-bag-fill: rgba(255, 241, 232, 0.2);
-  --ka-plads-kant: #5f574f; --ka-plads-bg: rgba(0, 0, 0, 0.35); --ka-plads-ikon: #5f574f;
-  --ka-valgt: #ffec27; --ka-valgt-bg: #3a3500; --ka-maal: #00e436; --ka-maal-bg: rgba(0, 228, 54, 0.2); --ka-tip: #29adff;
-  --ka-tal-bg: #000000; --ka-tal: #fff1e8; --ka-tal-kant: #fff1e8; --ka-ok: #00e436; --ka-err: #ff004d; --ka-shadow: transparent;
-  --ka-bagside: repeating-conic-gradient(var(--ka-bag-bg) 0 25%, var(--ka-bag-bg2) 0 50%) 0 0 / 16px 16px;
-  --ka-font-kort: var(--font); --ka-weight-kort: 400; --ka-weight-tal: 700; --ka-kort-kant-w: 4px;
-  --ka-radius-kort: 0px; --ka-radius-hud: 0px; --ka-radius-tal: 0px; --ka-radius-swatch: 0px; --ka-radius-maal: 0;
-  --ka-kort-skygge: 4px 4px 0 #000; --ka-kort-glow: none; --ka-kulor-glow: none; --ka-valgt-glow: none; --ka-maal-glow: none;
-  --ka-tip-glow: none; --ka-bag-glow: none; --ka-score-glow: none; --ka-points-glow: none; --ka-text-shadow: none; --ka-text-shadow-strong: none;
-}

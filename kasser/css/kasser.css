@@ -201,24 +201,3 @@ html, body { height: 100%; height: 100dvh; }
   .setting-label { font-size: 1.15rem; }
   .setting-label small { font-size: 0.85rem; }
 }
-
-/* ---------- Stile (arkade/stil.js): lærredet læser temaets variabler ---------- */
-html[data-stil="tegneserie"] {
-  --ks-floor: #fffaf0; --ks-floor-line: rgba(27, 27, 31, 0.1); --ks-wall: #1b1b1f; --ks-wall-fill: #c96a3a; --ks-wall-shine: rgba(255, 255, 255, 0.25);
-  --ks-goal: #2f80ed; --ks-goal-fill: rgba(47, 128, 237, 0.15); --ks-box: #1b1b1f; --ks-box-fill: #ff9f1c;
-  --ks-box-done: #1b1b1f; --ks-box-done-fill: #3dbe5a; --ks-check: #ffffff;
-  --ks-player: #1b1b1f; --ks-player-fill: #ff6fae; --ks-preview: #e8433a; --ks-stuck: #e8433a; --ks-stuck-text: #ffffff;
-  --ks-line: 0.07; --ks-line-min: 2.5;
-  --ks-text-shadow: none; --ks-text-shadow-lead: none; --ks-scrim: rgba(255, 233, 174, 0.8); --ks-scrim-soft: rgba(255, 233, 174, 0.6);
-  --ks-suggest-glow: 0px; --ks-score-glow: 0px;
-}
-html[data-stil="tegneserie"] #board { border: 5px solid var(--ink); border-radius: 10px; box-shadow: 8px 8px 0 var(--ink); box-sizing: border-box; background: var(--ks-floor); }
-html[data-stil="pixel"] {
-  --ks-floor: #000000; --ks-floor-line: rgba(41, 173, 255, 0.12); --ks-wall: #5f574f; --ks-wall-fill: #ab5236; --ks-wall-shine: rgba(255, 204, 170, 0.35);
-  --ks-goal: #29adff; --ks-goal-fill: rgba(41, 173, 255, 0.18); --ks-box: #000000; --ks-box-fill: #ffa300;
-  --ks-box-done: #000000; --ks-box-done-fill: #00e436; --ks-check: #fff1e8;
-  --ks-player: #000000; --ks-player-fill: #ff77a8; --ks-preview: #ffec27; --ks-stuck: #ff004d; --ks-stuck-text: #fff1e8;
-  --ks-radius-box: 0; --ks-radius-preview: 0; --ks-radius-note: 0px; --ks-radius-hud: 0; --ks-radius-swatch: 0px;
-  --ks-text-shadow: none; --ks-text-shadow-lead: none; --ks-suggest-glow: 0px; --ks-score-glow: 0px;
-}
-html[data-stil="pixel"] #board { --k: #29adff; box-shadow: var(--pixelkant); }

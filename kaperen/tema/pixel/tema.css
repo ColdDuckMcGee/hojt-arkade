@@ -1,0 +1,33 @@
+/* Retro-pixel-stilen (arkade/stil.js): kun variabler og flader, der adskiller sig fra neon.
+ * Indlæses altid efter tema/neon/tema.css og gælder kun under <html data-stil="pixel">. */
+html[data-stil="pixel"] {
+  --kap-hav-1: #1d2b53; --kap-hav-2: #16224a; --kap-hav-boelge: rgba(41, 173, 255, 0.45);
+  --kap-himmel-1: #0b1026; --kap-himmel-2: #1d2b53; --kap-horisont: #29adff;
+  --kap-felt-land: #008751; --kap-kyst: #ffec27; --kap-felt-top: #00e436; --kap-felt-top-fyld: rgba(0, 228, 54, 0.2);
+  --kap-gitter: rgba(255, 241, 232, 0.06);
+  --kap-havn-mole: #c2c3c7; --kap-havn-hus: #ff004d; --kap-havn-lys: #ffec27; --kap-havn-navn: #fff1e8; --kap-havn-navn-valgt: #ffec27;
+  --kap-kurs: #ffec27; --kap-maal: #ffec27;
+  --kap-taage: #5f574f; --kap-taage-sky: rgba(194, 195, 199, 0.12); --kap-taage-sloer: rgba(194, 195, 199, 0.18);
+  --kap-synsvidde: rgba(41, 173, 255, 0.5); --kap-verdens-kant: #000000;
+  --kap-felt-valg: rgba(255, 236, 39, 0.25); --kap-felt-valg-kant: #ffec27;
+  --kap-skrog: #ab5236; --kap-skrog-kant: #000000; --kap-mast: #5f574f; --kap-sejl: #fff1e8; --kap-sejl-kant: #000000; --kap-kanonport: #000000;
+  --kap-spiller-skrog-kant: #29adff; --kap-flag-dug: #000000;
+  --kap-flag-spiller: #29adff; --kap-flag-handel: #00e436; --kap-flag-pirat: #ff004d; --kap-flag-marine: #ffec27;
+  --kap-kortskib: #29adff; --kap-kortskib-sejl: #fff1e8; --kap-plask: #29adff; --kap-traef: #ffa300;
+  --kap-ok: #00e436; --kap-fejl: #ff004d; --kap-guld: #ffec27; --kap-billig: #00e436; --kap-dyr: #ff004d;
+  --kap-shadow: transparent; --kap-havn-bg: #0b1026; --kap-havn-her: #1d2b53;
+  --kap-bar: #00e436; --kap-bar-lav: #ff004d; --kap-bar-tom: #1d2b53;
+  --kap-font: var(--font); --kap-kontur: #000000; --kap-kontur-w: 2; --kap-frame-w: 4px;
+  --kap-radius-kort: 0px; --kap-radius-hud: 0px; --kap-radius-swatch: 0px; --kap-radius-bar: 0px;
+  --kap-gloed-filter: none; --kap-gloed-filter-accent: none; --kap-text-shadow: none; --kap-kort-gloed: 0 0 0 4px #29adff; --kap-guld-gloed: none;
+}
+html[data-stil="pixel"] #game svg {
+  shape-rendering: crispEdges;
+}
+html[data-stil="pixel"] .btn[aria-pressed="true"] .vare-pris b,
+html[data-stil="pixel"] .btn[aria-pressed="true"] .kob-pris {
+  color: inherit;
+}
+html[data-stil="pixel"] .btn[aria-pressed="true"] {
+  --ico-fill: var(--natblaa); --ico-line: var(--natblaa);
+}

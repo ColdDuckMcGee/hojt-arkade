@@ -1,0 +1,15 @@
+/* Tegneserie-stilen (arkade/stil.js): kun variabler og flader, der adskiller sig fra neon.
+ * Indlæses altid efter tema/neon/tema.css og gælder kun under <html data-stil="tegneserie">. */
+html[data-stil="tegneserie"] {
+  --su-board: #ffffff; --su-frame: var(--ink); --su-grid: #d9cfb6; --su-block: var(--ink);
+  --su-given: var(--ink); --su-placed: #2f80ed; --su-tip: #2a9d4a; --su-err: #e8433a;
+  --su-note: #6b6250; --su-note-same: var(--ink);
+  --su-peer-bg: rgba(47, 128, 237, 0.10); --su-same-bg: rgba(255, 210, 63, 0.55); --su-same: var(--ink);
+  --su-sel-bg: rgba(255, 210, 63, 0.85); --su-cursor: #e8433a; --su-zoom: #e8433a; --su-zoom-bg: rgba(232, 67, 58, 0.06);
+  --su-box-hover-bg: rgba(255, 210, 63, 0.4); --su-ok: #2a9d4a; --su-shadow: transparent;
+  --su-overlay-bg: rgba(255, 233, 174, 0.8); --su-overlay-soft: rgba(255, 233, 174, 0.6);
+  --su-frame-w: 5px; --su-block-w: 4px; --su-grid-w: 2px; --su-radius-board: 10px;
+  --su-weight-given: 700; --su-weight-placed: 700;
+  --su-board-glow: 8px 8px 0 var(--ink); --su-zoom-glow: none; --su-digit-glow: none; --su-score-glow: none; --su-points-glow: none;
+  --su-text-shadow: none; --su-text-shadow-strong: none;
+}

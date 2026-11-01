@@ -1,0 +1,13 @@
+/* Tegneserie-stilen (arkade/stil.js): kun variabler og flader, der adskiller sig fra neon.
+ * Indlæses altid efter tema/neon/tema.css og gælder kun under <html data-stil="tegneserie">. */
+html[data-stil="tegneserie"] {
+  --jv-rubin: #e8433a; --jv-safir: #2f80ed; --jv-smaragd: #3dbe5a; --jv-topas: #ffd23f; --jv-ametyst: #9b6bff; --jv-opal: #ffffff; --jv-rav: #ff9f1c;
+  --jv-kant: var(--ink); --jv-kant-w: 6; --jv-lys-styrke: 0.5; --jv-skygge-styrke: 0.22;
+  --jv-board: #ffffff; --jv-felt-a: #fff4cc; --jv-felt-b: #ffffff; --jv-grid: #e6dcc0; --jv-frame: var(--ink);
+  --jv-valgt: var(--ink); --jv-maal: #2f80ed; --jv-ugyldig: #e8433a; --jv-tip: #2a9d4a; --jv-cursor: #e8433a; --jv-ok: #2a9d4a;
+  --jv-shadow: transparent; --jv-overlay-bg: rgba(255, 233, 174, 0.8); --jv-kort-bg: #ffffff; --jv-opgave: #e8433a;
+  --jv-traek: var(--ink); --jv-traek-lav: #e8433a; --jv-lyn-kant: var(--ink); --jv-sten-kant: var(--ink); --jv-is-kant: var(--ink);
+  --jv-frame-w: 5px; --jv-radius-board: 10px;
+  --jv-board-glow: 8px 8px 0 var(--ink); --jv-juvel-glow: none; --jv-maal-glow: none; --jv-valgt-glow: none; --jv-score-glow: none; --jv-points-glow: none;
+  --jv-text-shadow: none; --jv-text-shadow-strong: none;
+}

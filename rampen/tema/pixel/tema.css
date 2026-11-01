@@ -1,0 +1,17 @@
+/* Retro-pixel-stilen (arkade/stil.js): kun variabler og flader, der adskiller sig fra neon.
+ * Indlæses altid efter tema/neon/tema.css og gælder kun under <html data-stil="pixel">. */
+html[data-stil="pixel"] {
+  --rampen-himmel-forstad-1: #0b1026; --rampen-himmel-forstad-2: #7e2553; --rampen-jord-forstad: #1d2b53; --rampen-jord-forstad-kant: #ff77a8;
+  --rampen-kulisse-forstad: #0b1026; --rampen-kulisse-forstad-2: #ffec27; --rampen-fjern-forstad: #111a3d; --rampen-forgrund-forstad: #00e436;
+  --rampen-himmel-oerken-1: #7e2553; --rampen-himmel-oerken-2: #ffa300; --rampen-jord-oerken: #ab5236; --rampen-jord-oerken-kant: #ffccaa;
+  --rampen-himmel-bjerge-1: #0b1026; --rampen-himmel-bjerge-2: #29adff; --rampen-jord-bjerge: #c2c3c7; --rampen-jord-bjerge-kant: #fff1e8;
+  --rampen-himmel-skyer-1: #1d2b53; --rampen-himmel-skyer-2: #83769c; --rampen-jord-skyer: #c2c3c7; --rampen-jord-skyer-kant: #fff1e8;
+  --rampen-himmel-rummet-1: #000000; --rampen-himmel-rummet-2: #0b1026; --rampen-jord-rummet: #5f574f; --rampen-jord-rummet-kant: #a77bff;
+  --rampen-kontur: #000000; --rampen-kontur-w: 2; --rampen-gloed: 0;
+  --rampen-tekst: #fff1e8; --rampen-milepael: #ffec27; --rampen-rampe: #5f574f; --rampen-rampe-kant: #fff1e8; --rampen-skilt: #29adff; --rampen-skilt-flade: #000000;
+  --rampen-bil-krop: #ff004d; --rampen-bil-krop-2: #29adff; --rampen-bil-kant: #000000; --rampen-bil-rude: #29adff; --rampen-hjul: #000000; --rampen-hjul-nav: #c2c3c7;
+  --rampen-sol-1: #ffec27; --rampen-sol-2: #ff77a8; --rampen-stjerne: #fff1e8;
+  --rampen-ok: #00e436; --rampen-fejl: #ff004d; --rampen-moent-tekst: #ffec27; --rampen-shadow: transparent;
+  --rampen-meter: #ffec27; --rampen-meter-tom: #1d2b53; --rampen-hp: #00e436; --rampen-hp-lav: #ff004d; --rampen-frame-w: 4px; --rampen-radius-board: 0px;
+  --rampen-board-glow: 0 0 0 4px #29adff; --rampen-score-glow: none; --rampen-points-glow: none;
+}

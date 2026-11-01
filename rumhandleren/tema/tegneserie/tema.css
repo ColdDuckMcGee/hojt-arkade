@@ -1,0 +1,39 @@
+/* Tegneserie-stilen (arkade/stil.js): kun variabler og flader, der adskiller sig fra neon.
+ * Indlæses altid efter tema/neon/tema.css og gælder kun under <html data-stil="tegneserie">. */
+html[data-stil="tegneserie"] {
+  --rh-rum-1: #2b3a67; --rh-rum-2: #3d4f86; --rh-stjerne: rgba(255, 255, 255, 0.85); --rh-taage: rgba(255, 210, 63, 0.10);
+  --rh-gitter: rgba(255, 255, 255, 0.06); --rh-rute: rgba(255, 255, 255, 0.75); --rh-rute-1: #ffd23f; --rh-rute-2: #ff6fae;
+  --rh-sti: #ffd23f; --rh-ruteskib-sti: rgba(79, 195, 247, 0.6);
+  --rh-planet-vega: #4fc3f7; --rh-planet-vega-kant: var(--ink); --rh-planet-orion: #ff6fae; --rh-planet-orion-kant: var(--ink);
+  --rh-planet-kant: #ff9f1c; --rh-planet-kant-kant: var(--ink); --rh-planet-detalje: rgba(255, 255, 255, 0.55); --rh-planet-laast: 0.55;
+  --rh-laas: var(--ink); --rh-navn: #ffffff; --rh-navn-valgt: #ffd23f; --rh-navn-kant: var(--ink);
+  --rh-valg: #ffd23f; --rh-her: #3dbe5a; --rh-skib: #3dbe5a; --rh-ruteskib: #4fc3f7; --rh-begivenhed: #ffd23f; --rh-bygning: #ffffff;
+  --rh-vare: var(--ink); --rh-vare-forbudt: #e8433a;
+  --rh-skrog: #ffffff; --rh-skrog-kant: var(--ink); --rh-motor: #e8433a; --rh-vindue: #4fc3f7;
+  --rh-ok: #2a9d4a; --rh-fejl: #e8433a; --rh-advarsel: #b37b00; --rh-kredit: #b37b00; --rh-billig: #2a9d4a; --rh-dyr: #e8433a;
+  --rh-frak-vega: #2f80ed; --rh-frak-orion: #e8433a; --rh-frak-kant: #ff9f1c;
+  --rh-shadow: transparent; --rh-overlay-bg: rgba(255, 233, 174, 0.8);
+  --rh-kort-bg: #ffffff; --rh-kort-valgt: #fff4cc; --rh-bar: #3dbe5a; --rh-bar-lav: #e8433a; --rh-bar-tom: rgba(27, 27, 31, 0.15);
+  --rh-kontur: var(--ink); --rh-kontur-w: 0.3; --rh-frame-w: 5px; --rh-ikon-paa-fyld: var(--ink);
+  --rh-gloed-filter: none; --rh-gloed-filter-accent: none; --rh-planet-gloed: none; --rh-text-shadow: none;
+  --rh-kort-gloed: 8px 8px 0 var(--ink); --rh-kredit-gloed: none;
+}
+html[data-stil="tegneserie"] .btn[aria-pressed="true"] {
+  --ico-fill: currentColor; --ico-line: currentColor;
+}
+/* Planeterne på kortet er gennemsigtige knapper – også i de andre stile */
+html[data-stil="tegneserie"] .planet-btn {
+  background: transparent; border: var(--rh-block-w) solid transparent; box-shadow: none;
+}
+html[data-stil="tegneserie"] .planet-btn {
+  border-radius: 50%;
+}
+html[data-stil="tegneserie"] .planet-btn:is(:hover {
+  background: var(--rh-kort-valgt); border-color: var(--rh-valg); box-shadow: none;
+}
+html[data-stil="tegneserie"] .planet-btn[aria-pressed="true"] {
+  background: transparent; border-color: transparent; box-shadow: none;
+}
+html[data-stil="tegneserie"] .planet-btn[aria-pressed="true"]::after {
+  content: none;
+}

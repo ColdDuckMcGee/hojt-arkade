@@ -1,0 +1,24 @@
+/* Tegneserie-stilen (arkade/stil.js): kun variabler og flader, der adskiller sig fra neon.
+ * Indlæses altid efter tema/neon/tema.css og gælder kun under <html data-stil="tegneserie">. */
+html[data-stil="tegneserie"] {
+  --rampen-himmel-forstad-1: #8fd3ff; --rampen-himmel-forstad-2: #fff4cc; --rampen-jord-forstad: #8ed36b; --rampen-jord-forstad-kant: #1b1b1f;
+  --rampen-kulisse-forstad: #ffffff; --rampen-kulisse-forstad-2: #ffd23f; --rampen-fjern-forstad: #c9e6f5; --rampen-forgrund-forstad: #3dbe5a; --rampen-partikel-forstad: rgba(255, 159, 28, 0.6);
+  --rampen-himmel-oerken-1: #ffd9a0; --rampen-himmel-oerken-2: #fff4cc; --rampen-jord-oerken: #f3dcae; --rampen-jord-oerken-kant: #1b1b1f;
+  --rampen-kulisse-oerken: #e8a66a; --rampen-kulisse-oerken-2: #ff9f1c; --rampen-fjern-oerken: #f0c58e; --rampen-forgrund-oerken: #c9884a;
+  --rampen-himmel-bjerge-1: #4fc3f7; --rampen-himmel-bjerge-2: #e3f6ff; --rampen-jord-bjerge: #ffffff; --rampen-jord-bjerge-kant: #1b1b1f;
+  --rampen-kulisse-bjerge: #9aa7b8; --rampen-kulisse-bjerge-2: #ffffff; --rampen-fjern-bjerge: #c2d4e6; --rampen-forgrund-bjerge: #ffffff;
+  --rampen-himmel-skyer-1: #8fd3ff; --rampen-himmel-skyer-2: #ffe3f0; --rampen-jord-skyer: #ffffff; --rampen-jord-skyer-kant: #1b1b1f;
+  --rampen-kulisse-skyer: rgba(255, 255, 255, 0.7); --rampen-kulisse-skyer-2: #ffffff; --rampen-fjern-skyer: rgba(255, 255, 255, 0.5); --rampen-forgrund-skyer: rgba(255, 255, 255, 0.8);
+  --rampen-himmel-rummet-1: #2b3a67; --rampen-himmel-rummet-2: #3d4f86; --rampen-jord-rummet: #9aa7b8; --rampen-jord-rummet-kant: #1b1b1f;
+  --rampen-kulisse-rummet: #9b6bff; --rampen-kulisse-rummet-2: #ffffff; --rampen-fjern-rummet: #4a5c96; --rampen-forgrund-rummet: #cdb5ff;
+  --rampen-kontur: #1b1b1f; --rampen-kontur-w: 3; --rampen-gloed: 0; --rampen-skygge-farve: #1b1b1f; --rampen-skygge-x: 3; --rampen-skygge-y: 3;
+  --rampen-tekst: #1b1b1f; --rampen-tekst-kant: #ffffff; --rampen-maaler: rgba(27, 27, 31, 0.6); --rampen-milepael: #e8433a;
+  --rampen-rampe: #c9884a; --rampen-rampe-kant: #1b1b1f; --rampen-rampe-lys: #ffd23f; --rampen-skilt: #1b1b1f; --rampen-skilt-flade: #ffffff;
+  --rampen-bil-krop: #e8433a; --rampen-bil-krop-2: #ffd23f; --rampen-bil-kant: #1b1b1f; --rampen-bil-rude: #4fc3f7; --rampen-hjul: #1b1b1f; --rampen-hjul-nav: #ffffff;
+  --rampen-sol-1: #ffd23f; --rampen-sol-2: #ff9f1c; --rampen-stjerne: #ffffff; --rampen-sky: rgba(255, 255, 255, 0.75); --rampen-fugl: #1b1b1f;
+  --rampen-taage: rgba(255, 244, 204, 0.85); --rampen-taage-2: rgba(255, 244, 204, 0);
+  --rampen-ok: #2a9d4a; --rampen-fejl: #e8433a; --rampen-moent-tekst: #b37b00; --rampen-shadow: transparent;
+  --rampen-overlay-bg: rgba(255, 233, 174, 0.8); --rampen-overlay-soft: rgba(255, 233, 174, 0.6);
+  --rampen-meter: #e8433a; --rampen-meter-tom: rgba(27, 27, 31, 0.2); --rampen-hp: #3dbe5a; --rampen-hp-lav: #e8433a; --rampen-frame-w: 5px;
+  --rampen-board-glow: 8px 8px 0 var(--ink); --rampen-score-glow: none; --rampen-points-glow: none;
+}

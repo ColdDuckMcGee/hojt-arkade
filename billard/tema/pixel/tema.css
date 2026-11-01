@@ -1,0 +1,19 @@
+/* Retro-pixel-stilen (arkade/stil.js): kun variabler og flader, der adskiller sig fra neon.
+ * Indlæses altid efter tema/neon/tema.css og gælder kun under <html data-stil="pixel">. */
+html[data-stil="pixel"] {
+  --billard-bord: #ab5236; --billard-bord-2: #5f3a24; --billard-bord-kant: #000000; --billard-diamant: #fff1e8;
+  --billard-filt: #008751; --billard-filt-2: #007045; --billard-filt-moenster: rgba(0, 0, 0, 0.08); --billard-linje: rgba(255, 241, 232, 0.4);
+  --billard-bande: #006a40; --billard-bande-kant: #000000; --billard-hul: #000000; --billard-hul-kant: #000000;
+  --billard-kugle-1: #ffec27; --billard-kugle-2: #29adff; --billard-kugle-3: #ff004d; --billard-kugle-4: #a77bff; --billard-kugle-5: #ffa300;
+  --billard-kugle-6: #00e436; --billard-kugle-7: #7e2553; --billard-kugle-8: #000000; --billard-kugle-9: #ffec27; --billard-kugle-10: #29adff;
+  --billard-kugle-11: #ff004d; --billard-kugle-12: #a77bff; --billard-kugle-13: #ffa300; --billard-kugle-14: #00e436; --billard-kugle-15: #7e2553;
+  --billard-kugle-stoed: #fff1e8; --billard-kugle-hvid: #fff1e8; --billard-kugle-tal: #000000; --billard-kugle-tal-bund: #fff1e8;
+  --billard-kugle-kant: #000000; --billard-kugle-glans: rgba(255, 255, 255, 0.5);
+  --billard-otte-ring: #fff1e8; --billard-otte-kant: #000000; --billard-maal: #ffec27; --billard-haand: #fff1e8;
+  --billard-koe: #ffccaa; --billard-koe-2: #ab5236; --billard-koe-spids: #29adff;
+  --billard-sigte: #ffec27; --billard-sigte-obj: #00e436; --billard-sigte-advarsel: #ff004d;
+  --billard-gloed: 0; --billard-kontur: #000000; --billard-kontur-w: 2;
+  --billard-ok: #00e436; --billard-fejl: #ff004d; --billard-shadow: transparent; --billard-meter: #ffec27; --billard-meter-tom: #1d2b53;
+  --billard-radius-board: 0px; --billard-radius-hud: 0px; --billard-radius-hud-small: 0px; --billard-radius-swatch: 0px; --billard-radius-meter: 0px; --billard-bord-radius: 0;
+  --billard-board-glow: 0 0 0 4px #29adff; --billard-score-glow: none; --billard-points-glow: none; --billard-text-shadow: none; --billard-text-shadow-strong: none;
+}

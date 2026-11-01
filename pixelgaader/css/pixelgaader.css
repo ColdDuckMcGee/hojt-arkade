@@ -367,32 +367,3 @@ ol.records .score { white-space: nowrap; }
 .pg-lille .confirm-btn { min-width: calc(var(--btn) * 1.5); }
 .pg-lille:not(.pg-tvaers) .confirm-row { flex-direction: column; gap: 32px; }
 .pg-lille:not(.pg-tvaers) .confirm-btn { width: min(100%, 16em); }
-
-/* ---------- Stile (arkade/stil.js): kun temaets variabler ændres ---------- */
-html[data-stil="tegneserie"] {
-  --pg-board: #ffffff; --pg-grid: #d9cfb6; --pg-block: var(--ink); --pg-frame: var(--ink);
-  --pg-fill: #2f80ed; --pg-fill-core: #8fc0ff; --pg-cross: #8a8270; --pg-auto: #c9c0a8;
-  --pg-err: #e8433a; --pg-tip: #2a9d4a; --pg-tip-ring: #ffffff;
-  --pg-clue: var(--ink); --pg-clue-bg: #fff4cc; --pg-clue-hl: var(--ink); --pg-done: #2a9d4a;
-  --pg-cursor: #e8433a; --pg-line: #ffd23f; --pg-heart: #e8433a; --pg-ok: #2a9d4a; --pg-shadow: transparent;
-  --pg-corner-bg: #fff4cc; --pg-pic-bg: #ffffff;
-  --pg-overlay-bg: rgba(255, 233, 174, 0.8); --pg-overlay-soft: rgba(255, 233, 174, 0.6);
-  --pg-fill-bg: var(--pg-fill); --pg-line-bg: rgba(255, 210, 63, 0.28); --pg-hover-bg: rgba(255, 210, 63, 0.55);
-  --pg-clue-hl-bg: #ffd23f;
-  --pg-frame-w: 5px; --pg-block-w: 4px; --pg-grid-w: 2px; --pg-radius-board: 10px;
-  --pg-board-glow: 8px 8px 0 var(--ink); --pg-fill-glow: inset 0 0 0 3px var(--ink); --pg-heart-glow: none;
-  --pg-score-glow: none; --pg-points-glow: none; --pg-text-shadow: none; --pg-text-shadow-strong: none;
-}
-html[data-stil="pixel"] {
-  --pg-board: #000000; --pg-grid: #1d2b53; --pg-block: #5f574f; --pg-frame: #fff1e8;
-  --pg-fill: #ff77a8; --pg-fill-core: #ff77a8; --pg-cross: #c2c3c7; --pg-auto: #5f574f;
-  --pg-err: #ff004d; --pg-tip: #00e436; --pg-tip-ring: #000000;
-  --pg-clue: #fff1e8; --pg-clue-bg: #0b1026; --pg-clue-hl: #ffec27; --pg-done: #00e436;
-  --pg-cursor: #ffec27; --pg-line: #29adff; --pg-heart: #ff004d; --pg-ok: #00e436; --pg-shadow: transparent;
-  --pg-corner-bg: #000000; --pg-pic-bg: #000000;
-  --pg-fill-bg: var(--pg-fill);
-  --pg-frame-w: 4px; --pg-block-w: 4px; --pg-grid-w: 2px;
-  --pg-radius-board: 0px; --pg-radius-hud: 0px; --pg-radius-hud-small: 0px; --pg-radius-mark: 0%; --pg-radius-cross: 0px; --pg-radius-swatch: 0px; --pg-pic-rx: 0;
-  --pg-board-glow: 0 0 0 4px #29adff; --pg-fill-glow: inset -5px -5px 0 #c2507a, inset 5px 5px 0 #ffb3cf; --pg-heart-glow: none;
-  --pg-score-glow: none; --pg-points-glow: none; --pg-text-shadow: none; --pg-text-shadow-strong: none;
-}

@@ -404,27 +404,3 @@ ol.records .score { white-space: nowrap; }
 .jv-lille .act-btn .small { display: none; }
 .jv-lille .tip-btn .small.kort { display: block; font-size: 0.85rem; }
 .jv-lille .act-btn .big { font-size: 1.05rem; }
-
-/* ---------- Stile (arkade/stil.js): kun temaets variabler ændres ---------- */
-html[data-stil="tegneserie"] {
-  --jv-rubin: #e8433a; --jv-safir: #2f80ed; --jv-smaragd: #3dbe5a; --jv-topas: #ffd23f; --jv-ametyst: #9b6bff; --jv-opal: #ffffff; --jv-rav: #ff9f1c;
-  --jv-kant: var(--ink); --jv-kant-w: 6; --jv-lys-styrke: 0.5; --jv-skygge-styrke: 0.22;
-  --jv-board: #ffffff; --jv-felt-a: #fff4cc; --jv-felt-b: #ffffff; --jv-grid: #e6dcc0; --jv-frame: var(--ink);
-  --jv-valgt: var(--ink); --jv-maal: #2f80ed; --jv-ugyldig: #e8433a; --jv-tip: #2a9d4a; --jv-cursor: #e8433a; --jv-ok: #2a9d4a;
-  --jv-shadow: transparent; --jv-overlay-bg: rgba(255, 233, 174, 0.8); --jv-kort-bg: #ffffff; --jv-opgave: #e8433a;
-  --jv-traek: var(--ink); --jv-traek-lav: #e8433a; --jv-lyn-kant: var(--ink); --jv-sten-kant: var(--ink); --jv-is-kant: var(--ink);
-  --jv-frame-w: 5px; --jv-radius-board: 10px;
-  --jv-board-glow: 8px 8px 0 var(--ink); --jv-juvel-glow: none; --jv-maal-glow: none; --jv-valgt-glow: none; --jv-score-glow: none; --jv-points-glow: none;
-  --jv-text-shadow: none; --jv-text-shadow-strong: none;
-}
-html[data-stil="pixel"] {
-  --jv-rubin: #ff004d; --jv-safir: #29adff; --jv-smaragd: #00e436; --jv-topas: #ffec27; --jv-ametyst: #a77bff; --jv-opal: #fff1e8; --jv-rav: #ffa300;
-  --jv-kant: #000000; --jv-kant-w: 6; --jv-lys-styrke: 0.45; --jv-skygge-styrke: 0.35;
-  --jv-board: #000000; --jv-felt-a: #111a3d; --jv-felt-b: #0b1026; --jv-grid: transparent; --jv-frame: #fff1e8;
-  --jv-valgt: #ffec27; --jv-maal: #29adff; --jv-ugyldig: #ff004d; --jv-tip: #00e436; --jv-cursor: #ff77a8; --jv-ok: #00e436;
-  --jv-shadow: transparent; --jv-kort-bg: #0b1026; --jv-opgave: #ffec27; --jv-traek: #fff1e8; --jv-traek-lav: #ff004d;
-  --jv-frame-w: 4px; --jv-radius-board: 0px; --jv-radius-felt: 0%; --jv-radius-hud: 0px; --jv-radius-hud-small: 0px; --jv-radius-swatch: 0px;
-  --jv-board-glow: 0 0 0 4px #29adff; --jv-juvel-glow: none; --jv-maal-glow: none; --jv-valgt-glow: none; --jv-score-glow: none; --jv-points-glow: none;
-  --jv-text-shadow: none; --jv-text-shadow-strong: none;
-}
-html[data-stil="pixel"] #game svg { shape-rendering: crispEdges; }
