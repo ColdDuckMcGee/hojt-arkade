@@ -315,3 +315,31 @@ ol.records .score { white-space: nowrap; }
 .muren-lille .confirm-btn { min-width: calc(var(--btn) * 1.5); }
 .muren-lille:not(.muren-tvaers) .confirm-row { flex-direction: column; gap: 32px; }
 .muren-lille:not(.muren-tvaers) .confirm-btn { width: min(100%, 16em); }
+
+/* ---------- Stile (arkade/stil.js): kun temaets variabler ændres ---------- */
+html[data-stil="tegneserie"] {
+  --muren-flade: #fffaf0; --muren-flade-2: #fff4cc; --muren-gitter: rgba(27, 27, 31, 0.06); --muren-kant: #1b1b1f; --muren-kant-inde: rgba(27, 27, 31, 0.2);
+  --muren-kontur: #1b1b1f; --muren-kontur-w: 3; --muren-fare: rgba(232, 67, 58, 0.12); --muren-fare-streg: #e8433a;
+  --muren-sten-0: #4fc3f7; --muren-sten-1: #2f80ed; --muren-sten-2: #9b6bff; --muren-sten-3: #ff6fae; --muren-sten-4: #e8433a;
+  --muren-sten-kant: #1b1b1f; --muren-sten-lys: rgba(255, 255, 255, 0.35); --muren-sten-tal: #ffffff; --muren-sten-tal-kant: #1b1b1f; --muren-sten-kant-w: 4;
+  --muren-ring: #3dbe5a; --muren-ring-tekst: #1b1b1f; --muren-kugle: #ffffff; --muren-kugle-kant: #1b1b1f;
+  --muren-kanon: #e8433a; --muren-kanon-kant: #1b1b1f; --muren-antal: #1b1b1f; --muren-antal-kant: #ffffff;
+  --muren-sigte: #1b1b1f; --muren-traef: #e8433a; --muren-landing: #2f80ed; --muren-sigte-tekst: #1b1b1f;
+  --muren-gloed: 0; --muren-skygge-farve: #1b1b1f; --muren-skygge-x: 3; --muren-skygge-y: 3;
+  --muren-frame: #1b1b1f; --muren-frame-w: 5px; --muren-ok: #2a9d4a; --muren-fejl: #e8433a; --muren-shadow: transparent;
+  --muren-overlay-bg: rgba(255, 233, 174, 0.8); --muren-overlay-soft: rgba(255, 233, 174, 0.6); --muren-skrift-vaegt: 700;
+  --muren-board-glow: 8px 8px 0 var(--ink); --muren-score-glow: none; --muren-points-glow: none; --muren-text-shadow: none; --muren-text-shadow-strong: none;
+}
+html[data-stil="pixel"] {
+  --muren-flade: #000000; --muren-flade-2: #0b1026; --muren-gitter: rgba(41, 173, 255, 0.08); --muren-kant: #fff1e8; --muren-kant-inde: rgba(255, 241, 232, 0.2);
+  --muren-kontur: #000000; --muren-kontur-w: 2; --muren-fare: rgba(255, 0, 77, 0.15); --muren-fare-streg: #ff004d;
+  --muren-sten-0: #29adff; --muren-sten-1: #3a6bff; --muren-sten-2: #a77bff; --muren-sten-3: #ff77a8; --muren-sten-4: #ff004d;
+  --muren-sten-kant: #000000; --muren-sten-lys: rgba(255, 255, 255, 0.3); --muren-sten-tal: #fff1e8; --muren-sten-tal-kant: #000000; --muren-sten-radius: 0;
+  --muren-ring: #00e436; --muren-ring-tekst: #fff1e8; --muren-kugle: #fff1e8; --muren-kugle-kant: #000000;
+  --muren-kanon: #ff77a8; --muren-kanon-kant: #000000; --muren-antal: #ffec27; --muren-antal-kant: #000000;
+  --muren-sigte: #ffec27; --muren-traef: #ffec27; --muren-landing: #29adff; --muren-sigte-tekst: #ffec27;
+  --muren-gloed: 0; --muren-frame: #fff1e8; --muren-frame-w: 4px; --muren-ok: #00e436; --muren-fejl: #ff004d; --muren-shadow: transparent;
+  --muren-skrift: var(--titel-font); --muren-skrift-vaegt: 700;
+  --muren-radius-board: 0px; --muren-radius-hud: 0px; --muren-radius-hud-small: 0px; --muren-radius-swatch: 0px;
+  --muren-board-glow: 0 0 0 4px #29adff; --muren-score-glow: none; --muren-points-glow: none; --muren-text-shadow: none; --muren-text-shadow-strong: none;
+}
