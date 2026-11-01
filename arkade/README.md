@@ -193,7 +193,7 @@ ArkadeStil.stil();         // 'neon' | 'tegneserie' | 'pixel'
 ArkadeStil.pixel();        // true i retro-pixel
 ArkadeStil.skift('pixel'); // gem og genindlæs siden
 ```
-Fælles indstilling `arkade.stil` (Indstillinger → Udseende → Stil i hallen). `stil.js` indlæses i
+Fælles indstilling `arkade.stil` (Indstillinger → Udseende → Stil i hallen og i hvert spil; et nyt valg genindlæser siden). `stil.js` indlæses i
 `<head>` lige efter `arkade.css` og sætter `<html data-stil="…">`, før noget tegnes.
 - **Neon** er udgangspunktet. **Tegneserie**: tykke sorte konturer, flade farver, rasterprikker og
   hårde skygger (Bangers + Fredoka). **Retro-pixel**: firkantede former, PICO-8-agtige farver,
@@ -229,4 +229,4 @@ gang spilleren går til menuen eller hallen. Tegner browseren uden grafikkort (W
 SwiftShader, llvmpipe, Microsoft Basic Render Driver o.l., eller WebGL mangler helt), spørges der
 med det samme i menuen/hallen, også ved første besøg. Svaret huskes (`hojtArkade.effekterForslag`).
 
-`settings.js` bevarer gemte nøgler, som en side ikke kender, når den gemmer.
+`settings.js` bevarer gemte nøgler, som en side ikke kender, når den gemmer. Skal en side gemme lige før den forlades, bruges `s.flush()` – aldrig `localStorage.setItem(key, JSON.stringify(s.all()))`, der sletter de ukendte nøgler (fx `stil`).

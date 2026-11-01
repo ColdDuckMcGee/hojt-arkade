@@ -838,7 +838,7 @@
     if (pager) pager.reset();
     if (el === goEl) { if (resetPage) goShowRecords = false; setGoSplit(false); }
     var base = isOverlay ? (parseFloat(getComputedStyle(el).getPropertyValue('--btn')) || cssBtn(v.W, v.H)) : cssBtn(v.W, v.H);
-    var minB = small ? SMALL_MIN : 52;
+    var minB = small ? SMALL_MIN : 84;   // hellere flere sider end knapper under 80 px
     if (base < minB) { base = minB; el.style.setProperty('--btn', base + 'px'); }
     var fits = function () {
       if (overflows(box)) return false;

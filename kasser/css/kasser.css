@@ -193,10 +193,12 @@ html, body { height: 100%; height: 100dvh; }
   .fit-compact .menu-top { position: static; width: 100%; }
   .fit-compact #menu { justify-content: flex-start; }
 }
-/* Lave skærme på langs (fx 844×390): indstillingerne i to kolonner; valg med mange knapper får hele bredden */
-@media (max-height: 560px) and (min-aspect-ratio: 3/2) {
+/* Lave skærme på langs (fx 844×390 og 800×600): indstillingerne i to kolonner; valg med mange knapper får hele bredden */
+@media (max-height: 700px) and (min-aspect-ratio: 4/3) {
   .tab-panel:not([hidden]) { display: grid; grid-template-columns: 1fr 1fr; grid-auto-flow: row dense; column-gap: calc(var(--gap) * 1.2); }
-  .tab-panel .note, .tab-panel .setting:has(.row > :nth-child(3)) { grid-column: 1 / -1; }
+  .tab-panel .note, .tab-panel .setting:has(.row > :nth-child(4)) { grid-column: 1 / -1; }
+}
+@media (max-height: 560px) and (min-aspect-ratio: 3/2) {
   .tab-panel .setting { grid-template-columns: minmax(6em, 1fr) auto; }
   .setting-label { font-size: 1.15rem; }
   .setting-label small { font-size: 0.85rem; }
