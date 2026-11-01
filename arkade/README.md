@@ -218,7 +218,7 @@ en kugle eller et sted på banen, og spillet sigter derhen (der skydes aldrig). 
 1,5 × dwell-tiden (`data-dwell-faktor`), så et kort blik rundt på pladen ikke flytter sigtet.
 Et rigtigt museklik giver spillets eget præcise punkt (`ArkadeSigte.musPunkt(e)`). Bruges i Muren,
 Bobler, Golf og Billard; slås fra med den fælles indstilling `arkade.blikSigte` (Indstillinger →
-Styring → Sigt med blikket).
+Styring → Sigt ved at kigge – i hallen og i de fire spil).
 
 ## Begræns effekter (ArkadeEffekter i settings.js, effekter.js)
 ```js

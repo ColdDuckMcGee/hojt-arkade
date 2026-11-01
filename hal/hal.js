@@ -45,7 +45,7 @@
   // ---------- Indstillinger (fælles for alle spil) ----------
   var arkade = ArkadeSettings.create('arkade', {
     begraensEffekter: false, stil: 'neon',
-    dwell: false, dwellTime: 1.2, theme: 'neon', background: 'mork', animation: true, sound: true, music: true
+    dwell: false, dwellTime: 1.2, blikSigte: true, theme: 'neon', background: 'mork', animation: true, sound: true, music: true
   });
   var hal = ArkadeSettings.create('hal', { valgt: '' });
   // Valgt styring fra velkomstskærmen: '' (ikke valgt endnu), 'mus', 'kigge', 'eget' eller 'kontakt'.
