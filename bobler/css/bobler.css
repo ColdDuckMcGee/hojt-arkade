@@ -321,3 +321,21 @@ html, body { height: 100%; height: 100dvh; }
 /* På højkant med god plads: større tal i statuslinjen */
 .compact .hud-value { font-size: clamp(1.25rem, calc(var(--pause-s, 84px) * 0.3), 2.2rem); }
 .compact .hud-label { font-size: clamp(0.72rem, calc(var(--pause-s, 84px) * 0.11), 1rem); }
+
+/* ---------- Stile (arkade/stil.js): lærredet læser de samme variabler ---------- */
+html[data-stil="tegneserie"] {
+  --bo-floor: #8fd3ff; --bo-frame: var(--ink);
+  --bo-c0: #e8433a; --bo-l0: #ff8f86; --bo-c1: #ffd23f; --bo-l1: #fff1b8; --bo-c2: #3dbe5a; --bo-l2: #9ee6ad;
+  --bo-c3: #2f80ed; --bo-l3: #8fc0ff; --bo-c4: #9b6bff; --bo-l4: #cdb5ff; --bo-c5: #ff9f1c; --bo-l5: #ffcf8a; --bo-c6: #4fc3f7; --bo-l6: #c2ecff;
+  --bo-sym: #1b1b1f; --bo-rim: #1b1b1f; --bo-aim: #1b1b1f; --bo-ceiling: #e8433a; --bo-ceiling-fill: rgba(232, 67, 58, 0.15);
+  --bo-dead: #e8433a; --bo-cannon: #1b1b1f; --bo-cannon-fill: #ffffff; --bo-label: #1b1b1f;
+}
+html[data-stil="tegneserie"] #board { border: 5px solid var(--ink); box-shadow: 8px 8px 0 var(--ink); }
+html[data-stil="pixel"] {
+  --bo-floor: #000000; --bo-frame: #fff1e8;
+  --bo-c0: #ff004d; --bo-l0: #ff77a8; --bo-c1: #ffec27; --bo-l1: #fff1e8; --bo-c2: #00e436; --bo-l2: #a6f26b;
+  --bo-c3: #3a6bff; --bo-l3: #29adff; --bo-c4: #a77bff; --bo-l4: #d8c4ff; --bo-c5: #ffa300; --bo-l5: #ffccaa; --bo-c6: #29adff; --bo-l6: #c2ecff;
+  --bo-sym: #000000; --bo-rim: #000000; --bo-aim: #fff1e8; --bo-ceiling: #ff004d; --bo-ceiling-fill: rgba(255, 0, 77, 0.15);
+  --bo-dead: #ff004d; --bo-cannon: #fff1e8; --bo-cannon-fill: #5f574f; --bo-label: #c2c3c7;
+}
+html[data-stil="pixel"] #board { --k: var(--bo-frame); border: 0; border-radius: 0; box-shadow: var(--pixelkant); }
