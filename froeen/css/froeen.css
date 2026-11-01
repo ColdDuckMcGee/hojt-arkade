@@ -363,3 +363,23 @@ html, body { height: 100%; height: 100dvh; }
 .arrow-up.blocked:disabled svg { opacity: .22; width: calc(var(--btn) * 0.4); height: calc(var(--btn) * 0.4); }
 .arrow-note { font-size: clamp(.78rem, calc(var(--btn) * .125), 1.35rem); font-weight: 600; line-height: 1.1; color: var(--muted); text-align: center; padding: 0 4px; }
 .compact .arrow-up.blocked:disabled svg { width: 40%; height: 40%; }
+
+/* ---------- Stile (arkade/stil.js): lærredet læser de samme variabler ---------- */
+html[data-stil="tegneserie"] {
+  --fr-frame: #1b1b1f; --fr-top: #8ed36b; --fr-wall: #1b1b1f; --fr-wall-fill: #5aa94a; --fr-hole: #1b1b1f; --fr-hole-fill: #2f80ed; --fr-hole-glow: #2f80ed;
+  --fr-water: #4fc3f7; --fr-water-line: rgba(255, 255, 255, 0.55); --fr-road: #6b6f78; --fr-road-line: rgba(255, 255, 255, 0.75);
+  --fr-safe: #a8e07a; --fr-safe-edge: #1b1b1f; --fr-frog: #1b1b1f; --fr-frog-fill: #3dbe5a;
+  --fr-car1: #e8433a; --fr-car2: #2f80ed; --fr-car3: #ffd23f; --fr-car4: #ff6fae; --fr-car5: #9b6bff; --fr-car-fill: #ffffff; --fr-lights: #ffd23f;
+  --fr-log: #1b1b1f; --fr-log-light: #c9884a; --fr-log-dark: #8a5a2b; --fr-turtle: #1b1b1f; --fr-turtle-fill: #3dbe5a;
+  --fr-ghost-car: #e8433a; --fr-ghost-log: #8a5a2b; --fr-splash: #ffffff; --fr-danger: #e8433a;
+}
+html[data-stil="pixel"] {
+  --fr-frame: #fff1e8; --fr-top: #008751; --fr-wall: #00e436; --fr-wall-fill: #008751; --fr-hole: #000000; --fr-hole-fill: #1d2b53; --fr-hole-glow: #29adff;
+  --fr-water: #1d2b53; --fr-water-line: rgba(41, 173, 255, 0.5); --fr-road: #000000; --fr-road-line: rgba(255, 236, 39, 0.6);
+  --fr-safe: #7e2553; --fr-safe-edge: #ff77a8; --fr-frog: #000000; --fr-frog-fill: #00e436;
+  --fr-car1: #ff004d; --fr-car2: #29adff; --fr-car3: #ffec27; --fr-car4: #ff77a8; --fr-car5: #a77bff; --fr-car-fill: #000000; --fr-lights: #ffec27;
+  --fr-log: #000000; --fr-log-light: #ab5236; --fr-log-dark: #5f3a24; --fr-turtle: #000000; --fr-turtle-fill: #00e436;
+  --fr-ghost-car: #ff77a8; --fr-ghost-log: #ffccaa; --fr-splash: #fff1e8; --fr-danger: #ff004d;
+}
+html[data-stil="tegneserie"] #board { border: 5px solid var(--ink); box-shadow: 8px 8px 0 var(--ink); }
+html[data-stil="pixel"] #board { --k: var(--fr-frame); border: 0; border-radius: 0; box-shadow: var(--pixelkant); }
