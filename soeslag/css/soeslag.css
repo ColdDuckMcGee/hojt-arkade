@@ -504,3 +504,38 @@ ol.records .score { white-space: nowrap; }
 .end-points li { white-space: nowrap; }
 .bk-lille .compact .end-btn .big { font-size: 1.15rem; }
 .bk-lille .compact .end-btn { min-width: var(--btn); padding-left: 10px; padding-right: 10px; }
+
+/* ---------- Stile (arkade/stil.js) ---------- */
+html[data-stil="tegneserie"] {
+  --ss-sea: #8fd3ff; --ss-grid: rgba(27, 27, 31, 0.18); --ss-enemy: var(--ink); --ss-home: #e8433a;
+  --ss-hull: #9aa7b8; --ss-miss: #ffffff; --ss-hit: #ff9f1c; --ss-sunk: #e8433a; --ss-aim: #ffd23f; --ss-last: var(--ink);
+  --ss-ok: #2a9d4a; --ss-bad: #e8433a; --ss-hover: var(--ink);
+}
+html[data-stil="tegneserie"] .board { border-width: 5px; border-radius: 8px; box-shadow: 8px 8px 0 var(--ink); background-image: radial-gradient(rgba(255, 255, 255, 0.35) 20%, transparent 24%); background-size: 14px 14px; }
+html[data-stil="tegneserie"] .board-title { text-shadow: none; }
+html[data-stil="tegneserie"] .board-title.you { color: var(--ink); }
+html[data-stil="tegneserie"] .board-title.ai { color: #ffffff; background: #e8433a; border: 3px solid var(--ink); }
+html[data-stil="tegneserie"] .board-title.won { background: #3dbe5a; color: var(--ink); border: 3px solid var(--ink); }
+html[data-stil="tegneserie"] .board-title.lost { background: #ffd23f; color: var(--ink); border: 3px solid var(--ink); }
+html[data-stil="tegneserie"] .labels { color: var(--ink); text-shadow: none; }
+html[data-stil="tegneserie"] .board { --bw: max(3px, calc(var(--cell, 80px) * 0.05)); }
+html[data-stil="tegneserie"] .cell.hull .hl { background: var(--ss-hull); border-color: var(--ink); box-shadow: none; }
+html[data-stil="tegneserie"] .cell.chosen .hl { background: #ffd23f; border-color: var(--ink); }
+html[data-stil="tegneserie"] .cell.m-miss .mk::before { border-color: #ffffff; box-shadow: 0 0 0 2px var(--ink), inset 0 0 0 2px var(--ink); }
+html[data-stil="tegneserie"] .cell.m-hit .mk::before, html[data-stil="tegneserie"] .cell.m-hit .mk::after { box-shadow: 0 0 0 2px var(--ink); }
+html[data-stil="tegneserie"] .cell.aim .gh { box-shadow: 0 0 0 3px var(--ink), inset 0 0 0 3px var(--ink); }
+
+html[data-stil="pixel"] {
+  --ss-sea: #1d2b53; --ss-grid: rgba(41, 173, 255, 0.25); --ss-enemy: #29adff; --ss-home: #ff77a8;
+  --ss-hull: #c2c3c7; --ss-miss: #fff1e8; --ss-hit: #ffa300; --ss-sunk: #ff004d; --ss-aim: #ffec27; --ss-last: #fff1e8;
+  --ss-ok: #00e436; --ss-bad: #ff004d; --ss-hover: #fff1e8;
+}
+html[data-stil="pixel"] .board { border: 0; border-radius: 0; box-shadow: 0 -4px 0 var(--fr), 0 4px 0 var(--fr), -4px 0 0 var(--fr), 4px 0 0 var(--fr); }
+html[data-stil="pixel"] .board-title { border-radius: 0; text-shadow: none; font-family: var(--titel-font); }
+html[data-stil="pixel"] .labels { text-shadow: none; }
+html[data-stil="pixel"] .cell .hl { border-radius: 0 !important; }
+html[data-stil="pixel"] .cell.hull .hl { background: var(--ss-hull); border-color: #5f574f; box-shadow: inset 0 calc(var(--bw) * 1.5) 0 #fff1e8; }
+html[data-stil="pixel"] .cell.m-miss .mk::before { border-radius: 0; }
+html[data-stil="pixel"] .cell.m-hit .mk::before, html[data-stil="pixel"] .cell.m-hit .mk::after,
+html[data-stil="pixel"] .cell.m-sunk .mk::before, html[data-stil="pixel"] .cell.m-sunk .mk::after { border-radius: 0; box-shadow: none; }
+html[data-stil="pixel"] .cell.aim .gh { border-radius: 0; box-shadow: none; }
