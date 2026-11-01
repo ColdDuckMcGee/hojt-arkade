@@ -388,3 +388,72 @@ html[data-stil="neon"] #indstillinger:has(#panel-udseende:not([hidden])) { --btn
 @media (orientation: landscape) and (max-height: 700px) {
   html[data-stil="neon"] #indstillinger:has(#panel-udseende:not([hidden])) #panel-udseende { --btn: min(var(--btn-ideal), calc((100dvh - 2 * var(--pad) - 5 * var(--gap)) / 5.6)); }
 }
+
+/* =====================================================================
+   Alle spil (#alle): oversigt med store felter i stedet for at bladre maskine for maskine.
+   hal.js regner antal kolonner og rækker ud fra gitterets størrelse (mindst 120 px pr. felt).
+   ===================================================================== */
+/* Menuen i hallen har nu fire knapper: de krymper lidt i lave vinduer i stedet for at løbe over */
+.hal-menu .btn { height: auto; flex: 0 1 var(--btn); min-height: 0; }
+.alle-ikon { width: 1.5rem; height: 1.5rem; fill: currentColor; flex: none; }
+@media (max-aspect-ratio: 6/5), (max-width: 699px) {
+  .hal-menu .btn { flex: 1 1 0; height: auto; }
+  .hal-menu .btn .big { font-size: clamp(.8rem, 3.4vw, 1.3rem); }
+}
+
+.alle {
+  --btn-h: calc((100dvh - 2 * var(--pad)) / 5);
+  display: grid;
+  grid-template-columns: var(--btn) minmax(0, 1fr) var(--btn);
+  grid-template-rows: var(--btn) minmax(0, 1fr);
+  gap: var(--gap);
+}
+.alle.en-side { grid-template-columns: 0 minmax(0, 1fr) 0; column-gap: 0; }
+.alle-top { grid-area: 1 / 1 / 2 / 4; display: flex; align-items: center; gap: var(--gap); min-width: 0; }
+.alle-top .btn { height: var(--btn); min-width: calc(var(--btn) * 1.35); }
+.alle-titel { margin: 0; font-size: clamp(1.4rem, 5vmin, 3rem); white-space: nowrap; }
+.alle-side { margin: 0 0 0 auto; font-size: clamp(1rem, 2.8vmin, 1.5rem); font-weight: 700; color: var(--text); white-space: nowrap; }
+.alle-forrige { grid-area: 2 / 1 / 3 / 2; width: var(--btn); height: min(100%, calc(var(--btn) * 2.4)); }
+.alle-naeste  { grid-area: 2 / 3 / 3 / 4; width: var(--btn); height: min(100%, calc(var(--btn) * 2.4)); }
+.alle .neon-pil[disabled] { opacity: .3; }
+.alle-gitter { grid-area: 2 / 2 / 3 / 3; display: grid; gap: var(--gap); min-width: 0; min-height: 0; height: 100%; }
+
+.btn.alle-felt {
+  min-width: 0; min-height: 0; width: 100%; height: 100%;
+  padding: clamp(5px, 1vmin, 10px); gap: clamp(4px, .8vmin, 8px);
+  display: flex; flex-direction: column; justify-content: stretch; align-items: stretch;
+  overflow: hidden;
+}
+.alle-billede { flex: 1 1 0; min-height: 0; border-radius: 8px; overflow: hidden; background: #0a0414; display: block; }
+.alle-billede img { display: block; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+.alle-felt .alle-navn { flex: none; font-size: clamp(.95rem, 2.4vmin, 1.35rem) !important; line-height: 1.1;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.alle-felt.valgt { border-color: var(--m1, var(--ui)); box-shadow: 0 0 0 4px var(--m1, var(--ui)), 0 0 calc(22px * var(--glow)) var(--m1, var(--ui)); }
+.alle-felt.snart .alle-billede { background: repeating-linear-gradient(45deg, #1a0b2a 0 12px, #120720 0 24px); }
+.alle-felt.snart .alle-navn { opacity: .7; }
+
+@media (max-aspect-ratio: 6/5), (max-width: 699px) {
+  .alle {
+    --btn-h: calc(100dvh / 7.5);
+    --btn-w: calc((100vw - 2 * var(--pad) - var(--gap)) / 2.6);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: var(--btn) minmax(0, 1fr) var(--btn);
+  }
+  .alle.en-side { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: var(--btn) minmax(0, 1fr) 0; row-gap: var(--gap); column-gap: var(--gap); }
+  .alle-top { grid-area: 1 / 1 / 2 / 3; }
+  .alle-gitter { grid-area: 2 / 1 / 3 / 3; }
+  .alle-forrige { grid-area: 3 / 1 / 4 / 2; width: 100%; height: var(--btn); flex-direction: row; gap: 10px; }
+  .alle-naeste  { grid-area: 3 / 2 / 4 / 3; width: 100%; height: var(--btn); flex-direction: row-reverse; gap: 10px; }
+  .alle .neon-pil svg { width: auto; height: 44%; }
+  .alle-titel { font-size: clamp(1.2rem, 6vw, 2.4rem); }
+}
+@media (max-width: 480px) { .alle-titel { display: none; } }
+
+/* Stile */
+html[data-stil="tegneserie"] .alle-billede { border-radius: 0; border: 3px solid var(--ink); }
+html[data-stil="tegneserie"] .alle-felt.valgt { border-color: var(--ink); box-shadow: 0 0 0 5px var(--roed), var(--skygge); }
+html[data-stil="tegneserie"] .alle-side { color: var(--ink); }
+html[data-stil="pixel"] .alle-billede { border-radius: 0; }
+html[data-stil="pixel"] .alle-billede img { image-rendering: pixelated; }
+html[data-stil="pixel"] .alle-felt.valgt { box-shadow: 0 0 0 6px var(--gul), inset 0 -6px 0 rgba(0, 0, 0, 0.35); }
+html[data-stil="pixel"] .alle-side { color: var(--hvid); font-family: var(--font); }

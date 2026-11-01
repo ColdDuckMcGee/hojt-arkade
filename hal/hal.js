@@ -2,7 +2,8 @@
  * Hojt Arkade – hallen (forsiden).
  * Én arkademaskine ad gangen. Spillene kommer fra games.js (window.HOJT_SPIL).
  * Genbruger arkade/settings.js, dwell.js, audio.js og background.js.
- * Intet skifter af sig selv: maskinen skifter kun, når man vælger en pil.
+ * Intet skifter af sig selv: maskinen skifter kun, når man vælger en pil – eller et felt i
+ * oversigten Alle spil (#alle), så man ikke skal bladre gennem alle maskinerne.
  */
 (function () {
   'use strict';
@@ -459,6 +460,101 @@
   function tilbage() { audio.play('click'); show('hal', returnFocus); }
   $$('.js-tilbage').forEach(function (b) { b.addEventListener('click', tilbage); });
 
+  // ---------- Alle spil: oversigt i stedet for at bladre maskine for maskine ----------
+  // Store felter (billede + navn) på sider. Antal felter pr. side regnes ud fra pladsen, så
+  // hvert felt er stort nok at ramme med øjnene (mindst ALLE_MIN px, helst ca. 4-5 cm).
+  // Et valgt felt hopper til maskinen i hallen – man starter selv spillet med Spil.
+  var ALLE_MIN = 120, ALLE_MAX_MAAL = 180;
+  var alleSide = 0, alleLayout = { cols: 1, rows: 1, per: 1 };
+  var alleGitter = $('#alle-gitter');
+  function alleBeregn() {
+    var W = alleGitter.clientWidth, H = alleGitter.clientHeight, n = SPIL.length;
+    var gap = parseFloat(getComputedStyle(alleGitter).columnGap) || 12;
+    var maal = Math.max(ALLE_MIN, Math.min(ALLE_MAX_MAAL, Math.min(W, H) / 3.6));
+    var bedst = null;
+    for (var c = 1; c <= 10; c++) {
+      for (var r = 1; r <= 8; r++) {
+        var w = (W - (c - 1) * gap) / c, h = (H - (r - 1) * gap) / r;
+        if (w < ALLE_MIN || h < ALLE_MIN) continue;
+        var per = Math.min(c * r, n), sider = Math.ceil(n / per);
+        if (c * r > n && (c - 1) * r >= n) continue;          // en hel tom kolonne: unødvendig
+        var str = Math.min(w, h * 1.15);
+        var ok = str >= maal;
+        var k = { cols: c, rows: r, per: c * r, sider: sider, str: str, ok: ok, form: Math.abs(Math.log(w / h)) };
+        if (!bedst) { bedst = k; continue; }
+        // Store nok felter først, så færrest sider, så de største og mindst aflange felter
+        if (k.ok !== bedst.ok) { if (k.ok) bedst = k; continue; }
+        if (k.ok) {
+          if (k.sider < bedst.sider || (k.sider === bedst.sider && (k.str - k.form * 20) > (bedst.str - bedst.form * 20))) bedst = k;
+        } else if (k.str > bedst.str) bedst = k;
+      }
+    }
+    alleLayout = bedst || { cols: 1, rows: 1, per: 1, sider: n };
+  }
+  function alleTegn() {
+    var L = alleLayout, sider = Math.max(1, Math.ceil(SPIL.length / L.per));
+    alleSide = Math.max(0, Math.min(alleSide, sider - 1));
+    alleGitter.style.gridTemplateColumns = 'repeat(' + L.cols + ', minmax(0, 1fr))';
+    alleGitter.style.gridTemplateRows = 'repeat(' + L.rows + ', minmax(0, 1fr))';
+    var html = '';
+    for (var i = alleSide * L.per; i < Math.min(SPIL.length, (alleSide + 1) * L.per); i++) {
+      var g = SPIL[i], bil = g.aktiv ? skaermBillede(g) : '';
+      html += '<button class="btn alle-felt' + (i === index ? ' valgt' : '') + (g.aktiv ? '' : ' snart') + '" data-i="' + i + '"' +
+        ' style="--m1:' + g.farve[0] + '"' + (i === index ? ' aria-current="true"' : '') +
+        ' aria-label="' + esc(g.navn + (g.aktiv ? '' : ' – kommer snart')) + '">' +
+        '<span class="alle-billede" aria-hidden="true">' + (bil ? '<img src="' + esc(bil) + '" alt="" draggable="false">' : '') + '</span>' +
+        '<span class="big alle-navn">' + esc(g.navn) + '</span></button>';
+    }
+    alleGitter.innerHTML = html;
+    $('#alle-side').textContent = sider > 1 ? 'Side ' + (alleSide + 1) + ' af ' + sider : SPIL.length + ' spil';
+    var f = $('#alle-forrige'), nx = $('#alle-naeste');
+    f.hidden = nx.hidden = sider <= 1;
+    f.disabled = alleSide === 0;
+    nx.disabled = alleSide >= sider - 1;
+    $('#alle').classList.toggle('en-side', sider <= 1);
+  }
+  function alleOpdater() {
+    // Først uden pile (hvis alt kan være på én side), ellers med
+    $('#alle').classList.add('en-side');
+    $('#alle-forrige').hidden = $('#alle-naeste').hidden = true;
+    alleBeregn();
+    if (Math.ceil(SPIL.length / alleLayout.per) > 1) {
+      $('#alle').classList.remove('en-side');
+      $('#alle-forrige').hidden = $('#alle-naeste').hidden = false;
+      alleBeregn();
+    }
+    alleTegn();
+  }
+  function alleBladr(d) {
+    var sider = Math.ceil(SPIL.length / alleLayout.per), ny = Math.max(0, Math.min(sider - 1, alleSide + d));
+    if (ny === alleSide) return;
+    alleSide = ny; audio.play('move'); alleTegn(); dwell.reset();
+  }
+  $('#btn-alle').addEventListener('click', function () {
+    audio.play('click'); returnFocus = this;
+    show('alle', $('#alle .js-tilbage'));
+    alleOpdater();
+    alleSide = Math.floor(index / alleLayout.per);
+    alleTegn();
+  });
+  $('#alle-forrige').addEventListener('click', function () { alleBladr(-1); });
+  $('#alle-naeste').addEventListener('click', function () { alleBladr(1); });
+  alleGitter.addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('.alle-felt') : null;
+    if (!b) return;
+    index = +b.getAttribute('data-i');
+    hal.set('valgt', SPIL[index].id);
+    audio.play('click');
+    show('hal', spilBtn);
+    render(true);
+  });
+  window.addEventListener('resize', function () {
+    if (current !== 'alle') return;
+    clearTimeout(alleTimer);
+    alleTimer = setTimeout(function () { var forst = alleSide * alleLayout.per; alleOpdater(); alleSide = Math.floor(forst / alleLayout.per); alleTegn(); }, 80);
+  });
+  var alleTimer = null;
+
   // ---------- Indstillinger ----------
   function fmtSeconds(v) { return v.toFixed(v * 10 % 1 === 0 ? 1 : 2).replace('.', ',') + ' sek.'; }
   var settingsTab = 'styring';
@@ -520,6 +616,8 @@
         var a = document.activeElement;
         if (!a || a === document.body || !a.closest('button, a[href]')) { e.preventDefault(); spil(); }
       }
+    } else if (current === 'alle' && (e.key === 'PageUp' || e.key === 'PageDown')) {
+      e.preventDefault(); alleBladr(e.key === 'PageUp' ? -1 : 1);
     } else if (current === 'velkomst') {
       if (e.key === 'Escape' && velkomstFra) { e.preventDefault(); audio.play('click'); show(velkomstFra, $('#btn-skift-styring')); }
     } else if (e.key === 'Escape') {

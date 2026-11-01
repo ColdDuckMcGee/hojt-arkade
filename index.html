@@ -96,12 +96,31 @@
   </section>
 
   <nav class="hal-menu" aria-label="Menu">
+    <button class="btn" id="btn-alle" aria-label="Alle spil – se alle maskiner på én gang"><svg class="alle-ikon" viewBox="0 0 30 30" aria-hidden="true"><rect x="1" y="1" width="8" height="8" rx="1.5"/><rect x="11" y="1" width="8" height="8" rx="1.5"/><rect x="21" y="1" width="8" height="8" rx="1.5"/><rect x="1" y="11" width="8" height="8" rx="1.5"/><rect x="11" y="11" width="8" height="8" rx="1.5"/><rect x="21" y="11" width="8" height="8" rx="1.5"/><rect x="1" y="21" width="8" height="8" rx="1.5"/><rect x="11" y="21" width="8" height="8" rx="1.5"/><rect x="21" y="21" width="8" height="8" rx="1.5"/></svg><span class="big">Alle spil</span></button>
     <button class="btn" id="btn-om"><span class="icon" aria-hidden="true">ⓘ</span><span class="big">Om</span></button>
     <button class="btn" id="btn-indstillinger"><span class="icon" aria-hidden="true">⚙</span><span class="big">Indstil&shy;linger</span></button>
     <button class="btn js-fullscreen" id="btn-fs"><span class="icon" aria-hidden="true">⛶</span><span class="big js-fs-label">Fuld skærm</span></button>
   </nav>
 
   <p class="sr-only" id="hal-status" aria-live="polite" aria-atomic="true"></p>
+</main>
+
+<!-- ================= ALLE SPIL ================= -->
+<main id="alle" class="screen alle" hidden aria-labelledby="alle-titel">
+  <div class="alle-top">
+    <button class="btn js-tilbage"><span class="icon" aria-hidden="true">←</span><span class="big">Tilbage</span></button>
+    <h2 id="alle-titel" class="neon-sub alle-titel">Alle spil</h2>
+    <p class="alle-side" id="alle-side" aria-live="polite"></p>
+  </div>
+  <button class="btn neon-pil alle-forrige" id="alle-forrige" aria-label="Forrige side">
+    <svg viewBox="0 0 100 160" aria-hidden="true"><path d="M70 20 20 80l50 60"/></svg>
+    <span class="small">Forrige side</span>
+  </button>
+  <div class="alle-gitter" id="alle-gitter" role="group" aria-label="Vælg et spil"></div>
+  <button class="btn neon-pil alle-naeste" id="alle-naeste" aria-label="Næste side">
+    <svg viewBox="0 0 100 160" aria-hidden="true"><path d="M30 20l50 60-50 60"/></svg>
+    <span class="small">Næste side</span>
+  </button>
 </main>
 
 <!-- ================= OM ================= -->

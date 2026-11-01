@@ -172,7 +172,9 @@ Spillet varer kamp efter kamp og slutter første gang, computeren sænker hele e
 1. Hent eller pak mappen `hojt-arkade` ud.
 2. Åbn `index.html` i Chrome eller Edge (dobbeltklik). Det virker direkte fra disken.
 3. Du står nu i arkadehallen. Bladr mellem maskinerne med de store pile (eller
-   piletasterne), og vælg **Spil** ved Slangen. Du kan også åbne `slangen/index.html` direkte.
+   piletasterne), eller vælg **Alle spil** for at se alle maskiner som store felter på få sider
+   (et valgt felt hopper til maskinen). Vælg så **Spil** ved Slangen. Du kan også åbne
+   `slangen/index.html` direkte.
 4. Vælg brætstørrelse og **Start spil**. Klik én gang, så lyden starter (det kræver browseren).
 
 Prøv især:
