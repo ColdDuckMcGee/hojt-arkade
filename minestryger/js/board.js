@@ -3,9 +3,12 @@
  * tastatur virker på hvert felt) og står for eksplosion og "spol tilbage".
  * Ingen blink og ingen hvide lysglimt. Uden animation bruges en rolig fade.
  *
- * Zoom i fjerdedele (som Sudoku): fire store knapper (.qbtn) ligger oven på pladen.
- * Vælges en fjerdedel, bliver dens rækker og kolonner store og de andre smalle; de
- * andre tre fjerdedele er så store knapper, der skifter zoom. Kun de felter i den
+ * Er felterne store nok (DIREKTE_PX), vælges de direkte – uden zoom – så hele pladen
+ * altid står i fuld størrelse. Ellers zoomes der i fjerdedele (som Sudoku): fire store
+ * knapper (.qbtn) ligger oven på pladen. Vælges en fjerdedel, bliver dens felter lige
+ * store nok til blikket (ca. 100 px), og de andre krymper kun så meget, som der skal til
+ * (helst til mindst 55 % af de store), så overblikket bevares. De andre tre fjerdedele er
+ * så store knapper, der skifter zoom. Kun de felter i den
  * zoomede fjerdedel, der kan bruges, er klikbare – resten er inert – så TD Browse'
  * Color Links (og andre blikstyrede browsere) kun ser få, store mål ad gangen.
  */
@@ -68,11 +71,18 @@
       applyZoom();
     }
 
-    // Sporenes bredde (px fra midte til midte) ved zoom: den zoomede fjerdedels spor er
-    // store (helst mindst ca. 126 px), de andre smalle. Pladen fylder det samme som før.
+    // Felter, der er mindst så store, vælges direkte uden zoom (blikket rammer dem fint)
+    var DIREKTE_PX = 90, MAAL_PX = 100, MIN_PX = 84;
+    var direct = false;
+    // Sporenes bredde (px fra midte til midte) ved zoom: den zoomede fjerdedels spor bliver
+    // MAAL_PX (ca. 100 px), de andre krymper kun det nødvendige – helst til mindst 55 % af de
+    // store. Kun på meget små skærme (mobil) må de andre blive smallere (ned til 15 %), så de
+    // zoomede felter stadig når MIN_PX. Pladen fylder det samme som før.
     function pitches(n, m, inZoom, cell) {
-      var f = Math.min(0.3, Math.max(0.15, (n * cell / 126 - m) / (n - m)));
-      var big = n * cell / (m + (n - m) * f), out = [];
+      var total = n * cell;
+      var big = Math.max(cell, Math.min(MAAL_PX, total / (m + (n - m) * 0.55)));
+      if (big < MIN_PX) big = Math.max(cell, Math.min(MAAL_PX, total / (m + (n - m) * 0.15)));
+      var f = (total - m * big) / ((n - m) * big), out = [];
       for (var t = 0; t < n; t++) out.push(inZoom(t) ? big : big * f);
       return out;
     }
@@ -80,6 +90,9 @@
       if (!cols) return;
       var wrap = el.parentNode, cs = getComputedStyle(wrap);
       var cell = parseFloat(cs.getPropertyValue('--cell')) || 120, gap = parseFloat(cs.getPropertyValue('--cell-gap')) || 8;
+      direct = cell >= DIREKTE_PX;
+      wrap.classList.toggle('direkte', direct);
+      if (direct) zoom = -1;
       var zx = zoom % 2, zy = zoom >> 1;
       var pw = zoom < 0 ? null : pitches(cols, mx(), function (t) { return (t < mx() ? 0 : 1) === zx; }, cell);
       var ph = zoom < 0 ? null : pitches(rows, my(), function (t) { return (t < my() ? 0 : 1) === zy; }, cell);
@@ -100,11 +113,13 @@
         q.style.width = (z.offsetLeft + z.offsetWidth - a.offsetLeft + gap) + 'px';
         q.style.height = (z.offsetTop + z.offsetHeight - a.offsetTop + gap) + 'px';
         q.classList.toggle('zoom', k === zoom);
-        if (q.inert !== (k === zoom)) q.inert = k === zoom;
+        q.hidden = direct;
+        if (q.inert !== (k === zoom || direct)) q.inert = k === zoom || direct;
       }
       if (lastState) update(lastState, lastMode);
     }
     function setZoom(k, focus) {
+      if (direct) { if (focus && !buttons[cursor].inert) setCursor(cursor, true); return; }
       if (k !== zoom) { zoom = k; applyZoom(); }
       if (focus && k >= 0) {
         if (quadOf(cursor) !== k || buttons[cursor].inert) {
@@ -142,7 +157,7 @@
         var usable = kind === 'closed' || (kind === 'flag' && mode === 'flag');
         if (usable) b.removeAttribute('aria-disabled'); else b.setAttribute('aria-disabled', 'true');
         // Kun brugbare felter i den zoomede fjerdedel er klikbare (se øverst)
-        var off = !usable || zoom < 0 || quadOf(i) !== zoom;
+        var off = !usable || (!direct && (zoom < 0 || quadOf(i) !== zoom));
         if (b.inert !== off) b.inert = off;
         b.setAttribute('aria-label', label(c, x, y));
       });
@@ -158,6 +173,14 @@
     // Piletasterne springer over felter, der ikke kan bruges; går man ind i en anden
     // fjerdedel, zoomes der dertil.
     function moveCursor(dx, dy) {
+      if (direct) {   // ingen zoom: piletasterne går direkte mellem de brugbare felter
+        var dx0 = cursor % cols, dy0 = (cursor - dx0) / cols;
+        for (;;) {
+          dx0 += dx; dy0 += dy;
+          if (dx0 < 0 || dy0 < 0 || dx0 >= cols || dy0 >= rows) return;
+          if (!buttons[dy0 * cols + dx0].inert) { setCursor(dy0 * cols + dx0, true); return; }
+        }
+      }
       if (zoom < 0) { // oversigt: piletasterne flytter mellem fjerdedels-knapperne
         var q = qbtns.indexOf(document.activeElement); if (q < 0) q = quadOf(cursor);
         var qx = Math.min(1, Math.max(0, q % 2 + dx)), qy = Math.min(1, Math.max(0, (q >> 1) + dy));
@@ -174,6 +197,10 @@
       }
     }
     function focusCursor() {
+      if (direct) {
+        if (buttons[cursor].inert) { for (var i = 0; i < buttons.length; i++) if (!buttons[i].inert) { cursor = i; break; } }
+        setCursor(cursor, true); return;
+      }
       if (zoom < 0) qbtns[quadOf(cursor)].focus({ preventScroll: true });
       else setZoom(zoom, true);
     }
@@ -263,7 +290,7 @@
 
     return {
       build: build, update: update, moveCursor: moveCursor, focusCursor: focusCursor, hasFocus: hasFocus,
-      relayout: applyZoom, setZoom: setZoom, get zoom() { return zoom; },
+      relayout: applyZoom, setZoom: setZoom, get zoom() { return zoom; }, get direct() { return direct; },
       explode: explode, reset: reset,
       get busy() { return busy; }, get cursor() { return cursor; }, buttons: function () { return buttons; }
     };

@@ -208,6 +208,18 @@ Fælles indstilling `arkade.stil` (Indstillinger → Udseende → Stil i hallen 
 - Pixelkanten: `box-shadow: var(--pixelkant)` med kantfarven i `--k` (arves ikke).
 - Skrifterne ligger i `skrift/` (SIL OFL, se `skrift/LICENS.txt`) og hentes kun i den valgte stil.
 
+## Sigt ved at kigge på målet (sigte.js)
+```js
+var sigte = ArkadeSigte.create({ host, felter: () => [{ x, y, w, h, navn, rund? }], sigt: (felt, e) => …, aktiv: () => … });
+sigte.opdater();   // efter hver tegning og ved ændret størrelse
+```
+Usynlige knapper oven på spillepladen, så man kan sigte med kigge-klik: kig på en sten, en boble,
+en kugle eller et sted på banen, og spillet sigter derhen (der skydes aldrig). Felterne kræver
+1,5 × dwell-tiden (`data-dwell-faktor`), så et kort blik rundt på pladen ikke flytter sigtet.
+Et rigtigt museklik giver spillets eget præcise punkt (`ArkadeSigte.musPunkt(e)`). Bruges i Muren,
+Bobler, Golf og Billard; slås fra med den fælles indstilling `arkade.blikSigte` (Indstillinger →
+Styring → Sigt med blikket).
+
 ## Begræns effekter (ArkadeEffekter i settings.js, effekter.js)
 ```js
 ArkadeEffekter.begraenset();      // true, når "Effekter: Begrænsede" er valgt

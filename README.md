@@ -34,6 +34,7 @@ Et roligt minestrygerspil uden ur. Man spiller plade efter plade, indtil man
 har mistet sine liv.
 
 - **Styring:** én stor knap ved siden af brættet skifter mellem **Åbn** og **Flag**. Den valgte halvdel lyser, og felterne viser det samme: i Åbn-tilstand lyser feltet cyan med et åbn-ikon, når blikket er på det, og i Flag-tilstand lyser det pink med et flag. Der er ingen højreklik. Tastaturet virker også: piletasterne flytter, Enter eller mellemrum vælger, F skifter tilstand, og Esc eller P giver pause.
+- **Zoom kun ved behov:** er felterne mindst 90 px, vælges de direkte på hele pladen. Er de mindre, vælger man først en fjerdedel; dens felter bliver ca. 100 px, og resten af pladen krymper kun lidt (til ca. 55 %), så man stadig kan se hele pladen.
 - **Første felt:** det første felt, man åbner på hver plade, er aldrig en mine, og det samme gælder dets naboer, så første valg altid åbner et område. Felter uden nabominer åbner automatisk resten af klyngen. Pladerne laves, så de kan løses uden at gætte.
 - **Bræt:** man vælger lille (6 × 6), mellem (8 × 8) eller stor (10 × 8). På en 1920 × 1080-skærm bliver felterne mindst ca. 3 × 3 cm. På mindre skærme siger startskærmen til, hvis felterne bliver mindre.
 - **Plader og miner:** første plade har 4, 8 eller 10 miner. Hver ny plade har én mine mere, op til et loft på 8, 14 eller 18 miner (ca. 22 % af felterne).
@@ -214,6 +215,7 @@ LICENSE           MIT-licens
 | `settings.js`   | `ArkadeSettings` – indstillinger i localStorage. Fælles indstillinger (dwell, tema, baggrund, lyd …) gemmes under `arkade`, så de følger spilleren fra spil til spil. |
 | `highscores.js` | `ArkadeHighscores` – lokal top 10 pr. kategori med dato, uden navne. |
 | `dwell.js`      | `ArkadeDwell` – dwell-motor med fremskridtsring til knapper og links. Ét blik = én handling: en knap kan først vælges igen, når blikket har forladt den, og en ny knap under blikket venter på et nyt blik. |
+| `sigte.js`      | `ArkadeSigte` – sigt ved at kigge på målet (usynlige knapper oven på pladen) i Muren, Bobler, Golf og Billard. |
 | `bekraeft.js`   | `ArkadeBekraeft` – rolig ja/nej-dialog, fx "Vil du forlade spillet?", der ikke kan vælges ved et uheld med blikket. |
 | `audio.js`      | `ArkadeAudio` – synthwave-musik og lydeffekter lavet med Web Audio API (ingen lydfiler). |
 | `effekter.js`   | Foreslår "Begræns effekter" én gang, hvis spillet hakker tydeligt (måler passivt, viser forslaget i menuen) – eller med det samme, hvis browseren tegner uden grafikkort. Selve indstillingen er `ArkadeEffekter` i `settings.js`. Test: `python3 arkade/test/effekter_test.py` og `effekter_forslag_test.py`. |

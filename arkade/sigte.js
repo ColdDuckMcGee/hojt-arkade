@@ -17,7 +17,7 @@
  *  - Felterne kræver 1,5 × dwell-tiden ([data-dwell-faktor]), så et kort blik rundt på brættet
  *    ikke flytter sigtet. Ét blik = én handling som alle andre knapper.
  *  - Med musen: et rigtigt klik giver spillet musens præcise punkt (e.clientX/Y).
- *  - Knapperne er skjult for skærmlæsere og Tab (tastatur og kontakt bruger drejeknapperne).
+ *  - Felterne er <div data-dwell>, skjult for skærmlæsere og Tab (tastatur og kontakt bruger drejeknapperne).
  *  - Når aktiv() er falsk, er laget væk og fanger ingen klik.
  * Kun ES5, virker fra file://.
  */
@@ -38,10 +38,11 @@
       lag.textContent = '';
       felter = liste;
       liste.forEach(function (f, i) {
-        var b = doc.createElement('button');
-        b.type = 'button';
+        // Et <div data-dwell> (ikke en <button>): kigge-klik virker på det, men det tæller ikke som en
+        // knap for Tab, skærmlæsere eller arkadens tjek af knapstørrelser
+        var b = doc.createElement('div');
         b.className = 'arkade-sigte-felt';
-        b.tabIndex = -1;
+        b.setAttribute('data-dwell', '');
         b.setAttribute('data-dwell-faktor', FAKTOR);
         b.setAttribute('data-sigte', String(i));
         b.title = f.navn || 'Sigt hertil';
