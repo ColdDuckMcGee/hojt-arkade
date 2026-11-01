@@ -198,8 +198,8 @@ a.btn { text-decoration: none; }
    ===================================================================== */
 @font-face { font-family: "Bangers"; src: url("skrift/bangers.woff") format("woff"); font-display: swap; }
 @font-face { font-family: "Fredoka"; src: url("skrift/fredoka.woff") format("woff"); font-weight: 500 700; font-display: swap; }
-@font-face { font-family: "Silkscreen"; src: url("skrift/silkscreen.woff") format("woff"); font-weight: 400; font-display: swap; }
-@font-face { font-family: "Silkscreen"; src: url("skrift/silkscreen-bold.woff") format("woff"); font-weight: 700; font-display: swap; }
+/* Pixelify Sans: pixelskrift med tydelige danske bogstaver (Ø med streg, Å med ring) */
+@font-face { font-family: "Pixelify Sans"; src: url("skrift/pixelify-sans.woff") format("woff"); font-weight: 400 700; font-display: swap; }
 /* VT323 er lille i forhold til sin størrelse: forstørres, så den læses som de andre skrifter */
 @font-face { font-family: "VT323"; src: url("skrift/vt323.woff") format("woff"); font-display: swap; size-adjust: 128%; }
 
@@ -284,7 +284,7 @@ html[data-stil="pixel"] {
   --glow: 0 !important;
   --radius: 0px;
   --font: "VT323", "Courier New", monospace;
-  --titel-font: "Silkscreen", "Courier New", monospace;
+  --titel-font: "Pixelify Sans", "Courier New", monospace;
   --pxk: 4px;                                   /* tykkelse på pixelkanten */
 }
 /* Pixelkanten regnes ud på hvert element, så --k (kantfarven) kan sættes lokalt.
@@ -359,4 +359,7 @@ html[data-stil="tegneserie"] .setting:has([data-set="background"]), html[data-st
 .stil-prove { display: block; font-size: 2rem; line-height: 1.1; padding: 2px 10px; min-width: 2.4em; text-align: center; }
 .stil-prove-neon { font-family: "Segoe UI", system-ui, sans-serif; font-weight: 800; color: #ffe8fb; background: #12071e; border-radius: 8px; text-shadow: 0 0 8px #ff3fd8, 0 0 2px #ff3fd8 !important; }
 .stil-prove-tegneserie { font-family: "Bangers", sans-serif; letter-spacing: 0.06em; color: #ffd23f; background: #e8433a; border: 3px solid #1b1b1f; border-radius: 8px; -webkit-text-stroke: 1.5px #1b1b1f; }
-.stil-prove-pixel { font-family: "Silkscreen", monospace; font-weight: 700; font-size: 1.7rem; padding: 4px 10px; color: #00e436; background: #000000; box-shadow: 3px 3px 0 #ff77a8; }
+.stil-prove-pixel { font-family: "Pixelify Sans", monospace; font-weight: 700; font-size: 1.7rem; padding: 4px 10px; color: #00e436; background: #000000; box-shadow: 3px 3px 0 #ff77a8; }
+/* Retro-pixel: titler, pointtavler og hovedknapper med store bogstaver, som på en spillemaskine */
+html[data-stil="pixel"] .neon-title, html[data-stil="pixel"] .neon-sub, html[data-stil="pixel"] .btn.primary .big,
+html[data-stil="pixel"] .hud-label, html[data-stil="pixel"] .arkade-bk-titel, html[data-stil="pixel"] .arkade-hs-titel { text-transform: uppercase; }
