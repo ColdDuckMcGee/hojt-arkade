@@ -188,3 +188,170 @@ a.btn { text-decoration: none; }
 @media (prefers-reduced-motion: reduce) {
   .btn { transition: none; }
 }
+
+/* =====================================================================
+   Stile (arkade/stil.js sætter <html data-stil="neon|tegneserie|pixel">)
+   Neon er udgangspunktet ovenfor. De to andre stile ændrer alle fælles flader: farver,
+   skrift, knapper, paneler, dialoger, rekorder, logo og kigge-klik-ringen. De er
+   billige at tegne: ingen glød, ingen sløring – kun flader, streger og hårde skygger.
+   Spillenes egne flader (bræt, HUD) følger i spillets CSS eller tema/<stil>/.
+   ===================================================================== */
+@font-face { font-family: "Bangers"; src: url("skrift/bangers.woff") format("woff"); font-display: swap; }
+@font-face { font-family: "Fredoka"; src: url("skrift/fredoka.woff") format("woff"); font-weight: 500 700; font-display: swap; }
+@font-face { font-family: "Silkscreen"; src: url("skrift/silkscreen.woff") format("woff"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Silkscreen"; src: url("skrift/silkscreen-bold.woff") format("woff"); font-weight: 700; font-display: swap; }
+/* VT323 er lille i forhold til sin størrelse: forstørres, så den læses som de andre skrifter */
+@font-face { font-family: "VT323"; src: url("skrift/vt323.woff") format("woff"); font-display: swap; size-adjust: 128%; }
+
+/* ---------- Tegneserie ---------- */
+html[data-stil="tegneserie"] {
+  --ink: #1b1b1f; --papir: #ffffff; --gul: #ffd23f; --roed: #e8433a; --blaa: #2f80ed; --groen: #3dbe5a;
+  --bg: #ffe9ae; --bg2: #ffd77a;
+  --ui: #1b1b1f; --ui-soft: rgba(27, 27, 31, 0.10); --ui-text: #1b1b1f;
+  --accent: #e8433a;
+  --text: #1b1b1f; --muted: #4f4836;
+  --panel: #ffffff;
+  --glow: 0 !important;
+  --radius: 16px;
+  --font: "Fredoka", "Segoe UI", system-ui, sans-serif;
+  --titel-font: "Bangers", "Impact", sans-serif;
+  --skygge: 6px 6px 0 var(--ink);
+}
+html[data-stil="tegneserie"] *, html[data-stil="tegneserie"] *::before, html[data-stil="tegneserie"] *::after { text-shadow: none; }
+html[data-stil="tegneserie"] body { font-weight: 500; }
+html[data-stil="tegneserie"] .btn {
+  color: var(--ink); background: var(--papir);
+  border: 4px solid var(--ink); border-radius: var(--radius);
+  box-shadow: var(--skygge);
+  transition: background-color .15s ease;
+}
+html[data-stil="tegneserie"] .btn:hover, html[data-stil="tegneserie"] .btn.arkade-dwelling,
+html[data-stil="tegneserie"] .btn:active { background: #fff4cc; box-shadow: var(--skygge); }
+html[data-stil="tegneserie"] .btn .big { font-weight: 700; }
+html[data-stil="tegneserie"] .btn .small { color: var(--muted); font-weight: 500; }
+html[data-stil="tegneserie"] .btn.primary { background: var(--roed); color: #ffffff; border-width: 4px; box-shadow: 7px 7px 0 var(--ink); }
+html[data-stil="tegneserie"] .btn.primary .big { font-family: var(--titel-font); font-weight: 400; letter-spacing: 0.06em; font-size: 2.1rem; -webkit-text-stroke: 1px var(--ink); }
+html[data-stil="tegneserie"] .btn.primary .small { color: #fff4ee; }
+html[data-stil="tegneserie"] .btn.primary:hover, html[data-stil="tegneserie"] .btn.primary.arkade-dwelling { background: #f05a50; }
+html[data-stil="tegneserie"] .btn.option[aria-pressed="true"] { background: var(--gul); color: var(--ink); border-color: var(--ink); box-shadow: var(--skygge); }
+html[data-stil="tegneserie"] .btn.option[aria-pressed="true"] .small { color: var(--ink); }
+html[data-stil="tegneserie"] .btn:disabled, html[data-stil="tegneserie"] .btn[aria-disabled="true"] {
+  opacity: 1; color: #8a8270; background: rgba(255, 255, 255, 0.45); border: 4px dashed #8a8270; box-shadow: none;
+}
+html[data-stil="tegneserie"] .btn:focus-visible { outline: 5px solid var(--blaa); outline-offset: 6px; }
+html[data-stil="tegneserie"][data-styring="kontakt"] .btn:focus { outline: 7px solid var(--blaa); outline-offset: 6px; }
+html[data-stil="tegneserie"] .neon-title {
+  font-family: var(--titel-font); font-weight: 400; letter-spacing: 0.06em;
+  color: var(--titel-farve, var(--groen)); -webkit-text-stroke: 3px var(--ink);
+  text-shadow: 6px 6px 0 var(--ink); paint-order: stroke fill;
+}
+html[data-stil="tegneserie"] .neon-sub { font-family: var(--titel-font); font-weight: 400; letter-spacing: 0.05em; color: var(--ink); }
+html[data-stil="tegneserie"] .brand { color: var(--roed); }
+html[data-stil="tegneserie"] .group-label { color: var(--ink); }
+html[data-stil="tegneserie"] .panel { background: var(--papir); border: 4px solid var(--ink); border-radius: var(--radius); box-shadow: 8px 8px 0 var(--ink); }
+html[data-stil="tegneserie"] .overlay { background: rgba(255, 233, 174, 0.78); }
+html[data-stil="tegneserie"] .hud {
+  background: var(--papir); color: var(--ink);
+  border: 4px solid var(--ink); border-radius: 4px; box-shadow: 5px 5px 0 var(--ink);
+}
+html[data-stil="tegneserie"] .hud-label { font-family: var(--titel-font); font-size: 1.15em; letter-spacing: 0.08em; color: var(--ink); }
+html[data-stil="tegneserie"] .hud-value { color: var(--ink); font-weight: 700; }
+html[data-stil="tegneserie"] .hud-sub { color: var(--muted); }
+html[data-stil="tegneserie"] .records li.new { background: var(--gul); outline: 3px solid var(--ink); }
+html[data-stil="tegneserie"] .records li.new .score::after { color: var(--roed); }
+html[data-stil="tegneserie"] .arkade-logo { content: url("logo-tegneserie.svg"); }
+html[data-stil="tegneserie"] .arkade-dwell-track { fill: rgba(255, 255, 255, 0.4); stroke: var(--ink); stroke-width: 15; }
+html[data-stil="tegneserie"] .arkade-dwell-progress { stroke: var(--gul); stroke-width: 8; stroke-linecap: butt; filter: none; }
+html[data-stil="tegneserie"] .arkade-bk, html[data-stil="tegneserie"] .arkade-hs { background: rgba(255, 233, 174, 0.82); }
+html[data-stil="tegneserie"] .arkade-bk-kort, html[data-stil="tegneserie"] .arkade-hs-kort { background: var(--papir); border: 4px solid var(--ink); box-shadow: 10px 10px 0 var(--ink); }
+html[data-stil="tegneserie"] .arkade-bk-titel, html[data-stil="tegneserie"] .arkade-hs-titel { font-family: var(--titel-font); font-weight: 400; letter-spacing: 0.05em; color: var(--ink); }
+html[data-stil="tegneserie"] .arkade-hs-btn { background: var(--papir); color: var(--ink); border: 4px solid var(--ink); box-shadow: 4px 4px 0 var(--ink); }
+html[data-stil="tegneserie"] .arkade-hs-btn:hover, html[data-stil="tegneserie"] .arkade-hs-btn.arkade-dwelling, html[data-stil="tegneserie"] .arkade-hs-btn:active { background: #fff4cc; box-shadow: 4px 4px 0 var(--ink); }
+html[data-stil="tegneserie"] .arkade-hs-btn.fane[aria-pressed="true"], html[data-stil="tegneserie"] .arkade-hs-rk li.ny { background: var(--gul); color: var(--ink); outline-color: var(--ink); }
+html[data-stil="tegneserie"] .arkade-hs-plads { background: rgba(27, 27, 31, 0.06); color: var(--roed); }
+html[data-stil="tegneserie"] .arkade-hs-rk .navn { color: var(--blaa); }
+html[data-stil="tegneserie"] .arkade-hs-rk li:nth-child(odd) { background: rgba(27, 27, 31, 0.05); }
+
+/* ---------- Retro-pixel ---------- */
+html[data-stil="pixel"] {
+  --ink: #000000; --hvid: #fff1e8; --gul: #ffec27; --groen: #00e436; --morkgroen: #008751;
+  --blaa: #29adff; --roed: #ff004d; --graa: #5f574f; --lysgraa: #c2c3c7; --natblaa: #1d2b53; --nat: #0b1026;
+  --bg: #0b1026; --bg2: #1d2b53;
+  --ui: #fff1e8; --ui-soft: rgba(255, 241, 232, 0.14); --ui-text: #fff1e8;
+  --accent: #ffec27;
+  --text: #fff1e8; --muted: #c2c3c7;
+  --panel: #0b1026;
+  --glow: 0 !important;
+  --radius: 0px;
+  --font: "VT323", "Courier New", monospace;
+  --titel-font: "Silkscreen", "Courier New", monospace;
+  --pxk: 4px;                                   /* tykkelse på pixelkanten */
+  --pixelkant: 0 calc(-1 * var(--pxk)) 0 var(--k, var(--hvid)), 0 var(--pxk) 0 var(--k, var(--hvid)),
+               calc(-1 * var(--pxk)) 0 0 var(--k, var(--hvid)), var(--pxk) 0 0 var(--k, var(--hvid));
+}
+html[data-stil="pixel"] *, html[data-stil="pixel"] *::before, html[data-stil="pixel"] *::after { text-shadow: none; }
+html[data-stil="pixel"] body { font-weight: 400; }
+html[data-stil="pixel"] b, html[data-stil="pixel"] strong, html[data-stil="pixel"] h1, html[data-stil="pixel"] h2, html[data-stil="pixel"] h3 { font-weight: 400; }
+html[data-stil="pixel"] .btn {
+  color: var(--hvid); background: var(--natblaa);
+  border: 0; border-radius: 0;
+  box-shadow: var(--pixelkant), inset 0 -6px 0 rgba(0, 0, 0, 0.35);
+  transition: none;
+}
+html[data-stil="pixel"] .btn:hover, html[data-stil="pixel"] .btn.arkade-dwelling,
+html[data-stil="pixel"] .btn:active { background: #2a3f78; box-shadow: var(--pixelkant), inset 0 -6px 0 rgba(0, 0, 0, 0.35); }
+html[data-stil="pixel"] .btn .big { font-weight: 400; letter-spacing: 0.02em; }
+html[data-stil="pixel"] .btn .small { color: var(--lysgraa); }
+html[data-stil="pixel"] .btn.primary { background: var(--groen); color: var(--nat); box-shadow: var(--pixelkant), inset 0 -8px 0 var(--morkgroen); }
+html[data-stil="pixel"] .btn.primary .big { font-family: var(--titel-font); font-weight: 700; font-size: 1.6rem; letter-spacing: 0.02em; }
+html[data-stil="pixel"] .btn.primary .small { color: var(--nat); }
+html[data-stil="pixel"] .btn.primary:hover, html[data-stil="pixel"] .btn.primary.arkade-dwelling { background: #4cf06e; }
+html[data-stil="pixel"] .btn.option[aria-pressed="true"] { background: var(--gul); color: var(--natblaa); box-shadow: var(--pixelkant), inset 0 -6px 0 #d9a800; }
+html[data-stil="pixel"] .btn.option[aria-pressed="true"] .small { color: var(--natblaa); }
+html[data-stil="pixel"] .btn:disabled, html[data-stil="pixel"] .btn[aria-disabled="true"] {
+  opacity: 1; color: var(--graa); background: rgba(0, 0, 0, 0.25); box-shadow: none; outline: 4px dashed var(--graa); outline-offset: 0;
+}
+html[data-stil="pixel"] .btn:focus-visible { outline: 5px solid var(--gul); outline-offset: 9px; }
+html[data-stil="pixel"][data-styring="kontakt"] .btn:focus { outline: 7px solid var(--gul); outline-offset: 9px; }
+html[data-stil="pixel"] .neon-title {
+  font-family: var(--titel-font); font-weight: 700; letter-spacing: 0.02em;
+  font-size: clamp(2.4rem, 9vmin, 5.4rem); line-height: 1.1;
+  color: var(--titel-farve, var(--groen)); text-shadow: 0.1em 0.1em 0 var(--titel-skygge, var(--morkgroen));
+}
+html[data-stil="pixel"] .neon-sub { font-family: var(--titel-font); font-weight: 700; font-size: clamp(1.5rem, 4.6vmin, 2.4rem); line-height: 1.3; color: var(--gul); text-shadow: 4px 4px 0 var(--ink); }
+html[data-stil="pixel"] .brand { color: var(--blaa); }
+html[data-stil="pixel"] .group-label { color: var(--lysgraa); }
+html[data-stil="pixel"] .panel { --k: var(--graa); background: var(--nat); border: 0; border-radius: 0; box-shadow: var(--pixelkant); }
+html[data-stil="pixel"] .overlay { background: rgba(11, 16, 38, 0.8); }
+html[data-stil="pixel"] .hud { --k: var(--graa); background: var(--ink); border: 0; border-radius: 0; box-shadow: var(--pixelkant); }
+html[data-stil="pixel"] .hud-label { font-family: var(--titel-font); font-weight: 700; font-size: 0.9em; letter-spacing: 0.04em; color: var(--gul); }
+html[data-stil="pixel"] .hud-value { color: var(--hvid); font-weight: 700; }
+html[data-stil="pixel"] .hud-sub { color: var(--lysgraa); }
+html[data-stil="pixel"] .records li { border-radius: 0; }
+html[data-stil="pixel"] .records li.new { background: rgba(255, 236, 39, 0.18); outline: 3px solid var(--gul); }
+html[data-stil="pixel"] .arkade-logo { content: url("logo-pixel.svg"); image-rendering: pixelated; }
+html[data-stil="pixel"] .arkade-dwell-ring svg { shape-rendering: crispEdges; }
+html[data-stil="pixel"] .arkade-dwell-track { fill: rgba(0, 0, 0, 0.45); stroke: var(--graa); stroke-width: 12; stroke-dasharray: 5.5 2.83; }
+html[data-stil="pixel"] .arkade-dwell-progress { stroke: var(--gul); stroke-width: 12; stroke-linecap: butt; filter: none; }
+html[data-stil="pixel"] .arkade-bk, html[data-stil="pixel"] .arkade-hs { background: rgba(11, 16, 38, 0.86); }
+html[data-stil="pixel"] .arkade-bk-kort, html[data-stil="pixel"] .arkade-hs-kort { --k: var(--hvid); background: var(--nat); border: 0; border-radius: 0; box-shadow: var(--pixelkant); }
+html[data-stil="pixel"] .arkade-bk-titel, html[data-stil="pixel"] .arkade-hs-titel { font-family: var(--titel-font); font-weight: 700; font-size: clamp(1.3rem, 4vmin, 2.2rem); line-height: 1.25; letter-spacing: 0.03em; color: var(--gul); }
+html[data-stil="pixel"] .arkade-hs-btn { background: var(--natblaa); color: var(--hvid); border: 0; border-radius: 0; box-shadow: var(--pixelkant), inset 0 -5px 0 rgba(0, 0, 0, 0.35); }
+html[data-stil="pixel"] .arkade-hs-btn:hover, html[data-stil="pixel"] .arkade-hs-btn.arkade-dwelling, html[data-stil="pixel"] .arkade-hs-btn:active { background: #2a3f78; box-shadow: var(--pixelkant), inset 0 -5px 0 rgba(0, 0, 0, 0.35); }
+html[data-stil="pixel"] .arkade-hs-btn.fane[aria-pressed="true"] { background: var(--gul); color: var(--natblaa); }
+html[data-stil="pixel"] .arkade-hs-rk li.ny { background: rgba(255, 236, 39, 0.18); outline-color: var(--gul); }
+html[data-stil="pixel"] .arkade-hs-plads { border-radius: 0; color: var(--gul); }
+html[data-stil="pixel"] .arkade-hs-rk .navn { font-family: var(--titel-font); font-weight: 700; color: var(--gul); }
+
+/* Lærreder i pixel-stil tegnes i lav opløsning (ArkadeStil.pixelStr) og forstørres skarpt */
+html[data-stil="pixel"] canvas.pixel-lag { image-rendering: pixelated; image-rendering: crisp-edges; }
+
+/* Farvesæt (Tema) og Baggrund hører til neon: de skjules i de andre stile */
+html[data-stil="tegneserie"] .setting:has([data-set="theme"]), html[data-stil="pixel"] .setting:has([data-set="theme"]),
+html[data-stil="tegneserie"] .setting:has([data-set="background"]), html[data-stil="pixel"] .setting:has([data-set="background"]) { display: none !important; }
+
+/* Prøver på stilene i Indstillinger → Stil (vises ens, uanset hvilken stil der er valgt) */
+.stil-prove { display: block; font-size: 2rem; line-height: 1.1; padding: 2px 10px; min-width: 2.4em; text-align: center; }
+.stil-prove-neon { font-family: "Segoe UI", system-ui, sans-serif; font-weight: 800; color: #ffe8fb; background: #12071e; border-radius: 8px; text-shadow: 0 0 8px #ff3fd8, 0 0 2px #ff3fd8 !important; }
+.stil-prove-tegneserie { font-family: "Bangers", sans-serif; letter-spacing: 0.06em; color: #ffd23f; background: #e8433a; border: 3px solid #1b1b1f; border-radius: 8px; -webkit-text-stroke: 1.5px #1b1b1f; }
+.stil-prove-pixel { font-family: "Silkscreen", monospace; font-weight: 700; font-size: 1.7rem; padding: 4px 10px; color: #00e436; background: #000000; box-shadow: 3px 3px 0 #ff77a8; }

@@ -44,7 +44,7 @@
 
   // ---------- Indstillinger (fælles for alle spil) ----------
   var arkade = ArkadeSettings.create('arkade', {
-    begraensEffekter: false,
+    begraensEffekter: false, stil: 'neon',
     dwell: false, dwellTime: 1.2, theme: 'neon', background: 'mork', animation: true, sound: true, music: true
   });
   var hal = ArkadeSettings.create('hal', { valgt: '' });
@@ -381,8 +381,15 @@
     if (key === 'theme') applyTheme(); if (key === 'begraensEffekter') { ArkadeEffekter.anvend(value); applyTheme(); }
     if (key === 'background') applyBackground();
     if (key === 'animation') applyAnimation();
+    if (key === 'stil') {   // ny stil: siden genindlæses og vender tilbage til Indstillinger → Udseende
+      try { sessionStorage.setItem('hojtArkade.efterStil', '1'); } catch (e) { /* ignore */ }
+      ArkadeStil.skift(value); return;
+    }
     syncSettings();
   });
+  // Stil kan indtil videre kun vælges i forhåndsvisning (se arkade/stil.js)
+  var stilRaekke = $('#indstillinger .setting-stil');
+  if (stilRaekke) stilRaekke.hidden = !(window.ArkadeStil && ArkadeStil.aaben);
 
   // ---------- Tastatur ----------
   document.addEventListener('keydown', function (e) {
@@ -497,6 +504,14 @@
       visVelkomst(null);
     }
   }
+  // Lige skiftet stil: tilbage til Indstillinger → Udseende, så valget kan ses (og fortrydes)
+  try {
+    if (sessionStorage.getItem('hojtArkade.efterStil') && current === 'hal') {
+      sessionStorage.removeItem('hojtArkade.efterStil');
+      returnFocus = $('#btn-indstillinger'); settingsTab = 'udseende'; syncSettings();
+      show('indstillinger', $('#indstillinger [data-set="stil"][aria-pressed="true"]'));
+    }
+  } catch (e) { /* ignore */ }
 
   // Til test og fejlfinding (påvirker ikke almindelig brug)
   window.HojtHal = {

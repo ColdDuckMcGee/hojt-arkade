@@ -13,6 +13,9 @@
  *   const bg = ArkadeBackground.create(canvasEl);
  *   bg.setPalette({ bg0, bg1, sky0, sky1, sky2, sun0, sun1, grid, light1, light2 });
  *   bg.setMode('solnedgang'); bg.setAnimated(true);
+ *
+ * I stilene tegneserie og pixel (arkade/stil.js, <html data-stil>) tegnes stilens egen, stille
+ * baggrund i stedet: rasterprikker på gult papir / natblå pixelhimmel med stjerner og bjerge.
  */
 (function (global) {
   'use strict';
@@ -32,6 +35,9 @@
   function create(canvas) {
     var ctx = canvas.getContext('2d');
     var mode = 'mork', animated = false, raf = 0;
+    var stil = document.documentElement.getAttribute('data-stil');
+    var egen = stil === 'tegneserie' || stil === 'pixel';   // stilens egen, stille baggrund
+    function levende() { return animated && !egen && (mode === 'solnedgang' || mode === 'neonby'); }
     var W = 0, H = 0, dpr = 1;
     var pal = { bg0: '#0c0612', bg1: '#1d0b2e', sky0: '#07051a', sky1: '#2a0b45', sky2: '#ff2f8f',
                 sun0: '#ffd23a', sun1: '#ff2f8f', grid: '#ff2fd2', light1: '#ff2fd2', light2: '#22eaff' };
@@ -84,8 +90,8 @@
       return c;
     }
     function showLayers() {
-      if (floor) floor.style.display = mode === 'solnedgang' ? 'block' : 'none';
-      if (dotsEl) dotsEl.style.display = mode === 'neonby' ? 'block' : 'none';
+      if (floor) floor.style.display = !egen && mode === 'solnedgang' ? 'block' : 'none';
+      if (dotsEl) dotsEl.style.display = !egen && mode === 'neonby' ? 'block' : 'none';
     }
 
     function resize() {
@@ -106,9 +112,45 @@
       var c = sctx;
       c.setTransform(dpr, 0, 0, dpr, 0, 0);
       c.clearRect(0, 0, W, H);
-      if (mode === 'mork') staticMork(c);
+      if (stil === 'tegneserie') staticTegneserie(c);
+      else if (stil === 'pixel') staticPixel(c);
+      else if (mode === 'mork') staticMork(c);
       else if (mode === 'solnedgang') staticSunset(c);
       else staticCity(c);
+    }
+    // Tegneserie: gult papir med rasterprikker og et lyst felt i midten
+    function staticTegneserie(c) {
+      c.fillStyle = '#ffe9ae'; c.fillRect(0, 0, W, H);
+      var tile = document.createElement('canvas'), s = 16;
+      tile.width = tile.height = s;
+      var t = tile.getContext('2d');
+      t.fillStyle = 'rgba(236, 150, 40, 0.30)';
+      t.beginPath(); t.arc(s / 2, s / 2, 4.6, 0, Math.PI * 2); t.fill();
+      c.fillStyle = c.createPattern(tile, 'repeat'); c.fillRect(0, 0, W, H);
+      var g = c.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, Math.max(W, H) * 0.55);
+      g.addColorStop(0, 'rgba(255, 255, 255, 0.55)'); g.addColorStop(1, 'rgba(255, 255, 255, 0)');
+      c.fillStyle = g; c.fillRect(0, 0, W, H);
+    }
+    // Retro-pixel: himmel i faste farvebånd, pixelstjerner og takkede bjerge nederst (alt på et 4 px-gitter)
+    function staticPixel(c) {
+      var q = 4, snap = function (v) { return Math.round(v / q) * q; };
+      var b1 = snap(H * 0.3), b2 = snap(H * 0.55);
+      c.fillStyle = '#0b1026'; c.fillRect(0, 0, W, b1);
+      c.fillStyle = '#111a3d'; c.fillRect(0, b1, W, b2 - b1);
+      c.fillStyle = '#1d2b53'; c.fillRect(0, b2, W, H - b2);
+      var r = seeded(5), farver = ['#fff1e8', '#fff1e8', '#c2c3c7', '#ffec27', '#29adff', '#ff77a8'];
+      var n = Math.round(W * H / 16000);
+      for (var i = 0; i < n; i++) {
+        var sx = snap(r() * W), sy = snap(r() * H * 0.62), st = r() < 0.2 ? 8 : 4;
+        c.fillStyle = farver[Math.floor(r() * farver.length)]; c.fillRect(sx, sy, st, st);
+      }
+      c.fillStyle = '#0f1630';
+      var x = 0, base = H;
+      while (x < W) {
+        var bw = snap(48 + r() * 120), bh = snap(H * (0.05 + r() * 0.12));
+        c.fillRect(x, base - bh, bw, bh);
+        x += bw;
+      }
     }
     function staticMork(c) {
       var g = c.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, Math.max(W, H) * 0.7);
@@ -265,24 +307,24 @@
     function drawFull() {
       if (!W) return;
       ctx.setTransform(1, 0, 0, 1, 0, 0);
-      for (var n = animated && mode !== 'mork' ? 12 : 1; n > 0; n--) ctx.drawImage(staticLayer, 0, 0);
+      for (var n = levende() ? 12 : 1; n > 0; n--) ctx.drawImage(staticLayer, 0, 0);
       showLayers();
     }
     function draw(t) {
-      if (!W) return;
+      if (!W || egen) return;
       if (mode === 'solnedgang') drawSunsetGrid(t);
       else if (mode === 'neonby') drawParticles(t);
     }
     function frame(t) {
       raf = 0;
       draw(t);
-      if (animated && mode !== 'mork') raf = requestAnimationFrame(frame);
+      if (levende()) raf = requestAnimationFrame(frame);
     }
     function restart() {
       if (raf) { cancelAnimationFrame(raf); raf = 0; }
       drawFull();
       draw(performance.now());
-      if (animated && mode !== 'mork') raf = requestAnimationFrame(frame);
+      if (levende()) raf = requestAnimationFrame(frame);
     }
 
     global.addEventListener('resize', function () { resize(); restart(); });

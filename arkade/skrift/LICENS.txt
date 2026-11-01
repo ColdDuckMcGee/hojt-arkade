@@ -1,0 +1,7 @@
+Skrifterne i denne mappe er udgivet under SIL Open Font License 1.1 (se OFL-*.txt):
+  bangers.woff          Bangers (Vernon Adams)                      tegneserie: titler
+  fredoka.woff          Fredoka (Milena Brandão, Hafontia)          tegneserie: tekst og knapper
+  silkscreen*.woff      Silkscreen (Jason Kottke)                   retro-pixel: titler
+  vt323.woff            VT323 (Peter Hull)                          retro-pixel: tekst og knapper
+  (logo-pixel.svg: bogstaver som stier fra Press Start 2P, CodeMan38, SIL OFL 1.1)
+Tilpasset (kun de tegn, arkaden bruger) og pakket som WOFF fra github.com/google/fonts.

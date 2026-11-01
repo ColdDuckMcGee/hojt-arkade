@@ -8,6 +8,7 @@
 <title>Hojt Arkade – gratis spil til øjenstyring</title>
 <link rel="icon" href="arkade/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="arkade/arkade.css">
+<script src="arkade/stil.js"></script>
 <script src="arkade/fejl.js"></script>
 <script src="arkade/offline.js"></script>
 <link rel="stylesheet" href="hal/hal.css">
@@ -155,6 +156,14 @@
   </section>
 
   <section class="tab-panel panel" id="panel-udseende" data-panel="udseende" role="tabpanel" hidden>
+    <div class="setting setting-stil" hidden>
+      <div class="setting-label" id="lbl-stil">Stil<small>Hele arkadens udseende – vælg efter humør</small></div>
+      <div class="row" role="group" aria-labelledby="lbl-stil">
+        <button class="btn option stil-btn" data-set="stil" data-value="neon"><span class="stil-prove stil-prove-neon" aria-hidden="true">Aa</span><span class="big">Neon</span></button>
+        <button class="btn option stil-btn" data-set="stil" data-value="tegneserie"><span class="stil-prove stil-prove-tegneserie" aria-hidden="true">Aa</span><span class="big">Tegneserie</span></button>
+        <button class="btn option stil-btn" data-set="stil" data-value="pixel"><span class="stil-prove stil-prove-pixel" aria-hidden="true">Aa</span><span class="big">Retro-pixel</span></button>
+      </div>
+    </div>
     <div class="setting">
       <div class="setting-label" id="lbl-tema">Tema</div>
       <div class="row" role="group" aria-labelledby="lbl-tema">

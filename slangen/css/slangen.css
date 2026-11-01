@@ -177,3 +177,53 @@ html, body { height: 100vh; height: 100dvh; overflow: hidden; font-size: calc(18
 @media (max-width: 520px) {
   .tabs, .theme-row { display: grid; grid-template-columns: repeat(2, auto); justify-content: center; }
 }
+
+/* ---------- Stile (arkade/stil.js) ---------- */
+html[data-stil="tegneserie"] {
+  --c-board: #ffffff; --c-grid: #ebe7dc; --c-border: #1b1b1f;
+  --c-snake: #3dbe5a; --c-head: #5fd977; --c-head-rim: #1b1b1f; --c-eye: #1b1b1f; --c-leaf: #3dbe5a;
+  --c-food: #e8433a; --c-bonus: #ffd23f; --c-bonus-text: #1b1b1f;
+  --c-obstacle: #6b6250; --c-obstacle-fill: #c9c0a8; --c-crash: #e8433a;
+}
+html[data-stil="tegneserie"] #board { border: 5px solid var(--ink); border-radius: 10px; box-shadow: 8px 8px 0 var(--ink); }
+html[data-stil="tegneserie"] .arrow { background: var(--blaa); }
+html[data-stil="tegneserie"] .arrow:hover, html[data-stil="tegneserie"] .arrow.arkade-dwelling { background: #5296f0; }
+html[data-stil="tegneserie"] .arrow svg { fill: #ffffff; stroke: var(--ink); stroke-width: 6; }
+html[data-stil="tegneserie"] .arrow:disabled svg { fill: #ece4d0; stroke: #8a8270; }
+html[data-stil="tegneserie"] .pause-btn svg { fill: var(--roed); stroke: var(--ink); stroke-width: 6; }
+html[data-stil="tegneserie"] .hud-score { transform: rotate(-2deg); }
+html[data-stil="tegneserie"] .hud-record { transform: rotate(1.5deg); }
+html[data-stil="tegneserie"] .hud-bonus { transform: rotate(-1.5deg); }
+html[data-stil="tegneserie"] .hud-score { background: var(--gul); }
+html[data-stil="tegneserie"] .hud-bonus.active { border-color: var(--ink); box-shadow: 5px 5px 0 var(--ink); background: #fff4cc; }
+html[data-stil="tegneserie"] .hud-bonus.active .hud-value { color: var(--roed); }
+html[data-stil="tegneserie"] .bonus-diamond { outline: 2px solid var(--ink); }
+html[data-stil="tegneserie"] .btn.hall-btn { border-width: 4px; border-color: var(--ink); background: var(--papir); box-shadow: var(--skygge); }
+html[data-stil="tegneserie"] .hall-icon { color: var(--ink); }
+html[data-stil="tegneserie"] .lead { color: var(--muted); }
+html[data-stil="tegneserie"] #go-score { color: var(--roed); -webkit-text-stroke: 2px var(--ink); font-family: var(--titel-font); font-weight: 400; letter-spacing: 0.04em; }
+html[data-stil="tegneserie"] .go-rank { color: var(--roed); }
+
+html[data-stil="pixel"] {
+  --c-board: #0b1230; --c-board-2: #101a3e; --c-grid: transparent; --c-border: #fff1e8;
+  --c-snake: #00e436; --c-snake-dark: #008751; --c-head: #a6f26b; --c-head-rim: #000; --c-eye: #000; --c-leaf: #00e436;
+  --c-food: #ff004d; --c-bonus: #ffec27; --c-bonus-text: #1d2b53;
+  --c-obstacle: #c2c3c7; --c-obstacle-fill: #5f574f; --c-crash: #ff004d;
+}
+html[data-stil="pixel"] #board { border: 0; border-radius: 0; box-shadow: 0 -6px 0 var(--hvid), 0 6px 0 var(--hvid), -6px 0 0 var(--hvid), 6px 0 0 var(--hvid), 0 -12px 0 var(--blaa), 0 12px 0 var(--blaa), -12px 0 0 var(--blaa), 12px 0 0 var(--blaa); }
+html[data-stil="pixel"] .arrow { background: var(--blaa); box-shadow: var(--pixelkant), inset 0 -8px 0 #1a7fc4; }
+html[data-stil="pixel"] .arrow:hover, html[data-stil="pixel"] .arrow.arkade-dwelling { background: #5cc2ff; }
+html[data-stil="pixel"] .arrow svg { fill: var(--hvid); stroke: var(--natblaa); stroke-width: 4; stroke-linejoin: miter; shape-rendering: crispEdges; }
+html[data-stil="pixel"] .arrow:disabled svg { fill: var(--graa); stroke: none; }
+html[data-stil="pixel"] .pause-btn { background: var(--graa); }
+html[data-stil="pixel"] .pause-btn svg { fill: var(--hvid); shape-rendering: crispEdges; }
+html[data-stil="pixel"] .pause-btn svg rect { rx: 0; }
+html[data-stil="pixel"] .pause-btn .small { text-transform: uppercase; }
+html[data-stil="pixel"] .hud-value { font-family: var(--titel-font); font-weight: 700; font-size: 1.9em; line-height: 1.15; }
+html[data-stil="pixel"] .hud-bonus.active { --k: var(--gul); box-shadow: var(--pixelkant); }
+html[data-stil="pixel"] .hud-bonus.active .hud-value { color: var(--gul); }
+html[data-stil="pixel"] .bonus-diamond { transform: none; clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
+html[data-stil="pixel"] .btn.hall-btn { background: var(--graa); box-shadow: var(--pixelkant), inset 0 -6px 0 rgba(0, 0, 0, 0.35); }
+html[data-stil="pixel"] .hall-icon { color: var(--hvid); }
+html[data-stil="pixel"] #go-score { font-family: var(--titel-font); font-weight: 700; color: var(--gul); text-shadow: 6px 6px 0 #000; }
+html[data-stil="pixel"] .go-rank { color: var(--gul); }

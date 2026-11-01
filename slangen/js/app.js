@@ -46,7 +46,9 @@
       snake: cssVar('--c-snake'), head: cssVar('--c-head'), headRim: cssVar('--c-head-rim'), eye: cssVar('--c-eye'),
       food: cssVar('--c-food'), bonus: cssVar('--c-bonus'), bonusText: cssVar('--c-bonus-text'),
       obstacle: cssVar('--c-obstacle'), obstacleFill: cssVar('--c-obstacle-fill'), crash: cssVar('--c-crash'),
-      glow: cssVar('--glow') !== '0'
+      glow: cssVar('--glow') !== '0',
+      stil: window.ArkadeStil ? ArkadeStil.stil() : 'neon',
+      ink: cssVar('--ink') || '#000', board2: cssVar('--c-board-2'), leaf: cssVar('--c-leaf'), snakeDark: cssVar('--c-snake-dark')
     };
   }
   function animationOn() { return arkade.get('animation') && !reducedMotionMq.matches; }
@@ -207,6 +209,12 @@
   }
   function drawBoard() {
     if (!game) return;
+    if (colors.stil === 'pixel') {
+      // Retro-pixel: lav opløsning med et helt antal pixel pr. felt, forstørret skarpt (se arkade/stil.js)
+      var n = game.state.size, k = Math.max(4, Math.round(boardCanvas.clientWidth / n / ArkadeStil.pixelStr));
+      if (boardCanvas.width !== n * k) { boardCanvas.width = n * k; boardCanvas.height = n * k; }
+      boardCanvas.classList.add('pixel-lag');
+    }
     SlangenRender.draw(boardCanvas, game.state, colors, { crash: game.state.over });
   }
   function updateHud() {
