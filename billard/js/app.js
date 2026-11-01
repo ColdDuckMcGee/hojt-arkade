@@ -24,7 +24,7 @@
   var arkade = ArkadeSettings.create('arkade', {
     begraensEffekter: false, stil: 'neon',
     dwell: false, dwellTime: 1.2, theme: 'neon', background: 'mork',
-    animation: true, sound: true, music: true
+    animation: true, sound: true, music: true, blikSigte: true
   });
   // niveau: computerens niveau.
   // hjaelp: Næste kugle sigter mod hul (true) eller mod kuglens midte (false).
@@ -281,6 +281,36 @@
     sfx('aim'); setNote('', ''); refresh();
   }
   tableEl.addEventListener('click', function (e) { aimAtScreen(e.clientX, e.clientY); });
+  // Sigt ved at kigge (arkade/sigte.js): et rundt felt over hver kugle på bordet. Kigger man på en
+  // lovlig kugle, sigtes der som med Næste kugle (mod det letteste hul); ellers mod kuglens midte.
+  var sigte = ArkadeSigte.create({
+    host: $('#board-wrap'),
+    aktiv: function () { return live() && arkade.get('blikSigte') && !!tegn; },
+    felter: function () {
+      var hr = $('#board-wrap').getBoundingClientRect(), cr = tableEl.getBoundingClientRect();
+      var dx = cr.left - hr.left, dy = cr.top - hr.top, a = tegn.toScreen(0, 0), b = tegn.toScreen(L.R, 0);
+      var D = Math.max(48, Math.hypot(b.x - a.x, b.y - a.y) * 2 * 1.8), ud = [];
+      run.state.balls.forEach(function (k) {
+        if (!k.in || k.id === 0) return;
+        var p = tegn.toScreen(k.x, k.y);
+        ud.push({ x: dx + p.x - D / 2, y: dy + p.y - D / 2, w: D, h: D, rund: true, id: k.id, navn: k.id === 8 ? 'Sigt på 8\'eren' : 'Sigt på kugle ' + k.id });
+      });
+      return ud;
+    },
+    sigt: function (f, e) {
+      var m = ArkadeSigte.musPunkt(e);
+      if (m) { aimAtScreen(m.x, m.y); return; }
+      if (!live()) return;
+      var help = gset.get('hjaelp') !== false, r = run.aimBall(f.id, help);
+      if (!r) return;
+      sfx('aim');
+      var t = r.id === 8 ? '8\'eren' : 'kugle ' + r.id;
+      if (!r.legal) setNote('Sigter på ' + t + ' – men den er ikke din. Finjustér selv.', '');
+      else if (r.pocket !== null && help) setNote(cap(t) + ' nær hullet ' + pocketName(r.pocket) + '. Finjustér selv.', '');
+      else setNote('Sigter på ' + t + (help ? ': ingen fri vej til et hul.' : '.'), '');
+      refresh();
+    }
+  });
   $$('#controls [data-turn]').forEach(function (b) {
     b.addEventListener('click', function () { var d = +b.dataset.turn; turnAim(d); });
   });
@@ -404,6 +434,7 @@
   }
   function refresh() {
     if (!run) return;
+    if (typeof sigte !== 'undefined') sigte.opdater();
     var s = run.state;
     $('#hud-frame').textContent = s.frame;
     $('#hud-level').textContent = levelName(s.level);
@@ -797,6 +828,7 @@
     if (!hb && hintEl.parentNode !== $('#side-right')) $('#side-right').insertBefore(hintEl, $('#controls'));
     gameEl.dataset.board = f.w + 'x' + f.h;
     if (tegn) tegn.resize(f.w, f.h);
+    if (typeof sigte !== 'undefined') sigte.opdater();
   }
   function layoutGame() {
     if (current !== 'game' || !run) return;

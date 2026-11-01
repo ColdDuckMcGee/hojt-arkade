@@ -96,6 +96,13 @@
       if (!rotated) return { x: u, y: v };
       return ccw ? { x: L.W - v, y: u } : { x: v, y: L.H - u };
     }
+    // Banens enheder → px inde i canvas (det omvendte af toWorld)
+    function toView(x, y) {
+      var bw = rotated ? L.H : L.W, bh = rotated ? L.W : L.H;
+      var ox = (cssW - bw * scale) / 2, oy = (cssH - bh * scale) / 2;
+      if (!rotated) return { x: ox + x * scale, y: oy + y * scale };
+      return ccw ? { x: ox + y * scale, y: oy + (L.W - x) * scale } : { x: ox + (L.H - y) * scale, y: oy + x * scale };
+    }
     // view: { preview: {pts, full}, endMarker: {x,y}, ball: {x,y} (under animation), trail }
     function draw(state, view) {
       last = { state: state, view: view || {} };
@@ -152,7 +159,7 @@
     // Skærmens vinkel (0° = op, med uret) for en vinkel i banen (0° = mod højre)
     function screenAngle(a) { return L.normAngle(a + (rotated ? (ccw ? 0 : 180) : 90)); }
     return {
-      resize: resize, draw: draw, animate: animate, stop: stop, toWorld: toWorld, screenAngle: screenAngle,
+      resize: resize, draw: draw, animate: animate, stop: stop, toWorld: toWorld, toView: toView, screenAngle: screenAngle,
       restyle: function () { readStyle(); if (cssW) resize(cssW, cssH); },
       get rotated() { return rotated; },
       get animating() { return !!anim; },

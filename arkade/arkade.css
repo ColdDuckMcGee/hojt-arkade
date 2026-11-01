@@ -185,6 +185,26 @@ a.btn { text-decoration: none; }
   filter: drop-shadow(0 0 calc(5px * var(--glow)) var(--accent));
 }
 
+/* ---------- Sigt ved at kigge på målet (sigte.js) ----------
+   Usynlige knapper oven på spillepladen. Under blikket (eller musen) vises et sigtekorn i midten. */
+.arkade-sigte { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+.arkade-sigte[hidden] { display: none !important; }
+.arkade-sigte-felt {
+  position: absolute; pointer-events: auto; margin: 0; padding: 0; min-width: 0; min-height: 0;
+  background: transparent; border: 0; border-radius: 0; box-shadow: none; cursor: crosshair; color: var(--accent);
+}
+.arkade-sigte-felt.rund { border-radius: 50%; }
+.arkade-sigte-felt::after {
+  content: ""; position: absolute; left: 50%; top: 50%; width: 26px; height: 26px; margin: -13px 0 0 -13px;
+  border: 3px solid currentColor; border-radius: 50%; opacity: 0; pointer-events: none;
+  background: radial-gradient(circle, currentColor 0 3px, transparent 4px);
+}
+.arkade-sigte-felt:hover::after, .arkade-sigte-felt.arkade-dwelling::after { opacity: 0.9; }
+.arkade-sigte-felt.arkade-dwelling { outline: 2px dashed currentColor; outline-offset: -2px; }
+html[data-stil="tegneserie"] .arkade-sigte-felt, html[data-stil="pixel"] .arkade-sigte-felt { background: transparent; border: 0; box-shadow: none; }
+html[data-stil="pixel"] .arkade-sigte-felt::after { border-radius: 0; }
+@media (hover: none) { .arkade-sigte-felt:hover::after { opacity: 0; } }
+
 @media (prefers-reduced-motion: reduce) {
   .btn { transition: none; }
 }

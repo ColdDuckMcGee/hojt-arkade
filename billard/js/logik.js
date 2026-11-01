@@ -472,6 +472,18 @@
         st.targetIndex = idx;
         return { id: id, pocket: o ? o.pocket : null, count: order.length, index: idx };
       },
+      // Sigt på en bestemt kugle (kigge på kuglen, se arkade/sigte.js): er den lovlig og har hjælp,
+      // sigtes der som med Næste kugle (mod det letteste hul, lidt ved siden af); ellers mod kuglens midte.
+      aimBall: function (id, help) {
+        var b = ballById(st.balls, id), c = cue();
+        if (!b || !b.in || id === 0) return null;
+        var lovlig = legalTargets(st.turn).indexOf(id) >= 0;
+        var o = lovlig && help !== false ? shotOptions(st.balls, [id])[0] : null;
+        if (o) st.aim = normAngle(Math.round((o.aim + aimOffset(id)) * 10) / 10);
+        else st.aim = normAngle(Math.round(angleTo(c, b) * 10) / 10);
+        st.targetIndex = -1;
+        return { id: id, pocket: o ? o.pocket : null, legal: lovlig };
+      },
       // Kuglen i hånden: flyt stødbolden til næste gode sted
       moveCue: function () {
         if (!st.ballInHand || !st.handSpots) return null;

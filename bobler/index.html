@@ -101,7 +101,7 @@
         <div class="hud"><div class="hud-label">Point</div><div class="hud-value" id="hud-score">0</div></div>
         <div class="hud hud-ceiling"><div class="hud-label">Loftet rykker om</div><div class="hud-value"><span id="hud-ceiling">5</span><span class="hud-unit" id="hud-ceiling-unit"> skud</span></div><div class="pips" id="hud-pips" aria-hidden="true"></div></div>
       </div>
-      <p class="legend">Klik på brættet for at sigte derhen.</p>
+      <p class="legend">Kig eller klik på brættet for at sigte derhen.</p>
       <button class="btn pause-btn" id="btn-pause" aria-label="Pause">
         <svg viewBox="0 0 100 100" aria-hidden="true"><rect x="24" y="20" width="18" height="60" rx="4"/><rect x="58" y="20" width="18" height="60" rx="4"/></svg>
         <span class="small">Pause</span>
@@ -221,6 +221,13 @@
       </div>
     </div>
     <div class="setting">
+      <div class="setting-label">Sigt med blikket<small>Kig på målet, så sigter spillet derhen</small></div>
+      <div class="row" role="group">
+        <button class="btn option" data-set="blikSigte" data-value="false"><span class="big">Fra</span></button>
+        <button class="btn option" data-set="blikSigte" data-value="true"><span class="big">Til</span></button>
+      </div>
+    </div>
+    <div class="setting">
       <div class="setting-label">Små drej<small>Hvor meget − og + drejer</small></div>
       <div class="row" role="group">
         <button class="btn option" data-bset="smallStep" data-value="1"><span class="big">1°</span></button>
@@ -312,6 +319,7 @@
 <script src="../arkade/highscores.js"></script>
 <script src="../arkade/highscore.js"></script>
 <script src="../arkade/dwell.js"></script>
+<script src="../arkade/sigte.js"></script>
 <script src="../arkade/taster.js"></script>
 <script src="../arkade/bekraeft.js"></script>
 <script src="../arkade/effekter.js"></script>

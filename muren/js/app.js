@@ -26,7 +26,7 @@
   var arkade = ArkadeSettings.create('arkade', {
     begraensEffekter: false, stil: 'neon',
     dwell: false, dwellTime: 1.2, theme: 'neon', background: 'mork',
-    animation: true, sound: true, music: true
+    animation: true, sound: true, music: true, blikSigte: true
   });
   // fart: hvor hurtigt salven flyver ('rolig', 'normal', 'hurtig').
   // gloed: temaets glød og lysskær (kan slås fra; spillet kan aflæses uden).
@@ -237,6 +237,24 @@
     sfx('aim'); setNote('', ''); refresh();
   }
   courseEl.addEventListener('click', function (e) { aimAtScreen(e.clientX, e.clientY); });
+  // Sigt ved at kigge: et usynligt felt pr. plads i muren (arkade/sigte.js). Kigger man på en sten
+  // eller et tomt sted, drejer kanonen derhen. Drejeknapperne finjusterer bagefter.
+  var sigte = ArkadeSigte.create({
+    host: $('#board-wrap'),
+    aktiv: function () { return live() && arkade.get('blikSigte') && !!tegn; },
+    felter: function () {
+      var hr = $('#board-wrap').getBoundingClientRect(), cr = courseEl.getBoundingClientRect(), ud = [];
+      for (var r = 0; r < L.ROWS - 1; r++) for (var c = 0; c < L.COLS; c++) {
+        var a = tegn.toView(c * L.CELL, r * L.CELL), b = tegn.toView((c + 1) * L.CELL, (r + 1) * L.CELL);
+        ud.push({ x: cr.left - hr.left + a.x, y: cr.top - hr.top + a.y, w: b.x - a.x, h: b.y - a.y, navn: 'Sigt hertil' });
+      }
+      return ud;
+    },
+    sigt: function (f, e) {
+      var m = ArkadeSigte.musPunkt(e), hr = $('#board-wrap').getBoundingClientRect();
+      if (m) aimAtScreen(m.x, m.y); else aimAtScreen(hr.left + f.x + f.w / 2, hr.top + f.y + f.h / 2);
+    }
+  });
   $$('#controls [data-turn]').forEach(function (b) { b.addEventListener('click', function () { turnAim(+b.dataset.turn); }); });
 
   // Skyd: salven afvikles i et fast tempo af animationsløkken (fast tidsskridt i
@@ -325,6 +343,7 @@
   }
   function refresh() {
     if (!run) return;
+    if (typeof sigte !== 'undefined') sigte.opdater();
     var s = run.state, v = s.volley;
     $('#hud-turn').textContent = s.turn;
     $('#hud-balls').textContent = v ? (v.balls.length - v.landed) + '/' + v.balls.length : s.balls;
@@ -650,6 +669,7 @@
     if (!hb && hintEl.parentNode !== $('#side-right')) $('#side-right').insertBefore(hintEl, $('#controls'));
     gameEl.dataset.board = f.w + 'x' + f.h;
     if (tegn) tegn.resize(f.w, f.h);
+    if (typeof sigte !== 'undefined') sigte.opdater();
   }
   function layoutGame() {
     if (current !== 'game' || !run) return;

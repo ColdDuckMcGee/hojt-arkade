@@ -96,6 +96,7 @@
     }
     function origin() { return { x: (cssW - L.W * scale) / 2, y: (cssH - L.H * scale) / 2 }; }
     function toWorld(px, py) { var o = origin(); return { x: (px - o.x) / scale, y: (py - o.y) / scale }; }
+    function toView(x, y) { var o = origin(); return { x: o.x + x * scale, y: o.y + y * scale }; }
     // view: { preview: {pts, first} }
     function draw(state, view) {
       last = { state: state, view: view || {} };
@@ -108,7 +109,7 @@
       ctx.setTransform(1, 0, 0, 1, 0, 0);
     }
     return {
-      resize: resize, draw: draw, toWorld: toWorld,
+      resize: resize, draw: draw, toWorld: toWorld, toView: toView,
       restyle: function () { readStyle(); if (cssW) resize(cssW, cssH); },
       get scale() { return scale; }
     };

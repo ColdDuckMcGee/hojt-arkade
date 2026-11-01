@@ -25,7 +25,7 @@
   var arkade = ArkadeSettings.create('arkade', {
     begraensEffekter: false, stil: 'neon',
     dwell: false, dwellTime: 1.2, theme: 'neon', background: 'mork',
-    animation: true, sound: true, music: true
+    animation: true, sound: true, music: true, blikSigte: true
   });
   // forhaand: 'kort' (til og med første bandehop) eller 'hel' (hele vejen – egen rekordliste)
   // gloed: temaets glød og lysskær (kan slås fra; spillet kan aflæses uden).
@@ -232,6 +232,36 @@
     sfx('aim'); setNote('', ''); refresh();
   }
   courseEl.addEventListener('click', function (e) { aimAtScreen(e.clientX, e.clientY); });
+  // Sigt ved at kigge (arkade/sigte.js): banen er delt i felter på 100 × 100 enheder, og hullet har sit
+  // eget, runde felt ovenpå, der sigter lige på hullet. Drejeknapperne finjusterer bagefter.
+  var sigte = ArkadeSigte.create({
+    host: $('#board-wrap'),
+    aktiv: function () { return live() && arkade.get('blikSigte') && !!tegn; },
+    felter: function () {
+      var hr = $('#board-wrap').getBoundingClientRect(), cr = courseEl.getBoundingClientRect();
+      var dx = cr.left - hr.left, dy = cr.top - hr.top, ud = [], S = 100;
+      var boks = function (x0, y0, x1, y1) {
+        var a = tegn.toView(x0, y0), b = tegn.toView(x1, y1);
+        return { x: dx + Math.min(a.x, b.x), y: dy + Math.min(a.y, b.y), w: Math.abs(b.x - a.x), h: Math.abs(b.y - a.y) };
+      };
+      for (var y = 0; y < L.H; y += S) for (var x = 0; x < L.W; x += S) {
+        var f = boks(x, y, Math.min(L.W, x + S), Math.min(L.H, y + S));
+        f.mx = Math.min(L.W, x + S / 2); f.my = Math.min(L.H, y + S / 2); f.navn = 'Sigt hertil';
+        ud.push(f);
+      }
+      var h = run.state.hole.hul, R = 55, hf = boks(h.x - R, h.y - R, h.x + R, h.y + R);
+      hf.mx = h.x; hf.my = h.y; hf.rund = true; hf.navn = 'Sigt mod hullet';
+      ud.push(hf);
+      return ud;
+    },
+    sigt: function (f, e) {
+      var m = ArkadeSigte.musPunkt(e);
+      if (m) { aimAtScreen(m.x, m.y); return; }
+      if (!live() || Math.hypot(f.mx - run.state.ball.x, f.my - run.state.ball.y) < 4) return;
+      run.aimAt({ x: f.mx, y: f.my });
+      sfx('aim'); setNote('', ''); refresh();
+    }
+  });
   $$('#controls [data-turn]').forEach(function (b) { b.addEventListener('click', function () { turnAim(+b.dataset.turn); }); });
   $$('#controls [data-power]').forEach(function (b) { b.addEventListener('click', function () { changePower(+b.dataset.power); }); });
 
@@ -291,6 +321,7 @@
   }
   function refresh() {
     if (!run) return;
+    if (typeof sigte !== 'undefined') sigte.opdater();
     var s = run.state;
     $('#hud-hole').textContent = s.level;
     $('#hud-par').textContent = 'par ' + s.hole.par;
@@ -660,6 +691,7 @@
     if (!hb && hintEl.parentNode !== $('#side-right')) $('#side-right').insertBefore(hintEl, $('#controls'));
     gameEl.dataset.board = f.w + 'x' + f.h;
     if (tegn) tegn.resize(f.w, f.h);
+    if (typeof sigte !== 'undefined') sigte.opdater();
   }
   function layoutGame() {
     if (current !== 'game' || !run) return;

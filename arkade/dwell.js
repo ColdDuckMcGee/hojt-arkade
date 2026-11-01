@@ -12,6 +12,8 @@
  *    (dwell er ikke et rigtigt klik), åbnes linket i samme fane i stedet.
  *  - Deaktiverede knapper, aria-disabled="true", [data-no-dwell] og skjulte
  *    elementer ignoreres.
+ *  - [data-dwell-faktor="1.5"]: elementet kræver dwell-tiden ganget med faktoren (fx sigtefelter
+ *    oven på et bræt, så et kort blik rundt på brættet ikke flytter sigtet).
  *  - [data-dwell-repeat]: knappen aktiveres igen efter endnu en fuld dwell-tid,
  *    hvis blikket bliver på den (bruges til drejeknapper og evt. pile).
  *  - Touch ignoreres (der virker almindeligt tryk). Almindeligt klik virker altid.
@@ -250,7 +252,8 @@
       if (target && t === target) {
         offSince = 0;
         acc += dt;
-        var p = Math.min(1, acc / timeMs);
+        var faktor = parseFloat(target.getAttribute('data-dwell-faktor')) || 1;   // fx sigtefelter: lidt længere tid
+        var p = Math.min(1, acc / (timeMs * faktor));
         showRing(target, p);
         if (p >= 1) activate(target);
       } else if (!target) {

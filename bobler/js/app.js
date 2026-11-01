@@ -16,7 +16,7 @@
   var arkade = ArkadeSettings.create('arkade', {
     begraensEffekter: false, stil: 'neon',
     dwell: false, dwellTime: 1.2, theme: 'neon', background: 'mork',
-    animation: true, sound: true, music: true
+    animation: true, sound: true, music: true, blikSigte: true
   });
   var bset = ArkadeSettings.create('bobler', { diff: '5', smallStep: 2 });
   var records = ArkadeHighscores.create('bobler', { max: 10 });
@@ -197,6 +197,7 @@
 
   function drawBoard(now) {
     if (!run || current !== 'game') return;
+    if (typeof sigte !== 'undefined') sigte.opdater();
     var s = display || run.state;
     var flying = fx.some(function (f) { return f.kind === 'fly'; });
     R.draw(boardCanvas, s, colors, {
@@ -275,13 +276,40 @@
   }
   $$('[data-turn]').forEach(function (b) { b.addEventListener('click', function () { turn(b.dataset.turn); }); });
   // Klik på brættet sigter derhen (det skyder ikke)
-  boardCanvas.addEventListener('click', function (e) {
-    if (!live()) return;
-    var r = boardCanvas.getBoundingClientRect(), bw = boardCanvas.clientLeft;
-    var p = R.toBoard(boardCanvas, e.clientX - r.left - bw, e.clientY - r.top - boardCanvas.clientTop);
+  function aimAtBoard(p) {
     var dx = p.x - G.W / 2, dy = G.SHOOT_Y - p.y;
     if (dy < 0.3) return;
     setAngle(Math.atan2(dx, dy) * 180 / Math.PI);
+  }
+  function screenToBoard(cx, cy) {
+    var r = boardCanvas.getBoundingClientRect();
+    return R.toBoard(boardCanvas, cx - r.left - boardCanvas.clientLeft, cy - r.top - boardCanvas.clientTop);
+  }
+  boardCanvas.addEventListener('click', function (e) {
+    if (!live()) return;
+    aimAtBoard(screenToBoard(e.clientX, e.clientY));
+  });
+  // Sigt ved at kigge: et usynligt felt pr. plads i boblegitteret (arkade/sigte.js). Kigger man på
+  // en boble eller et tomt sted, sigter kanonen derhen. Drejeknapperne finjusterer bagefter.
+  var sigte = ArkadeSigte.create({
+    host: $('#board-wrap'),
+    aktiv: function () { return live() && arkade.get('blikSigte'); },
+    felter: function () {
+      var hr = $('#board-wrap').getBoundingClientRect(), cr = boardCanvas.getBoundingClientRect();
+      var Wp = boardCanvas.clientWidth, Hp = boardCanvas.clientHeight, u = Math.min(Wp / G.W, Hp / G.H);
+      var ox = cr.left - hr.left + boardCanvas.clientLeft + (Wp - G.W * u) / 2, oy = cr.top - hr.top + boardCanvas.clientTop;
+      var ceil = run.state.ceiling || 0, ud = [];
+      for (var r = 0; r < G.DEAD_ROW; r++) for (var c = 0; c < G.rowLen(r); c++) {
+        var x = G.cellX(r, c), y = G.cellY(r, ceil);
+        if (y + G.ROW_H / 2 > G.SHOOT_Y - 1) continue;
+        ud.push({ x: ox + (x - 0.5) * u, y: oy + (y - G.ROW_H / 2) * u, w: u, h: G.ROW_H * u, bx: x, by: y, navn: 'Sigt hertil' });
+      }
+      return ud;
+    },
+    sigt: function (f, e) {
+      var m = ArkadeSigte.musPunkt(e);
+      aimAtBoard(m ? screenToBoard(m.x, m.y) : { x: f.bx, y: f.by });
+    }
   });
 
   // ---------- Skud ----------
