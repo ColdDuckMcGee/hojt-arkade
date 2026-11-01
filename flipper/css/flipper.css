@@ -386,3 +386,17 @@ ol.records .score { white-space: nowrap; }
 @media (max-width: 960px) { #records.tight .records .plates, .fl-tvaers #records .records .plates, .go-split .go-records .plates { display: none; } }  /* ellers bliver de to spalter for brede */
 .fl-tvaers #records.tight .tabs .btn { padding-left: 5px; padding-right: 5px; }
 .fl-tvaers #records .tabs .btn .big { font-size: 1.1rem; }  /* "Normal" og "Tilbage" kan stå inden for 84 px */
+
+/* ---------- Stile (arkade/stil.js): lærredet læser de samme variabler (bordenes neon-paletter bruges ikke) ---------- */
+html[data-stil="tegneserie"] {
+  --fl-board0: #4fc3f7; --fl-board1: #2f80ed; --fl-wall: #1b1b1f; --fl-bumper: #e8433a; --fl-sling: #ff9f1c; --fl-target: #ffd23f;
+  --fl-flipper: #ffffff; --fl-zone: #ffffff; --fl-loop: #3dbe5a; --fl-ball0: #ffffff; --fl-ball1: #c9c9d2; --fl-ball2: #1b1b1f;
+  --fl-left: #2f80ed; --fl-right: #e8433a; --fl-both: #ffd23f; --fl-none: #9b6bff; --fl-upper: #ff9f1c; --fl-launch: #3dbe5a; --fl-lost: #e8433a;
+}
+html[data-stil="tegneserie"] #board { border: 5px solid var(--ink); border-radius: 12px; box-shadow: 8px 8px 0 var(--ink); box-sizing: border-box; }
+html[data-stil="pixel"] {
+  --fl-board0: #1d2b53; --fl-board1: #000000; --fl-wall: #29adff; --fl-bumper: #ff77a8; --fl-sling: #a77bff; --fl-target: #ffec27;
+  --fl-flipper: #ff004d; --fl-zone: #29adff; --fl-loop: #00e436; --fl-ball0: #fff1e8; --fl-ball1: #c2c3c7; --fl-ball2: #5f574f;
+  --fl-left: #29adff; --fl-right: #ff77a8; --fl-both: #ffec27; --fl-none: #a77bff; --fl-upper: #ffa300; --fl-launch: #00e436; --fl-lost: #ff004d;
+}
+html[data-stil="pixel"] #board { --k: #fff1e8; border-radius: 0; box-shadow: var(--pixelkant); }

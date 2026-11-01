@@ -22,8 +22,11 @@
     function readColors() {
       var cs = getComputedStyle(document.documentElement);
       KEYS.forEach(function (k) { base[k] = cs.getPropertyValue('--fl-' + k).trim() || '#ff3fd8'; });
-      base.glow = parseFloat(cs.getPropertyValue('--glow')) || 1;
+      var g = parseFloat(cs.getPropertyValue('--glow')); base.glow = isNaN(g) ? 1 : g;
       base.kontrast = document.documentElement.getAttribute('data-theme') === 'kontrast';
+      // Tegneserie og retro-pixel (arkade/stil.js) har deres egne farver: bordenes neon-paletter bruges ikke
+      var stil = document.documentElement.getAttribute('data-stil');
+      base.egenStil = !!stil && stil !== 'neon';
       colFor = null;
     }
     function useTable(t) {
@@ -33,7 +36,7 @@
       // Afledte farver til de nye dele
       col.ramp = base.loop; col.spinner = base.target; col.hole = base.bumper; col.lane = base.target; col.drop = base.sling;
       var pal = t.def.palette;
-      if (pal && !base.kontrast) TABLE_KEYS.forEach(function (k) { if (pal[k]) col[k] = pal[k]; });
+      if (pal && !base.kontrast && !base.egenStil) TABLE_KEYS.forEach(function (k) { if (pal[k]) col[k] = pal[k]; });
     }
     function resize(w, h) {
       dpr = Math.min(2.5, global.devicePixelRatio || 1);
