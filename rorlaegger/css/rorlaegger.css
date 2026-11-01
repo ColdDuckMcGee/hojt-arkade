@@ -363,3 +363,30 @@ ol.records .score { white-space: nowrap; }
 .rl-lille .confirm-btn { min-width: calc(var(--btn) * 1.5); }
 .rl-lille:not(.rl-tvaers) .confirm-row { flex-direction: column; gap: 32px; }
 .rl-lille:not(.rl-tvaers) .confirm-btn { width: min(100%, 16em); }
+
+/* ---------- Stile (arkade/stil.js): kun temaets variabler ændres ---------- */
+html[data-stil="tegneserie"] {
+  --rl-board: #fffaf0; --rl-frame: var(--ink); --rl-grid: #e6dcc0; --rl-felt: transparent; --rl-felt-hover: rgba(255, 210, 63, 0.45);
+  --rl-ror: #9aa7b8; --rl-ror-kant: var(--ink); --rl-ror-forb: #c9d3df; --rl-flange: #6b7a8f; --rl-flange-forb: #9aa7b8;
+  --rl-vand: #2f80ed; --rl-vand-kerne: #8fc0ff;
+  --rl-kilde: #2f80ed; --rl-kilde-kant: var(--ink); --rl-kilde-ikon: #ffffff;
+  --rl-afloeb: #ffd23f; --rl-afloeb-kant: var(--ink); --rl-afloeb-rist: var(--ink); --rl-afloeb-vaad: #2f80ed;
+  --rl-cursor: #e8433a; --rl-fejl: #e8433a; --rl-ok: #2a9d4a; --rl-shadow: transparent;
+  --rl-overlay-bg: rgba(255, 233, 174, 0.8); --rl-overlay-soft: rgba(255, 233, 174, 0.6);
+  --rl-frame-w: 5px; --rl-radius-board: 10px; --rl-ror-kant-w: 42; --rl-flange-kant-w: 5; --rl-kilde-kant-w: 6;
+  --rl-board-glow: 8px 8px 0 var(--ink); --rl-vand-glow: none; --rl-kilde-glow: none; --rl-afloeb-glow: none; --rl-score-glow: none; --rl-points-glow: none;
+  --rl-text-shadow: none; --rl-text-shadow-strong: none;
+}
+html[data-stil="pixel"] {
+  --rl-board: #000000; --rl-frame: #fff1e8; --rl-grid: #1d2b53; --rl-felt: #0b1026; --rl-felt-hover: rgba(41, 173, 255, 0.25);
+  --rl-ror: #5f574f; --rl-ror-kant: #000000; --rl-ror-forb: #c2c3c7; --rl-flange: #3a3530; --rl-flange-forb: #83769c;
+  --rl-vand: #29adff; --rl-vand-kerne: #fff1e8;
+  --rl-kilde: #1d2b53; --rl-kilde-kant: #29adff; --rl-kilde-ikon: #fff1e8;
+  --rl-afloeb: #000000; --rl-afloeb-kant: #ffec27; --rl-afloeb-rist: #ffec27; --rl-afloeb-vaad: #29adff;
+  --rl-cursor: #ff77a8; --rl-fejl: #ff004d; --rl-ok: #00e436; --rl-shadow: transparent;
+  --rl-frame-w: 4px; --rl-ror-ende: square; --rl-ror-hjoerne: miter;
+  --rl-radius-board: 0px; --rl-radius-felt: 0; --rl-radius-flange: 0; --rl-radius-hud: 0px; --rl-radius-hud-small: 0px; --rl-radius-swatch: 0px;
+  --rl-board-glow: 0 0 0 4px #29adff; --rl-vand-glow: none; --rl-kilde-glow: none; --rl-afloeb-glow: none; --rl-score-glow: none; --rl-points-glow: none;
+  --rl-text-shadow: none; --rl-text-shadow-strong: none;
+}
+html[data-stil="pixel"] #game svg { shape-rendering: crispEdges; }
