@@ -286,6 +286,11 @@ html[data-stil="pixel"] {
   --font: "VT323", "Courier New", monospace;
   --titel-font: "Silkscreen", "Courier New", monospace;
   --pxk: 4px;                                   /* tykkelse på pixelkanten */
+}
+/* Pixelkanten regnes ud på hvert element, så --k (kantfarven) kan sættes lokalt.
+   --k arves ikke: knapper inde i et panel med grå kant får stadig deres egen hvide kant. */
+@property --k { syntax: "*"; inherits: false; }
+html[data-stil="pixel"], html[data-stil="pixel"] * {
   --pixelkant: 0 calc(-1 * var(--pxk)) 0 var(--k, var(--hvid)), 0 var(--pxk) 0 var(--k, var(--hvid)),
                calc(-1 * var(--pxk)) 0 0 var(--k, var(--hvid)), var(--pxk) 0 0 var(--k, var(--hvid));
 }

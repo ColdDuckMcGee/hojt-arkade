@@ -344,3 +344,27 @@ ol.records .score { white-space: nowrap; }
 .lu-lille .confirm-btn { min-width: calc(var(--btn) * 1.5); }
 .lu-lille:not(.lu-tvaers) .confirm-row { flex-direction: column; gap: 32px; }
 .lu-lille:not(.lu-tvaers) .confirm-btn { width: min(100%, 16em); }
+
+/* ---------- Stile (arkade/stil.js) ---------- */
+html[data-stil="tegneserie"] {
+  --lu-board: #2b3a67; --lu-grid: rgba(255, 255, 255, 0.12); --lu-frame: var(--ink);
+  --lu-on: #ffd23f; --lu-on-core: #fff6c8; --lu-off: #8a93b8; --lu-off-fill: #1e2a4f;
+  --lu-preview: #4fc3f7; --lu-tip: #3dbe5a; --lu-cursor: #e8433a; --lu-ok: #3dbe5a;
+}
+html[data-stil="tegneserie"] .board { border: 5px solid var(--ink); box-shadow: 8px 8px 0 var(--ink); }
+html[data-stil="tegneserie"] .cell .lamp { border: 4px solid var(--lu-off); }
+html[data-stil="tegneserie"] .cell.on .lamp { border: 4px solid var(--ink); background: radial-gradient(circle at 38% 34%, #ffffff 0 12%, var(--lu-on) 14%); box-shadow: 3px 3px 0 var(--ink); }
+html[data-stil="tegneserie"] .cell .rays { stroke: var(--lu-on); }
+html[data-stil="tegneserie"] .cell.tip .tipmark { box-shadow: none; }
+
+html[data-stil="pixel"] {
+  --lu-board: #000000; --lu-grid: #1d2b53; --lu-frame: #ffec27;
+  --lu-on: #ffec27; --lu-on-core: #fff1e8; --lu-off: #5f574f; --lu-off-fill: #0b1026;
+  --lu-preview: #29adff; --lu-tip: #00e436; --lu-cursor: #ff77a8; --lu-ok: #00e436;
+}
+html[data-stil="pixel"] .board { --k: var(--lu-frame); border: 0; border-radius: 0; box-shadow: var(--pixelkant); }
+html[data-stil="pixel"] .cell .lamp { border-radius: 0; inset: 24%; border: 0; background: #29324f; box-shadow: inset -6px -6px 0 #1d2440; clip-path: polygon(25% 0, 75% 0, 75% 12%, 88% 12%, 88% 25%, 100% 25%, 100% 75%, 88% 75%, 88% 88%, 75% 88%, 75% 100%, 25% 100%, 25% 88%, 12% 88%, 12% 75%, 0 75%, 0 25%, 12% 25%, 12% 12%, 25% 12%); }
+html[data-stil="pixel"] .cell.on .lamp { border: 0; background: var(--lu-on); box-shadow: inset -6px -6px 0 #d9a800, inset 6px 6px 0 #fff1e8; }
+html[data-stil="pixel"] .cell .rays { stroke-linecap: square; shape-rendering: crispEdges; }
+html[data-stil="pixel"] .cell .pv, html[data-stil="pixel"] .cell .tipmark { border-radius: 0; }
+html[data-stil="pixel"] .cell.tip .tipmark { box-shadow: none; }
