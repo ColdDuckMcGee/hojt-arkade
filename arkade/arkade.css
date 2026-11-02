@@ -423,3 +423,13 @@ html[data-stil="pixel"] .hud-label, html[data-stil="pixel"] .arkade-bk-titel, ht
   .arkade-start-raekke.har-to.har-dag.har-gem { width: min(calc(var(--btn) * 6), calc(100vw - 32px)); }
   .arkade-start-raekke.har-gem > .btn .big { font-size: 1.15rem; }
 }
+/* Smal skærm med fire knapper (Fortsæt, Nyt spil, Dagens udfordring, To spillere): 2 × 2 */
+@media (max-width: 560px) {
+  .arkade-start-raekke.har-dag.har-to { flex-wrap: wrap; width: calc(100vw - 32px); }
+  .arkade-start-raekke.har-dag.har-to > .btn { flex: 1 1 calc(50% - 8px); }
+}
+/* Lavt vindue på langs: To spillere uden den lille tekst, så valgene ved siden af har plads */
+@media (orientation: landscape) and (max-height: 500px) {
+  .arkade-start-raekke.har-to:not(.har-gem):not(.har-dag) { width: min(calc(var(--btn) * 2.3), calc(100vw - 32px)); }
+  .arkade-to-knap .small { display: none; }
+}
