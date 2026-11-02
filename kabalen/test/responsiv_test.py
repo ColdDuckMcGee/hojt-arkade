@@ -239,6 +239,7 @@ with sync_playwright() as p:
         pg.on('console', lambda m: errs.append(m.type+': '+m.text) if m.type in ('error','warning') else None)
         pg.on('pageerror', lambda e: errs.append('pageerror: '+str(e)))
         pg.goto(URL); pg.wait_for_timeout(400)
+        pg.evaluate("Kabalen.gameSettings.set('autoFlyt', false)")   # to-trins-valget testes; Flyt automatisk testes for sig
         check(pg,'start','#menu',w,h, (big and 'startskaerm.png') or (small and tag + '-start.png'))
         hb = pg.evaluate("(() => { const r = document.getElementById('btn-hall').getBoundingClientRect(); return [Math.round(Math.min(r.width, r.height)), document.getElementById('btn-hall').dataset.href, document.getElementById('btn-hall').textContent.trim()]; })()")
         if hb[0] < MIN_T or hb[1] != '../index.html' or 'Tilbage til hallen' not in hb[2]: fails.append('%s Tilbage til hallen: %s' % (tag, hb))
@@ -323,7 +324,7 @@ with sync_playwright() as p:
         pg.evaluate("Kabalen.show('menu')"); pg.click('#btn-start')
         if wait_game(pg, tag):
             pg.mouse.move(1, 1)
-            pg.evaluate("Kabalen.settings.set('dwellTime', 0.5); Kabalen.settings.set('dwell', true)")
+            pg.evaluate("Kabalen.settings.set('dwellTime', 0.5); Kabalen.settings.set('dwell', true); Kabalen.gameSettings.set('autoFlyt', false)")
             c = find_card(pg)
             if c:
                 m0 = st(pg, "Kabalen.game.moves")
@@ -338,6 +339,19 @@ with sync_playwright() as p:
                 pg.wait_for_timeout(1500)
                 if st(pg, "[Kabalen.game.moves, !!Kabalen.sel]") != [m0 + 1, False]: fails.append(tag + ' dwell gentog handlingen')
                 print('%s %dx%d dwell (ring vist: %s)' % ('OK  ' if not [f for f in fails if f.startswith(tag) and 'dwell' in f] else 'FEJL', w, h, ring))
+            # Flyt automatisk: et kort med kun ét mål lægges efter ét dwell – og intet gentages
+            pg.mouse.move(1, 1); pg.wait_for_timeout(300)
+            pg.evaluate("Kabalen.gameSettings.set('autoFlyt', true)")
+            k1 = st(pg, """(() => { const g = Kabalen.game, s = g.state; for (let c = 0; c < 7; c++) { const p = s.t[c]; if (!p.c.length) continue;
+              const i = p.c.length - 1; if (i >= p.d && g.targets({ k: 't', col: c, idx: i }).length === 1) return p.c[i]; } return null; })()""")
+            if k1 is not None:
+                m1 = st(pg, "Kabalen.game.moves")
+                x, y = card_point(pg, k1); pg.mouse.move(x, y, steps=3)
+                try: pg.wait_for_function("Kabalen.game.moves === %d" % (m1 + 1), timeout=3000)
+                except Exception: fails.append(tag + ' dwell med Flyt automatisk lagde ikke kortet')
+                pg.wait_for_timeout(1500)
+                if st(pg, "[Kabalen.game.moves, !!Kabalen.sel]") != [m1 + 1, False]: fails.append(tag + ' dwell med Flyt automatisk gentog handlingen')
+                print('%s %dx%d flyt automatisk' % ('OK  ' if not [f for f in fails if f.startswith(tag) and 'Flyt automatisk' in f] else 'FEJL', w, h))
             pg.evaluate("Kabalen.settings.set('dwell', false)"); pg.mouse.move(1, 1)
         # Tilbage til hallen fra startskærmen, og Kabalen er aktiv i hallen
         if big:

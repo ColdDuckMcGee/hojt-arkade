@@ -8,6 +8,7 @@ Klassisk kabale (Klondike) med 52 kort. Der er intet ur og ingen tidspres, og sp
 
 ## Regler
 
+- **Flyt automatisk** (Indstillinger → Styring, til som standard): kan det valgte kort kun ét sted hen, lægges det med det samme – ét kig i stedet for to. Kan det flere steder hen, vælger man målet som før. Fortryd virker som altid.
 - **Udlægning:** syv bunker med 1–7 kort. Det øverste kort i hver bunke vender op, resten har bagsiden op. Resten af kortene (24) ligger i **bunken** øverst til venstre.
 - **Mål:** byg de fire **grundbunker** op fra es til konge, én for hver kulør (♠ ♥ ♣ ♦). Spillet er vundet, når alle 52 kort ligger på grundbunkerne.
 - **Bunkerne:** et kort kan lægges på et kort, der er én højere og har den modsatte farve (rød på sort, sort på rød). Et kort flyttes sammen med alle kortene ovenpå. Kun en **konge** (med kortene ovenpå) kan lægges på en tom plads. Når det sidste åbne kort er flyttet fra en bunke, vendes kortet nedenunder.

@@ -25,7 +25,7 @@
     animation: true, sound: true, music: true
   });
   // draw: træk 1 eller 3 kort fra bunken. gloed: temaets glød (kan slås fra; spillet kan læses uden).
-  var kset = ArkadeSettings.create('kabalen', { draw: 1, gloed: true });
+  var kset = ArkadeSettings.create('kabalen', { draw: 1, gloed: true, autoFlyt: true });
   var records = ArkadeHighscores.create('kabalen', { max: 10 });
 
   var THEMES = ['neon', 'solnedgang', 'cyberpunk', 'kontrast'];
@@ -293,6 +293,8 @@
     hintMv = null;
     var what = cap(cardText(cards[0])) + (cards.length > 1 ? ' og ' + (cards.length - 1 === 1 ? '1 kort' : (cards.length - 1) + ' kort') + ' ovenpå' : '');
     if (!targets.length) { setNote(what + ' kan ikke flyttes nu. Vælg et andet kort.', 'err'); sfx('nej'); }
+    // Flyt automatisk (indstilling): kun ét lovligt mål – kortet lægges med det samme (ét kig i stedet for to)
+    else if (targets.length === 1 && kset.get('autoFlyt')) { moveTo(targets[0]); return; }
     else if (targets.length === 1) { setNote(what + ' kan til ' + destName(targets[0]) + '. Vælg målet eller kortet igen.', ''); sfx('vaelg'); }
     else { setNote(what + ': vælg et af de lysende mål.', ''); sfx('vaelg'); }
     refresh();
