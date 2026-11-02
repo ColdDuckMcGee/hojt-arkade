@@ -106,8 +106,9 @@ def test(b, spil, cfg, fejl):
         pg.wait_for_timeout(cfg.get('vent', 300))
         # Nyt spil spørger først
         pg.reload(); pg.wait_for_timeout(400)
-        pg.click('#btn-start'); pg.wait_for_timeout(250)
-        tjek(pg.is_visible('.arkade-bk'), 'Nyt spil spørger, før det gemte slettes')
+        if gemt(pg, spil) is not None:   # spillet kan være slut efter at have spillet videre
+            pg.click('#btn-start'); pg.wait_for_timeout(250)
+            tjek(pg.is_visible('.arkade-bk'), 'Nyt spil spørger, før det gemte slettes')
     tjek(not log, 'ingen JS-fejl ' + str(log[:2]))
     pg.close()
 
