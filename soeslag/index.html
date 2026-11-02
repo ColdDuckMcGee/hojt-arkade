@@ -117,9 +117,9 @@
       <img class="arkade-logo side-logo" src="../arkade/logo.svg" alt="Hojt Arkade">
       <div class="hud-grid" aria-live="polite">
         <div class="hud"><div class="hud-label">Kamp</div><div class="hud-value" id="hud-match">1</div></div>
-        <div class="hud"><div class="hud-label">Point</div><div class="hud-value" id="hud-score">0</div></div>
+        <div class="hud"><div class="hud-label" id="hud-score-label">Point</div><div class="hud-value" id="hud-score">0</div></div>
         <div class="hud"><div class="hud-label">Skud</div><div class="hud-value" id="hud-shots">0</div></div>
-        <div class="hud"><div class="hud-label">Rekord</div><div class="hud-value" id="hud-best">0</div></div>
+        <div class="hud"><div class="hud-label" id="hud-best-label">Rekord</div><div class="hud-value" id="hud-best">0</div></div>
       </div>
       <!-- Kamp: computerens skibe, der er tilbage -->
       <section class="fleet-box ph-battle ph-end" aria-labelledby="fleet-title">
@@ -176,6 +176,16 @@
     </aside>
   </div>
 
+  <!-- To spillere: dækker havene mellem turene, så den anden spiller ikke ser skibene -->
+  <div class="overlay skift-overlay" id="skift-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="skift-title">
+    <div class="panel">
+      <h2 id="skift-title" class="neon-sub">Spiller 2s tur</h2>
+      <p class="muted" id="skift-text">Spiller 1: kig væk.</p>
+      <div class="row">
+        <button class="btn primary wide" id="btn-skift"><span class="big" id="skift-label">Jeg er klar</span><span class="small">havet vises</span></button>
+      </div>
+    </div>
+  </div>
   <div class="overlay" id="pause-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="pause-title">
     <div class="panel">
       <h2 id="pause-title" class="neon-sub">Pause</h2>
@@ -338,6 +348,7 @@
 <script src="../arkade/taster.js"></script>
 <script src="../arkade/bekraeft.js"></script>
 <script src="../arkade/fortsaet.js"></script>
+<script src="../arkade/tospil.js"></script>
 <script src="../arkade/effekter.js"></script>
 <script src="../arkade/audio.js"></script>
 <script src="../arkade/background.js"></script>

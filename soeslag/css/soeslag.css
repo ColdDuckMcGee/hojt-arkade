@@ -539,3 +539,8 @@ html[data-stil="pixel"] .cell.m-miss .mk::before { border-radius: 0; }
 html[data-stil="pixel"] .cell.m-hit .mk::before, html[data-stil="pixel"] .cell.m-hit .mk::after,
 html[data-stil="pixel"] .cell.m-sunk .mk::before, html[data-stil="pixel"] .cell.m-sunk .mk::after { border-radius: 0; box-shadow: none; }
 html[data-stil="pixel"] .cell.aim .gh { border-radius: 0; box-shadow: none; }
+
+/* To spillere: kig væk-skærmen dækker havene helt */
+.overlay.skift-overlay { background: var(--bg, #0a0414); }
+html[data-stil="tegneserie"] .overlay.skift-overlay { background: var(--papir, #fff4cc); }
+html[data-stil="pixel"] .overlay.skift-overlay { background: var(--nat, #0b1026); }

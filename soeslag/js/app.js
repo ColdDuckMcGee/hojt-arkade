@@ -315,9 +315,31 @@
   });
 
   function phase() { return run ? run.state.phase : 'place'; }
-  function startGame() {
+  // To spillere på én skærm (arkade/tospil.js): begge placerer skibe og skyder på skift. Mellem turene
+  // dækker en kig væk-skærm havene. 'player' er altid den, der har turen (run.state.aktiv = 1 eller 2).
+  var to = false;
+  function aktivNavn() { return ArkadeToSpil.navn(run.state.aktiv); }
+  function andenNavn() { return ArkadeToSpil.navn(3 - run.state.aktiv); }
+  var skiftEfter = null;
+  function visSkift(titel, tekst, knap, efter) {
+    skiftEfter = efter;
+    $('#skift-title').textContent = titel; $('#skift-text').textContent = tekst; $('#skift-label').textContent = knap;
+    $('#skift-overlay').hidden = false;
+    fitScreen($('#skift-overlay'));
+    dwell.reset();
+    $('#btn-skift').focus({ preventScroll: true });
+  }
+  $('#btn-skift').addEventListener('click', function () {
+    if ($('#skift-overlay').hidden) return;
+    $('#skift-overlay').hidden = true;
+    sfx('click'); dwell.reset();
+    var f = skiftEfter; skiftEfter = null;
+    if (f) f();
+  });
+  function startGame(o) {
     if (window.ArkadeHighscore) ArkadeHighscore.start();
-    run = G.createRun(boardSize(), sset.get('level'));
+    to = !!(o && o.to);
+    run = G.createRun(boardSize(), sset.get('level'), { to: to });
     paused = false; finished = false;
     $('#pause-overlay').hidden = true;
     startMatch();
@@ -330,7 +352,7 @@
     buildBoard(run.n);
     refresh(true);
   }
-  function overlayOpen() { return !$('#pause-overlay').hidden; }
+  function overlayOpen() { return !$('#pause-overlay').hidden || !$('#skift-overlay').hidden; }
   function live() { return run && !paused && !busy && current === 'game' && !overlayOpen() && (phase() === 'place' || phase() === 'battle'); }
 
   // ----- Placering -----
@@ -389,9 +411,17 @@
   function beginBattle() {
     if (!live() || phase() !== 'place') return;
     if (!run.begin()) return;
-    view = 'enemy'; aim = -1; selShip = null; note = ''; aiNote = ''; zoom = -1;
     sfx('click');
+    if (to && run.state.phase === 'place') {
+      // Spiller 1 er færdig: spiller 2 placerer sine skibe
+      view = 'home'; aim = -1; selShip = null; note = ''; zoom = -1;
+      refresh(true);
+      visSkift(ArkadeToSpil.navn(2) + ' placerer sine skibe', ArkadeToSpil.navn(1) + ': kig væk, og giv skærmen til ' + ArkadeToSpil.navn(2) + '.', 'Jeg er ' + ArkadeToSpil.navn(2), function () { refresh(true); });
+      return;
+    }
+    view = 'enemy'; aim = -1; selShip = null; note = ''; aiNote = ''; zoom = -1;
     refresh(true);
+    if (to) visSkift('Slaget begynder', ArkadeToSpil.navn(2) + ': kig væk, og giv skærmen til ' + ArkadeToSpil.navn(1) + '.', 'Jeg er ' + ArkadeToSpil.navn(1), function () { refresh(true); });
   }
 
   // ----- Kamp -----
@@ -426,6 +456,7 @@
     fresh = res.i; aim = -1;
     if (res.result === 'miss') { note = where + ': Plask. Intet skib.'; sfx('miss'); }
     else if (res.result === 'hit') { note = where + ': Ramt!'; sfx('hit'); }
+    else if (to) { note = where + ': ' + aktivNavn() + ' sænkede ' + andenNavn() + 's ' + shipLower(res.ship) + '!'; sfx('sunk'); }
     else { note = where + ': Du sænkede computerens ' + shipLower(res.ship) + '! +' + pointsText(G.RULES.sunkPoint); sfx('sunk'); }
     if (res.allSunk) {
       busy = true;
@@ -434,6 +465,21 @@
       return;
     }
     busy = true;
+    if (to) {
+      // Turen skifter: vis resultatet et øjeblik, dæk havene, og byt perspektiv
+      var skudTekst = aktivNavn() + ' skød på ' + where + (res.result === 'miss' ? ': Plask.' : res.result === 'hit' ? ' og ramte dit ' + shipLower(res.ship) + '.' : ' og sænkede dit ' + shipLower(res.ship) + '.');
+      aiNote = '';
+      refresh();
+      endTimer = setTimeout(function () {
+        var nu = aktivNavn(), naeste = andenNavn();
+        visSkift(naeste + 's tur', nu + ': kig væk, og giv skærmen til ' + naeste + '.', 'Jeg er ' + naeste, function () {
+          run.skift(); busy = false; view = 'enemy'; aim = -1; note = ''; aiNote = skudTekst;
+          fresh = -1; freshAi = run.state.lastAi;
+          refresh(true);
+        });
+      }, animationOn() ? 1400 : 900);
+      return;
+    }
     aiNote = 'Computeren sigter …';
     refresh();
     scheduleAi();
@@ -468,7 +514,10 @@
   }
   function endAction() {
     if (!run) return;
-    if (phase() === 'won') { sfx('click'); run.nextMatch(); startMatch(); }
+    if (phase() === 'won') {
+      sfx('click'); run.nextMatch(); startMatch();
+      if (to) visSkift(ArkadeToSpil.navn(1) + ' placerer sine skibe', ArkadeToSpil.navn(2) + ': kig væk, og giv skærmen til ' + ArkadeToSpil.navn(1) + '.', 'Jeg er ' + ArkadeToSpil.navn(1), function () { refresh(true); });
+    }
     else if (phase() === 'lost') { sfx('click'); gameOver(); }
   }
 
@@ -550,8 +599,8 @@
     for (var i = 0; i < miniEls.length; i++) applyCell(miniEls[i], info[i], { last: i === last, fresh: i === (bigHome ? fresh : freshAi) });
     miniEl.classList.toggle('home', !bigHome);
     miniEl.classList.toggle('enemy', bigHome);
-    $('#mini-title').textContent = bigHome ? 'Computerens hav' : 'Dit hav';
-    $('#view-label').textContent = bigHome ? 'Vis computerens hav' : 'Vis dit hav stort';
+    $('#mini-title').textContent = bigHome ? (to ? andenNavn() + 's hav' : 'Computerens hav') : 'Dit hav';
+    $('#view-label').textContent = bigHome ? (to ? 'Vis ' + andenNavn() + 's hav' : 'Vis computerens hav') : 'Vis dit hav stort';
     $('#btn-view').setAttribute('aria-label', bigHome ? 'Vis computerens hav stort' : 'Vis dit hav stort. Computerens skud er markeret på dit lille hav.');
   }
   function shipIcon(len, hits, sunk) {
@@ -567,7 +616,7 @@
         shipIcon(sh.len, 0, sh.sunk) + '<span class="fname">' + sh.name + '</span><span class="fstate">' + (sh.sunk ? 'sænket' : sh.len + ' felter') + '</span></li>';
     });
     if (ul.dataset.html !== html) { ul.innerHTML = html; ul.dataset.html = html; }
-    $('#fleet-title').textContent = 'Computerens skibe: ' + run.enemyLeft() + ' tilbage';
+    $('#fleet-title').textContent = (to ? andenNavn() + 's' : 'Computerens') + ' skibe: ' + run.enemyLeft() + ' tilbage';
   }
   function renderShipList() {
     var list = $('#ship-list');
@@ -601,9 +650,11 @@
     gameEl.dataset.phase = shownPhase;
     gameEl.dataset.view = ph === 'place' ? 'home' : view;
     $('#hud-match').textContent = s.match;
-    $('#hud-score').textContent = s.score;
+    $('#hud-score-label').textContent = to ? 'Stilling' : 'Point';
+    $('#hud-best-label').textContent = to ? 'Tur' : 'Rekord';
+    $('#hud-score').textContent = to ? s.sejre[0] + '–' + s.sejre[1] : s.score;
     $('#hud-shots').textContent = s.shots;
-    $('#hud-best').textContent = Math.max(records.best(catOf(s.level, s.sizeId)), s.score);
+    $('#hud-best').textContent = to ? ArkadeToSpil.navn(s.aktiv).replace('Spiller ', 'Sp. ') : Math.max(records.best(catOf(s.level, s.sizeId)), s.score);
     renderBig();
     renderMini();
     renderFleet();
@@ -611,7 +662,10 @@
 
     // Overskrift over brættet: hvis hav, og hvis tur
     var title = $('#board-title'), tcls = '';
-    if (ph === 'place') title.textContent = 'Dit hav – kamp ' + s.match;
+    if (to && ph === 'place') title.textContent = aktivNavn() + 's hav – placér skibene';
+    else if (to && ph === 'won') { title.textContent = busy ? andenNavn() + 's hav' : aktivNavn() + ' vandt kamp ' + s.match + '!'; tcls = busy ? '' : 'won'; }
+    else if (to && ph === 'battle') { title.textContent = busy ? andenNavn() + 's hav' : view === 'enemy' ? andenNavn() + 's hav – ' + aktivNavn() + 's tur' : aktivNavn() + 's hav'; tcls = view === 'enemy' ? 'you' : ''; }
+    else if (ph === 'place') title.textContent = 'Dit hav – kamp ' + s.match;
     else if (busy && s.turn === 'ai') { title.textContent = 'Computerens tur'; tcls = 'ai'; }
     else if (ph === 'won') { title.textContent = busy ? 'Computerens hav' : 'Du vandt kamp ' + s.match + '!'; tcls = busy ? '' : 'won'; }
     else if (ph === 'lost') { title.textContent = busy ? 'Dit hav' : 'Computeren vandt – her lå dens skibe'; tcls = busy ? 'ai' : 'lost'; }
@@ -628,11 +682,12 @@
       else if (!pv || samePlace(pv)) txt = 'Vælg feltet til stævnen, og vælg vandret eller lodret. Tryk så Læg.';
       else if (!pv.ok) { txt = 'Skibet kan ikke ligge her – skibe må ikke røre hinanden. Vælg et andet felt eller en anden retning.'; cls = 'bad'; }
       else { txt = 'Passer! Tryk Læg for at lægge skibet på ' + G.coord(run.n, pv.cells[0]) + '.'; cls = 'ok'; }
-    } else if (busy && s.turn === 'ai') { txt = (note ? note + ' ' : '') + aiNote; cls = 'ai'; }
+    } else if (to && busy && ph === 'battle') { txt = note; }
+    else if (busy && s.turn === 'ai') { txt = (note ? note + ' ' : '') + aiNote; cls = 'ai'; }
     else if (ph === 'battle') {
       if (view === 'home') txt = (aiNote || 'Dit hav.') + ' Tryk på det lille hav for at skyde igen.';
       else if (aim >= 0) { txt = 'Sigter på ' + G.coord(run.n, aim) + '. Tryk Skyd.'; cls = 'ok'; }
-      else txt = (aiNote ? aiNote + ' ' : (note ? note + ' ' : '')) + 'Din tur: vælg et felt.';
+      else txt = (aiNote ? aiNote + ' ' : (note ? note + ' ' : '')) + (to ? aktivNavn() + 's tur: vælg et felt.' : 'Din tur: vælg et felt.');
     } else txt = note;
     hint.textContent = txt;
     hint.className = 'hint' + (cls ? ' ' + cls : '');
@@ -663,7 +718,13 @@
     var s = run.state, box = $('#end-box');
     if (!(s.phase === 'won' || s.phase === 'lost')) return;
     var ul = $('#end-points'), html = '';
-    if (s.phase === 'won') {
+    if (to && s.phase === 'won') {
+      $('#end-title').textContent = aktivNavn() + ' vandt kamp ' + s.match + '!';
+      $('#end-text').textContent = aktivNavn() + ' sænkede hele ' + andenNavn() + 's flåde med ' + shotsText(s.shots) + '.';
+      html = '<li><span>' + ArkadeToSpil.navn(1) + '</span><b>' + s.sejre[0] + '</b></li><li><span>' + ArkadeToSpil.navn(2) + '</span><b>' + s.sejre[1] + '</b></li>';
+      $('#btn-end-label').textContent = 'Næste kamp';
+      $('#btn-end-sub').textContent = 'Kamp ' + (s.match + 1);
+    } else if (s.phase === 'won') {
       var mp = s.matchPoints;
       $('#end-title').textContent = 'Du vandt kamp ' + s.match + '!';
       $('#end-text').textContent = 'Du sænkede alle fem skibe med ' + shotsText(s.shots) + '.';
@@ -715,7 +776,7 @@
     // Spørg først: ét blik eller klik må aldrig smide et spil i gang væk (arkade/bekraeft.js)
     ArkadeBekraeft.spoerg({ onJa: function () { quitToMenu(); } });
   });
-  function quitToMenu() { clearTimeout(aiTimer); clearTimeout(endTimer); run = null; paused = false; busy = false; $('#pause-overlay').hidden = true; show('menu'); }
+  function quitToMenu() { clearTimeout(aiTimer); clearTimeout(endTimer); run = null; paused = false; busy = false; $('#pause-overlay').hidden = true; $('#skift-overlay').hidden = true; show('menu'); }
 
   // ---------- Fortsæt, hvor du slap (arkade/fortsaet.js) ----------
   // Gemmes, mens man placerer skibe eller skyder (ikke mens computeren skyder)
@@ -723,13 +784,14 @@
     spil: 'soeslag',
     gem: function () {
       var s = run && run.state;
-      return s && !finished && !busy && !s.over && (s.phase === 'place' || (s.phase === 'battle' && s.turn === 'player')) ? { state: s } : null;
+      return s && !finished && !busy && !s.over && $('#skift-overlay').hidden && (s.phase === 'place' || (s.phase === 'battle' && s.turn === 'player')) ? { state: s, to: to } : null;
     },
-    info: function (d) { return d.state.n + ' × ' + d.state.n + ' · slag ' + d.state.match + ' · ' + d.state.score + ' point'; },
+    info: function (d) { return d.to ? 'To spillere · ' + d.state.sejre[0] + '–' + d.state.sejre[1] : d.state.n + ' × ' + d.state.n + ' · slag ' + d.state.match + ' · ' + d.state.score + ' point'; },
     fortsaet: function (d) {
       var st = d.state;
       if (!st || !st.fleet || !st.enemy) return false;
-      run = G.createRun(st.sizeId, st.level);
+      to = !!d.to;
+      run = G.createRun(st.sizeId, st.level, { to: to });
       if (run.n !== st.n) return false;
       Object.keys(st).forEach(function (k) { run.state[k] = st[k]; });
       paused = false; finished = false;
@@ -737,8 +799,11 @@
       startMatch();
       if (st.phase === 'battle') { view = 'enemy'; refresh(true); }
       show('game');
+      // To spillere: dæk havene, til den rigtige spiller sidder klar
+      if (to) visSkift(aktivNavn() + 's tur', 'Giv skærmen til ' + aktivNavn() + '.', 'Jeg er ' + aktivNavn(), function () { refresh(true); });
     }
   });
+  ArkadeToSpil.knap({ fortsaet: fortsaet, tekst: 'skjulte skibe, på skift', start: function () { sfx('click'); startGame({ to: true }); } });
 
   // ---------- Game over ----------
   var lastEntryId = null;
@@ -765,7 +830,7 @@
     renderRecordList($('#go-records'), cat, lastEntryId);
     show('gameover');
   }
-  $('#btn-again').addEventListener('click', function () { sfx('click'); startGame(); });
+  $('#btn-again').addEventListener('click', function () { sfx('click'); startGame(to ? { to: true } : null); });
   $('#btn-go-menu').addEventListener('click', function () { sfx('click'); quitToMenu(); });
 
   function renderRecordList(ol, cat, highlightId) {

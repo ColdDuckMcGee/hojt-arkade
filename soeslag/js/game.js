@@ -276,7 +276,10 @@
       match: 0, wins: 0, score: 0, sunkTotal: 0, totalShots: 0,
       phase: 'place', turn: 'player', over: false,
       fleet: null, enemy: null, home: null,
-      shots: 0, aiShots: 0, lastPlayer: -1, lastAi: -1, matchPoints: null
+      shots: 0, aiShots: 0, lastPlayer: -1, lastAi: -1, matchPoints: null,
+      // To spillere på én skærm (arkade/tospil.js): 'player' er altid den, der har turen (aktiv = 1 eller 2).
+      // home er den aktives eget hav, enemy modstanderens; ved hvert turskift byttes de (skift()).
+      to: !!opts.to, aktiv: 1, fleet1: null, fleet2: null, sejre: [0, 0]
     };
     function newMatch() {
       s.match++;
@@ -285,6 +288,7 @@
       s.enemy = createSea(n, randomFleet(n, rng));
       s.home = null;
       s.shots = 0; s.aiShots = 0; s.lastPlayer = -1; s.lastAi = -1; s.matchPoints = null;
+      s.aktiv = 1; s.fleet1 = null; s.fleet2 = null;
     }
     function shuffle() { if (s.phase !== 'place') return false; s.fleet = randomFleet(n, rng); return true; }
     function shipById(id) { return s.fleet.filter(function (sh) { return sh.id === id; })[0] || null; }
@@ -304,6 +308,17 @@
     }
     function begin() {
       if (s.phase !== 'place' || !validFleet(n, s.fleet)) return false;
+      if (s.to && !s.fleet1) {
+        // Spiller 1 er færdig: nu placerer spiller 2 (en ny, tilfældig flåde at starte fra)
+        s.fleet1 = s.fleet; s.fleet = randomFleet(n, rng); s.aktiv = 2;
+        return true;
+      }
+      if (s.to) {
+        s.fleet2 = s.fleet; s.fleet = s.fleet1;
+        s.home = createSea(n, s.fleet1); s.enemy = createSea(n, s.fleet2);
+        s.aktiv = 1; s.phase = 'battle'; s.turn = 'player';
+        return true;
+      }
       s.home = createSea(n, s.fleet);
       s.phase = 'battle'; s.turn = 'player';
       return true;
@@ -314,6 +329,10 @@
       if (!res.ok) return res;
       s.shots++; s.totalShots++; s.lastPlayer = i;
       res.points = 0;
+      if (s.to) {
+        if (res.allSunk) { s.sejre[s.aktiv - 1]++; s.phase = 'won'; } else s.turn = 'ai';
+        return res;
+      }
       if (res.result === 'sunk') { s.sunkTotal++; res.points += RULES.sunkPoint; }
       if (res.allSunk) {
         var wp = winPoints(n, s.shots);
@@ -334,6 +353,16 @@
       else s.turn = 'player';
       return res;
     }
+    // To spillere: turen går videre – perspektivet byttes, så den nye spiller er 'player'
+    function skift() {
+      if (!s.to || s.phase !== 'battle' || s.turn !== 'ai') return false;
+      var t = s.home; s.home = s.enemy; s.enemy = t;
+      t = s.shots; s.shots = s.aiShots; s.aiShots = t;
+      t = s.lastPlayer; s.lastPlayer = s.lastAi; s.lastAi = t;
+      t = s.fleet; s.fleet = s.fleet2; s.fleet2 = t;
+      s.aktiv = 3 - s.aktiv; s.turn = 'player';
+      return true;
+    }
     function nextMatch() { if (s.phase !== 'won') return false; newMatch(); return true; }
     function enemyLeft() { return s.enemy.ships.filter(function (sh) { return !sh.sunk; }).length; }
     function homeLeft() { return s.home ? s.home.ships.filter(function (sh) { return !sh.sunk; }).length : FLEET.length; }
@@ -341,7 +370,7 @@
     newMatch();
     return {
       state: s, n: n, shuffle: shuffle, previewMove: previewMove, moveShip: moveShip, shipById: shipById,
-      begin: begin, playerFire: playerFire, aiFire: aiFire, nextMatch: nextMatch,
+      begin: begin, playerFire: playerFire, aiFire: aiFire, nextMatch: nextMatch, skift: skift,
       enemyLeft: enemyLeft, homeLeft: homeLeft,
       _setFleets: function (mine, theirs) { if (mine) s.fleet = mine; if (theirs) s.enemy = createSea(n, theirs); }
     };
