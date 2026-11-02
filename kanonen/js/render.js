@@ -245,9 +245,10 @@
       trail(m.trails.spiller, colors.player, 0.42, 3, true);
       trail(m.trails.computer, colors.cpu, 0.32, 3, true);
       sidsteNedslag(m.trails.spiller, colors.player);
+      if (st.navne) sidsteNedslag(m.trails.computer, colors.cpu);   // to spillere: også spiller 2s sidste nedslag
       terrain(m.h);
-      cannon(m.player, colors.player, st.active === 'spiller', 'DU');
-      cannon(m.cpu, colors.cpu, st.active === 'computer', 'MODSTANDER ' + m.no);
+      cannon(m.player, colors.player, st.active === 'spiller', st.navne ? st.navne[0] : 'DU');
+      cannon(m.cpu, colors.cpu, st.active === 'computer', st.navne ? st.navne[1] : 'MODSTANDER ' + m.no);
       if (st.flight) {
         var col = st.flight.shooter === m.player ? colors.player : colors.cpu;
         trail(st.flight.pts, col, 0.85, 3.5, false);

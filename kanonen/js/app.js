@@ -197,10 +197,18 @@
   var run = null, paused = false;
   var phase = 'idle'; // aim (din tur), flight, cpu (computeren sigter), wait, win, over
 
-  function startGame() {
+  // To spillere på én skærm (arkade/tospil.js): spiller 1 har den venstre kanon, spiller 2 den højre.
+  // Man skiftes til at sigte og skyde med de samme knapper. Hver runde giver en vinder og et nyt
+  // landskab; stillingen tælles op (run.sejre). Ingen point og ingen rekorder.
+  var to = false, tur = 1;
+  function aktiv() { var m = scene.match; return to && tur === 2 ? m.cpu : m.player; }
+  function sidst(c) { var m = scene.match; return c === m.player ? m.sidste : m.sidste2; }
+  function startGame(o) {
     if (window.ArkadeHighscore) ArkadeHighscore.start();
     resetAnim();
-    run = { no: 1, score: 0, wins: 0, hp: G.RULES.maxHp, over: false };
+    to = !!(o && o.to); tur = 1;
+    scene.navne = to ? [ArkadeToSpil.navn(1).toUpperCase(), ArkadeToSpil.navn(2).toUpperCase()] : null;
+    run = { no: 1, score: 0, wins: 0, hp: G.RULES.maxHp, over: false, to: to, sejre: [0, 0] };
     paused = false;
     newMatch();
     show('game');
@@ -214,9 +222,10 @@
   }
   function newMatch() {
     resetAnim();
-    var m = G.createMatch(run.no, run.hp);
+    var m = G.createMatch(run.no, to ? G.RULES.maxHp : run.hp);
     m.player.angle = kanon.get('angle'); m.player.power = kanon.get('power');
     m.cpu.angle = 45;
+    if (to) tur = run.no % 2 === 1 ? 1 : 2;   // to spillere: man skiftes til at starte
     scene.match = m;
     view.newSky(run.no * 7919 + 13);
     $('#pause-overlay').hidden = true;
@@ -227,11 +236,11 @@
   function setPhase(p) {
     phase = p;
     var m = scene.match;
-    scene.active = p === 'aim' ? 'spiller' : p === 'cpu' ? 'computer' : null;
+    scene.active = p === 'aim' ? (to && tur === 2 ? 'computer' : 'spiller') : p === 'cpu' ? 'computer' : null;
     var line = $('#turn-line');
-    line.classList.toggle('cpu', p === 'cpu');
+    line.classList.toggle('cpu', p === 'cpu' || (p === 'aim' && to && tur === 2));
     line.classList.toggle('wait', p !== 'aim' && p !== 'cpu');
-    if (p === 'aim') line.textContent = 'Din tur – sigt og skyd';
+    if (p === 'aim') line.textContent = to ? ArkadeToSpil.navn(tur) + 's tur – sigt og skyd' : 'Din tur – sigt og skyd';
     else if (p === 'cpu') line.textContent = 'Modstander ' + m.no + ' sigter …';
     refresh();
   }
@@ -240,12 +249,16 @@
     var m = scene.match;
     if (!m) return;
     var p = m.player, c = m.cpu;
+    $('#hud-hp-label').textContent = to ? ArkadeToSpil.navn(1) : 'Dit liv';
+    $('#hud-score-label').textContent = to ? 'Stilling' : 'Point';
     $('#hud-hp').textContent = Math.max(0, p.hp);
     $('#hud-hp-bar').style.width = Math.max(0, p.hp) + '%';
-    $('#hud-cpu-label').textContent = 'Modstander ' + m.no;
+    $('#hud-cpu-label').textContent = to ? ArkadeToSpil.navn(2) : 'Modstander ' + m.no;
     $('#hud-cpu-hp').textContent = Math.max(0, c.hp);
     $('#hud-cpu-bar').style.width = Math.max(0, c.hp) + '%';
-    $('#hud-score').textContent = fmt(run.score);
+    $('#hud-score').textContent = to ? run.sejre[0] + '–' + run.sejre[1] : fmt(run.score);
+    p = aktiv();   // knapperne styrer den kanon, der har turen
+    $('#game').classList.toggle('tur2', to && tur === 2);
     var w = m.wind, arrow = $('#hud-wind-arrow');
     $('#hud-wind').textContent = Math.abs(w);
     arrow.classList.toggle('left', w < 0);
@@ -254,7 +267,7 @@
     $('#angle-value').textContent = p.angle + '°';
     $('#power-value').textContent = p.power + ' %';
     // Sidste skud: vinkel og krudt står ved siden af, så man kan rette ud fra dem
-    var sd = m.sidste;
+    var sd = sidst(p);
     $('#angle-sidst').textContent = sd ? 'sidst ' + sd.angle + '°' : '';
     $('#power-sidst').textContent = sd ? 'sidst ' + sd.power + ' %' : '';
     // Knapper kan kun vælges i din tur (deaktiverede knapper springes over af dwell).
@@ -287,12 +300,12 @@
   }
   function adjust(key, d) {
     if (phase !== 'aim' || paused) return;
-    var p = scene.match.player;
+    var p = aktiv();
     var lo = key === 'angle' ? G.LIMITS.angleMin : G.LIMITS.powerMin, hi = key === 'angle' ? G.LIMITS.angleMax : G.LIMITS.powerMax;
     var v = G.clamp(p[key] + d, lo, hi);
     if (v === p[key]) return;
     p[key] = v;
-    kanon.set(key, v);
+    if (p === scene.match.player) kanon.set(key, v);
     sfx('step');
     refresh();
     draw();
@@ -302,13 +315,13 @@
   });
   function toggleAmmo() {
     if (phase !== 'aim' || paused) return;
-    var p = scene.match.player;
+    var p = aktiv();
     if (p.ammo === 'granat' && p.bombs > 0) { p.ammo = 'bombe'; sfx('bomb'); }
     else if (p.ammo === 'bombe') { p.ammo = 'granat'; sfx('granat'); }
     refresh();
   }
   $('#btn-ammo').addEventListener('click', toggleAmmo);
-  $('#btn-fire').addEventListener('click', function () { if (phase === 'aim' && !paused) fire(scene.match.player); });
+  $('#btn-fire').addEventListener('click', function () { if (phase === 'aim' && !paused) fire(aktiv()); });
 
   // ---------- Skud ----------
   function fire(shooter) {
@@ -317,12 +330,13 @@
     lastShooter = shooter.id;
     if (ammo === 'bombe') shooter.bombs--;
     if (shooter === m.player) { m.shots++; m.sidste = { angle: shooter.angle, power: shooter.power }; }   // vises ved knapperne
+    else if (to) m.sidste2 = { angle: shooter.angle, power: shooter.power };
     m.trails[shooter.id] = null; // den gamle bane for denne kanon forsvinder
     var p = G.launch(shooter, m.wind);
     scene.flight = { p: p, pts: [{ x: p.x, y: p.y }], shooter: shooter, ammo: ammo, acc: 0, n: 0, done: false };
     shooter.ammo = 'granat'; // bomben vælges for ét skud ad gangen
     setPhase('flight');
-    $('#turn-line').textContent = shooter === m.player ? 'Kuglen flyver …' : 'Modstanderens kugle flyver …';
+    $('#turn-line').textContent = shooter === m.player || to ? 'Kuglen flyver …' : 'Modstanderens kugle flyver …';
     sfx('fire');
     kick();
   }
@@ -438,6 +452,14 @@
     // vent på fald og på, at dødseffekten er helt færdig, før sejr/game over vises
     if (falls.length || doed.active() || m.cannons.some(function (c) { return c.hp <= 0 && !c.dead; })) { after(100, resolve); return; }
     refresh(); draw();
+    if (to && (m.player.dead || m.cpu.dead)) {
+      // To spillere: runden er afgjort (begge ødelagt = uafgjort)
+      var vinder = m.player.dead && m.cpu.dead ? 0 : m.cpu.dead ? 1 : 2;
+      setPhase('win');
+      $('#turn-line').textContent = vinder ? ArkadeToSpil.navn(vinder) + ' vandt runden!' : 'Begge kanoner er ødelagt';
+      after(350, function () { rundeSlut(vinder); });
+      return;
+    }
     if (m.player.dead) {
       if (m.cpu.dead) { run.wins++; run.score += G.winPoints(m.no, m.shots); }
       run.over = true; setPhase('over');
@@ -455,6 +477,7 @@
     if (!run || run.over) return;
     var last = lastShooter;
     lastShooter = null;
+    if (to) { tur = last === 'spiller' ? 2 : 1; sfx('turn'); playerTurn(false); return; }
     if (last === 'spiller') cpuTurn(); else playerTurn(false);
   }
   var lastShooter = null;
@@ -484,6 +507,21 @@
       $('#turn-line').textContent = 'Modstanderen skyder: ' + a.to + '° · ' + a.toP + ' %' + (a.bomb ? ' · bombe' : '');
       after(250, function () { if (run && !run.over) fire(m.cpu); });
     }
+  }
+
+  // ---------- To spillere: runden er slut ----------
+  function rundeSlut(vinder) {
+    if (vinder) run.sejre[vinder - 1]++;
+    refresh();
+    sfx('win');
+    $('#win-title').textContent = vinder ? ArkadeToSpil.navn(vinder) + ' vandt runde ' + run.no + '!' : 'Uafgjort i runde ' + run.no;
+    $('#win-bonus').textContent = 'Stilling ' + run.sejre[0] + '–' + run.sejre[1];
+    $('#win-detail').textContent = ArkadeToSpil.navn(1) + ' ' + run.sejre[0] + ' · ' + ArkadeToSpil.navn(2) + ' ' + run.sejre[1];
+    $('#win-heal').textContent = 'Næste runde: begge kanoner får fuldt liv, og ' + ArkadeToSpil.navn(run.no % 2 === 1 ? 2 : 1) + ' starter.';
+    $('#btn-next-sub').textContent = 'Runde ' + (run.no + 1) + ' · nyt landskab';
+    $('#win-overlay').hidden = false;
+    dwell.reset();
+    $('#btn-next').focus({ preventScroll: true });
   }
 
   // ---------- Sejr og ny modstander ----------
@@ -550,14 +588,17 @@
       var kopi = {};
       Object.keys(m).forEach(function (k) { if (k !== 'player' && k !== 'cpu') kopi[k] = m[k]; });
       kopi.h = Array.prototype.slice.call(m.h);
-      return { run: run, match: kopi };
+      return { run: run, match: kopi, tur: tur };
     },
-    info: function (d) { return 'Modstander ' + d.run.no + ' · ' + d.run.score + ' point'; },
+    info: function (d) { return d.run.to ? 'To spillere · ' + d.run.sejre[0] + '–' + d.run.sejre[1] : 'Modstander ' + d.run.no + ' · ' + d.run.score + ' point'; },
     fortsaet: function (d) {
       var m = d.match;
       if (!d.run || !m || !m.h || !m.cannons || m.cannons.length < 2) return false;
       resetAnim();
       run = d.run;
+      to = !!run.to; tur = d.tur === 2 && to ? 2 : 1;
+      if (to && !run.sejre) run.sejre = [0, 0];
+      scene.navne = to ? [ArkadeToSpil.navn(1).toUpperCase(), ArkadeToSpil.navn(2).toUpperCase()] : null;
       paused = false;
       m.h = new Float32Array(m.h);
       m.player = m.cannons[0]; m.cpu = m.cannons[1];
@@ -570,6 +611,8 @@
       playerTurn(true);
     }
   });
+
+  ArkadeToSpil.knap({ fortsaet: fortsaet, tekst: 'hver sin kanon', start: function () { sfx('click'); startGame({ to: true }); } });
 
   // ---------- Game over ----------
   var lastEntryId = null;

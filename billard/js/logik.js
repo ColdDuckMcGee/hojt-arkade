@@ -363,14 +363,18 @@
   }
 
   // ---------- Serien ----------
-  function createSeries(level, seed) {
+  // opts.to: to spillere på én skærm (arkade/tospil.js) – 'human' er spiller 1, 'cpu' er spiller 2.
+  // Begge sigter selv, der gives ingen point, og et tabt parti afslutter ikke serien.
+  function createSeries(level, seed, opts) {
+    opts = opts || {};
     level = LEVELS[level] ? level : 'normal';
     var rand = rng(seed === undefined ? (Date.now() >>> 0) : seed);
     var st = {
       level: level, mult: LEVELS[level].mult, frame: 0, score: 0, framesWon: 0, potted: 0,
       over: false, ended: false, balls: null, groups: { human: null, cpu: null },
       turn: 'human', breaker: 'human', breakShot: true, ballInHand: false, handSpots: null, handIndex: 0,
-      aim: 0, power: 8, frameOver: null, last: null, targetIndex: -1, shots: 0, lastPoints: 0, framePoints: 0
+      aim: 0, power: 8, frameOver: null, last: null, targetIndex: -1, shots: 0, lastPoints: 0, framePoints: 0,
+      to: !!opts.to, framesWon2: 0
     };
     function remaining(group) {
       if (!group) return 7;
@@ -436,7 +440,7 @@
     }
     function startTurn() {
       st.targetIndex = -1;
-      if (st.turn === 'human') aimDefault();
+      if (st.turn === 'human' || st.to) aimDefault();
     }
     var run = {
       state: st,
@@ -507,20 +511,21 @@
         if (j.assign) { st.groups[who] = j.assign; st.groups[who === 'human' ? 'cpu' : 'human'] = other(j.assign); }
         if (j.respotEight) { var e8 = ballById(st.balls, 8); var f8 = freeSpotNear(st.balls, RULES.footSpot, 8); e8.in = true; e8.x = f8.x; e8.y = f8.y; }
         var pts = 0;
-        if (who === 'human' && !j.foul) { pts += j.own.length * RULES.points.ball * st.mult; st.potted += j.own.length; }
+        if (who === 'human' && !j.foul && !st.to) { pts += j.own.length * RULES.points.ball * st.mult; st.potted += j.own.length; }
         var res = { ok: true, who: who, sim: sim, judge: j, before: before, aim: st.aim, power: st.power, breakShot: st.breakShot };
         st.breakShot = false; st.ballInHand = false; st.handSpots = null;
         if (j.frame) {
           var winner = j.frame === 'win' ? who : (who === 'human' ? 'cpu' : 'human');
           st.frameOver = winner;
-          if (winner === 'human') { st.framesWon++; pts += RULES.points.frame * st.mult; }
+          if (st.to) { if (winner === 'human') st.framesWon++; else st.framesWon2++; }
+          else if (winner === 'human') { st.framesWon++; pts += RULES.points.frame * st.mult; }
           else st.over = true;
           res.winner = winner;
         } else {
           var next = j.continues ? who : (who === 'human' ? 'cpu' : 'human');
           st.turn = next;
           if (j.foul) {
-            if (next === 'human') setHand('human');
+            if (next === 'human' || st.to) setHand(next);
             else { st.ballInHand = true; st.handSpots = null; if (!cue().in) placeCue(RULES.headSpot); }
           } else if (!cue().in) placeCue(RULES.headSpot);
           startTurn();
@@ -537,7 +542,7 @@
         return true;
       },
       nextFrame: function () {
-        if (st.over || st.frameOver !== 'human') return false;
+        if (st.over || (st.frameOver !== 'human' && !(st.to && st.frameOver))) return false;
         newFrame(); startTurn();
         return true;
       },

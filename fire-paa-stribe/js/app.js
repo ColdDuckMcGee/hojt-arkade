@@ -507,7 +507,7 @@
     $('.go-records').hidden = to; $('.go-unit').textContent = to ? '' : 'point';
     if (to) {
       var w1 = s.wins, w2 = s.wins2;
-      $('#go-reason').textContent = w1 === w2 ? 'Uafgjort efter ' + s.game + ' partier.' : ArkadeToSpil.navn(w1 > w2 ? 1 : 2) + ' vandt serien!';
+      $('#go-reason').textContent = w1 === w2 ? 'Uafgjort efter ' + s.game + (s.game === 1 ? ' parti.' : ' partier.') : ArkadeToSpil.navn(w1 > w2 ? 1 : 2) + ' vandt serien!';
       $('#go-score').textContent = w1 + '–' + w2;
       $('#go-games').textContent = ArkadeToSpil.navn(1) + ' ' + w1 + ' · ' + ArkadeToSpil.navn(2) + ' ' + w2 + (s.draws ? ' · ' + drawsText(s.draws) : '');
       $('#go-rank').textContent = '';

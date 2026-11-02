@@ -283,3 +283,5 @@ html[data-stil="tegneserie"] .hp-bar, html[data-stil="pixel"] .hp-bar { border-r
 /* Sidste skud: vinkel og krudt fra sidst, lille og dæmpet ved siden af tallet */
 .ctrl-sidst { margin-left: auto; margin-right: 10px; font-size: calc(var(--head-h) * 0.42); font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; text-shadow: 0 1px 4px #000; }
 .inline .ctrl-sidst { display: none; }
+/* To spillere: tallene ved knapperne i spiller 2s farve, når det er spiller 2s tur */
+#game.tur2 .ctrl-value { color: var(--kn-cpu); text-shadow: 0 0 calc(12px * var(--glow)) var(--kn-cpu); }
