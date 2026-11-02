@@ -352,11 +352,11 @@
       status.textContent = $('#caught-text').textContent;
     } else if (res.result === 'cleared') {
       var bonus = res.events.filter(function (e) { return e.type === 'cleared'; })[0].bonus;
-      var nextGuards = G.DIFFICULTIES[s.difficulty].guards(s.level + 1);
+      var nextGuards = G.guardCount(s.difficulty, s.level + 1);
       var nextMaze = G.loadMaze(s.level).name;
       $('#clear-score').textContent = s.score + ' point';
       $('#clear-bonus').textContent = '+' + bonus + ' point for bane ' + s.level;
-      $('#clear-next').textContent = 'Næste labyrint hedder ' + nextMaze + ' og har ' + guardsText(nextGuards) + '.';
+      $('#clear-next').textContent = (G.round(s.level + 1) > G.round(s.level) ? 'Ny omgang – nu med en vagt mere. ' : '') + 'Næste labyrint hedder ' + nextMaze + ' og har ' + guardsText(nextGuards) + '.';
       $('#btn-next-sub').textContent = 'Bane ' + (s.level + 1);
       showOverlay('#clear-overlay', '#btn-next');
       status.textContent = 'Banen er ryddet. ' + bonus + ' point for banen.';

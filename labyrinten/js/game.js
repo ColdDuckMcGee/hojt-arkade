@@ -26,7 +26,7 @@
   var REVERSE = { up: 'down', down: 'up', left: 'right', right: 'left' };
 
   // Vagternes typer, i den rækkefølge de kommer med.
-  var TYPES = ['jaeger', 'afskaerer', 'patrulje', 'lurer'];
+  var TYPES = ['jaeger', 'afskaerer', 'patrulje', 'lurer', 'patrulje'];   // den 5. er en ekstra patrulje (fra 2. omgang)
   var TYPE_NAMES = { jaeger: 'Jægeren', afskaerer: 'Afskæreren', patrulje: 'Patruljen', lurer: 'Lureren' };
 
   var POINTS = {
@@ -48,21 +48,21 @@
       guards: function (level) { return level < 3 ? 2 : 3; },
       smart: function (level) { return level >= 5; },
       fright: function (level) { return Math.max(14, 20 - (level - 1)); },
-      waits: [4, 10, 16, 22]
+      waits: [4, 10, 16, 22, 28]
     },
     normal: {
       label: 'Normal', every: 1,
       guards: function (level) { return level < 2 ? 3 : 4; },
       smart: function (level) { return level >= 3; },
       fright: function (level) { return Math.max(8, 12 - Math.floor((level - 1) / 2)); },
-      waits: [2, 6, 10, 14]
+      waits: [2, 6, 10, 14, 18]
     },
     svaer: {
       label: 'Svær', every: 1,
       guards: function () { return 4; },
       smart: function () { return true; },
       fright: function (level) { return Math.max(5, 8 - Math.floor((level - 1) / 2)); },
-      waits: [0, 2, 4, 6]
+      waits: [0, 2, 4, 6, 8]
     }
   };
 
@@ -92,7 +92,7 @@
     function angle(p) { return (Math.atan2(p.y - cy, p.x - cx) + Math.PI * 2 + Math.PI * 0.75) % (Math.PI * 2); }
     pellets.sort(function (a, b) { return angle(a) - angle(b); });
     maze.corners = pellets.length >= 2 ? pellets : [{ x: 1, y: 1 }, { x: w - 2, y: 1 }, { x: w - 2, y: h - 2 }, { x: 1, y: h - 2 }];
-    maze.guardStarts = bfsOrder(maze, home, 4);
+    maze.guardStarts = bfsOrder(maze, home, 5);
     mazeCache[n] = maze;
     return maze;
   }
@@ -138,7 +138,7 @@
   }
   function placeActors(s) {
     var maze = s.maze, diff = DIFFICULTIES[s.difficulty];
-    var n = diff.guards(s.level), lvlCut = Math.min(s.level - 1, 3);
+    var n = guardCount(s.difficulty, s.level), lvlCut = Math.min(s.level - 1, 3);
     s.player = { x: maze.start.x, y: maze.start.y, dir: 'left' };
     s.guards = [];
     for (var i = 0; i < n; i++) {
@@ -153,6 +153,9 @@
     s.turn = 0;          // træk på denne bane siden sidste start (styrer Rolig-takten)
     s.status = 'play';
   }
+  // Antal vagter: sværhedsgradens tal, og én mere fra 2. omgang (når alle labyrinter er spillet én gang)
+  function round(level) { return Math.floor((level - 1) / mazeList().length) + 1; }
+  function guardCount(diffId, level) { return DIFFICULTIES[diffId].guards(level) + (round(level) >= 2 ? 1 : 0); }
   function cloneState(s) {
     var c = {};
     for (var k in s) if (Object.prototype.hasOwnProperty.call(s, k)) c[k] = s[k];
@@ -400,6 +403,6 @@
 
   global.LabyrintenGame = {
     DIRS: DIRS, ORDER: ORDER, DIFFICULTIES: DIFFICULTIES, TYPES: TYPES, TYPE_NAMES: TYPE_NAMES, POINTS: POINTS,
-    createRun: createRun, loadMaze: loadMaze
+    createRun: createRun, loadMaze: loadMaze, guardCount: guardCount, round: round
   };
 })(typeof window !== 'undefined' ? window : globalThis);

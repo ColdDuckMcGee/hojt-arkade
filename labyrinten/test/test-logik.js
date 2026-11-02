@@ -48,7 +48,8 @@ function towardDot(r, allowed) {
 
 // ---------- 1. Labyrinter ----------
 section('labyrinter');
-ok(M.length >= 3, 'mindst tre labyrinter');
+ok(M.length >= 8, 'mindst otte labyrinter');
+ok(M.map(function (d) { return d.navn; }).filter(function (n, i, a) { return a.indexOf(n) === i; }).length === M.length, 'labyrinterne har hver sit navn');
 M.forEach(function (def, n) {
   var rows = def.rows, w = rows[0].length, h = rows.length, P = 0, Gc = 0, pel = 0, sym = true;
   ok(w === 15 && h === 13, def.navn + ' er 15 × 13');
@@ -282,6 +283,23 @@ section('baner');
   ok(mono, diff + ': banerne bliver gradvist sværere');
   ok(D.guards(10) > D.guards(1) || D.smart(10) && !D.smart(1) || D.fright(10) < D.fright(1), diff + ': bane 10 er sværere end bane 1');
 });
+
+// 2. omgang: én vagt mere, på et frit felt, og alle labyrinter får plads til fem vagter
+(function () {
+  var n = M.length;
+  ['rolig', 'normal', 'svaer'].forEach(function (diff) {
+    ok(G.guardCount(diff, n + 1) === G.DIFFICULTIES[diff].guards(n + 1) + 1, diff + ': én vagt mere fra bane ' + (n + 1));
+    ok(G.guardCount(diff, n) === G.DIFFICULTIES[diff].guards(n), diff + ': ingen ekstra vagt i 1. omgang');
+    var r = G.createRun({ difficulty: diff }), s = r.state;
+    while (s.level < n + 1) { clearItems(s); park(s); setItem(s, s.player.x, s.player.y, 0); s.status = 'cleared'; r.nextLevel(); }
+    ok(s.guards.length === G.guardCount(diff, n + 1), diff + ': bane ' + (n + 1) + ' har ' + s.guards.length + ' vagter');
+    var keys = s.guards.map(key);
+    ok(keys.filter(function (k, i) { return keys.indexOf(k) === i; }).length === keys.length, diff + ': vagterne starter på hver sit felt');
+    ok(s.guards.every(function (g) { return s.maze.open(g.x, g.y); }), diff + ': vagterne starter på åbne felter');
+    ok(s.maze.index === 0, diff + ': 2. omgang starter med første labyrint igen');
+  });
+  for (var i = 0; i < n; i++) ok(G.loadMaze(i).guardStarts.length === 5, M[i].navn + ' har plads til fem vagter');
+})();
 
 // ---------- 9. Liv ----------
 section('liv');
