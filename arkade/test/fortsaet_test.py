@@ -20,6 +20,8 @@ ROD = 'file://' + os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 
 SPIL = {
     'slangen': {}, 'sudoku': {'klik': 60}, 'juveler': {'klik': 60}, 'lys-ud': {}, 'pixelgaader': {}, 'rorlaegger': {},
     'minestryger': {'klik': 30}, 'blokke': {'klik': 40}, 'kabalen': {'klik': 40},
+    'fire-paa-stribe': {'klik': 20, 'vent': 1500}, 'soeslag': {'klik': 30, 'vent': 1500}, 'kanonen': {'klik': 12, 'vent': 4000},
+    'taarnene': {'klik': 30, 'vent': 800}, 'billard': {'klik': 12, 'vent': 5000}, 'golf': {'klik': 12, 'vent': 4000},
 }
 # Knapper, der aldrig klikkes i "aben": pause, afslut, hallen, fuld skærm, indstillinger
 UNDGAA = '#btn-pause, .pause-btn, [id*="quit"], [id*="afslut"], [id*="hallen"], .js-fullscreen, [id*="settings"], [id*="indstil"], [id*="menu"], a[href]'

@@ -446,10 +446,33 @@
   $('#btn-confirm-yes').addEventListener('click', function () { sfx('click'); dwell.unguard(); finish('quit'); });
   function quitToMenu() { run = null; paused = false; clearTimeout(afterTimer); tegn.stop(); rolling = false; hideOverlays(); show('menu'); }
 
+  // ---------- Fortsæt, hvor du slap (arkade/fortsaet.js) ----------
+  // Gemmes, når bolden ligger stille (frøet gemmes også, så de næste huller bliver de samme)
+  var fortsaet = ArkadeFortsaet.create({
+    spil: 'golf',
+    gem: function () { return run && !finished && !rolling && !tegn.animating && run.live() ? { state: run.state, seed: run.seed, mode: runMode } : null; },
+    info: function (d) { return 'Hul ' + d.state.level + ' · ' + d.state.score + ' point'; },
+    fortsaet: function (d) {
+      var st = d.state;
+      if (!st || !st.hole || !st.ball || typeof d.seed !== 'number') return false;
+      tegn.stop();
+      run = L.createRun({ seed: d.seed });
+      Object.keys(st).forEach(function (k) { run.state[k] = st[k]; });
+      runMode = d.mode || mode();
+      paused = false; finished = false; rolling = false;
+      lastNote = ''; noteCls = '';
+      clearTimeout(afterTimer);
+      hideOverlays();
+      show('game');
+      refresh();
+    }
+  });
+
   // ---------- Slut ----------
   // Rekordlister pr. forhåndslinje: point og antal klarede huller.
   var lastEntryId = null;
   function saveRecord() {
+    fortsaet.slet();
     var out = run.end(), res = null;
     finished = true;
     if (window.ArkadeHighscore) ArkadeHighscore.slut();
@@ -480,7 +503,7 @@
     GolfTegn.mini($('#go-pic'), s.hole, s.holed ? null : s.ball, { trail: s.lastShot && s.lastShot.path });
   }
   // Lukkes siden midt i et spil, gemmes pointene alligevel
-  window.addEventListener('pagehide', function () { if (run && !finished) saveRecord(); });
+  // (Når siden lukkes, gemmes spillet af arkade/fortsaet.js i stedet for at serien registreres)
   $('#btn-again').addEventListener('click', function () { sfx('click'); startGame(); });
   $('#btn-go-menu').addEventListener('click', function () { sfx('click'); quitToMenu(); });
 

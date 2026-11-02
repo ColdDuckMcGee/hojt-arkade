@@ -425,10 +425,37 @@
   $('#btn-confirm-yes').addEventListener('click', function () { sfx('click'); dwell.unguard(); finish(); });
   function quitToMenu() { clearTimers(); run = null; paused = false; hideOverlays(); show('menu'); }
 
+  // ---------- Fortsæt, hvor du slap (arkade/fortsaet.js) ----------
+  // Gemmes midt i et parti, når det er din tur (ikke mens en brik falder eller computeren tænker)
+  var fortsaet = ArkadeFortsaet.create({
+    spil: 'fire-paa-stribe',
+    gem: function () {
+      var s = run && run.state;
+      return s && !finished && !busy && !s.ended && !s.result && s.turn === YOU ? { state: s } : null;
+    },
+    info: function (d) { return 'Parti ' + d.state.game + ' · ' + d.state.score + ' point'; },
+    fortsaet: function (d) {
+      var st = d.state;
+      if (!st || !st.board || !st.board.length) return false;
+      clearTimers();
+      run = G.createSeries(st.level);
+      Object.keys(st).forEach(function (k) { run.state[k] = st[k]; });
+      paused = false; finished = false; busy = false; falling = -1;
+      hoverCol = -1; curCol = -1; lastNote = '';
+      buildBoard();
+      hideOverlays();
+      show('game');
+      $('#end-row').hidden = true; $('#act-row').hidden = false;
+      dwell.unguard();
+      refresh();
+    }
+  });
+
   // ---------- Slut ----------
   // Serien gemmes som rekord pr. niveau: point, sejre og uafgjorte.
   var lastEntryId = null;
   function saveRecord() {
+    fortsaet.slet();
     var s = run.state, out = run.end(), res = null;
     finished = true;
     if (window.ArkadeHighscore) ArkadeHighscore.slut();
@@ -457,7 +484,7 @@
     show('gameover');
   }
   // Lukkes siden midt i en serie, gemmes den alligevel
-  window.addEventListener('pagehide', function () { if (run && !finished) saveRecord(); });
+  // (Når siden lukkes, gemmes spillet af arkade/fortsaet.js i stedet for at serien registreres)
   $('#btn-again').addEventListener('click', function () { sfx('click'); startGame(); });
   $('#btn-go-menu').addEventListener('click', function () { sfx('click'); quitToMenu(); });
 

@@ -565,10 +565,36 @@
   $('#btn-confirm-yes').addEventListener('click', function () { sfx('click'); dwell.unguard(); finish('quit'); });
   function quitToMenu() { run = null; paused = false; clearTimers(); tegn.stop(); rolling = false; cpuPhase = null; hideOverlays(); show('menu'); }
 
+  // ---------- Fortsæt, hvor du slap (arkade/fortsaet.js) ----------
+  // Gemmes, når det er din tur, og kuglerne ligger stille
+  var fortsaet = ArkadeFortsaet.create({
+    spil: 'billard',
+    gem: function () {
+      var s = run && run.state;
+      return s && !finished && !rolling && !cpuPhase && !tegn.animating && run.live() && s.turn === 'human' && !s.frameOver ? { state: s } : null;
+    },
+    info: function (d) { return 'Spil ' + (d.state.frame || 1) + ' · ' + d.state.score + ' point'; },
+    fortsaet: function (d) {
+      var st = d.state;
+      if (!st || !st.balls || !st.balls.length) return false;
+      tegn.stop();
+      clearTimers();
+      runLevel = st.level;
+      run = L.createSeries(st.level);
+      Object.keys(st).forEach(function (k) { run.state[k] = st[k]; });
+      paused = false; finished = false; rolling = false; cpuPhase = null; lostReason = '';
+      lastNote = ''; noteCls = '';
+      hideOverlays();
+      show('game');
+      beginTurn();
+    }
+  });
+
   // ---------- Slut ----------
   // Rekordlister pr. niveau: point, vundne partier og nedlagte kugler.
   var lastEntryId = null;
   function saveRecord() {
+    fortsaet.slet();
     var out = run.end(), res = null;
     finished = true;
     if (window.ArkadeHighscore) ArkadeHighscore.slut();
@@ -600,7 +626,7 @@
     BillardTegn.mini($('#go-pic'), s.balls, {});
   }
   // Lukkes siden midt i et spil, gemmes pointene alligevel
-  window.addEventListener('pagehide', function () { if (run && !finished) saveRecord(); });
+  // (Når siden lukkes, gemmes spillet af arkade/fortsaet.js i stedet for at serien registreres)
   $('#btn-again').addEventListener('click', function () { sfx('click'); startGame(); });
   $('#btn-go-menu').addEventListener('click', function () { sfx('click'); quitToMenu(); });
 

@@ -417,6 +417,7 @@
     setHole(generate(1, baseSeed));
     var run = {
       state: state,
+      seed: baseSeed,   // frøet til de næste huller (Fortsæt, hvor du slap gemmer det)
       live: function () { return !state.over && !state.ended && !state.holed; },
       setAim: function (a) { state.aim = normAngle(Math.round(a)); return state.aim; },
       turnAim: function (d) { state.aim = normAngle(state.aim + d); return state.aim; },

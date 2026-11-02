@@ -717,9 +717,33 @@
   });
   function quitToMenu() { clearTimeout(aiTimer); clearTimeout(endTimer); run = null; paused = false; busy = false; $('#pause-overlay').hidden = true; show('menu'); }
 
+  // ---------- Fortsæt, hvor du slap (arkade/fortsaet.js) ----------
+  // Gemmes, mens man placerer skibe eller skyder (ikke mens computeren skyder)
+  var fortsaet = ArkadeFortsaet.create({
+    spil: 'soeslag',
+    gem: function () {
+      var s = run && run.state;
+      return s && !finished && !busy && !s.over && (s.phase === 'place' || (s.phase === 'battle' && s.turn === 'player')) ? { state: s } : null;
+    },
+    info: function (d) { return d.state.n + ' × ' + d.state.n + ' · slag ' + d.state.match + ' · ' + d.state.score + ' point'; },
+    fortsaet: function (d) {
+      var st = d.state;
+      if (!st || !st.fleet || !st.enemy) return false;
+      run = G.createRun(st.sizeId, st.level);
+      if (run.n !== st.n) return false;
+      Object.keys(st).forEach(function (k) { run.state[k] = st[k]; });
+      paused = false; finished = false;
+      $('#pause-overlay').hidden = true;
+      startMatch();
+      if (st.phase === 'battle') { view = 'enemy'; refresh(true); }
+      show('game');
+    }
+  });
+
   // ---------- Game over ----------
   var lastEntryId = null;
   function gameOver() {
+    fortsaet.slet();
     if (finished || !run) return;
     finished = true;
     var s = run.state, cat = catOf(s.level, s.sizeId), rankText = '';

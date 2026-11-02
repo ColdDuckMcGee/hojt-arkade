@@ -536,9 +536,41 @@
     show('menu');
   }
 
+  // ---------- Fortsæt, hvor du slap (arkade/fortsaet.js) ----------
+  // Gemmes, når det er din tur, og intet flyver (terrænet er en Float32Array og gemmes som liste)
+  var fortsaet = ArkadeFortsaet.create({
+    spil: 'kanonen',
+    gem: function () {
+      var m = scene.match;
+      if (!run || run.over || !m || phase !== 'aim' || busy()) return null;
+      var kopi = {};
+      Object.keys(m).forEach(function (k) { if (k !== 'player' && k !== 'cpu') kopi[k] = m[k]; });
+      kopi.h = Array.prototype.slice.call(m.h);
+      return { run: run, match: kopi };
+    },
+    info: function (d) { return 'Modstander ' + d.run.no + ' · ' + d.run.score + ' point'; },
+    fortsaet: function (d) {
+      var m = d.match;
+      if (!d.run || !m || !m.h || !m.cannons || m.cannons.length < 2) return false;
+      resetAnim();
+      run = d.run;
+      paused = false;
+      m.h = new Float32Array(m.h);
+      m.player = m.cannons[0]; m.cpu = m.cannons[1];
+      scene.match = m;
+      view.newSky(run.no * 7919 + 13);
+      $('#pause-overlay').hidden = true;
+      $('#win-overlay').hidden = true;
+      show('game');
+      refresh();
+      playerTurn(true);
+    }
+  });
+
   // ---------- Game over ----------
   var lastEntryId = null;
   function gameOver() {
+    fortsaet.slet();
     var rankText = '';
     lastEntryId = null;
     if (window.ArkadeHighscore) ArkadeHighscore.slut();

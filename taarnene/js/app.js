@@ -663,9 +663,32 @@
   $('#btn-confirm-yes').addEventListener('click', function () { sfx('click'); dwell.unguard(); finish('quit'); });
   function quitToMenu() { stopAnim(); game = null; paused = false; hideOverlays(); show('menu'); }
 
+  // ---------- Fortsæt, hvor du slap (arkade/fortsaet.js) ----------
+  // Gemmes i byggefasen mellem bølgerne. Lukkes siden midt i en bølge, fortsætter man fra
+  // før bølgen (med de tårne, man havde).
+  var fortsaet = ArkadeFortsaet.create({
+    spil: 'taarnene',
+    gem: function () { return game && !finished && game.state.phase === 'bygge' ? { state: game.state } : null; },
+    info: function (d) { return 'Bølge ' + d.state.wave + ' · ' + d.state.score + ' point'; },
+    fortsaet: function (d) {
+      var st = d.state;
+      if (!st || !st.map || !st.map.path || st.phase !== 'bygge') return false;
+      stopAnim();
+      game = L.createGame({ map: st.map, seed: st.seed });
+      Object.keys(st).forEach(function (k) { game.state[k] = st[k]; });
+      paused = false; finished = false; restAuto = false; pendingPause = false;
+      curIdx = -1; selIdx = -1; lastNote = ''; noteCls = '';
+      tegn.build(game.state.map);
+      hideOverlays();
+      show('game');
+      refresh();
+    }
+  });
+
   // ---------- Slut ----------
   var lastEntryId = null;
   function saveRecord() {
+    fortsaet.slet();
     var out = game.end(), res = null;
     finished = true;
     if (window.ArkadeHighscore) ArkadeHighscore.slut();
@@ -698,7 +721,7 @@
     renderRecordList($('#go-records'), CAT, lastEntryId);
     show('gameover');
   }
-  window.addEventListener('pagehide', function () { if (game && !finished) saveRecord(); });
+  // (Når siden lukkes, gemmes spillet af arkade/fortsaet.js i stedet for at serien registreres)
   $('#btn-again').addEventListener('click', function () { sfx('click'); startGame(); });
   $('#btn-go-menu').addEventListener('click', function () { sfx('click'); quitToMenu(); });
 
