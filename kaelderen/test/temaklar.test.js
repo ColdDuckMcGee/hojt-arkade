@@ -50,7 +50,7 @@ const missing = alle.filter(n => !T.ikoner[n]);
 check('temaet leverer alle ' + alle.length + ' ikoner, spillet beder om', missing.length === 0, missing.join(', '));
 const texNavne = [...new Set([...tegn.matchAll(/tex\['([a-z-]+)'\]/g)].map(m => m[1]))];
 check('temaet leverer alle teksturer (' + texNavne.join(', ') + ')', texNavne.every(n => typeof T.teksturer[n] === 'function' || (T.teksturer[n] && typeof T.teksturer[n].tegn === 'function')), texNavne.filter(n => !T.teksturer[n]).join(', '));
-['kravler', 'skytte', 'kolos', 'ammo', 'liv', 'skat', 'noegle', 'trappe', 'lampe'].forEach(n =>
+['kravler', 'skytte', 'kolos', 'mimik', 'ammo', 'liv', 'skat', 'noegle', 'kiste', 'hammer', 'trappe', 'lampe'].forEach(n =>
   check('temaet har figuren ' + n, T.sprites[n] && typeof T.sprites[n].tegn === 'function'));
 ['livbar', 'trussel', 'markering', 'feltMarkering', 'sigtekorn', 'vaaben', 'skade', 'efter', 'tal', 'kortBund', 'kortFelt', 'kortSpiller', 'kortFjende', 'kortTing', 'kortRute', 'kortValg', 'kortTekst'].forEach(k =>
   check('temaet tegner ' + k, typeof T.tegn[k] === 'function'));

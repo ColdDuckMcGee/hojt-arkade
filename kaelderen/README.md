@@ -8,6 +8,8 @@ En turbaseret førsteperson-kælder (dungeon crawler) i 3D. Man går ét felt ad
 
 - **Etager uden ende:** hver etage har et **nøglekort**, en **låst dør** og en **trappe** ned. Find nøglen, lås døren op, og tag trappen. Mellem etagerne er der en **butik**.
 - **Fjender:** tre typer, som kommer gradvist: **Kravler** (lille og hurtig i nærkamp, fra etage 1), **Skytte** (skyder på afstand i lige linje, fra etage 2) og **Kolos** (meget liv, slår hårdt, men er langsom, fra etage 3). Over hver fjende står en livbjælke og "Kan ramme dig" eller "sover", og en fjende, der kan ramme dig i næste tur, får en tydelig ramme.
+- **Kister og Mimik (fra etage 2):** kister står i hjørnerne af rummene. Man kan ikke gå igennem dem, men Handling åbner dem og giver skat og ammo eller førstehjælp. Fra etage 3 kan en kiste være en **Mimik**, der bliver til en fjende (3 liv, bider hårdt), når den åbnes. En Mimik-kiste knirker, når man står foran den (det står i beskeden og på Handling-knappen), så man kan vælge at lade den være.
+- **Spærret dør og hammer (fra etage 2):** de fleste etager har et skatterum med brædder for døren, en kiste og ekstra skat. Find **hammeren** et andet sted på etagen, og slå brædderne ned med Handling. Skatterummet er aldrig nødvendigt: nøglen, trappen og hammeren kan altid nås uden om det (tjekkes for hver etage).
 - **Kamp:** træfchancen falder med afstanden (vises på knappen, fx "Skyd 84 %"). Ammunition er begrænset. Står fjenden lige foran dig, og ammoen er sluppet op, bliver Handling til **Slå** (nærkamp).
 - **Ting:** ammunition, førstehjælp og skat ligger i gangene og rummene.
 - **Butik:** mere liv, førstehjælp, bedre våben, større magasin, ammunition, rustning og bedre lommelygte. Betal med skat.
@@ -37,7 +39,7 @@ En turbaseret førsteperson-kælder (dungeon crawler) i 3D. Man går ét felt ad
 
 ## Test
 
-- `node kaelderen/test/logik.test.js` – kortgenerator (nøgle, dør og trappe kan altid nås), bevægelse og drej, fjender rykker kun ved handling, de tre fjendetyper, træfchance og afstand, ammo og nærkamp, ting, butik, etageskift, point, game over og determinisme.
+- `node kaelderen/test/logik.test.js` – kortgenerator (nøgle, dør og trappe kan altid nås), bevægelse og drej, fjender rykker kun ved handling, de tre fjendetyper, kister og Mimik, den spærrede dør og hammeren (skatterummet er aldrig nødvendigt, og kister spærrer ingen vej), træfchance og afstand, ammo og nærkamp, ting, butik, etageskift, point, game over og determinisme.
 - `node kaelderen/test/temaklar.test.js` – ingen farver, glød eller skrifttyper uden for temaet, og temaet leverer alt, spillet beder om.
 - `python3 kaelderen/test/responsiv_test.py` (Playwright og Chrome) – alle skærme ved 8 opløsninger: ingen konsolfejl, ingen rulning, knapstørrelser, billedraten, spil med taster, knapper og klik (3D og kort), auto-gang stopper ved fjende, butik, game over, rekorder, glød fra, mindre bevægelse og hallen. Skærmbilleder gemmes, når `KAELDER_SKAERMBILLEDER=<mappe>` er sat.
 

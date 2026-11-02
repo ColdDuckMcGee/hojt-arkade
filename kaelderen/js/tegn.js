@@ -312,7 +312,7 @@
         var tX = Math.floor(wallX * TS); if ((side === 0 && rx > 0) || (side === 1 && ry < 0)) tX = TS - 1 - tX;
         var fxc = side === 0 ? mx - sx : mx, fyc = side === 1 ? my - sy : my;
         var faceRum = (fxc >= 0 && fyc >= 0 && fxc < W && fyc < H) ? rum[fyc * W + fxc] : -1;
-        var tx = c === L.DOER ? tex['doer'] : c === L.LAAST ? tex['doer-laast'] : faceRum >= 0 ? tex['vaeg-rum'] : tex['vaeg'];
+        var tx = c === L.DOER ? tex['doer'] : c === L.LAAST ? tex['doer-laast'] : c === L.SPAERRET ? tex['doer-spaerret'] : faceRum >= 0 ? tex['vaeg-rum'] : tex['vaeg'];
         var lineH = P / perp, ds = half - lineH / 2, de = half + lineH / 2;
         var y0 = Math.max(0, Math.floor(ds)), y1 = Math.min(h, Math.ceil(de));
         top[x] = y0; bot[x] = y1;
@@ -514,6 +514,7 @@
       if (c === L.DOER) return 'doer';
       if (c === L.AABEN) return 'aaben';
       if (c === L.LAAST) return 'laast';
+      if (c === L.SPAERRET) return 'spaerret';
       return st.rum[i] >= 0 ? 'rum' : 'gulv';
     }
     function tegnFelter(st, ox, oy, cs, x0, y0, x1, y1, view) {
@@ -592,11 +593,11 @@
       var cx = Math.max(0, Math.min(iw - 1, Math.floor(ix))), ci = colInfo[cx];
       if (!ci) return null;
       if (iy >= ci.top && iy <= ci.bot) {
-        if (ci.c === L.DOER || ci.c === L.LAAST) {
+        if (ci.c === L.DOER || ci.c === L.LAAST || ci.c === L.SPAERRET) {
           var x0 = cx, x1 = cx;
           while (x0 > 0 && colInfo[x0 - 1] && colInfo[x0 - 1].mx === ci.mx && colInfo[x0 - 1].my === ci.my) x0--;
           while (x1 < iw - 1 && colInfo[x1 + 1] && colInfo[x1 + 1].mx === ci.mx && colInfo[x1 + 1].my === ci.my) x1++;
-          return { type: 'doer', x: ci.mx, y: ci.my, laast: ci.c === L.LAAST, rect: { x: x0, y: ci.top, w: x1 - x0 + 1, h: ci.bot - ci.top } };
+          return { type: 'doer', x: ci.mx, y: ci.my, laast: ci.c === L.LAAST, spaerret: ci.c === L.SPAERRET, rect: { x: x0, y: ci.top, w: x1 - x0 + 1, h: ci.bot - ci.top } };
         }
         return { type: 'felt', x: ci.fx, y: ci.fy };
       }

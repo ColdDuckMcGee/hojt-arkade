@@ -186,5 +186,89 @@ function findStartMedLinje(n) {
   r.act('frem');
   check('skridt giver en skridt-hændelse og husker forrige position', s.haendelser.some(e => e.type === 'skridt') && s.forrige && typeof s.forrige.x === 'number');
 }
+// 13) Fælder: kister (og Mimik) og den spærrede dør med hammeren
+{
+  // Find en etage med et skatterum (bag brædder) og mindst én kiste
+  function etage(nr, krav) {
+    for (let seed = 1; seed < 400; seed++) {
+      const r = L.createRun({ seed }); const s = r.state;
+      while (s.etage < nr) { s.fase = 'butik'; r.naesteEtage(); }
+      if (krav(s)) return r;
+    }
+    return null;
+  }
+  const ingen1 = L.createRun({ seed: 3 }).state;
+  check('etage 1 har ingen kister, hammer eller spærret dør', !ingen1.ting.some(t => t.type === 'kiste' || t.type === 'hammer') && !ingen1.cells.includes(L.SPAERRET));
+  // Alle etager 1–8 for mange frø: nøgle, trappe og hammer kan nås uden skatterummet, og kister spærrer ingen vej
+  let alleOk = true, medSpaerret = 0, kister = 0, mimik = 0;
+  for (let seed = 1; seed <= 25; seed++) {
+    const r = L.createRun({ seed }); const s = r.state;
+    for (let e = 1; e <= 8; e++) {
+      const v = L.validerEtage(s);
+      if (!v.ok || !v.hammerNaaelig) alleOk = false;
+      if (s.spaerret && s.spaerret.doere) {
+        medSpaerret++;
+        const h = s.ting.find(t => t.type === 'hammer'); if (!h) alleOk = false;
+        // skatterummet kan kun nås gennem brædderne
+        const uden = L.naaelige(s, true, false), med = L.naaelige(s, true, true);
+        const iRum = s.ting.filter(t => t.skatterum);
+        if (!iRum.length || iRum.some(t => uden[t.y * s.W + t.x]) || iRum.some(t => !med[t.y * s.W + t.x])) alleOk = false;
+      }
+      s.ting.forEach(t => { if (t.type === 'kiste') { kister++; if (t.mimik) mimik++; if (t.mimik && e < L.RULES.mimikFra) alleOk = false; } });
+      s.fase = 'butik'; r.naesteEtage();
+    }
+  }
+  check('alle etager kan klares uden skatterummet, og hammeren kan altid nås (' + medSpaerret + ' skatterum)', alleOk && medSpaerret > 50);
+  check('der er kister og Mimik-kister (' + kister + ' kister, ' + mimik + ' Mimik)', kister > 100 && mimik > 10 && mimik < kister / 2);
+
+  // Kiste: står i vejen, åbnes med Handling og giver skat
+  let r = etage(2, s => s.ting.some(t => t.type === 'kiste' && !t.mimik && !t.skatterum));
+  let s = r.state; s.fjender = [];
+  let k = s.ting.find(t => t.type === 'kiste' && !t.mimik && !t.skatterum);
+  // stil spilleren ved siden af kisten, med ansigtet mod den
+  let d = [0, 1, 2, 3].find(d => L.gaaelig(L.cell(s, k.x - L.DX[d], k.y - L.DY[d])) && !L.erKiste(s, k.x - L.DX[d], k.y - L.DY[d]));
+  s.spiller.x = k.x - L.DX[d]; s.spiller.y = k.y - L.DY[d]; s.spiller.dir = d;
+  check('foran en kiste: Handling er "Åbn kisten"', r.kontekst().type === 'aabnKiste' && r.kontekst().label === 'Åbn kisten');
+  check('man kan ikke gå ind i en kiste', r.act('frem').ok === false && s.spiller.x === k.x - L.DX[d]);
+  const skat0 = s.skat;
+  check('en kiste giver skat og forsvinder', r.act('handling').ok && s.skat === skat0 + k.vaerdi && !s.ting.includes(k));
+
+  // Mimik: knirker foran, og bliver til en vågen fjende, når den åbnes
+  r = etage(3, s => s.ting.some(t => t.type === 'kiste' && t.mimik));
+  check('der findes en Mimik-kiste fra etage 3', !!r);
+  s = r.state; s.fjender = [];
+  k = s.ting.find(t => t.type === 'kiste' && t.mimik);
+  d = [0, 1, 2, 3].find(d => L.gaaelig(L.cell(s, k.x - L.DX[d], k.y - L.DY[d])) && !L.erKiste(s, k.x - L.DX[d], k.y - L.DY[d]));
+  s.spiller.x = k.x - L.DX[d]; s.spiller.y = k.y - L.DY[d]; s.spiller.dir = (d + 1) % 4;
+  r.act('drejV');
+  check('en Mimik-kiste knirker, når man står foran den', s.spiller.dir === d && /knirker/.test(s.besked) && r.kontekst().knirker === true);
+  const hp0 = s.spiller.hp;
+  r.act('handling');
+  const m = s.fjender.find(f => f.type === 'mimik');
+  check('Mimik-kisten bliver til en vågen Mimik', !!m && m.vaagen && m.x === k.x && m.y === k.y && !s.ting.includes(k));
+  check('Mimikken bider i samme tur', s.spiller.hp < hp0);
+  check('Mimikken kan skydes som andre fjender', r.kontekst().type === 'skyd' || r.kontekst().type === 'slaa');
+
+  // Spærret dør: kræver hammeren, og så åbner den til skatterummet
+  r = etage(2, s => s.spaerret && s.spaerret.doere);
+  s = r.state; s.fjender = [];
+  const dd = s.spaerret.doere[0];
+  d = [0, 1, 2, 3].find(d => { const x = dd.x - L.DX[d], y = dd.y - L.DY[d]; return L.gaaelig(L.cell(s, x, y)) && s.rum[y * s.W + x] !== s.spaerret.rum; });
+  s.spiller.x = dd.x - L.DX[d]; s.spiller.y = dd.y - L.DY[d]; s.spiller.dir = d;
+  check('uden hammer: døren er spærret og kan ikke åbnes', r.kontekst().type === 'spaerret' && r.kontekst().kan === false && r.act('handling').ok === false && L.cell(s, dd.x, dd.y) === L.SPAERRET);
+  check('man kan ikke gå gennem brædderne', r.act('frem').ok === false);
+  const h = s.ting.find(t => t.type === 'hammer');
+  s.ting.splice(s.ting.indexOf(h), 1); s.spiller.hammer = true;   // som om den er samlet op
+  check('med hammeren: Handling slår brædderne ned', r.kontekst().type === 'slaaNed' && r.act('handling').ok && s.spaerret.doere.every(p => L.cell(s, p.x, p.y) === L.AABEN));
+  // hammeren samles op som en ting
+  const r2 = etage(2, s => s.ting.some(t => t.type === 'hammer'));
+  const s2 = r2.state, h2 = s2.ting.find(t => t.type === 'hammer');
+  const d2 = [0, 1, 2, 3].find(d => L.gaaelig(L.cell(s2, h2.x - L.DX[d], h2.y - L.DY[d])) && !L.tingVed(s2, h2.x - L.DX[d], h2.y - L.DY[d]));
+  s2.fjender = []; s2.spiller.x = h2.x - L.DX[d2]; s2.spiller.y = h2.y - L.DY[d2]; s2.spiller.dir = d2;
+  r2.act('frem');
+  check('hammeren samles op', s2.spiller.hammer === true && !s2.ting.includes(h2));
+  // tilstanden kan stadig gemmes som JSON
+  check('tilstanden med kister og brædder kan gemmes som JSON', JSON.parse(JSON.stringify(s)).spaerret.rum === s.spaerret.rum);
+}
 console.log('\n' + ok + ' af ' + (ok + fail) + ' test bestået');
 process.exit(fail ? 1 : 0);

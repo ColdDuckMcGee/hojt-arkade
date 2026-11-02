@@ -141,7 +141,7 @@
   function pointsText(n) { return n === 1 ? '1 point' : n + ' point'; }
   function turnsText(n) { return n === 1 ? '1 tur' : n + ' ture'; }
   function drabText(n) { return n === 1 ? '1 fjende' : n + ' fjender'; }
-  var TINGNAVN = { ammo: 'ammunition', liv: 'førstehjælp', skat: 'skat', noegle: 'nøglekortet' };
+  var TINGNAVN = { ammo: 'ammunition', liv: 'førstehjælp', skat: 'skat', noegle: 'nøglekortet', kiste: 'en kiste', hammer: 'hammeren' };
 
   // ---------- Startmenu ----------
   // Et fast stillbillede fra kælderen (samme seed hver gang, med en kravler i gangen)
@@ -237,6 +237,8 @@
       else if (e.type === 'drej') n = 'drej';
       else if (e.type === 'bump') n = 'bump';
       else if (e.type === 'doer') n = e.laast ? 'laas' : 'doer';
+      else if (e.type === 'mimik') n = 'fjende';
+      else if (e.type === 'knirk') n = 'doer';
       else if (e.type === 'skud') n = 'skud';
       else if (e.type === 'traf') n = e.doed ? 'drab' : 'traf';
       else if (e.type === 'miss') n = 'miss';
@@ -346,7 +348,8 @@
       if (m && m.fjende === t.fjende) { var k = run.kontekst(); return k.type === 'skyd' ? 'Skyd ' + navn + ' (' + Math.round(k.chance * 100) + ' %)' : k.label + ': ' + navn; }
       return iLinje(s, t.fjende) ? 'Sigt på ' + navn : 'Gå mod ' + navn;
     }
-    if (t.type === 'doer') return erForan(s, t.x, t.y) ? (t.laast ? (s.spiller.noegle ? 'Lås op' : 'Låst – find nøglekortet') : 'Åbn døren') : 'Gå til døren';
+    if (t.type === 'doer') return erForan(s, t.x, t.y) ? (t.spaerret ? (s.spiller.hammer ? 'Slå brædderne ned' : 'Spærret – find en hammer') : t.laast ? (s.spiller.noegle ? 'Lås op' : 'Låst – find nøglekortet') : 'Åbn døren') : 'Gå til døren';
+    if (t.type === 'ting' && t.ting.type === 'kiste') return erForan(s, t.x, t.y) ? 'Åbn kisten' : 'Gå til kisten';
     if (t.type === 'ting') return 'Saml ' + (TINGNAVN[t.ting.type] || 'op');
     if (t.type === 'trappe') return 'Gå til trappen';
     return 'Gå hertil';
@@ -367,7 +370,7 @@
       startAuto({ x: f.x, y: f.y, nabo: true, motFjende: true, faerdig: function (st) { return iLinje(st, f) || f.hp <= 0; }, ved: function (st) { if (f.hp > 0 && iLinje(st, f) && !(L.maalForan(st) && L.maalForan(st).fjende === f)) startAuto({ x: st.spiller.x, y: st.spiller.y, vend: retningMod(st, f.x, f.y), motFjende: true }); } });
       return;
     }
-    if (t.type === 'doer') {
+    if (t.type === 'doer' || (t.type === 'ting' && t.ting && t.ting.type === 'kiste')) {
       if (erForan(s, t.x, t.y)) { doAct('handling'); return; }
       startAuto({
         x: t.x, y: t.y, nabo: true,
@@ -490,7 +493,7 @@
   }
 
   // ---------- Status, knapper og besked ----------
-  var IKON_FOR = { skyd: 'skyd', slaa: 'slaa', ingenAmmo: 'skyd', ned: 'trappe', tilTrappe: 'trappe', aabn: 'aabn', aabnLaast: 'laas-op', laast: 'laast', saml: 'saml', vent: 'vent', ingen: 'vent' };
+  var IKON_FOR = { skyd: 'skyd', slaa: 'slaa', ingenAmmo: 'skyd', ned: 'trappe', tilTrappe: 'trappe', aabn: 'aabn', aabnLaast: 'laas-op', laast: 'laast', saml: 'saml', vent: 'vent', ingen: 'vent', aabnKiste: 'aabn', slaaNed: 'slaa', spaerret: 'laast' };
   function refresh() {
     if (!run) return;
     var s = run.state, p = s.spiller;
@@ -516,6 +519,9 @@
     else if (k.type === 'slaa') sub = k.navn + ' · nærkamp';
     else if (k.type === 'ingenAmmo') sub = 'gå tæt på for at slå';
     else if (k.type === 'laast') { lbl = 'Låst'; sub = 'find nøglekortet'; }
+    else if (k.type === 'spaerret') { lbl = 'Spærret'; sub = 'find en hammer'; }
+    else if (k.type === 'slaaNed') sub = 'med hammeren';
+    else if (k.type === 'aabnKiste') sub = k.knirker ? 'den knirker …' : 'skat – eller en fælde';
     else if (k.type === 'saml') sub = TINGNAVN[k.ting.type] || '';
     else if (k.type === 'vent') sub = 'én tur';
     $('#handling-label').textContent = lbl;
@@ -529,6 +535,8 @@
     if (fr.type === 'fjende') foran = 'Foran dig: ' + L.FJENDER[fr.fjende.type].navn + ' (' + fr.fjende.hp + '/' + fr.fjende.max + ' liv)';
     else if (fr.type === 'doer') foran = 'Foran dig: en dør';
     else if (fr.type === 'laast') foran = 'Foran dig: den låste dør';
+    else if (fr.type === 'spaerret') foran = 'Foran dig: en dør med brædder for';
+    else if (fr.type === 'kiste') foran = 'Foran dig: en kiste';
     else if (fr.type === 'trappe') foran = 'Foran dig: trappen ned';
     else if (fr.type === 'ting') foran = 'Foran dig: ' + TINGNAVN[fr.ting.type];
     var tr = run.trusler();

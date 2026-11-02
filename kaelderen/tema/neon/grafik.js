@@ -101,6 +101,19 @@
       ctx.fillStyle = s['laas']; ctx.fillRect(n / 2 - 5, 32, 10, 8);
       ctx.beginPath(); ctx.arc(n / 2, 31, 4, Math.PI, 0); ctx.lineWidth = 2; ctx.stroke();
     },
+    // Spærret dør: døren med to brædder på kryds og søm
+    'doer-spaerret': function (ctx, n, s) {
+      teksturer['doer'](ctx, n, s);
+      ctx.save(); ctx.translate(n / 2, n / 2);
+      [-0.5, 0.5].forEach(function (a) {
+        ctx.save(); ctx.rotate(a);
+        ctx.fillStyle = s['metal-moerk']; ctx.fillRect(-n * 0.58, -6, n * 1.16, 12);
+        ctx.fillStyle = s['skat']; ctx.fillRect(-n * 0.56, -5, n * 1.12, 10);
+        ctx.fillStyle = s['metal-moerk']; ctx.fillRect(-n * 0.4, -1, 3, 3); ctx.fillRect(n * 0.4 - 3, -1, 3, 3);
+        ctx.restore();
+      });
+      ctx.restore();
+    },
     // Gangenes gulv: beton med revner og en rist
     'gulv': function (ctx, n, s) {
       ctx.fillStyle = s['gulv-a']; ctx.fillRect(0, 0, n, n);
@@ -205,6 +218,40 @@
         ctx.fillStyle = s['metal-lys']; ctx.globalAlpha = 0.3; ctx.fillRect(10, 16, 44, 2); ctx.globalAlpha = 1;
       },
       gloed: function (ctx, n, s) { ctx.fillStyle = s['kolos-kerne']; ctx.beginPath(); ctx.arc(32, 30, 5, 0, Math.PI * 2); ctx.fill(); ctx.fillRect(26, 9, 12, 3); }
+    },
+    // Mimik: en kiste med tænder og ét øje – den var en fælde
+    mimik: { str: 0.6, sted: 'gulv',
+      tegn: function (ctx, n, s) {
+        ctx.fillStyle = s['skat']; rr(ctx, 6, 34, 52, 28, 5); ctx.fill();                     // bund
+        ctx.fillStyle = s['metal-moerk']; ctx.fillRect(6, 44, 52, 4);
+        ctx.fillStyle = s['skat']; ctx.save(); ctx.translate(32, 30); ctx.rotate(-0.35); rr(ctx, -27, -20, 52, 18, 6); ctx.fill(); ctx.restore(); // låg, åbent
+        ctx.fillStyle = s['metal-moerk']; ctx.beginPath(); ctx.moveTo(8, 34); ctx.lineTo(56, 26); ctx.lineTo(56, 36); ctx.lineTo(8, 38); ctx.fill(); // gab
+        ctx.fillStyle = s['metal-lys'];
+        for (var i = 0; i < 5; i++) { ctx.beginPath(); ctx.moveTo(11 + i * 9, 37 - i * 1.6); ctx.lineTo(15 + i * 9, 31 - i * 1.6); ctx.lineTo(19 + i * 9, 36 - i * 1.6); ctx.fill(); }
+        ctx.fillStyle = s['kravler-oeje']; ctx.beginPath(); ctx.arc(32, 18, 5, 0, Math.PI * 2); ctx.fill();
+      },
+      gloed: function (ctx, n, s) { ctx.fillStyle = s['kravler-oeje']; ctx.beginPath(); ctx.arc(32, 18, 5, 0, Math.PI * 2); ctx.fill(); }
+    },
+    // Kiste: lukket kiste med beslag og lås
+    kiste: { str: 0.42, sted: 'gulv',
+      tegn: function (ctx, n, s) {
+        ctx.fillStyle = s['skat']; rr(ctx, 4, 20, 56, 40, 6); ctx.fill();
+        ctx.fillStyle = s['metal-moerk']; ctx.fillRect(4, 32, 56, 4); ctx.fillRect(12, 20, 5, 40); ctx.fillRect(47, 20, 5, 40);
+        ctx.fillStyle = s['metal-lys']; rr(ctx, 27, 30, 10, 12, 2); ctx.fill();
+        ctx.fillStyle = s['metal-moerk']; ctx.fillRect(31, 35, 2, 4);
+      },
+      gloed: function (ctx, n, s) { ctx.fillStyle = s['skat-lys']; ctx.globalAlpha = 0.5; ctx.fillRect(6, 22, 52, 3); ctx.globalAlpha = 1; }
+    },
+    // Hammer: træskaft og stålhoved
+    hammer: { str: 0.34, sted: 'gulv',
+      tegn: function (ctx, n, s) {
+        ctx.save(); ctx.translate(32, 36); ctx.rotate(-0.6);
+        ctx.fillStyle = s['skat']; rr(ctx, -4, -6, 8, 34, 3); ctx.fill();
+        ctx.fillStyle = s['metal-lys']; rr(ctx, -16, -16, 32, 12, 3); ctx.fill();
+        ctx.fillStyle = s['metal-moerk']; ctx.fillRect(-16, -8, 32, 3);
+        ctx.restore();
+      },
+      gloed: function (ctx, n, s) { ctx.save(); ctx.translate(32, 36); ctx.rotate(-0.6); ctx.fillStyle = s['metal-lys']; ctx.globalAlpha = 0.5; ctx.fillRect(-16, -16, 32, 3); ctx.restore(); }
     },
     ammo: { str: 0.32, sted: 'gulv',
       tegn: function (ctx, n, s) {
@@ -345,12 +392,17 @@
     // d: { x, y, cs } (øverste venstre hjørne og feltstørrelse), felt: type-navn
     kortBund: function (ctx, d, s) { ctx.fillStyle = s['kort-bund']; ctx.fillRect(d.x, d.y, d.w, d.h); ctx.strokeStyle = s['kort-kant']; ctx.lineWidth = 2; ctx.strokeRect(d.x + 1, d.y + 1, d.w - 2, d.h - 2); },
     kortFelt: function (ctx, d, s) {
-      var c = { gulv: 'kort-gulv', rum: 'kort-rum', vaeg: 'kort-vaeg', doer: 'kort-doer', aaben: 'kort-doer', laast: 'kort-laast', trappe: 'kort-trappe' }[d.felt];
+      var c = { gulv: 'kort-gulv', rum: 'kort-rum', vaeg: 'kort-vaeg', doer: 'kort-doer', aaben: 'kort-doer', laast: 'kort-laast', spaerret: 'kort-doer', trappe: 'kort-trappe' }[d.felt];
       if (!c) return;
       ctx.fillStyle = s[c];
       if (d.felt === 'aaben') { ctx.globalAlpha = 0.5; ctx.fillRect(d.x, d.y, d.cs, d.cs); ctx.globalAlpha = 1; return; }
       if (d.felt === 'trappe') { ctx.fillRect(d.x, d.y, d.cs, d.cs); ctx.fillStyle = s['kort-bund']; ctx.fillRect(d.x + d.cs * 0.25, d.y + d.cs * 0.25, d.cs * 0.5, d.cs * 0.5); return; }
       ctx.fillRect(d.x, d.y, d.cs + 0.5, d.cs + 0.5);
+      if (d.felt === 'spaerret') {   // brædder: et kryds
+        ctx.strokeStyle = s['kort-ting']; ctx.lineWidth = Math.max(1.5, d.cs * 0.14);
+        ctx.beginPath(); ctx.moveTo(d.x + d.cs * 0.15, d.y + d.cs * 0.15); ctx.lineTo(d.x + d.cs * 0.85, d.y + d.cs * 0.85);
+        ctx.moveTo(d.x + d.cs * 0.85, d.y + d.cs * 0.15); ctx.lineTo(d.x + d.cs * 0.15, d.y + d.cs * 0.85); ctx.stroke();
+      }
     },
     kortSpiller: function (ctx, d, s) {
       var c = d.cs; ctx.save(); ctx.translate(d.x + c / 2, d.y + c / 2); ctx.rotate(d.vinkel);
@@ -366,6 +418,7 @@
     kortTing: function (ctx, d, s) {
       var c = d.cs; ctx.fillStyle = d.type === 'noegle' ? s['kort-noegle'] : s['kort-ting'];
       if (d.type === 'noegle') { ctx.fillRect(d.x + c * 0.15, d.y + c * 0.3, c * 0.7, c * 0.4); return; }
+      if (d.type === 'kiste') { ctx.fillRect(d.x + c * 0.2, d.y + c * 0.25, c * 0.6, c * 0.5); return; }
       ctx.beginPath(); ctx.arc(d.x + c / 2, d.y + c / 2, c * 0.2, 0, Math.PI * 2); ctx.fill();
     },
     kortRute: function (ctx, d, s) {

@@ -15,30 +15,43 @@
  *   run.state                   // hele tilstanden (kan gemmes som JSON)
  *
  * Retninger: 0 = nord (op på kortet), 1 = øst, 2 = syd, 3 = vest.
- * Felter: 0 væg, 1 gulv, 2 lukket dør, 3 åben dør, 4 låst dør.
+ * Felter: 0 væg, 1 gulv, 2 lukket dør, 3 åben dør, 4 låst dør, 5 spærret dør (brædder).
+ *
+ * Fælder (fra etage 2):
+ *  - Kister står i hjørnerne af rummene og åbnes med Handling. De fleste giver skat og
+ *    ammo eller førstehjælp. Fra etage 3 kan en kiste være en Mimik: den bliver til en
+ *    fjende, når den åbnes. En Mimik-kiste knirker, når man står foran den, så man kan
+ *    lade den være.
+ *  - En spærret dør (brædder for) fører ind til et skatterum. Find hammeren på etagen,
+ *    og slå brædderne ned med Handling. Skatterummet er aldrig nødvendigt for at komme ned.
  */
 (function (root) {
   'use strict';
 
-  var VAEG = 0, GULV = 1, DOER = 2, AABEN = 3, LAAST = 4;
+  var VAEG = 0, GULV = 1, DOER = 2, AABEN = 3, LAAST = 4, SPAERRET = 5;
   var DX = [0, 1, 0, -1], DY = [-1, 0, 1, 0];
   var RETNING = ['nord', 'øst', 'syd', 'vest'];
 
   var FJENDER = {
     kravler: { navn: 'Kravler', hp: 2, skade: 2, raekke: 1, fart: 1, skat: 6, fra: 1 },
     skytte:  { navn: 'Skytte',  hp: 2, skade: 1, raekke: 6, fart: 1, skat: 10, fra: 2 },
-    kolos:   { navn: 'Kolos',   hp: 6, skade: 3, raekke: 1, fart: 2, skat: 20, fra: 3 }
+    kolos:   { navn: 'Kolos',   hp: 6, skade: 3, raekke: 1, fart: 2, skat: 20, fra: 3 },
+    // Mimik: gemmer sig som en kiste og kommer kun frem, når kisten åbnes
+    mimik:   { navn: 'Mimik',   hp: 3, skade: 2, raekke: 1, fart: 1, skat: 30, fra: Infinity }
   };
   var TING = {
     ammo:   { navn: 'ammunition' },
     liv:    { navn: 'førstehjælp' },
     skat:   { navn: 'skat' },
-    noegle: { navn: 'nøglekortet' }
+    noegle: { navn: 'nøglekortet' },
+    kiste:  { navn: 'en kiste' },
+    hammer: { navn: 'hammeren' }
   };
   var RULES = {
     startHp: 10, startAmmo: 8, startMaxAmmo: 12, skudRaekke: 8,
     ammoPakke: 4, livPakke: 4, sigtBase: 5, maxLygte: 4, maxRustning: 3, maxVaaben: 5,
-    pointPrEtage: 1000
+    pointPrEtage: 1000,
+    kisteFra: 2, mimikFra: 3, mimikChance: 0.34, spaerretFra: 2
   };
   var BUTIK = [
     { id: 'liv',      navn: 'Mere liv',         tekst: '+3 maks. liv',           pris: 60 },
@@ -74,6 +87,7 @@
     for (var i = 0; i < s.ting.length; i++) { var t = s.ting[i]; if (t.x === x && t.y === y) return t; }
     return null;
   }
+  function erKiste(s, x, y) { var t = tingVed(s, x, y); return !!t && t.type === 'kiste'; }
   function erTrappe(s, x, y) { return !!s.trappe && s.trappe.x === x && s.trappe.y === y; }
   function manh(ax, ay, bx, by) { return Math.abs(ax - bx) + Math.abs(ay - by); }
 
@@ -192,7 +206,7 @@
       while (gaaelig(cell(s, xx, yy)) && n < 20) { n++; xx += DX[d]; yy += DY[d]; }
       if (n > bd2) { bd2 = n; p.dir = d; }
     }
-    p.noegle = false;
+    p.noegle = false; p.hammer = false;
     // Optaget-sæt: start, trappe
     var optaget = {};
     function opt(x, y) { optaget[x + ',' + y] = 1; }
@@ -246,8 +260,86 @@
       var hp = def.hp + Math.floor((e - 1) / 3) * (type === 'kolos' ? 2 : 1);
       s.fjender.push({ id: s.nextId++, type: type, x: ff.x, y: ff.y, px: ff.x, py: ff.y, hp: hp, max: hp, vaagen: false, sidst: 0 });
     }
+    // Skatterum bag en spærret dør, og hammeren et andet sted
+    s.spaerret = null;
+    if (e >= RULES.spaerretFra) spaerretRum(s, vi, noegleRum, fri, opt, felt);
+    // Kister i rummenes hjørner (én kiste står altid i skatterummet)
+    if (e >= RULES.kisteFra) {
+      var nK = 1 + (e >= 4 ? 1 : 0);
+      var kRum = s.rooms.map(function (r, i) { return i; }).filter(function (i) { return i !== 0 && i !== vi && (!s.spaerret || i !== s.spaerret.rum); });
+      if (s.spaerret) laegKiste(s, s.rooms[s.spaerret.rum], fri, opt, e, true);
+      for (var kk = 0; kk < nK && kRum.length; kk++) laegKiste(s, s.rooms[pickR(s, kRum)], fri, opt, e, false);
+    }
     afsloer(s);
     return true;
+  }
+  function kisteIndhold(s, e) {
+    var r = rnd(s);
+    return { skat: 15 + 5 * Math.min(8, e) + 5 * rint(s, 0, 3), ekstra: r < 0.5 ? 'ammo' : 'liv' };
+  }
+  function laegKiste(s, r, fri, opt, e, skatterum) {
+    var hj = [[r.x, r.y], [r.x + r.w - 1, r.y], [r.x, r.y + r.h - 1], [r.x + r.w - 1, r.y + r.h - 1]];
+    for (var k = 0; k < 4; k++) {
+      var c = hj[(k + rint(s, 0, 3)) % 4];
+      if (!fri(c[0], c[1])) continue;
+      // Hjørnet må ikke være et sted, en gang kommer ind
+      var naboer = 0;
+      for (var d = 0; d < 4; d++) { var nx = c[0] + DX[d], ny = c[1] + DY[d]; if (cell(s, nx, ny) !== VAEG && s.rum[idx(s, nx, ny)] !== s.rum[idx(s, c[0], c[1])]) naboer++; }
+      if (naboer) continue;
+      opt(c[0], c[1]);
+      var mimik = !skatterum && e >= RULES.mimikFra && rnd(s) < RULES.mimikChance;
+      var ind = kisteIndhold(s, e);
+      s.ting.push({ id: s.nextId++, type: 'kiste', x: c[0], y: c[1], vaerdi: ind.skat * (skatterum ? 2 : 1), ekstra: ind.ekstra, mimik: mimik, skatterum: !!skatterum });
+      return true;
+    }
+    return false;
+  }
+  // Et rum (ikke start, boks eller nøglerum) får brædder for alle indgange. Det lykkes kun,
+  // hvis resten af etagen stadig hænger sammen uden rummet.
+  function spaerretRum(s, vi, noegleRum, fri, opt, felt) {
+    var kand = s.rooms.map(function (r, i) { return i; }).filter(function (i) { return i !== 0 && i !== vi && i !== noegleRum; });
+    for (var t = 0; t < kand.length; t++) {
+      var ri = kand[(t + rint(s, 0, kand.length - 1)) % kand.length], r = s.rooms[ri];
+      var ind = [];
+      for (var y = r.y - 1; y <= r.y + r.h; y++) for (var x = r.x - 1; x <= r.x + r.w; x++) {
+        if (x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h) continue;
+        var c = cell(s, x, y);
+        if (c !== GULV && c !== DOER) continue;
+        // kun felter, der støder op til rummet (ikke på skrå)
+        var rører = false;
+        for (var d = 0; d < 4; d++) { var nx = x + DX[d], ny = y + DY[d]; if (nx >= r.x && nx < r.x + r.w && ny >= r.y && ny < r.y + r.h) rører = true; }
+        if (rører) ind.push({ x: x, y: y, c: c });
+      }
+      if (!ind.length || ind.length > 2) continue;
+      if (ind.some(function (p) { return erTrappe(s, p.x, p.y) || tingVed(s, p.x, p.y) || fjendeVed(s, p.x, p.y) || (s.laast && s.laast.x === p.x && s.laast.y === p.y); })) continue;
+      // Ting og fjender i rummet flyttes ikke: rummet må ikke have nøglen (det har det ikke)
+      ind.forEach(function (p) { s.cells[idx(s, p.x, p.y)] = SPAERRET; });
+      var tmp = s.spaerret; s.spaerret = { rum: ri };
+      var hf = null, hk = [];
+      s.rooms.forEach(function (rr, i) { if (i !== ri && i !== vi) hk.push(i); });
+      for (var k = 0; k < 12 && !hf; k++) hf = felt(s.rooms[pickR(s, hk)]);
+      if (hf) {
+        var h = { id: s.nextId++, type: 'hammer', x: hf.x, y: hf.y, vaerdi: 1 };
+        s.ting.push(h);
+        // markér rummets ting og fjender, så valideringen ved, de er bag brædderne
+        s.ting.forEach(function (g) { if (s.rum[idx(s, g.x, g.y)] === ri) g.skatterum = true; });
+        var v = validerEtage(s), uden = naaelige(s, true, false);
+        // alt uden for rummet skal kunne nås uden at slå brædderne ned
+        var udenfor = s.ting.every(function (g) { return g.skatterum || g.type === 'noegle' || uden[idx(s, g.x, g.y)]; }) &&
+                      s.fjender.every(function (f) { return s.rum[idx(s, f.x, f.y)] === ri || uden[idx(s, f.x, f.y)]; });
+        if (v.ok && udenfor) {
+          // lidt ekstra skat i rummet
+          for (var n = 0; n < 2; n++) { var sf = felt(r); if (sf) s.ting.push({ id: s.nextId++, type: 'skat', x: sf.x, y: sf.y, vaerdi: 20 + 5 * Math.min(8, s.etage), skatterum: true }); }
+          s.spaerret = { rum: ri, doere: ind.map(function (p) { return { x: p.x, y: p.y }; }) };
+          return true;
+        }
+        s.ting.splice(s.ting.indexOf(h), 1);
+        s.ting.forEach(function (g) { delete g.skatterum; });
+      }
+      ind.forEach(function (p) { s.cells[idx(s, p.x, p.y)] = p.c; });
+      s.spaerret = tmp;
+    }
+    return false;
   }
   function cx(r) { return r.x + (r.w >> 1); }
   function cy(r) { return r.y + (r.h >> 1); }
@@ -332,7 +424,9 @@
   }
 
   // Kontrol: nøglen kan nås uden den låste dør, trappen kun gennem den låste dør
-  function naaelige(s, laastAaben) {
+  function naaelige(s, laastAaben, spaerretAaben) {
+    var kister = {};
+    s.ting.forEach(function (t) { if (t.type === 'kiste') kister[idx(s, t.x, t.y)] = 1; });
     var seen = new Array(s.W * s.H).fill(0), q = [idx(s, s.spiller.x, s.spiller.y)];
     seen[q[0]] = 1;
     while (q.length) {
@@ -341,8 +435,9 @@
         var nx = x + DX[d], ny = y + DY[d]; if (!inside(s, nx, ny)) continue;
         var k = idx(s, nx, ny), t = s.cells[k];
         if (seen[k]) continue;
-        if (t === VAEG || (t === LAAST && !laastAaben)) continue;
-        seen[k] = 1; q.push(k);
+        if (t === VAEG || (t === LAAST && !laastAaben) || (t === SPAERRET && !spaerretAaben)) continue;
+        seen[k] = 1;
+        if (!kister[k]) q.push(k);      // en kiste kan nås (åbnes), men man går ikke igennem den
       }
     }
     return seen;
@@ -354,9 +449,11 @@
       noegleNaaelig: !!n && !!uden[idx(s, n.x, n.y)],
       trappeLukket: !!s.trappe && !uden[idx(s, s.trappe.x, s.trappe.y)],
       trappeNaaelig: !!s.trappe && !!med[idx(s, s.trappe.x, s.trappe.y)],
-      tingNaaelige: s.ting.every(function (t) { return t.type === 'noegle' || med[idx(s, t.x, t.y)]; })
+      tingNaaelige: s.ting.every(function (t) { return t.type === 'noegle' || t.skatterum || med[idx(s, t.x, t.y)]; })
     };
-    res.ok = res.noegleNaaelig && res.trappeLukket && res.trappeNaaelig && res.tingNaaelige;
+    var h = s.ting.filter(function (t) { return t.type === 'hammer'; })[0];
+    res.hammerNaaelig = !s.spaerret || (!!h && !!uden[idx(s, h.x, h.y)]);
+    res.ok = res.noegleNaaelig && res.trappeLukket && res.trappeNaaelig && res.tingNaaelige && res.hammerNaaelig;
     return res;
   }
 
@@ -397,6 +494,8 @@
     if (f) return { type: 'fjende', fjende: f, x: x, y: y };
     if (c === DOER) return { type: 'doer', x: x, y: y };
     if (c === LAAST) return { type: 'laast', x: x, y: y };
+    if (c === SPAERRET) return { type: 'spaerret', x: x, y: y };
+    if (t && t.type === 'kiste') return { type: 'kiste', ting: t, x: x, y: y };
     if (c === VAEG) return { type: 'vaeg', x: x, y: y };
     if (erTrappe(s, x, y)) return { type: 'trappe', x: x, y: y };
     if (t) return { type: 'ting', ting: t, x: x, y: y };
@@ -430,6 +529,8 @@
     if (erTrappe(s, p.x, p.y)) return { type: 'ned', label: 'Gå ned ad trappen' };
     if (fr.type === 'doer') return { type: 'aabn', label: 'Åbn dør', x: fr.x, y: fr.y };
     if (fr.type === 'laast') return p.noegle ? { type: 'aabnLaast', label: 'Lås op', x: fr.x, y: fr.y } : { type: 'laast', label: 'Låst', kan: false, x: fr.x, y: fr.y };
+    if (fr.type === 'spaerret') return p.hammer ? { type: 'slaaNed', label: 'Slå brædderne ned', x: fr.x, y: fr.y } : { type: 'spaerret', label: 'Spærret', kan: false, x: fr.x, y: fr.y };
+    if (fr.type === 'kiste') return { type: 'aabnKiste', label: 'Åbn kisten', ting: fr.ting, knirker: !!fr.ting.mimik };
     if (fr.type === 'trappe') return { type: 'tilTrappe', label: 'Gå ned ad trappen', x: fr.x, y: fr.y };
     if (fr.type === 'ting') return { type: 'saml', label: 'Saml op', ting: fr.ting };
     return { type: 'vent', label: 'Vent' };
@@ -466,6 +567,8 @@
       s.skat += t.vaerdi; s.skatIalt += t.vaerdi; s.besked = 'Skat: +' + t.vaerdi + '.';
     } else if (t.type === 'noegle') {
       p.noegle = true; s.besked = 'Du fandt nøglekortet! Find den låste dør.';
+    } else if (t.type === 'hammer') {
+      p.hammer = true; s.besked = 'Du fandt en hammer! Med den kan du slå brædderne ned for den spærrede dør.';
     }
     ev(s, 'ting', { ting: t.type, vaerdi: t.vaerdi });
   }
@@ -473,8 +576,10 @@
   function flyt(s, d) {
     var p = s.spiller, x = p.x + DX[d], y = p.y + DY[d], c = cell(s, x, y);
     if (fjendeVed(s, x, y)) { s.besked = 'En fjende står i vejen.'; ev(s, 'bump'); return false; }
+    if (erKiste(s, x, y)) { s.besked = 'En kiste står i vejen. Se på den, og tryk på Handling for at åbne den.'; ev(s, 'bump'); return false; }
     if (!gaaelig(c)) {
-      s.besked = c === DOER ? 'Døren er lukket. Tryk på Handling for at åbne den.' : c === LAAST ? (p.noegle ? 'Døren er låst. Brug Handling for at låse op.' : 'Døren er låst. Du skal bruge nøglekortet.') : 'Der er en væg.';
+      s.besked = c === DOER ? 'Døren er lukket. Tryk på Handling for at åbne den.' : c === LAAST ? (p.noegle ? 'Døren er låst. Brug Handling for at låse op.' : 'Døren er låst. Du skal bruge nøglekortet.') :
+        c === SPAERRET ? (p.hammer ? 'Døren er spærret med brædder. Brug Handling for at slå dem ned.' : 'Døren er spærret med brædder. Find en hammer.') : 'Der er en væg.';
       ev(s, 'bump'); return false;
     }
     p.x = x; p.y = y; ev(s, 'skridt');
@@ -555,7 +660,7 @@
       for (var d2 = 0; d2 < 4; d2++) {
         var nx2 = f.x + DX[d2], ny2 = f.y + DY[d2]; if (!inside(s, nx2, ny2)) continue;
         var v = dist[idx(s, nx2, ny2)];
-        if (v < 0 || v >= bv || (nx2 === p.x && ny2 === p.y) || fjendeVed(s, nx2, ny2)) continue;
+        if (v < 0 || v >= bv || (nx2 === p.x && ny2 === p.y) || fjendeVed(s, nx2, ny2) || erKiste(s, nx2, ny2)) continue;
         bv = v; bedst = d2;
       }
       if (bedst !== null) { f.x += DX[bedst]; f.y += DY[bedst]; ev(s, 'fjendeGaar', { fjende: f.type }); }
@@ -584,6 +689,9 @@
     afsloer(s);
     fjendeTur(s);
     afsloer(s);
+    // En Mimik-kiste knirker, når man står foran den
+    var fk = foran(s);
+    if (s.fase === 'spil' && fk.type === 'kiste' && fk.ting.mimik) { s.besked = (s.besked ? s.besked + ' ' : '') + 'Kisten knirker … den ser mistænkelig ud.'; ev(s, 'knirk'); }
     return { ok: true, tur: true };
   }
 
@@ -614,10 +722,37 @@
     if (k.type === 'aabn') { s.cells[idx(s, k.x, k.y)] = AABEN; s.besked = 'Døren går op.'; ev(s, 'doer'); return true; }
     if (k.type === 'aabnLaast') { s.cells[idx(s, k.x, k.y)] = AABEN; s.besked = 'Nøglekortet virker. Døren til trappen er åben.'; ev(s, 'doer', { laast: true }); return true; }
     if (k.type === 'laast') { s.besked = 'Døren er låst. Find nøglekortet først.'; ev(s, 'bump'); return false; }
+    if (k.type === 'spaerret') { s.besked = 'Døren er spærret med brædder. Find en hammer.'; ev(s, 'bump'); return false; }
+    if (k.type === 'slaaNed') {
+      if (s.spaerret && s.spaerret.doere) s.spaerret.doere.forEach(function (d) { if (s.cells[idx(s, d.x, d.y)] === SPAERRET) s.cells[idx(s, d.x, d.y)] = AABEN; });
+      s.cells[idx(s, k.x, k.y)] = AABEN;
+      s.besked = 'Brædderne falder. Der er et skatterum bag døren.'; ev(s, 'doer', { spaerret: true });
+      return true;
+    }
+    if (k.type === 'aabnKiste') return aabnKiste(s, k.ting);
     if (k.type === 'saml') return flyt(s, p.dir);
     if (k.type === 'tilTrappe') { if (!flyt(s, p.dir)) return false; return gaaNed(s); }
     if (k.type === 'ned') return gaaNed(s);
     s.besked = 'Du venter et øjeblik.'; ev(s, 'vent');
+    return true;
+  }
+  function aabnKiste(s, t) {
+    var p = s.spiller;
+    s.ting.splice(s.ting.indexOf(t), 1);
+    if (t.mimik) {
+      var def = FJENDER.mimik, hp = def.hp + Math.floor((s.etage - 1) / 3);
+      var f = { id: s.nextId++, type: 'mimik', x: t.x, y: t.y, px: t.x, py: t.y, hp: hp, max: hp, vaagen: true, sidst: 0 };
+      s.fjender.push(f);
+      s.besked = 'Kisten var en Mimik! Den bider ud efter dig.';
+      ev(s, 'mimik', { x: t.x, y: t.y }); ev(s, 'opdaget', { fjende: 'mimik' });
+      return true;
+    }
+    var tekst = 'Kisten: +' + t.vaerdi + ' skat';
+    s.skat += t.vaerdi; s.skatIalt += t.vaerdi;
+    if (t.ekstra === 'ammo') { var a = Math.min(p.maxAmmo, p.ammo + RULES.ammoPakke) - p.ammo; p.ammo += a; if (a) tekst += ' og ' + a + ' skud'; }
+    else { var h = Math.min(p.maxHp, p.hp + RULES.livPakke) - p.hp; p.hp += h; if (h) tekst += ' og +' + h + ' liv'; }
+    s.besked = tekst + '.';
+    ev(s, 'kiste', { vaerdi: t.vaerdi }); ev(s, 'ting', { ting: 'skat', vaerdi: t.vaerdi });
     return true;
   }
   function gaaNed(s) {
@@ -683,7 +818,7 @@
         var nx = x + DX[d], ny = y + DY[d]; if (!inside(s, nx, ny)) continue;
         var k = idx(s, nx, ny);
         if (prev[k] !== -2 || !s.udforsket[k] || !gaaelig(s.cells[k])) continue;
-        if (fjendeVed(s, nx, ny)) continue;
+        if (fjendeVed(s, nx, ny) || (erKiste(s, nx, ny) && !(opts.nabo && nx === tx && ny === ty))) continue;
         prev[k] = c; q.push(k);
       }
     }
@@ -725,7 +860,7 @@
   }
 
   root.KaelderLogik = {
-    VAEG: VAEG, GULV: GULV, DOER: DOER, AABEN: AABEN, LAAST: LAAST, DX: DX, DY: DY, RETNING: RETNING,
+    VAEG: VAEG, GULV: GULV, DOER: DOER, AABEN: AABEN, LAAST: LAAST, SPAERRET: SPAERRET, erKiste: erKiste, DX: DX, DY: DY, RETNING: RETNING,
     FJENDER: FJENDER, TING: TING, RULES: RULES, BUTIK: BUTIK,
     newState: newState, createRun: createRun, act: act, kontekst: kontekst, foran: foran, trusler: trusler,
     butik: butik, koeb: koeb, naesteEtage: naesteEtage, rute: rute, trinMod: trinMod,
