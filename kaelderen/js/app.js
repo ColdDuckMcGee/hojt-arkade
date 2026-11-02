@@ -640,9 +640,31 @@
     refresh();
   });
 
+  // ---------- Fortsæt, hvor du slap (arkade/fortsaet.js) ----------
+  // Gemmes, når man står stille i kælderen (ikke i butikken og ikke under "gå derhen")
+  var fortsaet = ArkadeFortsaet.create({
+    spil: 'kaelderen',
+    gem: function () { return run && !finished && !auto && run.state.fase === 'spil' ? { state: run.state } : null; },
+    info: function (d) { return 'Etage ' + d.state.etage + ' · ' + d.state.skat + ' skat'; },
+    fortsaet: function (d) {
+      var st = d.state;
+      if (!st || !st.spiller || st.fase !== 'spil' || typeof st.seed !== 'number') return false;
+      stopAuto();
+      run = L.createRun({ seed: st.seed });
+      Object.keys(st).forEach(function (k) { run.state[k] = st[k]; });
+      paused = false; finished = false; kortVist = false; hover = null;
+      clearTimeout(slutTimer); clearTimeout(butikTimer);
+      hideOverlays();
+      tegn.overgang(null, run.state.spiller, 0, false);
+      show('game');
+      refresh();
+    }
+  });
+
   // ---------- Slut ----------
   var lastEntryId = null;
   function saveRecord() {
+    fortsaet.slet();
     var out = run.end(), res = null;
     finished = true;
     if (window.ArkadeHighscore) ArkadeHighscore.slut();
@@ -669,7 +691,7 @@
     renderRecordList($('#go-records'), lastEntryId);
     show('gameover');
   }
-  window.addEventListener('pagehide', function () { if (run && !finished) saveRecord(); });
+  // (Når siden lukkes, gemmes spillet af arkade/fortsaet.js i stedet for at serien registreres)
   $('#btn-again').addEventListener('click', function () { sfx('click'); startGame(); });
   $('#btn-go-menu').addEventListener('click', function () { sfx('click'); quitToMenu(); });
 

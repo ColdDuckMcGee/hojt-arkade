@@ -156,6 +156,8 @@
 
     return {
       state: s, move: move, check: check, pathTo: pathTo, walkTo: walkTo, undo: undo, restart: restart,
+      // Fortsæt, hvor du slap (arkade/fortsaet.js): læg en gemt stilling ind (uden fortrydliste)
+      _gendan: function (o) { restore(o); history = []; },
       canUndo: function () { return history.length > 0; }, stuckBoxes: stuckBoxes, boxesOnGoal: boxesOnGoal,
       xy: xy, idx: idx, isSolved: isSolved, points: function () { return points(n, s.moves, s.par); }
     };

@@ -377,9 +377,28 @@
   });
   function quitToMenu() { run = null; paused = false; busy = false; fx = []; clearTimeout(pendingTimer); hideOverlays(); show('menu'); }
 
+  // ---------- Fortsæt, hvor du slap (arkade/fortsaet.js) ----------
+  var fortsaet = ArkadeFortsaet.create({
+    spil: 'bomberne',
+    gem: function () { var s = run && run.state; return s && !finished && !busy && !s.dead && !s.over && !s.cleared ? { state: s } : null; },
+    info: function (d) { return 'Bane ' + d.state.level + ' · ' + d.state.score + ' point'; },
+    fortsaet: function (d) {
+      var st = d.state;
+      if (!st || !st.tiles || !st.tiles.length) return false;
+      run = G.createRun(st.sizeId);
+      Object.keys(st).forEach(function (k) { run.state[k] = st[k]; });
+      paused = false; busy = false; finished = false; fx = [];
+      clearTimeout(pendingTimer);
+      hideOverlays();
+      show('game');
+      refresh();
+    }
+  });
+
   // ---------- Game over ----------
   var lastEntryId = null;
   function gameOver() {
+    fortsaet.slet();
     if (finished) return;
     finished = true;
     var s = run.state;

@@ -307,6 +307,15 @@
         state.maxLevel = Math.max(state.maxLevel, levelNum());
         score();
         return res;
+      },
+      // Fortsæt, hvor du slap (arkade/fortsaet.js): læg en gemt tilstand ind og byg banen foran
+      // løberen forfra (generatoren kan ikke gemmes), med et let første stop som efter et uheld
+      _gendan: function (st) {
+        Object.keys(st).forEach(function (k) { state[k] = st[k]; });
+        state.segs = []; state.prev = null;
+        gen.reset(state.lane, state.h);
+        fill(true);
+        score();
       }
     };
     return api;

@@ -363,11 +363,36 @@
   });
   function quitToMenu() { run = null; paused = false; busy = false; anim = null; hideOverlays(); show('menu'); }
 
+  // ---------- Fortsæt, hvor du slap (arkade/fortsaet.js) ----------
+  // Point, liv og meter gemmes; banen foran løberen bygges forfra ved Fortsæt (game.js _gendan)
+  var fortsaet = ArkadeFortsaet.create({
+    spil: 'loeberen',
+    gem: function () {
+      var s = run && run.state;
+      if (!s || finished || busy || anim || s.over) return null;
+      var kopi = {};
+      Object.keys(s).forEach(function (k) { if (k !== 'segs' && k !== 'prev') kopi[k] = s[k]; });
+      return { state: kopi };
+    },
+    info: function (d) { return d.state.meters + ' m · ' + d.state.score + ' point'; },
+    fortsaet: function (d) {
+      var st = d.state;
+      if (!st || typeof st.meters !== 'number') return false;
+      run = G.createRun(st.diff);
+      run._gendan(st);
+      paused = false; busy = false; finished = false; anim = null; hitGlow = 0; previewAct = null;
+      hideOverlays();
+      show('game');
+      refresh();
+    }
+  });
+
   // ---------- Game over ----------
   var lastEntryId = null;
   // Rekorden gemmes, så snart det sidste liv er brugt (også hvis man går fra spillet)
   var savedRec = null, savedFor = null;
   function saveRecord() {
+    fortsaet.slet();
     if (!run || run.state.score <= 0) return null;
     if (savedFor === run) return savedRec;
     savedFor = run;

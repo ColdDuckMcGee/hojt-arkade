@@ -219,10 +219,25 @@
   var DIR_NAMES = { up: 'op', down: 'ned', left: 'til venstre', right: 'til højre' };
   var STEP_MS = 150;
 
+  // Fortsæt, hvor du slap (arkade/fortsaet.js): stillingen på den bane, man er i gang med, gemmes.
+  // Kasser har sin egen Fortsæt-knap (næste bane), så modulet laver ingen knap; åbner man banen
+  // igen (Fortsæt eller Vælg bane), står kasserne, hvor man slap dem.
+  var fortsaet = ArkadeFortsaet.create({
+    spil: 'kasser', menu: false,
+    gem: function () {
+      if (!run || current !== 'game' || busy() || run.state.solved) return null;
+      var s = run.state;
+      return { level: s.level, stilling: { boxes: s.boxes, player: s.player, dir: s.dir, moves: s.moves, pushes: s.pushes, solved: false } };
+    },
+    fortsaet: function () {}
+  });
+
   function startLevel(n) {
     if (!run && window.ArkadeHighscore) ArkadeHighscore.start();
     cancelAnim();
     run = G.createLevel(n);
+    var gemt = fortsaet.hent();
+    if (gemt && gemt.level === n && gemt.stilling && gemt.stilling.boxes && gemt.stilling.boxes.length === run.state.boxes.length) run._gendan(gemt.stilling);
     progress.setLast(n);
     paused = false; stuckShown = false;
     hideOverlays();
@@ -400,6 +415,7 @@
   }
   var lastSolve = null;
   function solved() {
+    fortsaet.slet();
     var s = run.state, pts = run.points(), res = progress.record(s.level, s.moves, pts);
     lastSolve = res;
     sfx('solved');
@@ -459,7 +475,7 @@
   $('#btn-quit').addEventListener('click', function () {
     sfx('click');
     // Spørg først: ét blik eller klik må aldrig smide et spil i gang væk (arkade/bekraeft.js)
-    ArkadeBekraeft.spoerg({ tekst: 'Runden stopper, og pointene gemmes ikke. Vil du gemme dem, så vælg Afslut runde i stedet.', onJa: function () { quitToMenu(); } });
+    ArkadeBekraeft.spoerg({ tekst: 'Banen gemmes, så du kan fortsætte, hvor du slap. Rundens point bliver stående og kommer på listen, når du vælger Afslut runde.', onJa: function () { quitToMenu(); } });
   });
   $('#btn-pause-end-round').addEventListener('click', function () { sfx('click'); endRound(); });
   function quitToMenu() { cancelAnim(); run = null; paused = false; hideOverlays(); show('menu'); }

@@ -21,6 +21,7 @@
  *    forrige gem bliver stående, til spillet er i ro igen.
  *  - Knappen "Fortsæt" sættes ind ved #btn-start (opts.start). Når der findes et gemt spil, er
  *    Fortsæt den fremhævede knap, og "Start spil" hedder "Nyt spil" og spørger, før det gemte slettes.
+ *  - menu: false: ingen knap; spillet bruger selv hent()/slet() (Kasser har sin egen Fortsæt).
  *  - "Afslut" i pausemenuen beholder spillet (bekraeft.js siger det i sin standardtekst).
  * Kun ES5, virker fra file://.
  */
@@ -42,7 +43,7 @@
     var KEY = noegle(o.spil), VER = o.version || 1;
     var sidst = null;           // sidst gemte tekst (så der ikke skrives, når intet har ændret sig)
     var startBtn = doc.querySelector(o.start || '#btn-start');
-    var knap = null, raekke = null, startStor = null, startTekst = '', startPrimary = false;
+    var knap = null, raekke = null, startStor = null, startTekst = '', startPrimary = false, autoFokus = false;
 
     function hent() {
       var s = ls(); if (!s) return null;
@@ -86,6 +87,7 @@
       startStor = startBtn.querySelector('.big');
       startTekst = startStor ? startStor.textContent : '';
       startPrimary = startBtn.classList.contains('primary');
+      autoFokus = startBtn.hasAttribute('data-autofocus');
       knap.addEventListener('click', fortsaet);
       // Nyt spil, mens et gemt findes: spørg først (ét blik må ikke slette et spil)
       startBtn.addEventListener('click', function (e) {
@@ -113,6 +115,7 @@
       raekke.classList.toggle('har-gem', har);
       if (startStor) startStor.textContent = har ? 'Nyt spil' : startTekst;
       startBtn.classList.toggle('primary', har ? false : startPrimary);
+      if (autoFokus) { knap.toggleAttribute('data-autofocus', har); startBtn.toggleAttribute('data-autofocus', !har); }
       var info = har ? infoTekst() : '';
       knap.querySelector('.arkade-fortsaet-info').textContent = info;
       knap.setAttribute('aria-label', 'Fortsæt spillet' + (info ? ': ' + info : ''));
@@ -140,8 +143,12 @@
     doc.addEventListener('visibilitychange', function () { if (doc.visibilityState === 'hidden') gemNu(); });
     setInterval(function () { if (doc.visibilityState !== 'hidden') gemNu(); }, 2000);
 
-    byg();
+    if (o.menu !== false) byg();   // menu: false – spillet har selv en Fortsæt-knap (fx Kasser)
     opdater();
+    // Tastatur og kontakt: med et gemt spil står fokus på Fortsæt i stedet for Nyt spil
+    if (knap && startBtn) {
+      setTimeout(function () { if (!knap.hidden && doc.activeElement === startBtn) { try { knap.focus({ preventScroll: true }); } catch (e) { /* ignore */ } } }, 0);
+    }
     var api = { gemNu: gemNu, slet: slet, hent: hent, findes: function () { return !!hent(); }, opdater: opdater, knap: knap };
     aktive.push(api);
     return api;

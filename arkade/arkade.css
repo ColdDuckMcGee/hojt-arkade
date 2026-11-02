@@ -392,9 +392,15 @@ html[data-stil="pixel"] .hud-label, html[data-stil="pixel"] .arkade-bk-titel, ht
 /* ---------- Fortsæt, hvor du slap (arkade/fortsaet.js) ----------
    Rækken står, hvor "Start spil" stod. Med et gemt spil: [Fortsæt] [Nyt spil] side om side. */
 .arkade-start-raekke { display: flex; gap: var(--gap, 16px); justify-content: center; align-items: stretch; max-width: 100%; }
-.arkade-start-raekke.har-gem { width: calc(var(--btn) * 4.6); }
+.arkade-start-raekke.har-gem { width: min(calc(var(--btn) * 4.6), calc(100vw - 32px)); }
 .arkade-start-raekke.har-gem > .btn { flex: 1 1 0; min-width: 0; }
 .arkade-start-raekke.har-gem > .btn.wide { min-width: 0; }
 .arkade-fortsaet-knap { flex-direction: column; }
-.arkade-fortsaet-info { font-variant-numeric: tabular-nums; }
+.arkade-fortsaet-info { font-variant-numeric: tabular-nums; font-size: .85rem !important; line-height: 1.15; }
+.arkade-start-raekke.har-gem > .btn { padding-left: 8px; padding-right: 8px; }
 .arkade-fortsaet-knap[hidden] { display: none !important; }
+/* Lavt vindue på langs: Start står ofte i samme række som andre valg, så rækken gøres smallere */
+@media (orientation: landscape) and (max-height: 500px) {
+  .arkade-start-raekke.har-gem { width: min(calc(var(--btn) * 3.2), calc(100vw - 32px)); gap: 10px; }
+  .arkade-start-raekke.har-gem > .btn .big { font-size: 1.15rem; }
+}

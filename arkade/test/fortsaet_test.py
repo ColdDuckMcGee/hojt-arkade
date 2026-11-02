@@ -22,6 +22,9 @@ SPIL = {
     'minestryger': {'klik': 30}, 'blokke': {'klik': 40}, 'kabalen': {'klik': 40},
     'fire-paa-stribe': {'klik': 20, 'vent': 1500}, 'soeslag': {'klik': 30, 'vent': 1500}, 'kanonen': {'klik': 12, 'vent': 4000},
     'taarnene': {'klik': 30, 'vent': 800}, 'billard': {'klik': 12, 'vent': 5000}, 'golf': {'klik': 12, 'vent': 4000},
+    'flipper': {'klik': 16, 'vent': 3000}, 'muren': {'klik': 12, 'vent': 5000}, 'bobler': {'klik': 10, 'vent': 2500, 'efter': "document.getElementById('btn-shoot').click()"},
+    'bomberne': {'klik': 30, 'vent': 1500}, 'labyrinten': {'klik': 30, 'vent': 800}, 'froeen': {'klik': 25, 'vent': 1500},
+    'loeberen': {'klik': 20, 'vent': 1500}, 'kaelderen': {'klik': 30, 'vent': 1500},
 }
 # Knapper, der aldrig klikkes i "aben": pause, afslut, hallen, fuld skærm, indstillinger
 UNDGAA = '#btn-pause, .pause-btn, [id*="quit"], [id*="afslut"], [id*="hallen"], .js-fullscreen, [id*="settings"], [id*="indstil"], [id*="menu"], a[href]'
@@ -68,6 +71,8 @@ def test(b, spil, cfg, fejl):
     if cfg.get('foer'): pg.evaluate(cfg['foer'])
     pg.click('#btn-start'); pg.wait_for_timeout(400)
     start = gemt(pg, spil)
+    if cfg.get('efter'):
+        pg.evaluate(cfg['efter']); pg.wait_for_timeout(cfg.get('vent', 300))
     aben(pg, random.Random(7), cfg.get('klik', 14))
     pg.wait_for_timeout(cfg.get('vent', 300))
     pg.evaluate("window.dispatchEvent(new Event('pagehide'))")
@@ -104,14 +109,43 @@ def test(b, spil, cfg, fejl):
     pg.close()
 
 
+def test_kasser(b, fejl):
+    # Kasser har sin egen Fortsæt (næste bane): stillingen på banen skal stå, hvor man slap den
+    pg = b.new_page(viewport={'width': 1280, 'height': 720})
+    log = []
+    pg.on('pageerror', lambda e: log.append(str(e)))
+    pg.goto(ROD + 'kasser/index.html'); pg.evaluate("localStorage.clear()"); pg.reload(); pg.wait_for_timeout(300)
+    def tjek(ok, m):
+        print(('  OK   ' if ok else '  FEJL '), m)
+        if not ok: fejl.append('kasser: ' + m)
+    pg.click('#btn-continue'); pg.wait_for_timeout(400)
+    for k in ['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp', 'ArrowRight']:
+        pg.keyboard.press(k); pg.wait_for_timeout(250)
+    pg.evaluate("window.dispatchEvent(new Event('pagehide'))")
+    foer = gemt(pg, 'kasser')
+    tjek(foer is not None and foer['stilling']['moves'] > 0, 'stillingen er gemt')
+    pg.click('#btn-pause'); pg.wait_for_timeout(150); pg.click('#btn-quit'); pg.wait_for_timeout(200)
+    tjek('fortsætte' in pg.text_content('.arkade-bk-tekst'), 'Afslut siger, at banen gemmes')
+    pg.mouse.move(3, 3); pg.click('.arkade-bk-ja'); pg.wait_for_timeout(200)
+    pg.reload(); pg.wait_for_timeout(400)
+    tjek(not pg.query_selector('.arkade-fortsaet-knap'), 'ingen ekstra Fortsæt-knap')
+    pg.click('#btn-continue'); pg.wait_for_timeout(400)
+    pg.evaluate("window.dispatchEvent(new Event('pagehide'))")
+    efter = gemt(pg, 'kasser')
+    tjek(foer is not None and efter == foer, 'samme stilling efter Fortsæt')
+    tjek(not log, 'ingen JS-fejl ' + str(log[:2]))
+    pg.close()
+
+
 def main():
-    valgt = sys.argv[1:] or list(SPIL)
+    valgt = sys.argv[1:] or list(SPIL) + ['kasser']
     fejl = []
     with sync_playwright() as p:
         b = p.chromium.launch(executable_path='/usr/bin/google-chrome')
         for s in valgt:
             print('==', s)
-            test(b, s, SPIL.get(s, {}), fejl)
+            if s == 'kasser': test_kasser(b, fejl)
+            else: test(b, s, SPIL.get(s, {}), fejl)
         b.close()
     print('%d spil, %d fejl' % (len(valgt), len(fejl)))
     for f in fejl: print('  -', f)

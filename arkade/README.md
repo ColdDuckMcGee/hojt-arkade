@@ -220,6 +220,33 @@ Et rigtigt museklik giver spillets eget præcise punkt (`ArkadeSigte.musPunkt(e)
 Bobler, Golf og Billard; slås fra med den fælles indstilling `arkade.blikSigte` (Indstillinger →
 Styring → Sigt ved at kigge – i hallen og i de fire spil).
 
+## Fortsæt, hvor du slap (fortsaet.js)
+```js
+var fortsaet = ArkadeFortsaet.create({
+  spil: 'slangen',                                   // localStorage: hojtArkade.<spil>.fortsaet
+  gem: function () { return game && !game.state.over ? { state: game.state } : null; },
+  info: function (d) { return d.state.score + ' point'; },   // lille tekst på Fortsæt-knappen
+  fortsaet: function (d) { /* genskab spillet og vis det; false = gemmet kunne ikke bruges */ }
+});
+fortsaet.slet();    // ved game over / når serien registreres
+```
+Spillet gemmes af sig selv efter hvert klik og hver tast, hvert 2. sekund og når siden lukkes.
+`gem()` giver `null`, mens noget er i bevægelse (en kugle i luften, computeren tænker): så står det
+forrige gem, til spillet er i ro. Med et gemt spil står **Fortsæt** (fremhævet) ved siden af
+**Nyt spil** i menuen, og Nyt spil spørger, før det gemte slettes (ArkadeBekraeft).
+
+- **Afslut smider aldrig noget væk.** I spil, hvor Afslut gemmer pointene på listen (serier), afslutter
+  den serien som før. I spil, hvor Afslut før smed spillet væk, beholdes det nu – bekraeft.js siger
+  det i sin standardtekst, når fortsaet.js er i brug.
+- Serier registreres ikke længere, når siden lukkes: spillet gemmes i stedet og kan fortsættes.
+- `menu: false`: ingen knap (Kasser har sin egen Fortsæt og lægger stillingen ind, når banen åbnes).
+- Spil med intern tilstand uden for `state` har en lille `_gendan()` i spillogikken (Lys ud, Juveler,
+  Løberen, Kasser). Golf gemmer frøet (`run.seed`), så de næste huller bliver de samme. Løberens
+  bane bygges forfra foran løberen; Tårnene gemmes i byggefasen mellem bølgerne.
+- Kaperen og Rumhandleren har deres eget gem (`hojtArkade.<spil>.spil`). Hallen viser "Du har et
+  spil i gang" og et mærke i Alle spil for begge slags.
+- Test: `python3 arkade/test/fortsaet_test.py [spil …]`.
+
 ## Begræns effekter (ArkadeEffekter i settings.js, effekter.js)
 ```js
 ArkadeEffekter.begraenset();      // true, når "Effekter: Begrænsede" er valgt

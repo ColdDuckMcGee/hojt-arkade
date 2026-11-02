@@ -424,9 +424,28 @@
   });
   function quitToMenu() { cancelAnim(); run = null; paused = false; hideOverlays(); show('menu'); }
 
+  // ---------- Fortsæt, hvor du slap (arkade/fortsaet.js) ----------
+  var fortsaet = ArkadeFortsaet.create({
+    spil: 'labyrinten',
+    gem: function () { var s = run && run.state; return s && !busy() && s.status === 'play' ? { state: s } : null; },
+    info: function (d) { return 'Bane ' + d.state.level + ' · ' + d.state.score + ' point'; },
+    fortsaet: function (d) {
+      var st = d.state;
+      if (!st || !st.maze || !st.player || st.status !== 'play') return false;
+      cancelAnim();
+      run = G.createRun({ difficulty: st.difficulty });
+      Object.keys(st).forEach(function (k) { run.state[k] = st[k]; });
+      paused = false;
+      hideOverlays();
+      show('game');
+      refresh();
+    }
+  });
+
   // ---------- Game over ----------
   var lastEntryId = null;
   function gameOver() {
+    fortsaet.slet();
     var s = run.state, cat = category(s.difficulty);
     var rankText = '';
     lastEntryId = null;

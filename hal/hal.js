@@ -366,7 +366,7 @@
     $('#info-navn').textContent = g.navn;
     $('#info-tekst').textContent = g.tekst;
     var status = $('#info-status');
-    status.textContent = 'Spil ' + (index + 1) + ' af ' + n + ' · ' + (g.aktiv ? 'Klar til at spille' : 'Kommer snart');
+    status.textContent = 'Spil ' + (index + 1) + ' af ' + n + ' · ' + (!g.aktiv ? 'Kommer snart' : igang(g) ? 'Du har et spil i gang' : 'Klar til at spille');
     status.classList.toggle('snart', !g.aktiv);
 
     $('.taeller-nu', taellerEl).textContent = String(index + 1);
@@ -396,6 +396,14 @@
     $('#hal-status').textContent = g.navn + '. Spil ' + (index + 1) + ' af ' + n + '. ' +
       (g.aktiv ? 'Klar til at spille.' : 'Kommer snart.');
     if (typeof fit === 'function' && current === 'hal') fit();
+  }
+
+  // Har spillet et gemt spil i gang (arkade/fortsaet.js – Kaperen og Rumhandleren har deres eget gem)
+  function igang(g) {
+    try {
+      var ls = window.localStorage;
+      return !!(ls.getItem('hojtArkade.' + g.id + '.fortsaet') || ls.getItem('hojtArkade.' + g.id + '.spil'));
+    } catch (e) { return false; }
   }
 
   function ga(delta) {
@@ -501,9 +509,10 @@
       var g = SPIL[i], bil = g.aktiv ? skaermBillede(g) : '';
       html += '<button class="btn alle-felt' + (i === index ? ' valgt' : '') + (g.aktiv ? '' : ' snart') + '" data-i="' + i + '"' +
         ' style="--m1:' + g.farve[0] + '"' + (i === index ? ' aria-current="true"' : '') +
-        ' aria-label="' + esc(g.navn + (g.aktiv ? '' : ' – kommer snart')) + '">' +
+        ' aria-label="' + esc(g.navn + (!g.aktiv ? ' – kommer snart' : igang(g) ? ' – spil i gang' : '')) + '">' +
         '<span class="alle-billede" aria-hidden="true">' + (bil ? '<img src="' + esc(bil) + '" alt="" draggable="false">' : '') + '</span>' +
-        '<span class="big alle-navn">' + esc(g.navn) + '</span></button>';
+        '<span class="big alle-navn">' + esc(g.navn) + '</span>' +
+        (g.aktiv && igang(g) ? '<span class="alle-igang">I gang</span>' : '') + '</button>';
     }
     alleGitter.innerHTML = html;
     $('#alle-side').textContent = sider > 1 ? 'Side ' + (alleSide + 1) + ' af ' + sider : SPIL.length + ' spil';

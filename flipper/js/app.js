@@ -620,9 +620,33 @@
   });
   function quitToMenu() { run = null; paused = false; $('#pause-overlay').hidden = true; show('menu'); }
 
+  // ---------- Fortsæt, hvor du slap (arkade/fortsaet.js) ----------
+  // Gemmes i de frosne øjeblikke (vælg flipper eller affyring), aldrig mens kuglen ruller
+  var fortsaet = ArkadeFortsaet.create({
+    spil: 'flipper',
+    gem: function () {
+      var s = run && run.state;
+      return s && !finished && (s.phase === 'decision' || s.phase === 'launch') ? { state: s } : null;
+    },
+    info: function (d) { return d.state.score + ' point · ' + d.state.ballsLeft + ' kugler'; },
+    fortsaet: function (d) {
+      if (!d.state || !d.state.tableId || !d.state.ball) return false;
+      run = G.createRun({ state: d.state });
+      setupHud();
+      paused = false; finished = false;
+      shownPhase = ''; previews = null; launchPreview = null; pick = null; hoverKey = null; focusKey = null;
+      freezeK = 0; flash = {}; trail = []; acc = 0; note = '';
+      $('#pause-overlay').hidden = true;
+      show('game');
+      syncPhase(true);
+      refreshHud();
+    }
+  });
+
   // ---------- Game over ----------
   var lastEntryId = null;
   function gameOver() {
+    fortsaet.slet();
     if (finished || !run) return;
     finished = true;
     var s = run.state, cat = recCat(s.tableId, s.speedId), rankText = '';

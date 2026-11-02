@@ -424,10 +424,32 @@
   $('#btn-confirm-yes').addEventListener('click', function () { sfx('click'); dwell.unguard(); finish('quit'); });
   function quitToMenu() { run = null; paused = false; clearTimeout(afterTimer); stopLoop(); hideOverlays(); show('menu'); }
 
+  // ---------- Fortsæt, hvor du slap (arkade/fortsaet.js) ----------
+  // Gemmes mellem salverne (generatorens tilstand ligger i state.rng, så de næste rækker bliver de samme)
+  var fortsaet = ArkadeFortsaet.create({
+    spil: 'muren',
+    gem: function () { return run && !finished && run.live() && !run.volleyActive() ? { state: run.state } : null; },
+    info: function (d) { return 'Tur ' + d.state.turn + ' · ' + d.state.score + ' point'; },
+    fortsaet: function (d) {
+      var st = d.state;
+      if (!st || !st.bricks || typeof st.seed !== 'number') return false;
+      stopLoop();
+      run = L.createRun({ seed: st.seed });
+      Object.keys(st).forEach(function (k) { run.state[k] = st[k]; });
+      paused = false; finished = false;
+      lastNote = ''; noteCls = '';
+      clearTimeout(afterTimer);
+      hideOverlays();
+      show('game');
+      refresh();
+    }
+  });
+
   // ---------- Slut ----------
   // Én rekordliste: point, og hvor mange ture muren holdt.
   var lastEntryId = null;
   function saveRecord() {
+    fortsaet.slet();
     var out = run.end(), res = null;
     finished = true;
     if (window.ArkadeHighscore) ArkadeHighscore.slut();
@@ -460,7 +482,7 @@
     MurenTegn.mini($('#go-pic'), s, {});
   }
   // Lukkes siden midt i et spil, gemmes pointene alligevel
-  window.addEventListener('pagehide', function () { if (run && !finished) saveRecord(); });
+  // (Når siden lukkes, gemmes spillet af arkade/fortsaet.js i stedet for at serien registreres)
   $('#btn-again').addEventListener('click', function () { sfx('click'); startGame(); });
   $('#btn-go-menu').addEventListener('click', function () { sfx('click'); quitToMenu(); });
 

@@ -457,3 +457,10 @@ html[data-stil="pixel"] .alle-billede { border-radius: 0; }
 html[data-stil="pixel"] .alle-billede img { image-rendering: pixelated; }
 html[data-stil="pixel"] .alle-felt.valgt { box-shadow: 0 0 0 6px var(--gul), inset 0 -6px 0 rgba(0, 0, 0, 0.35); }
 html[data-stil="pixel"] .alle-side { color: var(--hvid); font-family: var(--font); }
+/* Alle spil: mærke på et spil, der er i gang (arkade/fortsaet.js) */
+.alle-felt { position: relative; }
+.alle-igang { position: absolute; top: clamp(8px, 1.4vmin, 14px); right: clamp(8px, 1.4vmin, 14px);
+  padding: 3px 9px; border-radius: 999px; font-size: clamp(.75rem, 1.8vmin, .95rem); font-weight: 800;
+  background: var(--ui); color: #1a0016; box-shadow: 0 0 calc(10px * var(--glow)) var(--ui); pointer-events: none; }
+html[data-stil="tegneserie"] .alle-igang { border-radius: 0; background: var(--gul, #ffd23f); color: var(--ink); border: 3px solid var(--ink); box-shadow: none; }
+html[data-stil="pixel"] .alle-igang { border-radius: 0; background: var(--gul); color: var(--ink); box-shadow: none; font-family: var(--font); }
