@@ -196,11 +196,73 @@
   var tegn = GolfTegn.create(courseEl);
   var ROLL_SPEED = 1.6;           // bolden ruller 1,6 gange hurtigere end virkelig tid
 
-  function startGame(seed, dt) {
+  // ---------- To spillere på én skærm (arkade/tospil.js) ----------
+  // To spil med samme frø (samme huller). Man skiftes til at slå; den, der er i hul (eller har samlet
+  // op efter par + 4 slag), venter. Alle slag tæller, laveste samlede antal vinder. Ingen slagpulje.
+  var to = null;   // { runs: [a, b], aktiv: 0|1, faerdig: [bool, bool], tot: [n, n], slag: [[...], [...]] }
+  var TO_MAX_OVER_PAR = 4, TO_PULJE = 99;
+  function toNavn(i) { return ArkadeToSpil.navn(i + 1); }
+  function toStart(seed) {
+    seed = seed !== undefined ? seed : Math.floor(Math.random() * 1e9);
+    var a = L.createRun({ seed: seed }), b = L.createRun({ seed: seed });
+    a.state.pool = b.state.pool = TO_PULJE;
+    to = { runs: [a, b], aktiv: 0, faerdig: [false, false], tot: [0, 0], slag: [[], []] };
+    run = a;
+  }
+  function toSkiftTil(i) {
+    to.aktiv = i; run = to.runs[i];
+    run.aimAt(run.state.hole.hul);
+    setNote(toNavn(i) + 's tur.', '');
+    refresh();
+  }
+  // Efter et slag i tospiller-tilstand
+  function toEfterSlag(res) {
+    var i = to.aktiv, s = run.state;
+    if (res.holed) { sfx('holed'); to.faerdig[i] = true; }
+    else if (s.strokes >= s.hole.par + TO_MAX_OVER_PAR) {
+      // Samler op: tæller par + 5
+      s.strokes = s.hole.par + TO_MAX_OVER_PAR + 1; s.holed = true; to.faerdig[i] = true;
+      sfx('stopped');
+    } else sfx(res.water ? 'water' : 'stopped');
+    if (to.faerdig[0] && to.faerdig[1]) { toHulSlut(); return; }
+    var naeste = to.faerdig[1 - i] ? i : 1 - i;
+    var t = res.holed ? toNavn(i) + ' er i hul med ' + strokesText(s.strokes) + '. ' : to.faerdig[i] ? toNavn(i) + ' samler op (' + strokesText(s.strokes) + '). ' : res.water ? 'Plask – +1 strafslag. ' : '';
+    toSkiftTil(naeste);
+    setNote(t + toNavn(naeste) + 's tur.', res.water ? 'vand' : '');
+    refresh();
+  }
+  function toHulSlut() {
+    var a = to.runs[0].state, b = to.runs[1].state;
+    to.tot[0] += a.strokes; to.tot[1] += b.strokes;
+    to.slag[0].push(a.strokes); to.slag[1].push(b.strokes);
+    refresh();
+    var vinder = a.strokes === b.strokes ? -1 : a.strokes < b.strokes ? 0 : 1;
+    $('#done-kicker').textContent = 'Hul ' + a.level + ' · par ' + a.hole.par;
+    $('#done-title').textContent = vinder < 0 ? 'Lige på hullet' : toNavn(vinder) + ' vandt hullet';
+    $('#done-points').textContent = a.strokes + '–' + b.strokes + ' slag';
+    $('#done-parts').textContent = 'I alt: ' + toNavn(0) + ' ' + strokesText(to.tot[0]) + ', ' + toNavn(1) + ' ' + strokesText(to.tot[1]) + '. Færrest slag vinder.';
+    $('#btn-next-sub').textContent = 'Hul ' + (a.level + 1);
+    $('#done-overlay').hidden = false;
+    fitScreen($('#done-overlay'));
+    GolfTegn.mini($('#done-pic'), a.hole, null, { trail: run.state.lastShot && run.state.lastShot.path });
+    dwell.reset(); dwell.guard($('#done-overlay'));
+    $('#btn-next').focus({ preventScroll: true });
+  }
+  function toNaesteHul() {
+    to.runs.forEach(function (r) { r.state.holed = true; r.nextHole(); r.state.pool = TO_PULJE; });
+    to.faerdig = [false, false];
+    $('#done-overlay').hidden = true;
+    sfx('click'); dwell.reset();
+    toSkiftTil((to.runs[0].state.level - 1) % 2);   // man skiftes til at starte
+  }
+
+  function startGame(seed, dt, o) {
     if (window.ArkadeHighscore) ArkadeHighscore.start();
     dag = dt || null;
     if (dag) seed = ArkadeDagens.seed('golf', dag);
     tegn.stop();
+    to = null;
+    if (o && o.to) toStart(seed); else
     run = L.createRun(seed !== undefined ? { seed: seed } : {});
     runMode = dag ? 'kort' : mode();
     paused = false; finished = false; rolling = false;
@@ -288,6 +350,7 @@
 
   function afterShot(res) {
     if (!run || finished) return;
+    if (to) { toEfterSlag(res); return; }
     var s = run.state;
     if (res.holed) {
       sfx('holed'); setNote('', ''); refresh(); showDone(); return;
@@ -332,11 +395,14 @@
     $('#hud-par').textContent = 'par ' + s.hole.par;
     $('#hud-strokes').textContent = s.strokes;
     $('#hud-strokes-sub').textContent = s.penalties ? 'heraf ' + s.penalties + ' straf' : 'på hullet';
-    $('#hud-pool').textContent = s.pool;
+ $('#hud-pool-label').textContent = to ? 'Tur' : 'Puljen';
+    $('#hud-pool').textContent = to ? 'Sp. ' + (to.aktiv + 1) : s.pool;
+    $('#hud-pool-sub').textContent = to ? toNavn(to.aktiv) : 'slag tilbage';
     
-    $('.hud-pool').classList.toggle('low', s.pool <= 1 && !s.holed);
-    $('#hud-score').textContent = s.score;
-    $('#points-note').textContent = 'Under par giver ekstra slag til næste hul';
+    $('.hud-pool').classList.toggle('low', !to && s.pool <= 1 && !s.holed);
+    $('#hud-score-label').textContent = to ? 'Slag i alt' : 'Point';
+    $('#hud-score').textContent = to ? to.tot[0] + '–' + to.tot[1] : s.score;
+    $('#points-note').textContent = to ? 'Færrest slag vinder · højst par + ' + TO_MAX_OVER_PAR + ' pr. hul' : 'Under par giver ekstra slag til næste hul';
     // Retning og kraft
     var sa = tegn.screenAngle(s.aim);
     $('#dir-value').textContent = sa + '°';
@@ -350,6 +416,7 @@
     }
     $$('i', m).forEach(function (el, k) { el.classList.toggle('on', k < s.power); });
     var hint = $('#hint'), cls = noteCls, txt = lastNote;
+    if (!txt && to) txt = toNavn(to.aktiv) + 's tur – hul ' + s.level + ', par ' + s.hole.par + ', slag ' + (s.strokes + 1) + '.';
     if (!txt) {
       if (s.strokes === 0) txt = 'Hul ' + s.level + ', par ' + s.hole.par + '. Vælg retning og kraft, og slå.';
       else txt = 'Slag ' + (s.strokes + 1) + ' – ' + (s.pool === 1 ? 'sidste slag i puljen!' : strokesText(s.pool) + ' tilbage i puljen.');
@@ -392,6 +459,7 @@
     $('#btn-next').focus({ preventScroll: true });
   }
   function nextHole() {
+    if (to && !finished) { toNaesteHul(); return; }
     if (!run || !run.state.holed || finished) return;
     run.nextHole();
     $('#done-overlay').hidden = true;
@@ -428,7 +496,8 @@
     $('#pause-overlay').hidden = true;
     $('#done-overlay').hidden = true;
     var s = run.state;
-    $('#confirm-text').textContent = 'Du har ' + pointsText(s.score) + ' og ' + holesText(s.cleared) + ' klaret. Pointene gemmes i rekorderne.';
+    $('#confirm-text').textContent = to ? 'Stillingen er ' + toNavn(0) + ' ' + strokesText(to.tot[0]) + ', ' + toNavn(1) + ' ' + strokesText(to.tot[1]) + ' (afsluttede huller).'
+      : 'Du har ' + pointsText(s.score) + ' og ' + holesText(s.cleared) + ' klaret. Pointene gemmes i rekorderne.';
     var ov = $('#confirm-overlay');
     ov.hidden = false;
     fitScreen(ov);
@@ -455,12 +524,31 @@
   // Gemmes, når bolden ligger stille (frøet gemmes også, så de næste huller bliver de samme)
   var fortsaet = ArkadeFortsaet.create({
     spil: 'golf',
-    gem: function () { return run && !finished && !rolling && !tegn.animating && run.live() ? { state: run.state, seed: run.seed, mode: runMode, dag: dag } : null; },
-    info: function (d) { return (d.dag ? 'Dagens · ' : '') + 'Hul ' + d.state.level + ' · ' + d.state.score + ' point'; },
+    gem: function () {
+      if (to) return run && !finished && !rolling && !tegn.animating && $('#done-overlay').hidden && run.live()
+        ? { to: { states: [to.runs[0].state, to.runs[1].state], aktiv: to.aktiv, faerdig: to.faerdig, tot: to.tot, slag: to.slag }, state: run.state, seed: run.seed, mode: runMode } : null;
+      return run && !finished && !rolling && !tegn.animating && run.live() ? { state: run.state, seed: run.seed, mode: runMode, dag: dag } : null;
+    },
+    info: function (d) { return d.to ? 'To spillere · hul ' + d.state.level + ' · ' + d.to.tot[0] + '–' + d.to.tot[1] : (d.dag ? 'Dagens · ' : '') + 'Hul ' + d.state.level + ' · ' + d.state.score + ' point'; },
     fortsaet: function (d) {
+      if (d.to) {
+        if (!d.to.states || d.to.states.length !== 2 || typeof d.seed !== 'number') return false;
+        tegn.stop();
+        toStart(d.seed);
+        d.to.states.forEach(function (st, i) { Object.keys(st).forEach(function (k) { to.runs[i].state[k] = st[k]; }); });
+        to.faerdig = d.to.faerdig; to.tot = d.to.tot; to.slag = d.to.slag;
+        runMode = d.mode || mode(); dag = null;
+        paused = false; finished = false; rolling = false;
+        clearTimeout(afterTimer);
+        hideOverlays();
+        show('game');
+        toSkiftTil(d.to.aktiv);
+        return;
+      }
       var st = d.state;
       if (!st || !st.hole || !st.ball || typeof d.seed !== 'number') return false;
       tegn.stop();
+      to = null;
       run = L.createRun({ seed: d.seed });
       Object.keys(st).forEach(function (k) { run.state[k] = st[k]; });
       runMode = d.mode || mode();
@@ -473,6 +561,7 @@
       refresh();
     }
   });
+  ArkadeToSpil.knap({ fortsaet: fortsaet, tekst: 'samme huller, på skift', start: function () { sfx('click'); startGame(undefined, null, { to: true }); } });
   ArkadeDagens.knap({
     spil: 'golf', fortsaet: fortsaet,
     best: function (k) { return records.best(k); },
@@ -487,7 +576,7 @@
     var out = run.end(), res = null;
     finished = true;
     if (window.ArkadeHighscore) ArkadeHighscore.slut();
-    if (out.score > 0) res = records.add(recKat(), out.score, { holes: out.cleared });
+    if (out.score > 0 && !to) res = records.add(recKat(), out.score, { holes: out.cleared });
     return res;
   }
   function finish(why) {
@@ -503,6 +592,17 @@
     } else rankText = 'Ingen point denne gang';
     paused = false; hideOverlays();
     $('#go-title').textContent = 'Spillet er slut';
+    $('.go-records').hidden = !!to;
+    if (to) {
+      var h = to.slag[0].length, a = to.tot[0], b = to.tot[1];
+      $('#go-reason').textContent = !h ? 'Ingen huller spillet færdig.' : a === b ? 'Lige efter ' + holesText(h) + '.' : toNavn(a < b ? 0 : 1) + ' vandt med færrest slag!';
+      $('#go-score').textContent = a + '–' + b;
+      $('#go-holes').textContent = holesText(h) + ' spillet · ' + toNavn(0) + ' ' + strokesText(a) + ' · ' + toNavn(1) + ' ' + strokesText(b);
+      $('#go-rank').textContent = '';
+      show('gameover');
+      GolfTegn.mini($('#go-pic'), s.hole, null, {});
+      return;
+    }
     if (why === 'lost') $('#go-reason').textContent = 'Slagpuljen blev tom på hul ' + s.level + ' (par ' + s.hole.par + ').';
     else $('#go-reason').textContent = s.holed ? 'Du afsluttede efter hul ' + s.level + '.' : 'Du afsluttede på hul ' + s.level + '.';
     $('#go-score').textContent = s.score;
@@ -515,7 +615,7 @@
   }
   // Lukkes siden midt i et spil, gemmes pointene alligevel
   // (Når siden lukkes, gemmes spillet af arkade/fortsaet.js i stedet for at serien registreres)
-  $('#btn-again').addEventListener('click', function () { sfx('click'); startGame(undefined, dag ? ArkadeDagens.dato() : null); });
+  $('#btn-again').addEventListener('click', function () { sfx('click'); startGame(undefined, dag ? ArkadeDagens.dato() : null, to ? { to: true } : null); });
   $('#btn-go-menu').addEventListener('click', function () { sfx('click'); quitToMenu(); });
 
   function renderRecordList(ol, cat, highlightId) {
