@@ -258,6 +258,66 @@ test('afslut giver point og antal løste gåder', function () {
   assert.ok(!r.nextPuzzle());
 });
 
+// ---------- Række: sikre felter ----------
+test('række: udfylder og krydser kun det, tallene gør sikkert – altid rigtigt og uden at koste liv', function () {
+  // række 0: 5 → hele rækken er sikker
+  var r = run5(['XXXXX', 'X...X', '.X.X.', '..X..', '.....']);
+  var res = r.safe(1);    // række 0, kolonne 1
+  assert.strictEqual(res.result, 'sikre');
+  for (var x = 0; x < 5; x++) assert.strictEqual(r.state.mark[x], 1, 'række 0 felt ' + x);
+  assert.strictEqual(r.state.lives, 3); assert.strictEqual(r.state.errors, 0); assert.strictEqual(r.state.hints, 0);
+  assert.ok(r.state.rowDone[0]);
+  // kolonne 1 ([1, 1] med 0 farvet først → kun felt 0 var kendt) – stemmer med løsningen
+  r.state.mark.forEach(function (m, i) { if (m === 1) assert.ok(r.state.puzzle.sol[i], 'farvet felt ' + i + ' hører til billedet'); });
+});
+test('række: en linje uden nok viden giver ingen sikre felter', function () {
+  var h = G.createRun('5x5', { seed: 1, maxSize: '15x15' });
+  h._load('5x5', 'T', ['X....', '.X...', '..X..', '...X.', '....X']);
+  var res = h.safe(2 * 5 + 2);    // række 2 [1], kolonne 2 [1]: intet er sikkert
+  assert.strictEqual(res.result, 'ingen-sikre');
+  assert.ok(h.state.mark.every(function (m) { return m === 0; }));
+});
+test('række: spillerens egne kryds bruges ikke som viden og bliver ikke rørt', function () {
+  var r = run5(['XXXX.', '.....', '.....', '.....', '.....']);
+  r.cross(0);                       // et forkert kryds (felt 0 er farvet i billedet)
+  var res = r.safe(1);
+  assert.ok(res.blocked >= 1, 'krydset står i vejen: ' + JSON.stringify(res));
+  assert.strictEqual(r.state.mark[0], 2, 'krydset er ikke rørt');
+  assert.ok(r.state.mark.every(function (m, i) { return m !== 1 || r.state.puzzle.sol[i]; }), 'kun rigtige felter farvet');
+});
+test('række: farvede felter og afslørede fejl bruges som viden', function () {
+  var q = run5(['.XX..', 'XXXXX', 'XXXXX', 'XXXXX', 'XXXXX']);
+  q.safe(0);
+  assert.deepStrictEqual(q.state.mark.slice(0, 5), [0, 0, 0, 0, 0], '[2] i fem felter: intet i rækken er sikkert');
+  q.fill(0); q.fill(3);             // to fejl → låste kryds på felt 0 og 3
+  q.fill(2);                        // farvet
+  q.safe(0);
+  assert.deepStrictEqual(q.state.mark.slice(0, 5), [2, 1, 1, 2, 2], 'blokken må være felt 1–2');
+  assert.strictEqual(q.state.lives, 1, 'Række kostede ikke liv');
+});
+test('række: kan løse gåden helt, og den tæller som løst uden tip', function () {
+  var r = run5();
+  for (var guard = 0; guard < 40 && !r.state.solved; guard++) for (var i = 0; i < 5 && !r.state.solved; i++) r.safe(i * 5 + i);
+  assert.ok(r.state.solved, 'hjertet kan løses linje for linje');
+  assert.strictEqual(r.state.hints, 0); assert.strictEqual(r.state.errors, 0);
+  assert.ok(r.state.lastPoints.total > 0);
+});
+test('række: alle genererede gåder kan løses med Række alene (og altid rigtigt)', function () {
+  ['5x5', '8x8', '10x10'].forEach(function (size) {
+    for (var seed = 1; seed <= 8; seed++) {
+      var r = G.createRun(size, { seed: seed, maxSize: '15x15' }), n = r.n;
+      for (var round = 0; round < 60 && !r.state.solved; round++) for (var d = 0; d < n && !r.state.solved; d++) r.safe(d * n + d);
+      assert.ok(r.state.solved, size + ' seed ' + seed);
+      assert.strictEqual(r.state.errors, 0);
+    }
+  });
+});
+test('række via apply og værktøjet', function () {
+  var r = run5(['XXXXX', '.....', '.....', '.....', '.....']);
+  assert.strictEqual(r.apply('raekke', 2).result, 'sikre');
+  assert.ok(r.state.solved);
+});
+
 var failed = 0;
 tests.forEach(function (t) {
   try { t.fn(); console.log('ok   ' + t.name); }

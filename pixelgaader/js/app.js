@@ -197,7 +197,7 @@
   var hoverIdx = -1, curIdx = -1;   // feltet under blikket/musen og tastaturets markør
   var boardEl = $('#board');
   var lastNote = '', noteCls = '', doneTimer = 0, overTimer = 0;
-  var TOOL_NAMES = { udfyld: 'Udfyld', kryds: 'Kryds', visk: 'Visk' };
+  var TOOL_NAMES = { udfyld: 'Udfyld', kryds: 'Kryds', visk: 'Visk', raekke: 'Række' };
 
   // Tegningen af gitteret ligger i js/tegn.js og læser kun spillets tilstand
   var tegn = PixelgaaderTegn.create(boardEl);
@@ -275,6 +275,12 @@
       refresh();
       return;
     }
+    if (res.result === 'ingen-sikre') {
+      sfx('click');
+      setNote('Ingen sikre felter i rækken og kolonnen endnu' + (res.blocked ? ' – dine egne kryds står i vejen' : '') + '.', '');
+      refresh();
+      return;
+    }
     if (res.solved) {
       sfx('solved');
       setNote('', '');
@@ -287,6 +293,12 @@
       var lt = linesText(res.lines);
       sfx(lt ? 'line' : 'fill');
       setNote(lt, lt ? 'ok' : '');
+    } else if (res.result === 'sikre') {
+      var lt2 = linesText(res.lines), parts = [];
+      if (res.filled) parts.push(res.filled === 1 ? '1 felt farvet' : res.filled + ' felter farvet');
+      if (res.crossed) parts.push(res.crossed === 1 ? '1 krydset' : res.crossed + ' krydset');
+      sfx(lt2 ? 'line' : res.filled ? 'fill' : 'cross');
+      setNote((parts.join(' og ') + '. ' + lt2).trim() + (res.blocked ? ' (dine egne kryds er ikke rørt)' : ''), lt2 ? 'ok' : '');
     } else if (res.result === 'krydset') { sfx('cross'); setNote('', ''); }
     else if (res.result === 'visket') { sfx('erase'); setNote('Krydset er fjernet', ''); }
     refresh();
@@ -628,6 +640,8 @@
     else if (k === '1') setTool('udfyld');
     else if (k === '2') setTool('kryds');
     else if (k === '3') setTool('visk');
+    else if (k === '4') setTool('raekke');
+    else if (k === 'r') { if (!e.repeat) keyAct('raekke'); }
     else if (k === 't') { if (!e.repeat) showTip(); }
     else handled = false;
     if (!handled) return;
@@ -663,15 +677,15 @@
     // wide: status | gitter | tekst og værktøjer
     var sideW = Math.min(380, Math.max(230, b * 2.2));
     var leftH = 100 + 3 * hudH + 2 * ig + 70 + b + 3 * ig;
-    var rightH = hint + 4 * b + 4 * ig;
+    var rightH = hint + 5 * b + 5 * ig;
     res.sideW = sideW;
     res.wide = (rightH <= H - 2 * p && leftH <= H - 2 * p) ? cell(W - 2 * p - 2 * sideW - 2 * g, H - 2 * p) : 0;
     // side: gitter | (status, tekst, værktøjer og pause i k kolonner)
     res.side = 0;
-    [1, 2, 3, 5].forEach(function (k) {
+    [1, 2, 3, 4, 6].forEach(function (k) {
       var panelW = Math.max(k * b + (k - 1) * ig, k === 1 ? 150 : 0);
       var hudCols = panelW >= 3 * 110 + 2 * ig ? 3 : 1, hudRows = 3 / hudCols;
-      var rows = Math.ceil(5 / k);
+      var rows = Math.ceil(6 / k);
       var panelH = hudRows * hudH + (hudRows - 1) * ig + g + hint + ig + rows * b + (rows - 1) * ig;
       if (panelH > H - 2 * p) return;
       var c = cell(W - 2 * p - g - panelW, H - 2 * p);
@@ -679,10 +693,10 @@
     });
     // below: status / gitter / tekst og værktøjer (på højkant ligger knapperne under gitteret)
     res.below = 0;
-    [5, 3].forEach(function (k) {
+    [6, 3].forEach(function (k) {
       var needW = k * b + (k - 1) * ig;
       if (needW > W - 2 * p) return;
-      var rows = Math.ceil(5 / k);
+      var rows = Math.ceil(6 / k);
       var extra = hudH + g + hint + ig + rows * b + (rows - 1) * ig + g;
       var c = cell(W - 2 * p, H - 2 * p - extra);
       if (c > res.below) { res.below = c; res.belowK = k; }

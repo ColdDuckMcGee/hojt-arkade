@@ -17,6 +17,11 @@
  *  - Visk: fjerner spillerens eget kryds. Farvede felter er altid rigtige
  *    (forkerte bliver aldrig stående), så de kan ikke viskes.
  *  - Tip: afslører ét felt i billedet. Koster point.
+ *  - Række (sikre felter): udfylder og krydser de felter i en række og en kolonne,
+ *    som tallene gør sikre ud fra det, man allerede ved (farvede felter og låste
+ *    kryds – ikke spillerens egne kryds, de er kun noter). Det er altid rigtigt,
+ *    koster intet og kan aldrig koste et liv. Spilleren skal stadig selv tænke på
+ *    tværs af rækker og kolonner.
  *  - Er en række eller kolonne løst, krydses dens tomme felter automatisk.
  *  - 3 liv pr. gåde, fyldes op ved hver ny gåde. Mister man alle liv i en
  *    gåde, er spillet slut.
@@ -387,7 +392,28 @@
         state.mark[i] = 0;
         return { ok: true, result: 'visket' };
       },
-      apply: function (tool, i) { return tool === 'kryds' ? api.cross(i) : tool === 'visk' ? api.erase(i) : api.fill(i); },
+      // Sikre felter i feltets række og kolonne: { ok, result: 'sikre'|'ingen-sikre', filled, crossed, blocked, solved, lines }
+      safe: function (i) {
+        if (!live() || !inRange(i)) return { ok: false, result: 'ingen' };
+        var n = state.puzzle.n, y = Math.floor(i / n), x = i % n, filled = 0, crossed = 0, blocked = 0;
+        [['r', y, rowCells(y), state.puzzle.clues.rows[y]], ['c', x, colCells(x), state.puzzle.clues.cols[x]]].forEach(function (L) {
+          var cells = L[2];
+          var line = cells.map(function (k) { return state.mark[k] === 1 ? 1 : (state.mark[k] === 2 && state.lock[k]) ? 0 : -1; });
+          var out = solveLine(line, L[3]);
+          if (!out) return;
+          cells.forEach(function (k, j) {
+            if (out[j] === 1 && state.mark[k] !== 1 && sol(k)) {
+              if (state.mark[k] === 2) { blocked++; return; }      // spillerens eget kryds: lad det være
+              state.mark[k] = 1; filled++;
+            } else if (out[j] === 0 && state.mark[k] === 0 && !sol(k)) { state.mark[k] = 2; state.lock[k] = 'auto'; crossed++; }
+          });
+        });
+        var lines = updateLines();
+        var res = { ok: true, result: filled || crossed ? 'sikre' : 'ingen-sikre', filled: filled, crossed: crossed, blocked: blocked, lines: lines };
+        if (filled && checkSolved()) { finishPuzzle(); res.solved = true; }
+        return res;
+      },
+      apply: function (tool, i) { return tool === 'kryds' ? api.cross(i) : tool === 'visk' ? api.erase(i) : tool === 'raekke' ? api.safe(i) : api.fill(i); },
       // Tip: afslør ét felt i billedet. Først et felt, spilleren har krydset ved en
       // fejl, ellers et felt i en række/kolonne med flest manglende felter.
       hint: function () {
