@@ -14,7 +14,7 @@
     dwell: false, dwellTime: 1.2, theme: 'neon', background: 'mork',
     animation: true, sound: true, music: true
   });
-  var slangen = ArkadeSettings.create('slangen', { boardSize: 15 });
+  var slangen = ArkadeSettings.create('slangen', { boardSize: 15, bane: 'aaben' });
   var records = ArkadeHighscores.create('slangen', { max: 10 });
 
   var THEMES = ['neon', 'solnedgang', 'cyberpunk', 'kontrast'];
@@ -139,7 +139,15 @@
   function syncMenu() {
     var size = slangen.get('boardSize');
     $$('#menu [data-size]').forEach(function (b) { b.setAttribute('aria-pressed', String(Number(b.dataset.size) === size)); });
+    $$('#menu [data-bane]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.bane === bane())); });
   }
+  // Baner med mure (js/game.js baneMure): Åben er som altid; hver bane har sin egen rekordliste
+  function bane() { var v = slangen.get('bane'); return SlangenGame.BANE_NAVNE[v] ? v : 'aaben'; }
+  function baneKat(size, b) { return b && b !== 'aaben' ? size + '-' + b : String(size); }
+  function baneTekst(size, b) { return size + ' × ' + size + (b && b !== 'aaben' ? ' · ' + SlangenGame.BANE_NAVNE[b] : ''); }
+  $$('#menu [data-bane]').forEach(function (b) {
+    b.addEventListener('click', function () { slangen.set('bane', b.dataset.bane); syncMenu(); audio.play('click'); });
+  });
   $$('#menu [data-size]').forEach(function (b) {
     b.addEventListener('click', function () { slangen.set('boardSize', Number(b.dataset.size)); syncMenu(); audio.play('click'); });
   });
@@ -200,12 +208,14 @@
 
   // Dagens udfordring (arkade/dagens.js): dag = datoen, ellers null. Altid 15 × 15 og samme mad for alle.
   var dag = null, dagRng = null, DAG_STR = 15;
-  function kategori(s) { return dag ? ArkadeDagens.kat(dag) : String(s.size); }
+  function kategori(s) { return dag ? ArkadeDagens.kat(dag) : baneKat(s.size, s.bane); }
+  // Dagens udfordring skifter bane fra dag til dag
+  function dagensBane(dt) { var d = Date.UTC(+dt.slice(0, 4), +dt.slice(5, 7) - 1, +dt.slice(8, 10)) / 864e5; return SlangenGame.BANER[d % SlangenGame.BANER.length]; }
   function startGame(o) {
     if (window.ArkadeHighscore) ArkadeHighscore.start();
     dag = o && o.dag || null;
     dagRng = dag ? ArkadeDagens.rng('slangen', dag) : null;
-    game = SlangenGame.createGame(dag ? DAG_STR : slangen.get('boardSize'), dagRng ? { rng: dagRng } : undefined);
+    game = SlangenGame.createGame(dag ? DAG_STR : slangen.get('boardSize'), { rng: dagRng || undefined, bane: dag ? dagensBane(dag) : bane() });
     paused = false;
     $('#pause-overlay').hidden = true;
     show('game');
@@ -227,7 +237,7 @@
     $('#hud-score').textContent = s.score;
     $('#hud-length').textContent = 'Længde ' + s.snake.length;
     $('#hud-best').textContent = Math.max(records.best(kategori(s)), 0);
-    $('#hud-size').textContent = s.size + ' × ' + s.size;
+    $('#hud-size').textContent = s.bane && s.bane !== 'aaben' ? SlangenGame.BANE_NAVNE[s.bane] + ' ' + s.size : s.size + ' × ' + s.size;
     var hb = $('#hud-bonus');
     if (s.bonus) {
       hb.classList.add('active');
@@ -311,13 +321,13 @@
   var fortsaet = ArkadeFortsaet.create({
     spil: 'slangen',
     gem: function () { return game && !game.state.over ? { state: game.state, dag: dag, rng: dagRng ? dagRng.hent() : null } : null; },
-    info: function (d) { return (d.dag ? 'Dagens' : d.state.size + ' × ' + d.state.size) + ' · ' + d.state.score + ' point'; },
+    info: function (d) { return (d.dag ? 'Dagens' : baneTekst(d.state.size, d.state.bane)) + ' · ' + d.state.score + ' point'; },
     fortsaet: function (d) {
       var st = d.state;
       if (!st || SIZES.indexOf(st.size) < 0 || !st.snake || !st.snake.length) return false;
       dag = d.dag || null;
       dagRng = dag ? ArkadeDagens.rng('slangen', dag) : null;
-      game = SlangenGame.createGame(st.size, dagRng ? { rng: dagRng } : undefined);
+      game = SlangenGame.createGame(st.size, { rng: dagRng || undefined, bane: st.bane });
       if (dagRng) dagRng.saet(d.rng);   // efter createGame, som selv bruger af generatoren
       Object.keys(st).forEach(function (k) { game.state[k] = st[k]; });
       paused = false;
@@ -360,8 +370,8 @@
     $('#go-reason').textContent = REASONS[s.reason] || '';
     $('#go-score').textContent = s.score;
     $('#go-rank').textContent = rankText;
-    $('#go-again-size').textContent = dag ? 'Dagens udfordring' : s.size + ' × ' + s.size;
-    $('#go-records-title').textContent = dag ? 'Dagens udfordring – ' + ArkadeDagens.tekst(dag) : 'Rekorder – ' + s.size + ' × ' + s.size;
+    $('#go-again-size').textContent = dag ? 'Dagens udfordring' : baneTekst(s.size, s.bane);
+    $('#go-records-title').textContent = dag ? 'Dagens udfordring – ' + ArkadeDagens.tekst(dag) : 'Rekorder – ' + baneTekst(s.size, s.bane);
     renderRecordList($('#go-records'), kategori(s), lastEntryId);
     show('gameover');
   }
@@ -391,8 +401,8 @@
   function openRecords(size) { recSize = size; syncRecords(); show('records'); }
   function syncRecords() {
     $$('#records [data-rec-size]').forEach(function (b) { b.setAttribute('aria-pressed', String(Number(b.dataset.recSize) === recSize)); });
-    $('#rec-title').textContent = 'Rekorder – ' + recSize + ' × ' + recSize;
-    renderRecordList($('#rec-list'), recSize, null);
+    $('#rec-title').textContent = 'Rekorder – ' + baneTekst(recSize, bane());
+    renderRecordList($('#rec-list'), baneKat(recSize, bane()), null);
     if (current === 'records') refit();
   }
   $$('#records [data-rec-size]').forEach(function (b) {

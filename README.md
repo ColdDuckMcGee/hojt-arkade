@@ -26,6 +26,7 @@ står helt stille ind imellem.
 - **Styring:** fire store pile står over, under, til venstre og til højre for brættet. Piletasterne virker også. Pilen bagud er slået fra.
 - **Mad:** almindelig mad (cyan) giver 10 point. Bonusmad (diamant med tal) giver 50 point og forsvinder efter 15 træk.
 - **Forhindringer:** en ny kommer for hver 5. mad. De lander aldrig lige foran slangen og lukker den aldrig inde.
+- **Baner:** vælg *Åben* (ingen mure), *Ramme* (en firkant med fire åbninger), *Søjler* (2 × 2-blokke) eller *Gange* (to lange mure). Murene tilpasses brættets størrelse, startfeltet og vejen foran slangen er altid fri, og hver bane har sin egen rekordliste. Dagens udfordring skifter bane fra dag til dag. Test: `node slangen/test/baner.test.js`.
 - **Tab:** man taber, hvis man rammer væggen, sig selv eller en forhindring.
 - **Bræt:** man vælger lille (10 × 10), mellem (15 × 15) eller stor (20 × 20).
 - **Rekorder:** der er en lokal top 10 med dato for hver brætstørrelse.

@@ -49,8 +49,19 @@
       return { x: x * cell + g, y: y * cell + g, w: cell - 2 * g };
     }
 
+    // mure (baner): fyldte felter i murens farve, der hænger sammen (ingen kryds)
+    state.obstacles.forEach(function (o) {
+      if (!o.mur) return;
+      var r = cellRect(o.x, o.y, 0.02);
+      c.save();
+      c.fillStyle = colors.obstacle; c.globalAlpha = ts ? 1 : 0.55;
+      c.fillRect(r.x, r.y, r.w, r.w);
+      c.globalAlpha = 1;
+      c.restore();
+    });
     // forhindringer: mørk blok med kraftig kant og kryds
     state.obstacles.forEach(function (o) {
+      if (o.mur) return;
       var r = cellRect(o.x, o.y, 0.1);
       c.save();
       c.fillStyle = colors.obstacleFill;
@@ -188,6 +199,7 @@
     // forhindringer: grå sten med lys kant foroven og mørk forneden
     state.obstacles.forEach(function (o) {
       var X = o.x * k, Y = o.y * k;
+      if (o.mur) { px(X, Y, k, k, colors.obstacle); px(X, Y + k - 1, k, 1, ink); return; }   // mur: hel sten uden kryds
       px(X, Y, k, k, colors.obstacleFill);
       px(X, Y, k, 1, colors.obstacle); px(X, Y, 1, k, colors.obstacle);
       px(X, Y + k - 1, k, 1, ink); px(X + k - 1, Y, 1, k, ink);

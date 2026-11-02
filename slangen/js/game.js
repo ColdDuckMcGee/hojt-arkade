@@ -17,10 +17,42 @@
     undoPerGame: 3      // fortryd sidste træk: så mange gange pr. spil (et utilsigtet blik må kunne rettes)
   };
 
+  // ---------- Baner med mure ----------
+  // Faste mure ud fra brættets størrelse n (10, 15 eller 20). Murene er forhindringer med mur: true
+  // (tegnes som mur, ikke som en løs forhindring). Startfeltet og fire felter foran slangen holdes frie.
+  var BANER = ['aaben', 'ramme', 'soejler', 'gange'];
+  var BANE_NAVNE = { aaben: 'Åben', ramme: 'Ramme', soejler: 'Søjler', gange: 'Gange' };
+  function baneMure(bane, n) {
+    var m = [], set = {}, add = function (x, y) { if (x >= 0 && y >= 0 && x < n && y < n && !set[y * n + x]) { set[y * n + x] = 1; m.push({ x: x, y: y }); } };
+    var mid = Math.floor(n / 2), a = 2, b = n - 3;
+    if (bane === 'ramme') {
+      // En firkant midt på brættet med en åbning midt på hver side
+      var gap = n >= 15 ? 2 : 1;
+      for (var i = a; i <= b; i++) {
+        var aaben = Math.abs(i - (n - 1) / 2) <= gap - 0.5;
+        if (!aaben) { add(i, a); add(i, b); add(a, i); add(b, i); }
+      }
+    } else if (bane === 'soejler') {
+      // 2 × 2-søjler i et gitter (ikke på slangens startrække)
+      var step = n >= 15 ? 5 : 4;
+      for (var y = 2; y < n - 2; y += step) for (var x = 2; x < n - 2; x += step) {
+        if (Math.abs(y - mid) <= 1 || Math.abs(y + 1 - mid) <= 1) continue;
+        add(x, y); add(x + 1, y); add(x, y + 1); add(x + 1, y + 1);
+      }
+    } else if (bane === 'gange') {
+      // To lange mure, der laver gange med åbning i hver sin ende
+      var r1 = Math.round(n / 4), r2 = n - 1 - Math.round(n / 4);
+      for (var x2 = 0; x2 <= n - 3; x2++) add(x2, r1);
+      for (var x3 = 2; x3 < n; x3++) add(x3, r2);
+    }
+    return m;
+  }
+
   function createGame(size, opts) {
     var rng = (opts && opts.rng) || Math.random;
+    var bane = opts && BANE_NAVNE[opts.bane] ? opts.bane : 'aaben';
     var s = {
-      size: size, snake: [], dir: 'right', food: null, bonus: null, obstacles: [],
+      size: size, bane: bane, snake: [], dir: 'right', food: null, bonus: null, obstacles: [],
       score: 0, foodEaten: 0, bonusEaten: 0, moves: 0,
       over: false, won: false, reason: null, crash: null,
       undoLeft: RULES.undoPerGame
@@ -33,6 +65,10 @@
     var mid = Math.floor(size / 2);
     var hx = Math.max(RULES.startLength - 1, Math.floor(size / 2) - 1);
     for (var i = 0; i < RULES.startLength; i++) s.snake.push({ x: hx - i, y: mid });
+    baneMure(bane, size).forEach(function (w) {
+      if (w.y === mid && w.x >= hx - RULES.startLength && w.x <= hx + 4) return;   // startfeltet og vejen foran er fri
+      s.obstacles.push({ x: w.x, y: w.y, mur: true });
+    });
 
     function obstacleSet(extra) {
       var set = new Set();
@@ -234,5 +270,5 @@
     };
   }
 
-  global.SlangenGame = { createGame: createGame, DIRS: DIRS, OPPOSITE: OPPOSITE, RULES: RULES };
+  global.SlangenGame = { createGame: createGame, DIRS: DIRS, OPPOSITE: OPPOSITE, RULES: RULES, BANER: BANER, BANE_NAVNE: BANE_NAVNE, baneMure: baneMure };
 })(window);
