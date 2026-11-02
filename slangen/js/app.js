@@ -198,9 +198,14 @@
   var game = null, paused = false, boardCanvas = $('#board');
   var DIR_NAMES = { up: 'op', down: 'ned', left: 'venstre', right: 'højre' };
 
-  function startGame() {
+  // Dagens udfordring (arkade/dagens.js): dag = datoen, ellers null. Altid 15 × 15 og samme mad for alle.
+  var dag = null, dagRng = null, DAG_STR = 15;
+  function kategori(s) { return dag ? ArkadeDagens.kat(dag) : String(s.size); }
+  function startGame(o) {
     if (window.ArkadeHighscore) ArkadeHighscore.start();
-    game = SlangenGame.createGame(slangen.get('boardSize'));
+    dag = o && o.dag || null;
+    dagRng = dag ? ArkadeDagens.rng('slangen', dag) : null;
+    game = SlangenGame.createGame(dag ? DAG_STR : slangen.get('boardSize'), dagRng ? { rng: dagRng } : undefined);
     paused = false;
     $('#pause-overlay').hidden = true;
     show('game');
@@ -221,7 +226,7 @@
     var s = game.state;
     $('#hud-score').textContent = s.score;
     $('#hud-length').textContent = 'Længde ' + s.snake.length;
-    $('#hud-best').textContent = Math.max(records.best(s.size), 0);
+    $('#hud-best').textContent = Math.max(records.best(kategori(s)), 0);
     $('#hud-size').textContent = s.size + ' × ' + s.size;
     var hb = $('#hud-bonus');
     if (s.bonus) {
@@ -305,12 +310,15 @@
   // ---------- Fortsæt, hvor du slap (arkade/fortsaet.js) ----------
   var fortsaet = ArkadeFortsaet.create({
     spil: 'slangen',
-    gem: function () { return game && !game.state.over ? { state: game.state } : null; },
-    info: function (d) { return d.state.size + ' × ' + d.state.size + ' · ' + d.state.score + ' point'; },
+    gem: function () { return game && !game.state.over ? { state: game.state, dag: dag, rng: dagRng ? dagRng.hent() : null } : null; },
+    info: function (d) { return (d.dag ? 'Dagens' : d.state.size + ' × ' + d.state.size) + ' · ' + d.state.score + ' point'; },
     fortsaet: function (d) {
       var st = d.state;
       if (!st || SIZES.indexOf(st.size) < 0 || !st.snake || !st.snake.length) return false;
-      game = SlangenGame.createGame(st.size);
+      dag = d.dag || null;
+      dagRng = dag ? ArkadeDagens.rng('slangen', dag) : null;
+      if (dagRng) dagRng.saet(d.rng);
+      game = SlangenGame.createGame(st.size, dagRng ? { rng: dagRng } : undefined);
       Object.keys(st).forEach(function (k) { game.state[k] = st[k]; });
       paused = false;
       $('#pause-overlay').hidden = true;
@@ -318,6 +326,12 @@
       updateHud();
       drawBoard();
     }
+  });
+
+  ArkadeDagens.knap({
+    spil: 'slangen', fortsaet: fortsaet,
+    best: function (k) { return records.best(k); },
+    start: function (dt) { audio.play('click'); startGame({ dag: dt }); }
   });
 
   // ---------- Game over ----------
@@ -335,7 +349,7 @@
     fortsaet.slet();
     if (window.ArkadeHighscore) ArkadeHighscore.slut();
     if (s.score > 0) {
-      var res = records.add(String(s.size), s.score);
+      var res = records.add(kategori(s), s.score);
       if (res.rank === 1) { rankText = 'Ny rekord!'; audio.play('record'); }
       else if (res.rank > 0) rankText = 'Du kom ind som nr. ' + res.rank + ' på listen';
       else rankText = 'Ikke på top 10 denne gang';
@@ -346,16 +360,16 @@
     $('#go-reason').textContent = REASONS[s.reason] || '';
     $('#go-score').textContent = s.score;
     $('#go-rank').textContent = rankText;
-    $('#go-again-size').textContent = s.size + ' × ' + s.size;
-    $('#go-records-title').textContent = 'Rekorder – ' + s.size + ' × ' + s.size;
-    renderRecordList($('#go-records'), s.size, lastEntryId);
+    $('#go-again-size').textContent = dag ? 'Dagens udfordring' : s.size + ' × ' + s.size;
+    $('#go-records-title').textContent = dag ? 'Dagens udfordring – ' + ArkadeDagens.tekst(dag) : 'Rekorder – ' + s.size + ' × ' + s.size;
+    renderRecordList($('#go-records'), kategori(s), lastEntryId);
     show('gameover');
   }
-  $('#btn-again').addEventListener('click', function () { audio.play('click'); startGame(); });
+  $('#btn-again').addEventListener('click', function () { audio.play('click'); startGame(dag ? { dag: ArkadeDagens.dato() } : null); });
   $('#btn-go-menu').addEventListener('click', function () { audio.play('click'); game = null; syncMenu(); show('menu'); });
 
   function renderRecordList(ol, size, highlightId) {
-    var list = records.list(String(size));
+    var list = records.list(String(size));   // size: brætstørrelse eller kategori (fx dag-2026-11-02)
     ol.innerHTML = '';
     for (var i = 0; i < records.max; i++) {
       var li = document.createElement('li');

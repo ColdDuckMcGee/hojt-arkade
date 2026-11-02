@@ -75,15 +75,18 @@
     // ---------- Menuknappen ----------
     function byg() {
       if (!startBtn || knap) return;
-      raekke = doc.createElement('div');
-      raekke.className = 'arkade-start-raekke';
-      startBtn.parentNode.insertBefore(raekke, startBtn);
+      raekke = startBtn.parentNode;   // dagens.js kan have lavet rækken i forvejen
+      if (!raekke.classList.contains('arkade-start-raekke')) {
+        raekke = doc.createElement('div');
+        raekke.className = 'arkade-start-raekke';
+        startBtn.parentNode.insertBefore(raekke, startBtn);
+      }
       knap = doc.createElement('button');
       knap.type = 'button';
       knap.className = 'btn primary wide arkade-fortsaet-knap';
       knap.innerHTML = '<span class="big">Fortsæt</span><span class="small arkade-fortsaet-info"></span>';
-      raekke.appendChild(knap);
-      raekke.appendChild(startBtn);
+      raekke.insertBefore(knap, raekke.firstChild);
+      if (startBtn.parentNode !== raekke) raekke.appendChild(startBtn);
       startStor = startBtn.querySelector('.big');
       startTekst = startStor ? startStor.textContent : '';
       startPrimary = startBtn.classList.contains('primary');

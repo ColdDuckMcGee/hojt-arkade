@@ -116,3 +116,5 @@
   [data-hs-verden] .icon { font-size: 1.7em; }
   #records .row:has(> [data-hs-verden]) { column-gap: 10px; }
 }
+/* Dagens udfordring: dato under TOP 10 */
+.arkade-hs-dag { font-size: clamp(.95rem, 2.4vmin, 1.2rem); font-weight: 700; color: var(--hs-muted); }

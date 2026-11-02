@@ -272,6 +272,9 @@
       var kort = el('div', 'arkade-hs-kort');
       var side = el('div', 'arkade-hs-side');
       side.appendChild(el('div', 'arkade-hs-titel', 'TOP 10'));
+      // Dagens udfordring (arkade/dagens.js): kategorien er dag-ÅÅÅÅ-MM-DD
+      var dagM = /^dag-(\d{4})-(\d{2})-(\d{2})$/.exec(String(info.kat));
+      if (dagM) side.appendChild(el('div', 'arkade-hs-dag', 'Dagens udfordring · ' + (+dagM[3]) + '. ' + ['januar', 'februar', 'marts', 'april', 'maj', 'juni', 'juli', 'august', 'september', 'oktober', 'november', 'december'][+dagM[2] - 1]));
       var faner = el('div', 'arkade-hs-faner'); faner.setAttribute('role', 'tablist');
       var fv = knap('Verden', 'fane', function () { fane = 'verden'; lyd('click'); tegn(); });
       var fm = knap('Min maskine', 'fane', function () { fane = 'lokal'; lyd('click'); tegn(); });
