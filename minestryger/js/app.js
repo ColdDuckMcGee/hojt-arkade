@@ -327,9 +327,39 @@
   });
   function quitToMenu() { run = null; plate = null; paused = false; board.reset(); $('#pause-overlay').hidden = true; show('menu'); }
 
+  // ---------- Fortsæt, hvor du slap (arkade/fortsaet.js) ----------
+  // Mens en eksplosion spoles tilbage, og når pladen lige er ryddet, gemmes der ikke
+  var fortsaet = ArkadeFortsaet.create({
+    spil: 'minestryger',
+    gem: function () {
+      return run && plate && !run.over && !board.busy && !plate.state.cleared && $('#clear-overlay').hidden
+        ? { run: run, plate: plate.state, mode: mode } : null;
+    },
+    info: function (d) { return 'Plade ' + d.run.plateNo + ' · ' + d.run.score + ' point'; },
+    fortsaet: function (d) {
+      var st = d.plate;
+      if (!d.run || !st || !G.SIZES[st.sizeId] || !st.cells) return false;
+      run = d.run;
+      paused = false;
+      plate = G.createPlate(st.sizeId, st.plate);
+      if (plate.state.cells.length !== st.cells.length) return false;
+      plate.state.cells.forEach(function (c, i) { var g = st.cells[i]; Object.keys(g).forEach(function (k) { c[k] = g[k]; }); });
+      Object.keys(st).forEach(function (k) { if (k !== 'cells') plate.state[k] = st[k]; });
+      $('#pause-overlay').hidden = true;
+      $('#clear-overlay').hidden = true;
+      board.reset();
+      board.build(plate.state);
+      setMode(d.mode === 'flag' ? 'flag' : 'open', true);
+      show('game');
+      refresh();
+      board.focusCursor();
+    }
+  });
+
   // ---------- Game over ----------
   var lastEntryId = null;
   function gameOver() {
+    fortsaet.slet();
     var cat = category(run.maxLives, run.size);
     var rankText = '';
     lastEntryId = null;

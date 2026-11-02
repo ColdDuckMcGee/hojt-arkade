@@ -388,3 +388,13 @@ html[data-stil="tegneserie"] .setting:has([data-set="background"]), html[data-st
 /* Retro-pixel: titler, pointtavler og hovedknapper med store bogstaver, som på en spillemaskine */
 html[data-stil="pixel"] .neon-title, html[data-stil="pixel"] .neon-sub, html[data-stil="pixel"] .btn.primary .big,
 html[data-stil="pixel"] .hud-label, html[data-stil="pixel"] .arkade-bk-titel, html[data-stil="pixel"] .arkade-hs-titel { text-transform: uppercase; }
+
+/* ---------- Fortsæt, hvor du slap (arkade/fortsaet.js) ----------
+   Rækken står, hvor "Start spil" stod. Med et gemt spil: [Fortsæt] [Nyt spil] side om side. */
+.arkade-start-raekke { display: flex; gap: var(--gap, 16px); justify-content: center; align-items: stretch; max-width: 100%; }
+.arkade-start-raekke.har-gem { width: calc(var(--btn) * 4.6); }
+.arkade-start-raekke.har-gem > .btn { flex: 1 1 0; min-width: 0; }
+.arkade-start-raekke.har-gem > .btn.wide { min-width: 0; }
+.arkade-fortsaet-knap { flex-direction: column; }
+.arkade-fortsaet-info { font-variant-numeric: tabular-nums; }
+.arkade-fortsaet-knap[hidden] { display: none !important; }

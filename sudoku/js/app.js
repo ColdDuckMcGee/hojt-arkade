@@ -505,9 +505,31 @@
   $('#btn-confirm-yes').addEventListener('click', function () { sfx('click'); releaseGuard(); finish('quit'); });
   function quitToMenu() { run = null; paused = false; clearTimeout(doneTimer); clearTimeout(overTimer); hideOverlays(); show('menu'); }
 
+  // ---------- Fortsæt, hvor du slap (arkade/fortsaet.js) ----------
+  var fortsaet = ArkadeFortsaet.create({
+    spil: 'sudoku',
+    gem: function () { return run && !finished && !run.state.over ? { state: run.state } : null; },
+    info: function (d) { return modeName(d.state.diff) + ' · gåde ' + (d.state.index + 1) + ' · ' + d.state.score + ' point'; },
+    fortsaet: function (d) {
+      var st = d.state;
+      if (!st || !st.puzzle || !st.puzzle.givens || st.puzzle.givens.length !== 81) return false;
+      run = G.createRun(st.diff, { puzzle: { givens: st.puzzle.givens, sol: st.puzzle.sol } });
+      Object.keys(st).forEach(function (k) { run.state[k] = st[k]; });
+      paused = false; finished = false; zoom = -1; sel = -1; notesMode = false;
+      lastNote = ''; noteCls = '';
+      clearTimeout(doneTimer); clearTimeout(overTimer);
+      tegn.build();
+      hideOverlays();
+      show('game');
+      refresh();
+      if (run.state.solved) showDone();
+    }
+  });
+
   // ---------- Slut ----------
   var lastEntryId = null;
   function saveRecord() {
+    fortsaet.slet();
     var s = run.state, out = run.end(), res = null;
     finished = true;
     if (window.ArkadeHighscore) ArkadeHighscore.slut();
@@ -540,7 +562,7 @@
     renderRecordList($('#go-records'), s.diff, lastEntryId);
     show('gameover');
   }
-  window.addEventListener('pagehide', function () { if (run && !finished) saveRecord(); });
+  // (Når siden lukkes, gemmes spillet af arkade/fortsaet.js i stedet for at serien registreres)
   $('#btn-again').addEventListener('click', function () { sfx('click'); startGame(); });
   $('#btn-go-menu').addEventListener('click', function () { sfx('click'); quitToMenu(); });
 

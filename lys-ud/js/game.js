@@ -272,6 +272,8 @@
       state: s, n: n, tap: tap, undo: undo, canUndo: canUndo, restart: restart, canRestart: canRestart,
       hint: hint, nextLevel: nextLevel, end: end, preview: preview, remainingMin: remainingMin,
       history: function () { return history.slice(); },
+      // Fortsæt, hvor du slap (arkade/fortsaet.js): læg en gemt tilstand og fortrydlisten ind igen
+      _gendan: function (st, hist) { Object.keys(st).forEach(function (key) { s[key] = st[key]; }); history = (hist || []).slice(); },
       _setBoard: function (b) { s.start = b.slice(); s.board = b.slice(); s.minMoves = minMoves(b, n); history = []; s.moves = 0; s.hintCell = -1; s.hintsUsed = 0; s.solved = false; }
     };
   }

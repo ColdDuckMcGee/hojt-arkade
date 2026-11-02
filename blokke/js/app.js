@@ -566,9 +566,32 @@
   });
   function quitToMenu() { run = null; paused = false; clearTimeout(stuckTimer); hideOverlays(); show('menu'); }
 
+  // ---------- Fortsæt, hvor du slap (arkade/fortsaet.js) ----------
+  var fortsaet = ArkadeFortsaet.create({
+    spil: 'blokke',
+    gem: function () { return run && !finished && !run.state.over ? { state: run.state } : null; },
+    info: function (d) { return d.state.n + ' × ' + d.state.n + ' · ' + d.state.score + ' point'; },
+    fortsaet: function (d) {
+      var st = d.state;
+      if (!st || !st.board || st.board.length !== st.n * st.n || !st.tray) return false;
+      run = G.createRun(st.sizeId);
+      if (run.n !== st.n) return false;
+      Object.keys(st).forEach(function (k) { run.state[k] = st[k]; });
+      paused = false; finished = false;
+      selSlot = -1; selCell = -1; hoverIdx = -1; vanishing = {}; popping = {}; lastNote = ''; zoom = -1;
+      clearTimeout(animTimer); clearTimeout(popTimer); clearTimeout(stuckTimer);
+      buildBoard(run.n);
+      hideOverlays();
+      show('game');
+      autoSelect();
+      refresh();
+    }
+  });
+
   // ---------- Game over ----------
   var lastEntryId = null;
   function gameOver() {
+    fortsaet.slet();
     if (finished || !run) return;
     finished = true;
     var s = run.state, cat = s.sizeId, rankText = '';

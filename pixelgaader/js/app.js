@@ -437,10 +437,32 @@
   $('#btn-confirm-yes').addEventListener('click', function () { sfx('click'); dwell.unguard(); finish('quit'); });
   function quitToMenu() { run = null; paused = false; clearTimeout(doneTimer); clearTimeout(overTimer); hideOverlays(); show('menu'); }
 
+  // ---------- Fortsæt, hvor du slap (arkade/fortsaet.js) ----------
+  var fortsaet = ArkadeFortsaet.create({
+    spil: 'pixelgaader',
+    gem: function () { return run && !finished && !run.state.over && !run.state.ended ? { state: run.state } : null; },
+    info: function (d) { return 'Gåde ' + (d.state.index + 1) + ' · ' + d.state.score + ' point'; },
+    fortsaet: function (d) {
+      var st = d.state;
+      if (!st || !st.puzzle || !st.mark) return false;
+      run = G.createRun(st.mode, { maxSize: st.maxSize });
+      Object.keys(st).forEach(function (k) { run.state[k] = st[k]; });
+      paused = false; finished = false; tool = 'udfyld';
+      hoverIdx = -1; curIdx = -1; lastNote = ''; noteCls = '';
+      clearTimeout(doneTimer); clearTimeout(overTimer);
+      buildBoard(run.state.puzzle);
+      hideOverlays();
+      show('game');
+      refresh();
+      if (run.state.solved) showDone();
+    }
+  });
+
   // ---------- Slut ----------
   // Rekorder pr. serie (Stigende eller en fast størrelse): point og antal løste gåder.
   var lastEntryId = null;
   function saveRecord() {
+    fortsaet.slet();
     var s = run.state, out = run.end(), res = null;
     finished = true;
     if (window.ArkadeHighscore) ArkadeHighscore.slut();
@@ -480,7 +502,7 @@
     show('gameover');
   }
   // Lukkes siden midt i et spil, gemmes sessionen alligevel
-  window.addEventListener('pagehide', function () { if (run && !finished) saveRecord(); });
+  // (Når siden lukkes, gemmes spillet af arkade/fortsaet.js i stedet for at serien registreres)
   $('#btn-again').addEventListener('click', function () { sfx('click'); startGame(); });
   $('#btn-go-menu').addEventListener('click', function () { sfx('click'); quitToMenu(); });
 

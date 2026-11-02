@@ -511,6 +511,8 @@
         return { move: m[randInt(r, m.length)], cost: paid };
       },
       end: function () { state.ended = true; return { score: state.score, swaps: state.swaps, level: state.level }; },
+      // Fortsæt, hvor du slap (arkade/fortsaet.js): læg en gemt tilstand ind igen
+      _gendan: function (st) { Object.keys(st).forEach(function (key) { state[key] = st[key]; }); k = state.k; },
       // Kun til test: læg et bestemt bræt ind (grid, træk, point, fx)
       _load: function (g, mv, score, fx) {
         state.grid = g.slice(); state.fx = fx ? fx.slice() : zeros(g.length);

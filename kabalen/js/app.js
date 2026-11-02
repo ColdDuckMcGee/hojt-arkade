@@ -687,9 +687,42 @@
   function quitToMenu() { series = null; game = null; paused = false; clearTimers(); hideOverlays(); show('menu'); }
   function clearTimers() { clearTimeout(doneTimer); clearTimeout(autoTimer); clearTimeout(stuckTimer); autoRunning = false; }
 
+  // ---------- Fortsæt, hvor du slap (arkade/fortsaet.js) ----------
+  // Serien (point, spil, sejre) og det spil, der er i gang. Mens kortene blandes, og når et spil
+  // lige er vundet, gemmes der ikke.
+  var fortsaet = ArkadeFortsaet.create({
+    spil: 'kabalen',
+    gem: function () {
+      if (!series || finished || series.over || waiting || !game || game.banked || game.won()) return null;
+      return {
+        series: { draw: series.draw, banked: series.banked, games: series.games, wins: series.wins, history: series.history },
+        game: { s: game.state, points: game.points, moves: game.moves, undos: game.undos, draws: game.draws, flips: game.flips, toFoundation: game.toFoundation }
+      };
+    },
+    info: function (d) { return 'Spil ' + d.series.games + ' · ' + Math.max(0, d.series.banked + d.game.points + d.game.undos * L.POINT.fortryd) + ' point'; },
+    fortsaet: function (d) {
+      if (!d.series || !d.game || !d.game.s || !d.game.s.t) return false;
+      series = L.createSeries({ draw: d.series.draw });
+      game = series.start(d.game.s);
+      ['banked', 'games', 'wins', 'history'].forEach(function (k) { series[k] = d.series[k]; });
+      ['points', 'moves', 'undos', 'draws', 'flips', 'toFoundation'].forEach(function (k) { game[k] = d.game[k]; });
+      finished = false; paused = false; waiting = false;
+      lastDealInfo = null;
+      sel = null; hintMv = null; fresh = false; expand = null;
+      setNote('', '');
+      hideOverlays();
+      show('game');
+      tegn.build();
+      layoutGame();
+      refresh();
+      guardBoard();
+    }
+  });
+
   // ---------- Slut ----------
   var lastEntryId = null;
   function saveRecord(why) {
+    fortsaet.slet();
     var out = series.end(why), res = null;
     finished = true;
     if (window.ArkadeHighscore) ArkadeHighscore.slut();
@@ -724,7 +757,7 @@
     renderRecordList($('#go-records'), cat(series.draw), lastEntryId);
     show('gameover');
   }
-  window.addEventListener('pagehide', function () { if (series && !finished && (series.total() > 0)) saveRecord('lukket'); });
+  // (Når siden lukkes, gemmes spillet af arkade/fortsaet.js i stedet for at serien registreres)
   $('#btn-again').addEventListener('click', function () { sfx('klik'); startGame(); });
   $('#btn-go-menu').addEventListener('click', function () { sfx('klik'); quitToMenu(); });
 

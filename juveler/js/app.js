@@ -580,6 +580,30 @@
   $('#btn-confirm-yes').addEventListener('click', function () { sfx('click'); dwell.unguard(); finish('quit'); });
   function quitToMenu() { animToken++; run = null; paused = false; busy = false; shownHud = null; clearTimeout(overTimer); hideOverlays(); show('menu'); }
 
+  // ---------- Fortsæt, hvor du slap (arkade/fortsaet.js) ----------
+  var fortsaet = ArkadeFortsaet.create({
+    spil: 'juveler',
+    // Mens juvelerne falder (busy), gemmes der ikke
+    gem: function () { return run && !finished && !busy && !run.state.over && !run.state.ended ? { state: run.state } : null; },
+    info: function (d) { return 'Niveau ' + d.state.level + ' · ' + d.state.score + ' point'; },
+    fortsaet: function (d) {
+      var st = d.state;
+      if (!st || !st.grid || st.grid.length !== st.n * st.n) return false;
+      animToken++;
+      run = G.createRun(st.size);
+      if (run.n !== st.n) return false;
+      run._gendan(st);
+      paused = false; finished = false; busy = false; shownHud = null; introQueue = []; shownTask = null; shownPN = 0;
+      sel = -1; targets = []; invalid = null; tipPair = null; gone = [];
+      curIdx = -1; lastNote = ''; noteCls = '';
+      clearTimeout(overTimer);
+      tegn.build(run.n);
+      hideOverlays();
+      show('game');
+      refresh();
+    }
+  });
+
   // ---------- Slut ----------
   function overText(reason) {
     return reason === 'ingen-byt'
@@ -590,6 +614,7 @@
   // point og byt i feltet levels – de vises uden niveau.)
   var lastEntryId = null;
   function saveRecord() {
+    fortsaet.slet();
     var s = run.state, out = run.end(), res = null;
     finished = true;
     if (window.ArkadeHighscore) ArkadeHighscore.slut();
@@ -629,7 +654,7 @@
     show('gameover');
   }
   // Lukkes siden midt i et spil, gemmes pointene alligevel
-  window.addEventListener('pagehide', function () { if (run && !finished) saveRecord(); });
+  // (Når siden lukkes, gemmes spillet af arkade/fortsaet.js i stedet for at serien registreres)
   $('#btn-again').addEventListener('click', function () { sfx('click'); startGame(); });
   $('#btn-go-menu').addEventListener('click', function () { sfx('click'); quitToMenu(); });
 

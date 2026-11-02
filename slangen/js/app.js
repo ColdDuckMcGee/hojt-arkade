@@ -302,6 +302,24 @@
     ArkadeBekraeft.spoerg({ onJa: function () { game = null; paused = false; $('#pause-overlay').hidden = true; syncMenu(); show('menu'); } });
   });
 
+  // ---------- Fortsæt, hvor du slap (arkade/fortsaet.js) ----------
+  var fortsaet = ArkadeFortsaet.create({
+    spil: 'slangen',
+    gem: function () { return game && !game.state.over ? { state: game.state } : null; },
+    info: function (d) { return d.state.size + ' × ' + d.state.size + ' · ' + d.state.score + ' point'; },
+    fortsaet: function (d) {
+      var st = d.state;
+      if (!st || SIZES.indexOf(st.size) < 0 || !st.snake || !st.snake.length) return false;
+      game = SlangenGame.createGame(st.size);
+      Object.keys(st).forEach(function (k) { game.state[k] = st[k]; });
+      paused = false;
+      $('#pause-overlay').hidden = true;
+      show('game');
+      updateHud();
+      drawBoard();
+    }
+  });
+
   // ---------- Game over ----------
   var REASONS = {
     wall: 'Slangen ramte væggen.',
@@ -314,6 +332,7 @@
     var s = game.state;
     var rankText = '';
     lastEntryId = null;
+    fortsaet.slet();
     if (window.ArkadeHighscore) ArkadeHighscore.slut();
     if (s.score > 0) {
       var res = records.add(String(s.size), s.score);

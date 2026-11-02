@@ -104,6 +104,8 @@
     if (typeof fn === 'function') { try { fn(); } catch (e) { setTimeout(function () { throw e; }, 0); } }
   }
 
+  // Spil med fortsaet.js gemmer selv spillet, så standardteksten skal ikke sige, at det går tabt
+  function gemmer() { return !!(global.ArkadeFortsaet && global.ArkadeFortsaet.aktiv()); }
   function spoerg(o) {
     o = o || {};
     if (aktiv) luk(null);
@@ -115,10 +117,10 @@
     ov.setAttribute('aria-describedby', 'arkade-bk-tekst');
     var kort = el('div', 'arkade-bk-kort panel');
     var h = el('h2', 'arkade-bk-titel neon-sub', o.titel || 'Vil du forlade spillet?'); h.id = 'arkade-bk-titel';
-    var p = el('p', 'arkade-bk-tekst muted', o.tekst || 'Spillet stopper, og pointene gemmes ikke.'); p.id = 'arkade-bk-tekst';
+    var p = el('p', 'arkade-bk-tekst muted', o.tekst || (gemmer() ? 'Spillet gemmes, så du kan fortsætte senere fra menuen.' : 'Spillet stopper, og pointene gemmes ikke.')); p.id = 'arkade-bk-tekst';
     var raekke = el('div', 'arkade-bk-raekke');
     var nej = knap('primary arkade-bk-nej', '▶', o.nej || 'Nej, spil videre', o.nejLille || '');
-    var ja = knap('arkade-bk-ja', '■', o.ja || 'Ja, til menuen', o.jaLille != null ? o.jaLille : 'pointene gemmes ikke');
+    var ja = knap('arkade-bk-ja', '■', o.ja || 'Ja, til menuen', o.jaLille != null ? o.jaLille : (gemmer() ? 'du kan fortsætte senere' : 'pointene gemmes ikke'));
     nej.addEventListener('click', function (e) { e.stopPropagation(); if (e.detail && laast(nej)) return; luk('nej'); });
     ja.addEventListener('click', function (e) { e.stopPropagation(); if (e.detail && laast(ja)) return; luk('ja'); });
     // Klik ved siden af knapperne gør ingenting (og når ikke spillet)
