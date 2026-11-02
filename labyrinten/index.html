@@ -110,6 +110,7 @@
     </div>
     <div class="board-wrap" id="board-wrap">
       <canvas id="board" aria-label="Labyrinten"></canvas>
+      <p class="gaa-besked" id="gaa-besked" hidden aria-live="polite"></p>
       <p class="sr-only" id="board-status" aria-live="polite"></p>
     </div>
     <button class="btn arrow arrow-up" data-dir="up" data-dwell-repeat aria-label="Op">
@@ -216,6 +217,13 @@
       </div>
     </div>
     <div class="setting">
+      <div class="setting-label">Gå ved at kigge<small>Kig på et felt, så går du derhen</small></div>
+      <div class="row" role="group">
+        <button class="btn option" data-set="blikSigte" data-value="false"><span class="big">Fra</span></button>
+        <button class="btn option" data-set="blikSigte" data-value="true"><span class="big">Til</span></button>
+      </div>
+    </div>
+    <div class="setting">
       <div class="setting-label">Vagternes næste træk<small>Vis svagt, hvor vagterne går hen</small></div>
       <div class="row" role="group">
         <button class="btn option" data-labset="showPlans" data-value="false"><span class="big">Skjul</span></button>
@@ -304,6 +312,7 @@
 <script src="../arkade/highscores.js"></script>
 <script src="../arkade/highscore.js"></script>
 <script src="../arkade/dwell.js"></script>
+<script src="../arkade/sigte.js"></script>
 <script src="../arkade/taster.js"></script>
 <script src="../arkade/bekraeft.js"></script>
 <script src="../arkade/fortsaet.js"></script>

@@ -14,7 +14,7 @@
   var arkade = ArkadeSettings.create('arkade', {
     begraensEffekter: false, stil: 'neon',
     dwell: false, dwellTime: 1.2, theme: 'neon', background: 'mork',
-    animation: true, sound: true, music: true
+    animation: true, sound: true, music: true, blikSigte: true
   });
   var bset = ArkadeSettings.create('bomberne', { boardSize: '11x9', enemyArrows: true });
   var records = ArkadeHighscores.create('bomberne', { max: 10 });
@@ -201,6 +201,7 @@
       danger: run.danger(), arrows: bset.get('enemyArrows') && !s.dead,
       fx: fx, now: now || performance.now(), calm: !animationOn()
     });
+    if (typeof sigte !== 'undefined' && sigte) sigte.opdater();   // kig-felterne (Gå derhen) følger brættet
   }
   function animate() {
     if (raf) return;
@@ -297,6 +298,110 @@
   $('#btn-bomb').addEventListener('click', function () { act('bomb'); });
   $('#btn-wait').addEventListener('click', function () { act('wait'); });
   $('#btn-undo').addEventListener('click', function () { undo(); });
+
+  // ---------- Gå derhen ----------
+  // Kig (eller klik) på et felt: figuren går selv ad den korteste sikre vej, ét træk ad gangen,
+  // så fjender og bomber bevæger sig som altid. Den stopper, hvis en fjende kommer tæt på, hvis
+  // flammen er på vej, eller hvis der ikke er nogen sikker vej. Alle andre valg stopper gangen.
+  // Felterne er usynlige kig-felter (arkade/sigte.js) og følger indstillingen arkade.blikSigte.
+  var gang = null, gangTimer = 0, beskedTimer = 0;
+  var GANG_MS = 260;
+  function gaaBesked(t) {
+    var el = $('#gaa-besked');
+    el.textContent = t; el.hidden = !t;
+    clearTimeout(beskedTimer);
+    if (t) beskedTimer = setTimeout(function () { el.hidden = true; }, 3500);
+  }
+  function stopGang(t) {
+    clearTimeout(gangTimer); gangTimer = 0;
+    if (gang && t) gaaBesked(t);
+    gang = null;
+  }
+  function fjendeNaer(x, y, d) {
+    return run.state.enemies.some(function (e) { return Math.abs(e.x - x) + Math.abs(e.y - y) <= d; });
+  }
+  // Korteste vej (bredde-først) over frie felter uden bomber og flamme i næste træk. Fjender flytter
+  // sig hele tiden, så de spærrer kun, når de står lige ved siden af; vejen regnes forfra hvert træk.
+  function vejTil(tx, ty) {
+    var s = run.state, fare = run.danger(), start = run.idx(s.player.x, s.player.y), maal = run.idx(tx, ty);
+    var fra = {}; fra[start] = -1;
+    var ko = [start], DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+    var bombe = {}; s.bombs.forEach(function (b) { bombe[run.idx(b.x, b.y)] = true; });
+    var fjende = {}; s.enemies.forEach(function (e) { if (Math.abs(e.x - s.player.x) + Math.abs(e.y - s.player.y) <= 2) fjende[run.idx(e.x, e.y)] = true; });
+    for (var q = 0; q < ko.length; q++) {
+      var c = ko[q];
+      if (c === maal) break;
+      var cx = c % s.cols, cy = Math.floor(c / s.cols);
+      for (var d in DIRS) {
+        var nx = cx + DIRS[d][0], ny = cy + DIRS[d][1], n = run.idx(nx, ny);
+        if (nx < 0 || ny < 0 || nx >= s.cols || ny >= s.rows || n in fra) continue;
+        if (s.tiles[n] !== 0 || bombe[n] || fjende[n] || fare[n] === 1) continue;
+        fra[n] = { c: c, d: d }; ko.push(n);
+      }
+    }
+    if (!(maal in fra)) return null;
+    var vej = [];
+    for (var k = maal; fra[k] !== -1; k = fra[k].c) vej.unshift({ d: fra[k].d, i: k });
+    return vej;
+  }
+  function gaaTil(x, y) {
+    if (!run || paused || busy || current !== 'game' || overlayOpen() || !run.playable()) return;
+    var s = run.state;
+    if (x === s.player.x && y === s.player.y) { stopGang(); return; }
+    if (s.tiles[run.idx(x, y)] !== 0) { gaaBesked('Der kan du ikke stå'); return; }
+    stopGang();
+    gang = { x: x, y: y, skridt: 0 };
+    gaaSkridt();
+  }
+  function gaaSkridt() {
+    gangTimer = 0;
+    if (!gang) return;
+    if (!run || paused || busy || current !== 'game' || overlayOpen() || !run.playable()) { stopGang(); return; }
+    var s = run.state;
+    if (s.player.x === gang.x && s.player.y === gang.y) { stopGang(); return; }
+    var vej = vejTil(gang.x, gang.y);
+    if (!vej || !vej.length) { stopGang(gang.skridt ? 'Stoppet: vejen er spærret' : 'Der er ingen sikker vej derhen lige nu'); return; }
+    var n = vej[0].i, nx = n % s.cols, ny = Math.floor(n / s.cols);
+    // En fjende lige ved næste felt: stop (første gang: gå slet ikke)
+    if (fjendeNaer(nx, ny, 1)) { stopGang(gang.skridt ? 'Stoppet: en fjende er tæt på' : 'En fjende står for tæt på – gå selv med pilene'); return; }
+    gang.skridt++;
+    act(vej[0].d);
+    if (!gang) return;
+    if (!run || !run.playable() || busy || overlayOpen()) { stopGang(); return; }
+    s = run.state;
+    if (s.player.x === gang.x && s.player.y === gang.y) { stopGang(); return; }
+    if (fjendeNaer(s.player.x, s.player.y, 2)) { stopGang('Stoppet: en fjende er tæt på'); return; }
+    gangTimer = setTimeout(gaaSkridt, animationOn() ? GANG_MS : 160);
+  }
+  // Alle andre valg (pile, bombe, vent, fortryd, pause …) stopper gangen
+  document.addEventListener('click', function (e) {
+    if (gang && !(e.target.closest && e.target.closest('.arkade-sigte-felt'))) stopGang();
+  }, true);
+
+  // Kig-felterne: ét pr. frit felt (sat oven på lærredet)
+  var sigte = window.ArkadeSigte ? ArkadeSigte.create({
+    host: $('#board-wrap'),
+    felter: function () {
+      var s = run.state, c = boardCanvas, ic = s.cols - 2, ir = s.rows - 2;
+      var W = c.clientWidth, H = c.clientHeight, cell = Math.min(W / ic, H / ir);
+      var ox = c.offsetLeft + c.clientLeft, oy = c.offsetTop + c.clientTop, out = [];
+      for (var y = 1; y < s.rows - 1; y++) for (var x = 1; x < s.cols - 1; x++) {
+        if (s.tiles[run.idx(x, y)] !== 0) continue;
+        out.push({ x: ox + (x - 1) * cell, y: oy + (y - 1) * cell, w: cell, h: cell, gx: x, gy: y, navn: 'Gå hertil' });
+      }
+      return out;
+    },
+    sigt: function (f) { gaaTil(f.gx, f.gy); },
+    aktiv: function () { return !!run && current === 'game' && !paused && !busy && !overlayOpen() && run.playable() && arkade.get('blikSigte'); }
+  }) : null;
+  // Med musen: klik direkte på lærredet (også når kig-felterne er slået fra)
+  boardCanvas.addEventListener('click', function (e) {
+    if (!run) return;
+    var s = run.state, r = boardCanvas.getBoundingClientRect(), ic = s.cols - 2, ir = s.rows - 2;
+    var W = boardCanvas.clientWidth, H = boardCanvas.clientHeight, cell = Math.min(W / ic, H / ir);
+    var x = Math.floor((e.clientX - r.left - boardCanvas.clientLeft) / cell) + 1, y = Math.floor((e.clientY - r.top - boardCanvas.clientTop) / cell) + 1;
+    if (x >= 1 && y >= 1 && x < s.cols - 1 && y < s.rows - 1) gaaTil(x, y);
+  });
 
   function undo() {
     if (!run || busy || paused || current !== 'game') return;

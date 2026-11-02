@@ -122,6 +122,7 @@
     </button>
     <div class="board-wrap" id="board-wrap">
       <canvas id="board" role="img" aria-label="Spillebræt"></canvas>
+      <p class="gaa-besked" id="gaa-besked" hidden aria-live="polite"></p>
     </div>
     <button class="btn arrow turn-btn arrow-right" data-dir="right" aria-label="Højre">
       <svg viewBox="0 0 100 100" aria-hidden="true"><path d="M88 50 L50 16 V37 H12 V63 H50 V84 Z"/></svg>
@@ -241,6 +242,13 @@
       </div>
     </div>
     <div class="setting">
+      <div class="setting-label">Gå ved at kigge<small>Kig på et felt, så går du derhen</small></div>
+      <div class="row" role="group">
+        <button class="btn option" data-set="blikSigte" data-value="false"><span class="big">Fra</span></button>
+        <button class="btn option" data-set="blikSigte" data-value="true"><span class="big">Til</span></button>
+      </div>
+    </div>
+    <div class="setting">
       <div class="setting-label">Fjendernes næste træk<small>Svage pile viser, hvor fjenderne går hen</small></div>
       <div class="row" role="group">
         <button class="btn option" data-bset="enemyArrows" data-value="false"><span class="big">Skjul</span></button>
@@ -331,6 +339,7 @@
 <script src="../arkade/highscores.js"></script>
 <script src="../arkade/highscore.js"></script>
 <script src="../arkade/dwell.js"></script>
+<script src="../arkade/sigte.js"></script>
 <script src="../arkade/taster.js"></script>
 <script src="../arkade/bekraeft.js"></script>
 <script src="../arkade/fortsaet.js"></script>

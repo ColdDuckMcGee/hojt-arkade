@@ -14,7 +14,7 @@
   var arkade = ArkadeSettings.create('arkade', {
     begraensEffekter: false, stil: 'neon',
     dwell: false, dwellTime: 1.2, theme: 'neon', background: 'mork',
-    animation: true, sound: true, music: true
+    animation: true, sound: true, music: true, blikSigte: true
   });
   var lab = ArkadeSettings.create('labyrinten', { difficulty: 'normal', showPlans: true });
   var records = ArkadeHighscores.create('labyrinten', { max: 10 });
@@ -214,6 +214,7 @@
     var v = viewFromState();
     if (hoverDir && canPlay()) v.preview = run.preview(hoverDir);
     LabyrintenRender.draw(boardCanvas, v, colors);
+    if (typeof sigte !== 'undefined' && sigte) sigte.opdater();   // kig-felterne (Gå derhen) følger brættet
   }
   function refresh() {
     if (!run) return;
@@ -394,6 +395,93 @@
     refresh();
   });
 
+  // ---------- Gå derhen ----------
+  // Kig (eller klik) på et felt i gangene: figuren går selv ad den korteste vej, ét træk ad gangen
+  // (vagterne flytter sig som altid). Den stopper, hvis en vagt, der ikke er bange, kommer tæt på.
+  // Alle andre valg stopper gangen. Kig-felterne følger indstillingen arkade.blikSigte.
+  var gang = null, gangTimer = 0, beskedTimer = 0;
+  function gaaBesked(t) {
+    var el = $('#gaa-besked');
+    el.textContent = t; el.hidden = !t;
+    clearTimeout(beskedTimer);
+    if (t) beskedTimer = setTimeout(function () { el.hidden = true; }, 3500);
+  }
+  function stopGang(t) {
+    clearTimeout(gangTimer); gangTimer = 0;
+    if (gang && t) gaaBesked(t);
+    gang = null;
+  }
+  function vagtNaer(x, y, d) {
+    return run.state.guards.some(function (g) { return !g.scared && Math.abs(g.x - x) + Math.abs(g.y - y) <= d; });
+  }
+  function vejTil(tx, ty) {
+    var s = run.state, m = s.maze, start = s.player.y * m.w + s.player.x, maal = ty * m.w + tx;
+    var fra = {}; fra[start] = -1;
+    var ko = [start];
+    for (var q = 0; q < ko.length; q++) {
+      var c = ko[q];
+      if (c === maal) break;
+      var cx = c % m.w, cy = Math.floor(c / m.w);
+      for (var d in G.DIRS) {
+        var nx = cx + G.DIRS[d].x, ny = cy + G.DIRS[d].y, n = ny * m.w + nx;
+        if (!m.open(nx, ny) || n in fra) continue;
+        fra[n] = { c: c, d: d }; ko.push(n);
+      }
+    }
+    if (!(maal in fra)) return null;
+    var vej = [];
+    for (var k = maal; fra[k] !== -1; k = fra[k].c) vej.unshift({ d: fra[k].d, i: k });
+    return vej;
+  }
+  function gaaTil(x, y) {
+    if (!canPlay()) return;
+    var s = run.state;
+    if (x === s.player.x && y === s.player.y) { stopGang(); return; }
+    if (!s.maze.open(x, y)) { gaaBesked('Det er en væg'); return; }
+    stopGang();
+    gang = { x: x, y: y, skridt: 0 };
+    gaaSkridt();
+  }
+  function gaaSkridt() {
+    gangTimer = 0;
+    if (!gang) return;
+    if (run && busy()) { gangTimer = setTimeout(gaaSkridt, 60); return; }   // vent, til skridtet er tegnet færdigt
+    if (!canPlay()) { stopGang(); return; }
+    var s = run.state;
+    if (s.player.x === gang.x && s.player.y === gang.y) { stopGang(); return; }
+    var vej = vejTil(gang.x, gang.y);
+    if (!vej || !vej.length) { stopGang('Der er ingen vej derhen'); return; }
+    var n = vej[0].i, nx = n % s.maze.w, ny = Math.floor(n / s.maze.w);
+    if (vagtNaer(nx, ny, 2)) { stopGang(gang.skridt ? 'Stoppet: en vagt er tæt på' : 'En vagt er for tæt på – gå selv med pilene'); return; }
+    gang.skridt++;
+    move(vej[0].d);
+    gangTimer = setTimeout(gaaSkridt, animationOn() ? 120 : 160);
+  }
+  document.addEventListener('click', function (e) {
+    if (gang && !(e.target.closest && e.target.closest('.arkade-sigte-felt'))) stopGang();
+  }, true);
+
+  var sigte = window.ArkadeSigte ? ArkadeSigte.create({
+    host: $('#board-wrap'),
+    felter: function () {
+      var m = run.state.maze, c = boardCanvas, cell = c.clientWidth / m.w;
+      var ox = c.offsetLeft + c.clientLeft, oy = c.offsetTop + c.clientTop, out = [];
+      for (var y = 0; y < m.h; y++) for (var x = 0; x < m.w; x++) {
+        if (!m.open(x, y)) continue;
+        out.push({ x: ox + x * cell, y: oy + y * cell, w: cell, h: cell, gx: x, gy: y, navn: 'Gå hertil' });
+      }
+      return out;
+    },
+    sigt: function (f) { gaaTil(f.gx, f.gy); },
+    aktiv: function () { return !!run && current === 'game' && !paused && run.state.status === 'play' && arkade.get('blikSigte'); }
+  }) : null;
+  boardCanvas.addEventListener('click', function (e) {
+    if (!run) return;
+    var m = run.state.maze, r = boardCanvas.getBoundingClientRect(), cell = boardCanvas.clientWidth / m.w;
+    var x = Math.floor((e.clientX - r.left - boardCanvas.clientLeft) / cell), y = Math.floor((e.clientY - r.top - boardCanvas.clientTop) / cell);
+    if (x >= 0 && y >= 0 && x < m.w && y < m.h) gaaTil(x, y);
+  });
+
   $$('.arrow').forEach(function (b) {
     b.addEventListener('click', function () { move(b.dataset.dir); });
     // Forhåndsvisning: hvor ender jeg, og bliver jeg fanget?
@@ -434,7 +522,9 @@
       if (!st || !st.maze || !st.player || st.status !== 'play') return false;
       cancelAnim();
       run = G.createRun({ difficulty: st.difficulty });
-      Object.keys(st).forEach(function (k) { run.state[k] = st[k]; });
+      Object.keys(st).forEach(function (k) { if (k !== 'maze') run.state[k] = st[k]; });
+      // Kortet har en funktion (maze.open), som ikke kan gemmes: hent det frisk ud fra nummeret
+      run.state.maze = G.loadMaze(typeof st.maze.index === 'number' ? st.maze.index : st.level - 1);
       paused = false;
       hideOverlays();
       show('game');

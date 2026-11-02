@@ -198,3 +198,11 @@ html[data-stil="pixel"] {
   --lab-eyes: #fff1e8; --lab-pupil: #1d2b53; --lab-preview: #ffec27; --lab-danger: #ff004d;
 }
 html[data-stil="pixel"] #board { --k: #fff1e8; border: 0; border-radius: 0; box-shadow: var(--pixelkant); }
+
+/* Gå derhen: kort besked nederst på brættet */
+.gaa-besked { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 3; margin: 0;
+  max-width: calc(100% - 20px); padding: 6px 14px; border-radius: 10px; pointer-events: none;
+  background: rgba(10, 4, 18, .88); color: var(--text); font-size: 1rem; font-weight: 700; text-align: center;
+  box-shadow: 0 0 0 2px var(--ui); }
+html[data-stil="tegneserie"] .gaa-besked { background: var(--papir); color: var(--ink); border-radius: 0; box-shadow: 0 0 0 3px var(--ink), 4px 4px 0 var(--ink); }
+html[data-stil="pixel"] .gaa-besked { background: var(--ink); color: var(--hvid); border-radius: 0; box-shadow: var(--pixelkant); font-family: var(--font); }
