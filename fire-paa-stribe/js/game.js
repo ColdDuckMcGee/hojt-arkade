@@ -209,6 +209,7 @@
     if (!LEVELS[levelId]) levelId = DEFAULT_LEVEL;
     var s = {
       level: levelId, score: 0, game: 0, wins: 0, draws: 0, ended: false,
+      to: !!opts.to, wins2: 0,          // to spillere på én skærm (arkade/tospil.js): wins = spiller 1, wins2 = spiller 2
       board: null, starter: CPU, turn: YOU, history: [], youMoves: 0,
       undosUsed: 0, hintsUsed: 0, penalty: 0, hintCol: -1,
       result: null, winCells: [], lastMove: null, lastPoints: null
@@ -226,6 +227,12 @@
       if (st.state === 'play') return null;
       s.winCells = st.cells;
       s.result = st.state === 'draw' ? 'draw' : (st.player === YOU ? 'win' : 'loss');
+      if (s.to) {
+        // To spillere: ingen point; et tab afslutter ikke serien
+        s.lastPoints = { total: 0 };
+        if (s.result === 'win') s.wins++; else if (s.result === 'draw') s.draws++; else s.wins2++;
+        return s.result;
+      }
       s.lastPoints = gamePoints(s.result, s.youMoves, s.level, s.penalty);
       s.score += s.lastPoints.total;
       if (s.result === 'win') s.wins++;
@@ -247,6 +254,21 @@
     function play(c) {
       if (s.ended || s.result || s.turn !== YOU || !canDrop(s.board, c)) return { ok: false };
       return place(c, YOU);
+    }
+    // To spillere: den, der har turen, lægger en brik
+    function play2(c) {
+      if (!s.to || s.ended || s.result || !canDrop(s.board, c)) return { ok: false };
+      return place(c, s.turn);
+    }
+    // To spillere: Fortryd tager kun den seneste brik tilbage (gratis), og turen går tilbage
+    function canUndo2() { return s.to && !s.ended && !s.result && s.history.length > 0; }
+    function undo2() {
+      if (!canUndo2()) return { ok: false };
+      var m = s.history.pop(); s.board[idx(m.row, m.col)] = EMPTY;
+      if (m.p === YOU) s.youMoves--;
+      s.lastMove = s.history.length ? s.history[s.history.length - 1] : null;
+      s.turn = m.p; s.hintCol = -1;
+      return { ok: true, removed: [m] };
     }
     function cpuChoose() { return cpuMove(s.board, s.level, rng); }
     function cpuPlay(c) {
@@ -286,7 +308,7 @@
     function end() { s.ended = true; return { score: s.score, wins: s.wins, draws: s.draws, games: s.game }; }
     newGame();
     return {
-      state: s, play: play, cpuChoose: cpuChoose, cpuPlay: cpuPlay, canUndo: canUndo, undo: undo,
+      state: s, play: play, play2: play2, canUndo2: canUndo2, undo2: undo2, cpuChoose: cpuChoose, cpuPlay: cpuPlay, canUndo: canUndo, undo: undo,
       hint: hint, nextGame: nextGame, end: end,
       // Kun til test: sæt en bestemt plade
       _setBoard: function (b, turn) { s.board = b.slice(); s.turn = turn || YOU; s.result = null; s.winCells = []; s.hintCol = -1; s.history = []; s.youMoves = count(b, YOU); }

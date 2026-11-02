@@ -406,9 +406,18 @@ html[data-stil="pixel"] .hud-label, html[data-stil="pixel"] .arkade-bk-titel, ht
 .arkade-start-raekke.har-dag > .btn.wide { min-width: 0; }
 .arkade-dag-knap .big { line-height: 1.1; }
 .arkade-dag-info { font-variant-numeric: tabular-nums; font-size: .85rem !important; line-height: 1.15; }
+/* To spillere (arkade/tospil.js): samme række, samme regler */
+.arkade-start-raekke.har-to { width: min(calc(var(--btn) * 4.6), calc(100vw - 32px)); }
+.arkade-start-raekke.har-to.har-gem, .arkade-start-raekke.har-to.har-dag { width: min(calc(var(--btn) * 6.6), calc(100vw - 32px)); }
+.arkade-start-raekke.har-to > .btn { flex: 1 1 0; min-width: 0; padding-left: 8px; padding-right: 8px; }
+.arkade-start-raekke.har-to > .btn.wide { min-width: 0; }
+.arkade-to-knap .big { line-height: 1.1; }
+.arkade-to-knap .small { font-size: .85rem !important; line-height: 1.15; }
 /* Lavt vindue på langs: Start står ofte i samme række som andre valg, så rækken gøres smallere */
 @media (orientation: landscape) and (max-height: 500px) {
   .arkade-start-raekke.har-gem, .arkade-start-raekke.har-dag { width: min(calc(var(--btn) * 3.2), calc(100vw - 32px)); gap: 10px; }
   .arkade-start-raekke.har-dag.har-gem { width: min(calc(var(--btn) * 4.6), calc(100vw - 32px)); }
+  .arkade-start-raekke.har-to { width: min(calc(var(--btn) * 3.2), calc(100vw - 32px)); gap: 10px; }
+  .arkade-start-raekke.har-to.har-gem { width: min(calc(var(--btn) * 4.6), calc(100vw - 32px)); }
   .arkade-start-raekke.har-gem > .btn .big { font-size: 1.15rem; }
 }

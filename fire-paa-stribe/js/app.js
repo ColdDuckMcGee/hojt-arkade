@@ -167,10 +167,15 @@
   boardEl.addEventListener('pointerleave', function () { if (hoverCol >= 0) { hoverCol = -1; renderBoard(); } });
 
   function clearTimers() { clearTimeout(cpuTimer); clearTimeout(animTimer); cpuTimer = animTimer = 0; pendingCpu = false; }
-  function startGame() {
+  // To spillere på én skærm (arkade/tospil.js): spiller 1 har den pink brik, spiller 2 den cyan.
+  // Ingen computer, ingen point og ingen rekorder; serien fortsætter, til man afslutter.
+  var to = false;
+  function hvem(p) { return to ? ArkadeToSpil.navn(p === YOU ? 1 : 2) : p === YOU ? 'Du' : 'Computeren'; }
+  function startGame(o) {
     if (window.ArkadeHighscore) ArkadeHighscore.start();
     clearTimers();
-    run = G.createSeries(level());
+    to = !!(o && o.to);
+    run = G.createSeries(level(), { to: to });
     paused = false; finished = false; busy = false; falling = -1;
     hoverCol = -1; curCol = -1; lastNote = '';
     buildBoard();
@@ -181,20 +186,21 @@
   function beginGame() {
     $('#end-row').hidden = true; $('#act-row').hidden = false;
     dwell.unguard();
-    lastNote = run.state.starter === CPU ? 'Computeren starter dette parti' : 'Du starter dette parti';
+    lastNote = hvem(run.state.starter) + ' starter dette parti';
     refresh();
-    if (run.state.turn === CPU) scheduleCpu();
+    if (!to && run.state.turn === CPU) scheduleCpu();
   }
   var OVERLAYS = ['#pause-overlay', '#confirm-overlay'];
   function hideOverlays() { OVERLAYS.forEach(function (o) { $(o).hidden = true; }); dwell.unguard(); }
   function overlayOpen() { return OVERLAYS.some(function (o) { return !$(o).hidden; }); }
   function confirmOpen() { return !$('#confirm-overlay').hidden; }
   function live() { return run && !paused && !finished && !run.state.result && current === 'game' && !overlayOpen(); }
-  function canPlay() { return live() && !busy && run.state.turn === YOU; }
+  function canPlay() { return live() && !busy && (to || run.state.turn === YOU); }
 
   // Faldet: roligt, og længere for computerens brik. Uden animation lander den med det samme.
   function fallTime(row, who) {
     if (!animationOn()) return 0;
+    if (to) who = YOU;   // to spillere: begge brikker falder lige hurtigt
     return Math.round((who === CPU ? 520 : 300) + row * (who === CPU ? 70 : 45));
   }
   function animateDrop(res) {
@@ -206,9 +212,9 @@
   function dropCol(c) {
     if (!canPlay()) return;
     if (!G.canDrop(run.state.board, c)) { lastNote = 'Kolonne ' + (c + 1) + ' er fuld'; refresh(); return; }
-    var res = run.play(c);
+    var res = to ? run.play2(c) : run.play(c);
     if (!res.ok) return;
-    sfx('you');
+    sfx(res.player === YOU ? 'you' : 'cpu');
     lastNote = '';
     if (curCol >= 0) curCol = c;
     var ms = animateDrop(res);
@@ -216,7 +222,7 @@
     refresh();
     animTimer = setTimeout(function () {
       falling = -1; busy = false;
-      if (res.result) gameEnded(); else scheduleCpu();
+      if (res.result) gameEnded(); else if (to) refresh(); else scheduleCpu();
     }, ms);
   }
   // Computeren tænker uden tidspres: en kort, rolig pause, så brikken falder langsomt ned.
@@ -242,6 +248,12 @@
   function resumeCpu() { if (pendingCpu && run && !finished) { pendingCpu = false; scheduleCpu(); } }
 
   function undoMove() {
+    if (to) {
+      if (!canPlay() || !run.canUndo2()) return;
+      run.undo2(); sfx('undo');
+      lastNote = 'Fortrudt – ' + hvem(run.state.turn) + ' lægger igen';
+      refresh(); return;
+    }
     if (!canPlay() || !run.canUndo()) return;
     run.undo();
     sfx('undo');
@@ -249,7 +261,7 @@
     refresh();
   }
   function showTip() {
-    if (!canPlay()) return;
+    if (!canPlay() || to) return;
     var had = run.state.hintCol;
     var c = run.hint();
     if (c < 0) return;
@@ -307,19 +319,33 @@
   function refresh() {
     if (!run) return;
     var s = run.state;
-    $('#hud-score').textContent = s.score;
+    // To spillere: Point og Sejre bliver til sejre for spiller 1 og 2
+    $('#hud-score').previousElementSibling.textContent = to ? ArkadeToSpil.navn(1) : 'Point';
+    $('#hud-wins').previousElementSibling.textContent = to ? ArkadeToSpil.navn(2) : 'Sejre';
+    $('#hud-score').textContent = to ? s.wins : s.score;
     $('#hud-game').textContent = s.game;
-    $('#hud-wins').textContent = s.wins;
+    $('#hud-wins').textContent = to ? s.wins2 : s.wins;
     $('#hud-draws').textContent = s.draws;
     var note = lastNote;
-    if (!note && !s.result) {
+    $('#lg-p1').textContent = to ? ArkadeToSpil.navn(1) : 'Dig';
+    $('#lg-p2').textContent = to ? ArkadeToSpil.navn(2) : 'Computeren';
+    $('#hud-score').parentNode.classList.toggle('hud-to', to);
+    $('#hud-wins').parentNode.classList.toggle('hud-to', to);
+    if (to) {
+      // stillingen står i felterne ovenover
+    } else if (!note && !s.result) {
       var pts = G.gamePoints('win', s.youMoves + 1, s.level, s.penalty).total;
       note = 'Vinder du nu: +' + pts + ' point';
     }
-    if (s.result) note = s.result === 'loss' ? 'Serien er slut' : '+' + pointsText(s.lastPoints.total) + ' for partiet';
+    if (s.result && !to) note = s.result === 'loss' ? 'Serien er slut' : '+' + pointsText(s.lastPoints.total) + ' for partiet';
     $('#points-note').textContent = note;
     var hint = $('#hint'), cls = '', html;
-    if (s.result === 'win') { html = 'Du fik fire på stribe! +' + s.lastPoints.total; cls = 'ok'; }
+    if (to && s.result) {
+      html = s.result === 'draw' ? 'Uafgjort – brættet er fuldt' : discHtml(s.result === 'win' ? 1 : 2) + hvem(s.result === 'win' ? YOU : CPU) + ' fik fire på stribe!';
+      cls = 'ok';
+    }
+    else if (to && !paused) html = discHtml(s.turn) + (busy ? 'Brikken falder …' : hvem(s.turn) + 's tur – vælg en kolonne');
+    else if (s.result === 'win') { html = 'Du fik fire på stribe! +' + s.lastPoints.total; cls = 'ok'; }
     else if (s.result === 'draw') { html = 'Uafgjort – brættet er fuldt. +' + s.lastPoints.total; cls = 'ok'; }
     else if (s.result === 'loss') { html = 'Computeren fik fire på stribe'; cls = 'lost'; }
     else if (paused) html = 'Pause';
@@ -330,12 +356,12 @@
     if (hint.innerHTML !== html) hint.innerHTML = html;
     hint.className = 'hint' + (cls ? ' ' + cls : '');
     var play = canPlay();
-    setAria($('#btn-undo'), !play || !run.canUndo());
-    $('#undo-sub').textContent = s.undosUsed >= G.RULES.maxUndo ? 'brugt i partiet' : 'ét træk, −' + G.RULES.undoCost + ' point';
+    setAria($('#btn-undo'), !play || !(to ? run.canUndo2() : run.canUndo()));
+    $('#undo-sub').textContent = to ? 'seneste brik' : s.undosUsed >= G.RULES.maxUndo ? 'brugt i partiet' : 'ét træk, −' + G.RULES.undoCost + ' point';
     var tipShown = s.hintCol >= 0;
-    setAria($('#btn-tip'), !play || tipShown);
-    $('#tip-sub').textContent = tipShown ? 'vises nu' : '−' + G.RULES.hintCost + ' point';
-    boardEl.setAttribute('aria-label', 'Brættet, parti ' + s.game + '. ' + (s.turn === YOU ? 'Din tur.' : 'Computerens tur.'));
+    setAria($('#btn-tip'), !play || tipShown || to);
+    $('#tip-sub').textContent = to ? 'kun mod computeren' : tipShown ? 'vises nu' : '−' + G.RULES.hintCost + ' point';
+    boardEl.setAttribute('aria-label', 'Brættet, parti ' + s.game + '. ' + (to ? hvem(s.turn) + 's tur.' : s.turn === YOU ? 'Din tur.' : 'Computerens tur.'));
     renderBoard();
     // Sikkerhedsnet: gør en ny tekst, at noget ikke kan være der, lægges skærmen om
     if (current === 'game' && !relayouting && (overflows(gameEl) || overflows(root))) { relayouting = true; layoutGame(); relayouting = false; }
@@ -354,7 +380,7 @@
     lastNote = '';
     $('#act-row').hidden = true;
     var er = $('#end-row'); er.hidden = false;
-    var lost = s.result === 'loss';
+    var lost = s.result === 'loss' && !to;
     $('#btn-next-label').textContent = lost ? 'Se resultat' : 'Næste parti';
     $('#btn-next-sub').textContent = lost ? 'og rekorder' : 'Parti ' + (s.game + 1);
     $('#btn-end-quit').hidden = lost;
@@ -366,7 +392,7 @@
   }
   function nextGame() {
     if (!run || finished || !run.state.result) return;
-    if (run.state.result === 'loss') { sfx('click'); finish(); return; }
+    if (run.state.result === 'loss' && !to) { sfx('click'); finish(); return; }
     run.nextGame();
     sfx('click');
     hoverCol = -1;
@@ -401,7 +427,8 @@
     confirmFrom = from;
     $('#pause-overlay').hidden = true;
     var s = run.state;
-    $('#confirm-text').textContent = 'Du har ' + pointsText(s.score) + ', ' + seriesText(s.wins, s.draws) + '. Pointene gemmes i rekorderne.';
+    $('#confirm-text').textContent = to ? 'Stillingen er ' + ArkadeToSpil.navn(1) + ' ' + s.wins + ', ' + ArkadeToSpil.navn(2) + ' ' + s.wins2 + '.'
+      : 'Du har ' + pointsText(s.score) + ', ' + seriesText(s.wins, s.draws) + '. Pointene gemmes i rekorderne.';
     var ov = $('#confirm-overlay');
     ov.hidden = false;
     fitScreen(ov);
@@ -431,14 +458,15 @@
     spil: 'fire-paa-stribe',
     gem: function () {
       var s = run && run.state;
-      return s && !finished && !busy && !s.ended && !s.result && s.turn === YOU ? { state: s } : null;
+      return s && !finished && !busy && !s.ended && !s.result && (to || s.turn === YOU) ? { state: s, to: to } : null;
     },
-    info: function (d) { return 'Parti ' + d.state.game + ' · ' + d.state.score + ' point'; },
+    info: function (d) { return d.to ? 'To spillere · ' + d.state.wins + '–' + d.state.wins2 : 'Parti ' + d.state.game + ' · ' + d.state.score + ' point'; },
     fortsaet: function (d) {
       var st = d.state;
       if (!st || !st.board || !st.board.length) return false;
       clearTimers();
-      run = G.createSeries(st.level);
+      to = !!d.to;
+      run = G.createSeries(st.level, { to: to });
       Object.keys(st).forEach(function (k) { run.state[k] = st[k]; });
       paused = false; finished = false; busy = false; falling = -1;
       hoverCol = -1; curCol = -1; lastNote = '';
@@ -451,6 +479,8 @@
     }
   });
 
+  ArkadeToSpil.knap({ fortsaet: fortsaet, tekst: 'skiftes på én skærm', start: function () { sfx('click'); startGame({ to: true }); } });
+
   // ---------- Slut ----------
   // Serien gemmes som rekord pr. niveau: point, sejre og uafgjorte.
   var lastEntryId = null;
@@ -459,7 +489,7 @@
     var s = run.state, out = run.end(), res = null;
     finished = true;
     if (window.ArkadeHighscore) ArkadeHighscore.slut();
-    if (out.score > 0) res = records.add(s.level, out.score, { wins: out.wins, draws: out.draws });
+    if (out.score > 0 && !to) res = records.add(s.level, out.score, { wins: out.wins, draws: out.draws });
     return res;
   }
   function finish() {
@@ -474,6 +504,17 @@
       if (res.rank > 0) lastEntryId = res.entry.id;
     } else rankText = 'Ingen point denne gang';
     paused = false; hideOverlays();
+    $('.go-records').hidden = to; $('.go-unit').textContent = to ? '' : 'point';
+    if (to) {
+      var w1 = s.wins, w2 = s.wins2;
+      $('#go-reason').textContent = w1 === w2 ? 'Uafgjort efter ' + s.game + ' partier.' : ArkadeToSpil.navn(w1 > w2 ? 1 : 2) + ' vandt serien!';
+      $('#go-score').textContent = w1 + '–' + w2;
+      $('#go-games').textContent = ArkadeToSpil.navn(1) + ' ' + w1 + ' · ' + ArkadeToSpil.navn(2) + ' ' + w2 + (s.draws ? ' · ' + drawsText(s.draws) : '');
+      $('#go-rank').textContent = '';
+      $('#go-again-sub').textContent = 'To spillere';
+      show('gameover');
+      return;
+    }
     $('#go-reason').textContent = lost ? 'Computeren vandt parti ' + s.game + '.' : 'Du afsluttede i parti ' + s.game + '.';
     $('#go-score').textContent = s.score;
     $('#go-games').textContent = seriesText(s.wins, s.draws) + ' · ' + levelName(s.level);
@@ -485,7 +526,7 @@
   }
   // Lukkes siden midt i en serie, gemmes den alligevel
   // (Når siden lukkes, gemmes spillet af arkade/fortsaet.js i stedet for at serien registreres)
-  $('#btn-again').addEventListener('click', function () { sfx('click'); startGame(); });
+  $('#btn-again').addEventListener('click', function () { sfx('click'); startGame(to ? { to: true } : null); });
   $('#btn-go-menu').addEventListener('click', function () { sfx('click'); quitToMenu(); });
 
   function renderRecordList(ol, cat, highlightId) {
@@ -834,7 +875,7 @@
   var goEl = $('#gameover'), goShowRecords = false;
   function setGoSplit(on) {
     goEl.classList.toggle('go-split', on);
-    $('#btn-go-rec').hidden = !on;
+    $('#btn-go-rec').hidden = !on || to;   // to spillere: ingen rekordliste
     goEl.classList.toggle('go-vis-rekorder', on && goShowRecords);
     $('#go-rec-label').textContent = goShowRecords ? 'Resultat' : 'Rekorder';
     $('#go-rec-icon').textContent = goShowRecords ? '←' : '★';

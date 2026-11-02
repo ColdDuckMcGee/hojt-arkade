@@ -261,3 +261,6 @@ ol.records .score { white-space: nowrap; }
 .end-row .act-btn .big { white-space: nowrap; font-size: clamp(1.05rem, calc(var(--side-w, 300px) * 0.068), 1.6rem); }
 .compact .end-row .act-btn .big { font-size: clamp(1rem, calc(var(--btn) * 0.17), 1.5rem); }
 .end-row .act-btn { column-gap: 10px; padding-left: 12px; padding-right: 12px; }
+
+/* To spillere: "Spiller 1"/"Spiller 2" som overskrift i stillingen må ikke brydes */
+.hud.hud-to .hud-label { white-space: nowrap; font-size: .8em; letter-spacing: .02em; }
