@@ -65,6 +65,7 @@ with sync_playwright() as p:
     pg.reload(); pg.wait_for_timeout(600)
     check(pg.evaluate("!!navigator.serviceWorker.controller"), 'service workeren styrer hallen efter første besøg')
     pg.goto(URL + 'slangen/index.html'); pg.wait_for_timeout(800)
+    pg.evaluate("Object.keys(localStorage).filter(function (k) { return /\\.fortsaet$/.test(k); }).forEach(function (k) { localStorage.removeItem(k); })")   # Slangen fra før ligger gemt (fortsaet.js): Start skal starte med det samme
     pg.locator('#btn-start').click(); pg.wait_for_timeout(400)
     check(pg.evaluate("[...document.querySelectorAll('.screen')].some(s => !s.hidden && s.id === 'game')"), 'Slangen kan startes online')
 
@@ -93,7 +94,7 @@ with sync_playwright() as p:
     # 4. En side, der står åben: opdager ny udgave, venter under spillet, genindlæses i menuen
     pg.goto(URL + 'slangen/index.html'); pg.wait_for_timeout(800)
     pg.evaluate("ArkadeOffline.snapshot()")
-    pg.evaluate("() => { window.__samme = 1; }")
+    pg.evaluate("() => { window.__samme = 1; Object.keys(localStorage).filter(function (k) { return /\\.fortsaet$/.test(k); }).forEach(function (k) { localStorage.removeItem(k); }); }")   # intet gemt spil: Start starter med det samme
     pg.locator('#btn-start').click(); pg.wait_for_timeout(300)
     check(pg.evaluate("ArkadeOffline.tjek()") is False, 'åben side: ingen ny udgave, før der er en')
     udgiv('slangen/js/render.js', '(function', 'window.__R = "R2";\n(function')
@@ -118,6 +119,7 @@ with sync_playwright() as p:
     pg.goto(URL); pg.wait_for_timeout(800)
     check(pg.evaluate("!!document.querySelector('#btn-spil') && !!window.HOJT_SPIL && window.HOJT_SPIL.length > 20"), 'hallen virker uden net')
     pg.goto(URL + 'slangen/index.html'); pg.wait_for_timeout(800)
+    pg.evaluate("Object.keys(localStorage).filter(function (k) { return /\\.fortsaet$/.test(k); }).forEach(function (k) { localStorage.removeItem(k); })")   # Slangen fra før ligger gemt (fortsaet.js)
     pg.locator('#btn-start').click(); pg.wait_for_timeout(400)
     check(pg.evaluate("[...document.querySelectorAll('.screen')].some(s => !s.hidden && s.id === 'game')"), 'Slangen virker uden net (spillet før)')
     pg.goto(URL + 'sudoku/index.html'); pg.wait_for_timeout(600)

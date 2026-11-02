@@ -222,6 +222,7 @@ def gameplay(pg, w, h, tag):
 def baner_check(pg, w, h, tag, big):
     """Banevalget: store knapper, alle baner passer med felter >= 80 px, og valget starter spillet."""
     pg.evaluate("Taarnene.show('menu')"); pg.wait_for_timeout(80)
+    pg.evaluate("Object.keys(localStorage).filter(function (k) { return /\\.fortsaet$/.test(k); }).forEach(function (k) { localStorage.removeItem(k); })")   # intet gemt spil (fortsaet.js)
     pg.click('#btn-start'); pg.wait_for_timeout(150)
     if st(pg, "document.getElementById('baner').hidden"): fails.append(tag + ' Start spil viste ikke banevalget'); return
     nb = st(pg, "document.querySelectorAll('.bane-btn').length")
@@ -234,6 +235,7 @@ def baner_check(pg, w, h, tag, big):
         check(pg, 'bane ' + b, '#game', w, h, tag + '-bane-' + b + '.png')
         if big and SHOT: pg.screenshot(path=SHOT + 'bane-%s.png' % b)
     pg.evaluate("Taarnene.show('menu')"); pg.wait_for_timeout(80)
+    pg.evaluate("Object.keys(localStorage).filter(function (k) { return /\\.fortsaet$/.test(k); }).forEach(function (k) { localStorage.removeItem(k); })")   # intet gemt spil (fortsaet.js)
     pg.click('#btn-start'); pg.wait_for_timeout(120)
     pg.click('.bane-btn[data-bane=hesteskoen]'); pg.wait_for_timeout(150)
     if st(pg, "[Taarnene.game && Taarnene.game.state.map.bane, Taarnene.gameSettings.get('bane'), document.getElementById('game').hidden]") != ['hesteskoen', 'hesteskoen', False]:

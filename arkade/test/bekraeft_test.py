@@ -40,7 +40,7 @@ LAYOUT = """() => {
 
 def start(pg, g, dwell=False):
     pg.goto((ROOT / g / 'index.html').as_uri())
-    pg.evaluate("(d) => { localStorage.setItem('hojtArkade.arkade.indstillinger', JSON.stringify({dwell: d, dwellTime: 0.5, music: false, sound: false, animation: false})); }", dwell)
+    pg.evaluate("(d) => { localStorage.setItem('hojtArkade.arkade.indstillinger', JSON.stringify({dwell: d, dwellTime: 0.5, music: false, sound: false, animation: false})); Object.keys(localStorage).filter(function (k) { return /\\.fortsaet$/.test(k); }).forEach(function (k) { localStorage.removeItem(k); }); }", dwell)  # intet gemt spil (fortsaet.js), så Start starter med det samme
     pg.reload(); pg.wait_for_timeout(300)
     pg.mouse.move(2, 2)
     pg.locator('#btn-start, #btn-continue').first.click()
