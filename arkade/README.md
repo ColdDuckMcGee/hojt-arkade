@@ -269,6 +269,26 @@ mange gange, man vil; den bedste score står på knappen ("2. nov. · bedst 340"
   resultaterne så ikke kan sammenlignes.
 - Test: `python3 arkade/test/dagens_test.py [spil …]` (samme spil for to spillere, Fortsæt midt i, menuen).
 
+## To spillere på én skærm (tospil.js)
+```js
+ArkadeToSpil.knap({ fortsaet: fortsaet, tekst: 'skiftes på én skærm', start: function () { startGame({ to: true }); } });
+ArkadeToSpil.navn(1)   // 'Spiller 1'
+```
+Knappen **To spillere** står i rækken med Start spil (og Fortsæt og Dagens udfordring). Man skiftes til
+at bruge de samme store knapper – fx en øjenstyringsbruger mod en ven eller et familiemedlem. Der gives
+ingen point på rekordlisten; spillet tæller stillingen og slutter med en vinder.
+
+- **Fire på stribe:** pink brik er spiller 1, gul spiller 2. Fortryd tager den seneste brik tilbage. Et
+  tabt parti afslutter ikke serien.
+- **Kanonen:** spiller 1 har den venstre kanon, spiller 2 den højre. Hver runde får nyt landskab og fuldt liv.
+- **Billard:** 8-ball; man skiftes til at slå op. Fejlstød giver kuglen i hånden til den anden.
+- **Søslag:** begge placerer skibe, og mellem turene dækker en kig væk-skærm havene ("Jeg er Spiller 2").
+  Perspektivet byttes ved hvert turskift (`run.skift()`), så den, der har turen, altid ser sit eget hav.
+- **Golf:** to spil med samme frø (samme huller). Alle slag tæller, færrest slag vinder. Højst par + 4
+  slag pr. hul; derefter samles bolden op (par + 5). Ingen slagpulje.
+- Fortsæt husker, at det er et spil for to (og i Søslag dækkes havene, til den rigtige spiller er klar).
+- Test: `python3 arkade/test/tospil_test.py [spil …]`.
+
 ## Begræns effekter (ArkadeEffekter i settings.js, effekter.js)
 ```js
 ArkadeEffekter.begraenset();      // true, når "Effekter: Begrænsede" er valgt
