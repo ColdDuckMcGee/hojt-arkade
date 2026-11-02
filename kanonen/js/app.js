@@ -253,6 +253,10 @@
     $('#hud-wind-sub').textContent = w === 0 ? 'vindstille' : w > 0 ? 'blæser mod højre' : 'blæser mod venstre';
     $('#angle-value').textContent = p.angle + '°';
     $('#power-value').textContent = p.power + ' %';
+    // Sidste skud: vinkel og krudt står ved siden af, så man kan rette ud fra dem
+    var sd = m.sidste;
+    $('#angle-sidst').textContent = sd ? 'sidst ' + sd.angle + '°' : '';
+    $('#power-sidst').textContent = sd ? 'sidst ' + sd.power + ' %' : '';
     // Knapper kan kun vælges i din tur (deaktiverede knapper springes over af dwell).
     var mine = phase === 'aim' && !paused;
     $$('#game .btn.step').forEach(function (b) {
@@ -312,7 +316,7 @@
     var ammo = shooter.ammo;
     lastShooter = shooter.id;
     if (ammo === 'bombe') shooter.bombs--;
-    if (shooter === m.player) m.shots++;
+    if (shooter === m.player) { m.shots++; m.sidste = { angle: shooter.angle, power: shooter.power }; }   // vises ved knapperne
     m.trails[shooter.id] = null; // den gamle bane for denne kanon forsvinder
     var p = G.launch(shooter, m.wind);
     scene.flight = { p: p, pts: [{ x: p.x, y: p.y }], shooter: shooter, ammo: ammo, acc: 0, n: 0, done: false };

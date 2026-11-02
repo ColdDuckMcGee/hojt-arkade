@@ -25,7 +25,7 @@
   });
   // mode: sværhed (let, mellem, svaer). helpers: fremhæv række/kolonne/boks og ens tal.
   // gloed: temaets glød og lysskær (kan slås fra; spillet kan aflæses uden).
-  var bset = ArkadeSettings.create('sudoku', { mode: 'let', helpers: true, gloed: true });
+  var bset = ArkadeSettings.create('sudoku', { mode: 'let', helpers: true, gloed: true, autoNoter: false });
   var records = ArkadeHighscores.create('sudoku', { max: 10 });
 
   var THEMES = ['neon', 'solnedgang', 'cyberpunk', 'kontrast'];
@@ -114,7 +114,10 @@
   bset.onChange(function (key) {
     if (key === 'gloed') applyGlow();
     if (key === 'helpers' || key === 'gloed') { syncSettingsUi(); renderBoard(); }
+    if (key === 'autoNoter') { syncSettingsUi(); if (autoNoter()) renderBoard(); }
   });
+  // Automatiske noter (indstilling): fyld alle tomme felter med de mulige tal ved hver ny gåde
+  function autoNoter() { return !!(run && bset.get('autoNoter') && run.autoNotes()); }
 
   // ---------- Skærme ----------
   var current = 'menu';
@@ -245,6 +248,7 @@
     tegn.build();
     hideOverlays();
     show('game');
+    autoNoter();
     refresh();
   }
   var OVERLAYS = ['#pause-overlay', '#done-overlay', '#confirm-overlay'];
@@ -447,6 +451,7 @@
   function nextPuzzle() {
     if (!run || !run.state.solved || finished) return;
     run.nextPuzzle();
+    autoNoter();
     $('#done-overlay').hidden = true;
     zoom = -1; sel = -1; setNote('', '');
     sfx('click');

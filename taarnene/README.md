@@ -8,6 +8,7 @@ Et roligt tower defense-spil i ture for voksne. Der er intet ur og ingen tidspre
 Fjenderne går ad en fast sti fra **indgangen** (pil) til **målet** (firkant med pil). Man bygger tårne på felterne ved siden af stien i **byggefasen**, så længe man vil, og trykker så på **Start bølgen**. Bølgen kører derefter roligt af sig selv, og man skal ikke reagere på noget. Bølgerne har ingen ende og bliver sværere. Spillet slutter, når de 10 liv er brugt.
 
 - **Byg:** vælg et tomt felt (klik, tryk, ét dwell eller Enter). Så kommer et stort panel med de fire tårne, deres pris og hvad de gør. Tårne, man ikke har råd til, er låst og siger, hvor meget der mangler. **Fortryd** lukker panelet.
+- **Samme igen:** tårnet, man sidst byggede, er fremhævet med **Samme igen** i byggepanelet (på sin faste plads) og har fokus, så Enter eller kontakt bygger det samme tårn igen.
 - **Opgrader og sælg:** vælg et tårn, man har. Panelet viser niveau, skade og rækkevidde (rækkevidden vises også som en ring på banen). Et tårn har 3 niveauer. Salg giver 70 % tilbage. Et tårn, der er bygget eller opgraderet i samme byggefase eller samme pause midt i bølgen, kan sælges for den fulde pris, så et fejlvalg med øjnene altid kan fortrydes.
 - **Tårnene:**
   - **Laser** (10): skyder på den forreste fjende. Billig og god.

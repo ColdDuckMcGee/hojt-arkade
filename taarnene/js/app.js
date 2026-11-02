@@ -262,7 +262,7 @@
 
   // ---------- Spillet ----------
   var game = null, paused = false, finished = false;
-  var curIdx = -1, selIdx = -1;
+  var curIdx = -1, selIdx = -1, sidstBygget = null;   // sidstBygget: til "Samme igen" i byggemenuen
   var boardEl = $('#board');
   var lastNote = '', noteCls = '';
   var tegn = TG.create(boardEl);
@@ -321,8 +321,11 @@
     var box = $('#byg-valg');
     $('#byg-overlay').style.setProperty('--byg-cols', bygCols());
     box.innerHTML = L.TOWER_TYPES.map(function (t) {
-      var cost = L.TOWERS[t].cost, ok = s.money >= cost;
-      return '<button class="btn taarn-valg" data-type="' + t + '"' + (ok ? '' : ' aria-disabled="true"') + '>' +
+      var cost = L.TOWERS[t].cost, ok = s.money >= cost, igen = t === sidstBygget && ok;
+      // Byg det samme igen: tårnet, man sidst byggede, er fremhævet (på sin faste plads) og har fokus
+      return '<button class="btn taarn-valg' + (igen ? ' primary igen' : '') + '" data-type="' + t + '"' + (ok ? '' : ' aria-disabled="true"') +
+        (igen ? ' aria-label="' + NAVN[t] + ' igen, ' + moneyText(cost) + '"' : '') + '>' +
+        (igen ? '<span class="tv-igen">Samme igen</span>' : '') +
         '<span class="tv-pic">' + TG.taarnSvg(t, 1) + '</span>' +
         '<span class="big">' + NAVN[t] + '</span>' +
         '<span class="tv-pris">' + (ok ? moneyText(cost) : moneyText(cost) + ' – mangler ' + (cost - s.money)) + '</span>' +
@@ -334,7 +337,7 @@
     openOverlay('#byg-overlay');
     tegn.range(i, null);
     renderBoard();
-    var first = $('.taarn-valg:not([aria-disabled="true"])', box) || $('#btn-byg-luk');
+    var first = $('.taarn-valg.igen', box) || $('.taarn-valg:not([aria-disabled="true"])', box) || $('#btn-byg-luk');
     first.focus({ preventScroll: true });
   }
   function doBuild(type) {
@@ -346,6 +349,7 @@
       return;
     }
     sfx('build');
+    sidstBygget = type;
     setNote(NAVN[type] + ' bygget for ' + moneyText(res.cost) + '.', 'ok');
     closePanels();
   }

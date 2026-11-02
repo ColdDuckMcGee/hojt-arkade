@@ -112,6 +112,20 @@
       c.restore();
     }
 
+    // Hvor din sidste kugle landede: en ring med "SIDST" over, så man kan rette sigtet ud fra den
+    function sidsteNedslag(pts, color) {
+      if (!pts || pts.length < 2) return;
+      var e = pts[pts.length - 1], r = 30 * u;
+      c.save();
+      c.strokeStyle = rgba(color, 0.9); c.lineWidth = 5 * u;
+      c.beginPath(); c.arc(e.x, e.y, r, 0, Math.PI * 2); c.stroke();
+      c.beginPath(); c.moveTo(e.x - r * 0.5, e.y); c.lineTo(e.x + r * 0.5, e.y); c.moveTo(e.x, e.y - r * 0.5); c.lineTo(e.x, e.y + r * 0.5); c.stroke();
+      c.font = '800 ' + Math.round(34 * u) + 'px ' + colors.font; c.textAlign = 'center'; c.textBaseline = 'bottom';
+      c.lineWidth = 6 * u; c.strokeStyle = 'rgba(0,0,0,.75)'; c.strokeText('SIDST', e.x, e.y - r - 4 * u);
+      c.fillStyle = rgba(color, 1); c.fillText('SIDST', e.x, e.y - r - 4 * u);
+      c.restore();
+    }
+
     function cannon(cn, color, active, label) {
       if (cn.dead) {
         c.save();
@@ -228,8 +242,9 @@
       var m = st.match;
       if (!m) return;
       // sidste skuds bane bliver stående svagt
-      trail(m.trails.spiller, colors.player, 0.32, 3, true);
+      trail(m.trails.spiller, colors.player, 0.42, 3, true);
       trail(m.trails.computer, colors.cpu, 0.32, 3, true);
+      sidsteNedslag(m.trails.spiller, colors.player);
       terrain(m.h);
       cannon(m.player, colors.player, st.active === 'spiller', 'DU');
       cannon(m.cpu, colors.cpu, st.active === 'computer', 'MODSTANDER ' + m.no);

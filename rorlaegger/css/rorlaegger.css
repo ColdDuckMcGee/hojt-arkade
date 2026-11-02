@@ -363,3 +363,7 @@ ol.records .score { white-space: nowrap; }
 .rl-lille .confirm-btn { min-width: calc(var(--btn) * 1.5); }
 .rl-lille:not(.rl-tvaers) .confirm-row { flex-direction: column; gap: 32px; }
 .rl-lille:not(.rl-tvaers) .confirm-btn { width: min(100%, 16em); }
+
+/* Drejeretning: pilen spejles, når der drejes mod uret */
+#btn-retning .retning-ikon { color: var(--ui); transition: transform .2s; }
+#btn-retning[aria-pressed="true"] .retning-ikon { transform: scaleX(-1); }

@@ -279,3 +279,7 @@ html[data-stil="pixel"] {
 html[data-stil="tegneserie"] #field { border: 5px solid var(--ink); border-radius: 10px; box-shadow: 8px 8px 0 var(--ink); }
 html[data-stil="pixel"] #field { --k: #fff1e8; border: 0; border-radius: 0; box-shadow: var(--pixelkant); }
 html[data-stil="tegneserie"] .hp-bar, html[data-stil="pixel"] .hp-bar { border-radius: 0; }
+
+/* Sidste skud: vinkel og krudt fra sidst, lille og dæmpet ved siden af tallet */
+.ctrl-sidst { margin-left: auto; margin-right: 10px; font-size: calc(var(--head-h) * 0.42); font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; text-shadow: 0 1px 4px #000; }
+.inline .ctrl-sidst { display: none; }

@@ -28,7 +28,7 @@
   });
   // visForbindelse: rør, der hænger sammen med kilden, lyser svagt op.
   // gloed: temaets glød og lysskær (kan slås fra; spillet kan aflæses uden).
-  var bset = ArkadeSettings.create('rorlaegger', { visForbindelse: true, gloed: true });
+  var bset = ArkadeSettings.create('rorlaegger', { visForbindelse: true, gloed: true, retning: 'med' });
   var records = ArkadeHighscores.create('rorlaegger', { max: 10 });
 
   var THEMES = ['neon', 'solnedgang', 'cyberpunk', 'kontrast'];
@@ -196,6 +196,20 @@
     turn(+c.dataset.i);
   });
 
+  // Drejeretning: med eller mod uret (huskes). Så kræver et rør aldrig mere end to valg.
+  function syncRetning() {
+    var mod = bset.get('retning') === 'mod', b = $('#btn-retning');
+    b.setAttribute('aria-pressed', String(mod));
+    b.setAttribute('aria-label', 'Drejeretning: ' + (mod ? 'mod uret' : 'med uret') + '. Vælg for at skifte.');
+    $('#retning-label').textContent = mod ? 'Mod uret' : 'Med uret';
+    $('#retning-sub').textContent = mod ? 'vælg for med uret' : 'vælg for mod uret';
+  }
+  $('#btn-retning').addEventListener('click', function () {
+    bset.set('retning', bset.get('retning') === 'mod' ? 'med' : 'mod');
+    sfx('click'); syncRetning(); refresh();
+  });
+  syncRetning();
+
   function startGame() {
     if (window.ArkadeHighscore) ArkadeHighscore.start();
     run = L.createRun({ maxN: maxN() });
@@ -217,7 +231,7 @@
   function turn(i) {
     if (!live()) return;
     if (curIdx >= 0) curIdx = i;
-    var res = run.rotate(i);
+    var res = run.rotate(i, bset.get('retning') === 'mod' ? -1 : 1);
     if (!res.ok) {
       var msg = {
         kilde: 'Kilden kan ikke drejes. Vandet kommer herfra.',
@@ -295,7 +309,7 @@
     else if (!txt) {
       if (s.turnsLeft === 1) { txt = 'Sidste drejning! Fortryd giver drejninger tilbage.'; cls = 'err'; }
       else if (s.turnsLeft <= 3) { txt = 'Kun ' + turnsText(s.turnsLeft) + ' tilbage'; cls = 'err'; }
-      else txt = 'Vælg et rør for at dreje det';
+      else txt = 'Vælg et rør for at dreje det ' + (bset.get('retning') === 'mod' ? 'mod uret' : 'med uret');
     }
     hint.textContent = txt;
     hint.className = 'hint' + (cls ? ' ' + cls : '');
@@ -575,7 +589,7 @@
   function cssBtn(W, H) { var cm = 96 / 2.54; return Math.max(3 * cm, Math.min(0.15 * Math.min(W, H), 4.2 * cm)); }
   function cssGap(W, H) { return Math.max(0.8 * 96 / 2.54, 0.03 * Math.min(W, H)); }
   function spacing(W, H) { var mn = Math.min(W, H); return { p: Math.max(8, mn * 0.016), g: Math.max(8, Math.min(26, mn * 0.022)) }; }
-  var MAX_CELL = 190, NBTN = 2, NHUD = 3; // Fortryd og Pause; Bane, Point og Drejninger
+  var MAX_CELL = 190, NBTN = 3, NHUD = 3; // Retning, Fortryd og Pause; Bane, Point og Drejninger
   function candidates(n, b, W, H) {
     var d = spacing(W, H), p = d.p, g = d.g, ig = 10;
     var hudH = Math.max(52, Math.min(84, b * 0.62)), hint = 60;
@@ -584,7 +598,7 @@
     // wide: status | gitter | tekst og handlinger
     var sideW = Math.min(380, Math.max(230, b * 2.2));
     var leftH = 100 + NHUD * hudH + (NHUD - 1) * ig + 70 + b + 3 * ig;
-    var rightH = hint + b + ig;
+    var rightH = hint + 2 * b + 2 * ig;   // Retning og Fortryd
     res.sideW = sideW;
     res.wide = (rightH <= H - 2 * p && leftH <= H - 2 * p) ? cell(W - 2 * p - 2 * sideW - 2 * g, H - 2 * p) : 0;
     // side: gitter | (status, tekst, handlinger og pause i k kolonner)

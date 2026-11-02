@@ -254,15 +254,17 @@
       // Drej brikken i felt i en kvart omgang med uret. Koster én drejning.
       // Når drejningen forbinder kilde og afløb, løber vandet af sig selv: banen er klaret.
       // Er drejningerne så brugt, uden at banen er løst, er spillet slut.
-      rotate: function (i) {
+      // dir: 1 = med uret (standard), -1 = mod uret. Begge koster én drejning.
+      rotate: function (i, dir) {
         if (!api.live()) return { ok: false, result: 'slut' };
         var t = state.board.tiles[i];
         if (!t) return { ok: false, result: 'ugyldig' };
         if (t.fixed) return { ok: false, result: t.type };
         if (state.turnsLeft <= 0) return { ok: false, result: 'ingen' };
-        t.rot = (t.rot + 1) % 4;
+        var mod = dir === -1;
+        t.rot = (t.rot + (mod ? 3 : 1)) % 4;
         state.turnsLeft--; state.turnsUsed++;
-        state.undo.push(i);
+        state.undo.push(mod ? { i: i, d: -1 } : i);   // et tal = med uret (som før)
         var f = flow(state.board);
         state.flow = f; state.water = null;
         if (f.reached) {
@@ -284,8 +286,8 @@
       // Fortryd den seneste drejning (giver drejningen tilbage).
       undo: function () {
         if (!api.live() || !state.undo.length) return { ok: false };
-        var i = state.undo.pop(), t = state.board.tiles[i];
-        t.rot = (t.rot + 3) % 4;
+        var e = state.undo.pop(), mod = typeof e === 'object' && e.d === -1, i = mod ? e.i : e, t = state.board.tiles[i];
+        t.rot = (t.rot + (mod ? 1 : 3)) % 4;
         state.turnsLeft++; state.turnsUsed--;
         state.water = null;
         state.flow = flow(state.board);

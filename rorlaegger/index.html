@@ -93,6 +93,9 @@
     <aside class="side side-right" id="side-right" aria-label="Handlinger">
       <p class="hint" id="hint" aria-live="polite">Vælg et rør for at dreje det</p>
       <div class="tools" id="tools" role="group" aria-label="Handlinger">
+        <button class="btn act-btn" id="btn-retning" aria-pressed="false">
+          <svg class="retning-ikon" viewBox="0 0 100 100" aria-hidden="true"><path d="M74 62A27 27 0 1 1 70 29" fill="none" stroke="currentColor" stroke-width="10" stroke-linecap="round"/><path d="M79 12 82 42 53 36Z" fill="currentColor"/></svg><span class="big" id="retning-label">Med uret</span><span class="small" id="retning-sub">vælg for mod uret</span>
+        </button>
         <button class="btn act-btn" id="btn-undo" aria-label="Fortryd seneste drejning">
           <svg aria-hidden="true"><use href="#rl-ikon-fortryd"/></svg><span class="big">Fortryd</span><span class="small" id="undo-sub">giver drejningen tilbage</span>
         </button>

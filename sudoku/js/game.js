@@ -424,6 +424,13 @@
       state: s, place: place, toggleNote: toggleNote, erase: erase, undo: undo, canUndo: canUndo,
       hint: hint, hintCost: function () { return RULES.points[s.diff].tip; }, errorCost: function () { return RULES.points[s.diff].error; },
       nextPuzzle: nextPuzzle, prefetch: prefetch, end: end,
+      // Automatiske noter: alle mulige tal i hvert tomt felt (et forkert tal i feltet tæller ikke med).
+      // Ingen point trækkes fra, og det er ikke et træk.
+      autoNotes: function () {
+        if (!live()) return false;
+        for (var i = 0; i < 81; i++) if (!s.grid[i]) s.notes[i] = candidates(s.grid, i) & ~(s.wrong[i] ? bit(s.wrong[i]) : 0);
+        return true;
+      },
       digitCount: digitCount, boxDone: boxDone, isGiven: isGiven,
       _load: function (p) { load({ diff: s.diff, givens: p.givens.slice(), sol: p.sol.slice(), clues: count(p.givens) }); }
     };

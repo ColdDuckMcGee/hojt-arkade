@@ -101,6 +101,9 @@ def test(b, spil, cfg, fejl):
             a, c = foer if isinstance(foer, dict) else {}, efter if isinstance(efter, dict) else {}
             print('    forskel:', str(a)[:300], '\n    efter:  ', str(c)[:300])
         tjek(ens, 'samme spil efter Fortsæt')
+        # Spil videre efter Fortsæt: intet må gå i stykker (fx funktioner, der ikke kunne gemmes)
+        aben(pg, random.Random(3), 10)
+        pg.wait_for_timeout(cfg.get('vent', 300))
         # Nyt spil spørger først
         pg.reload(); pg.wait_for_timeout(400)
         pg.click('#btn-start'); pg.wait_for_timeout(250)
