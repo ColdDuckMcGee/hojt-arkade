@@ -21,6 +21,15 @@
  *      den slags skud rykker loftet en række ned.
  *   5. Er brættet tomt, er banen klaret. Når en boble når bundlinjen, er
  *      spillet slut.
+ *
+ * Specialbobler (værdier i gitteret over farvernes 0–6):
+ *   STEN (10)    – ligger i gitteret fra bane 2. Kan ikke sprænges, kun falde,
+ *                  når den ikke hænger fast længere (eller fjernes af en bombe).
+ *   REGNBUE (11) – skydes som en almindelig boble og passer til alle farver.
+ *                  Den lander og laver den største klynge, den kan. Bliver den
+ *                  liggende, tæller den med i alle farvers klynger.
+ *   BOMBE (12)   – skydes og fjerner sig selv og alle bobler rundt om (også sten).
+ * Kombo: falder 6 eller flere på én gang, tæller de dobbelt; 12 eller flere tredobbelt.
  */
 (function (global) {
   'use strict';
@@ -46,6 +55,13 @@
     { id: 'orange', name: 'orange', shape: 'stjerne' },
     { id: 'cyan',   name: 'cyan',   shape: 'ring' }
   ];
+  var STEN = 10, REGNBUE = 11, BOMBE = 12;
+  var SPECIALS = {};
+  SPECIALS[STEN] = { id: 'sten', name: 'sten', shape: 'sten' };
+  SPECIALS[REGNBUE] = { id: 'regnbue', name: 'regnbue', shape: 'regnbue' };
+  SPECIALS[BOMBE] = { id: 'bombe', name: 'bombe', shape: 'bombe' };
+  function isColor(v) { return v >= 0 && v < COLORS.length; }
+  function info(v) { return isColor(v) ? COLORS[v] : SPECIALS[v] || null; }
   var SHAPE_NAMES = { prik: 'prik', trekant: 'trekant', firkant: 'firkant', plus: 'plus', ruder: 'ruder', stjerne: 'stjerne', ring: 'ring' };
 
   // Sværhedsgrader: antal farver på første bane. Hver ny bane får én farve mere (op til 7).
@@ -60,6 +76,10 @@
     pointsPop: 10,        // pr. sprængt boble
     pointsFall: 20,       // pr. faldet boble
     bigFall: 6,           // falder 6 eller flere på én gang, tæller de dobbelt
+    hugeFall: 12,         // ... og 12 eller flere tredobbelt
+    specialChance: 0.08,  // chance for, at en ny skudboble er en bombe eller en regnbue
+    specialFrom: 2,       // fra bane 2
+    stonesFrom: 2,        // sten i gitteret fra bane 2: (bane − 1), højst 4
     levelBonus: 250,      // ryddet bane: 250 × banens nummer
     startRows: 5,         // fyldte rækker på bane 1
     maxRows: 8,
@@ -144,16 +164,29 @@
     return best;
   }
   // Klyngen af samme farve, som (r, c) hører til (flood fill).
-  function cluster(grid, r, c) {
-    var col = grid[r][c], seen = {}, out = [], stack = [[r, c]];
-    if (col < 0) return out;
+  // asColor: farven, en regnbue i (r, c) skal regnes som (ellers dens egen farve).
+  // Regnbuer i gitteret passer til alle farver; sten og bomber er aldrig med.
+  function cluster(grid, r, c, asColor) {
+    var col = asColor === undefined ? grid[r][c] : asColor, seen = {}, out = [], stack = [[r, c]];
+    if (!isColor(col)) return out;
     while (stack.length) {
-      var p = stack.pop(), key = p[0] + ',' + p[1];
-      if (seen[key] || grid[p[0]][p[1]] !== col) continue;
+      var p = stack.pop(), key = p[0] + ',' + p[1], v = grid[p[0]][p[1]];
+      if (seen[key] || (v !== col && v !== REGNBUE)) continue;
       seen[key] = true; out.push({ r: p[0], c: p[1] });
       neighbors(p[0], p[1]).forEach(function (n) { if (!seen[n[0] + ',' + n[1]]) stack.push(n); });
     }
     return out;
+  }
+  // En regnbue i (r, c): den største klynge, den kan være med i (en af nabofarverne).
+  function rainbowCluster(grid, r, c) {
+    var best = [];
+    neighbors(r, c).forEach(function (n) {
+      var v = grid[n[0]][n[1]];
+      if (!isColor(v)) return;
+      var cl = cluster(grid, r, c, v);
+      if (cl.length > best.length) best = cl;
+    });
+    return best;
   }
   // Bobler, der ikke hænger fast i loftet (via andre bobler).
   function floating(grid) {
@@ -171,9 +204,11 @@
   }
   function count(grid) { var n = 0; grid.forEach(function (row) { row.forEach(function (v) { if (v >= 0) n++; }); }); return n; }
   function lowestRow(grid) { for (var r = ROWS - 1; r >= 0; r--) if (grid[r].some(function (v) { return v >= 0; })) return r; return -1; }
+  // Bobler, der kan sprænges (farver og regnbuer). Når de er væk, falder resten (sten), og banen er klaret.
+  function countPoppable(grid) { var n = 0; grid.forEach(function (row) { row.forEach(function (v) { if (isColor(v) || v === REGNBUE) n++; }); }); return n; }
   function presentColors(grid) {
     var seen = {};
-    grid.forEach(function (row) { row.forEach(function (v) { if (v >= 0) seen[v] = true; }); });
+    grid.forEach(function (row) { row.forEach(function (v) { if (isColor(v)) seen[v] = true; }); });
     return Object.keys(seen).map(Number).sort(function (a, b) { return a - b; });
   }
 
@@ -188,6 +223,13 @@
     };
     var snapState = null;
 
+    // Næste skudboble. Fra bane 2 er der en lille chance for en bombe eller en regnbue.
+    // (Altid ét kald til rng først, så Dagens udfordring giver samme rækkefølge for alle.)
+    function pickShot() {
+      var x = rng();
+      if (s.level >= RULES.specialFrom && x < RULES.specialChance) return x < RULES.specialChance / 2 ? BOMBE : REGNBUE;
+      return pickColor();
+    }
     function pickColor() {
       var pres = presentColors(s.grid);
       if (!pres.length) { pres = []; for (var i = 0; i < s.colors; i++) pres.push(i); }
@@ -217,7 +259,16 @@
           if (n >= 2) s.grid[rr][cc] = k;
         }
       }
-      s.current = pickColor(); s.next = pickColor();
+      // Sten fra bane 2: på tilfældige pladser under øverste række
+      var stones = level >= RULES.stonesFrom ? Math.min(4, level - 1) : 0;
+      for (var st = 0, tries = 0; st < stones && tries < 200; tries++) {
+        var sr = 1 + Math.floor(rng() * (rows - 1)), sc = Math.floor(rng() * rowLen(sr)), sv = s.grid[sr][sc];
+        if (!isColor(sv)) continue;
+        var same = 0; s.grid.forEach(function (row) { row.forEach(function (v) { if (v === sv) same++; }); });
+        if (same < 2) continue;     // alle farver skal stadig være med
+        s.grid[sr][sc] = STEN; st++;
+      }
+      s.current = pickColor(); s.next = pickShot();
     }
     function playable() { return !s.over && !s.cleared; }
 
@@ -234,15 +285,29 @@
       ev.events.push('shot');
       if (tr.bounces) ev.events.push('bounce');
       ev.events.push('land');
-      var cl = cluster(s.grid, tr.cell.r, tr.cell.c);
-      if (cl.length >= RULES.match) {
+      var cl;
+      if (s.current === BOMBE) {
+        // Bomben: sig selv og alle naboer
+        cl = [tr.cell].concat(neighbors(tr.cell.r, tr.cell.c).filter(function (n) { return s.grid[n[0]][n[1]] >= 0; }).map(function (n) { return { r: n[0], c: n[1] }; }));
+        ev.events.push('bomb');
+      } else if (s.current === REGNBUE) {
+        cl = rainbowCluster(s.grid, tr.cell.r, tr.cell.c);
+        if (cl.length >= RULES.match) ev.events.push('rainbow');
+      } else cl = cluster(s.grid, tr.cell.r, tr.cell.c);
+      if (cl.length >= RULES.match || s.current === BOMBE) {
         cl.forEach(function (p) { ev.popped.push({ r: p.r, c: p.c, color: s.grid[p.r][p.c] }); s.grid[p.r][p.c] = -1; });
         ev.events.push('pop');
         floating(s.grid).forEach(function (p) { ev.fallen.push({ r: p.r, c: p.c, color: s.grid[p.r][p.c] }); s.grid[p.r][p.c] = -1; });
+        // Ingen farvede bobler tilbage: sten falder med, og banen er klaret
+        if (countPoppable(s.grid) === 0) {
+          for (var lr = 0; lr < ROWS; lr++) for (var lc = 0; lc < rowLen(lr); lc++) if (s.grid[lr][lc] >= 0) { ev.fallen.push({ r: lr, c: lc, color: s.grid[lr][lc] }); s.grid[lr][lc] = -1; }
+        }
         if (ev.fallen.length) ev.events.push('fall');
-        var pts = ev.popped.length * RULES.pointsPop;
+        var pts = ev.popped.filter(function (p) { return p.color !== BOMBE; }).length * RULES.pointsPop;
         var fallPts = ev.fallen.length * RULES.pointsFall;
-        if (ev.fallen.length >= RULES.bigFall) fallPts *= 2;
+        ev.kombo = ev.fallen.length >= RULES.hugeFall ? 3 : ev.fallen.length >= RULES.bigFall ? 2 : 1;
+        fallPts *= ev.kombo;
+        if (ev.kombo > 1) ev.events.push('kombo');
         ev.points = pts + fallPts; ev.fallPoints = fallPts;
         s.score += ev.points;
         // Et skud, der fjerner bobler, nulstiller loftets nedtælling
@@ -270,8 +335,8 @@
       // Næste boble: kun farver, der stadig er på brættet
       var pres = presentColors(s.grid);
       s.current = s.next;
-      if (pres.indexOf(s.current) < 0) s.current = pickColor();
-      s.next = pickColor();
+      if (isColor(s.current) && pres.indexOf(s.current) < 0) s.current = pickColor();
+      s.next = pickShot();
       return ev;
     }
     function swap() {
@@ -304,7 +369,7 @@
 
   global.BoblerGame = {
     COLS: COLS, ROWS: ROWS, ROW_H: ROW_H, DEAD_ROW: DEAD_ROW, W: W, H: H, SHOOT_Y: SHOOT_Y, MAX_ANGLE: MAX_ANGLE,
-    COLORS: COLORS, SHAPE_NAMES: SHAPE_NAMES, DIFFS: DIFFS, RULES: RULES,
+    COLORS: COLORS, STEN: STEN, REGNBUE: REGNBUE, BOMBE: BOMBE, SPECIALS: SPECIALS, isColor: isColor, info: info, countPoppable: countPoppable, rainbowCluster: rainbowCluster, SHAPE_NAMES: SHAPE_NAMES, DIFFS: DIFFS, RULES: RULES,
     rowLen: rowLen, cellX: cellX, cellY: cellY, neighbors: neighbors, emptyGrid: emptyGrid,
     trace: trace, cluster: cluster, floating: floating, count: count, presentColors: presentColors,
     colorsFor: colorsFor, rowsFor: rowsFor, levelBonus: levelBonus, clampAngle: clampAngle, createRun: createRun

@@ -23,6 +23,8 @@
   --bo-cannon: #22eaff;
   --bo-cannon-fill: #062a33;
   --bo-label: #c9b8e8;
+  --bo-sten: #8d8698; --bo-sten-line: #4a4456;   /* sten */
+  --bo-bombe: #241c30;                            /* bombe */
 }
 [data-theme="solnedgang"] {
   --bo-frame: #ff8a1f; --bo-aim: #ffd23a; --bo-cannon: #c77dff; --bo-cannon-fill: #1d0a2a;
@@ -42,6 +44,7 @@
   --bo-sym: #000000; --bo-rim: #ffffff;
   --bo-aim: #ffffff; --bo-ceiling: #ffff00; --bo-ceiling-fill: rgba(255, 255, 0, 0.18);
   --bo-dead: #ff0000; --bo-cannon: #00ffff; --bo-cannon-fill: #000000; --bo-label: #ffffff;
+  --bo-sten: #b4b4b4; --bo-sten-line: #000000; --bo-bombe: #000000;
 }
 
 /* ---------- Startmenu ---------- */

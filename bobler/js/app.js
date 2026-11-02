@@ -42,7 +42,7 @@
   var SFX = {
     turn: 'click', shoot: 'move', bounce: 'click', land: 'obstacle', pop: 'eat', fall: 'bonusSpawn',
     ceiling: 'bonusGone', cleared: 'bonus', over: 'crash', record: 'record', click: 'click', pause: 'pause',
-    swap: 'click', undo: 'bonusGone'
+    swap: 'click', undo: 'bonusGone', bomb: 'obstacle', kombo: 'bonus'
   };
   function sfx(name) { audio.play(SFX[name] || name); }
 
@@ -63,6 +63,7 @@
       floor: v('floor'), c: c, c2: c2, sym: v('sym'), rim: v('rim'), aim: v('aim'),
       ceiling: v('ceiling'), ceilingFill: v('ceiling-fill'), dead: v('dead'),
       cannon: v('cannon'), cannonFill: v('cannon-fill'), label: v('label'),
+      sten: v('sten'), stenLine: v('sten-line'), bombe: v('bombe'),
       glow: cssVar('--glow') !== '0'
     };
   }
@@ -117,7 +118,12 @@
   function colorsText(n) { return n + ' farver'; }
   function levelsText(n) { return n === 1 ? '1 bane klaret' : n + ' baner klaret'; }
   function shotsText(n) { return n === 1 ? '1 skud' : n + ' skud'; }
-  function bubbleName(i) { return G.COLORS[i].name + ' ' + G.COLORS[i].shape; }
+  function bubbleName(i) {
+    if (i === G.BOMBE) return 'en bombe, der fjerner alle bobler rundt om sig';
+    if (i === G.REGNBUE) return 'en regnbue, der passer til alle farver';
+    if (i === G.STEN) return 'en sten';
+    return G.COLORS[i].name + ' ' + G.COLORS[i].shape;
+  }
 
   // ---------- Startmenu ----------
   function syncMenu() {
@@ -341,7 +347,7 @@
     fx = fx.filter(function (f) { return f.kind !== 'fly'; });
     var wait = 0;
     if (ev.popped.length) {
-      sfx('pop');
+      sfx(e.indexOf('bomb') >= 0 ? 'bomb' : 'pop');
       fx.push({ kind: 'pop', items: ev.popped, ceiling: s.ceiling, t0: now, dur: calm ? 350 : 420 });
       wait = calm ? 350 : 420;
     } else sfx('land');
@@ -351,7 +357,11 @@
       wait = calm ? 450 : 750;
     }
     if (e.indexOf('ceiling') >= 0) { sfx('ceiling'); say('Loftet rykkede en række ned.'); }
-    else if (ev.points) say('+' + ev.points + ' point.' + (e.indexOf('ceilingReset') >= 0 ? ' Loftets nedtælling starter forfra.' : ''));
+    else if (ev.points) {
+      var hvad = e.indexOf('bomb') >= 0 ? 'Bum! ' : e.indexOf('rainbow') >= 0 ? 'Regnbuen passede. ' : '';
+      if (ev.kombo > 1) { hvad += 'Kombo ×' + ev.kombo + ' – ' + ev.fallen.length + ' bobler faldt. '; later(function () { sfx('kombo'); }, calm ? 0 : 300); }
+      say(hvad + '+' + ev.points + ' point.' + (e.indexOf('ceilingReset') >= 0 ? ' Loftets nedtælling starter forfra.' : ''));
+    }
     refresh();
     if (fx.length) animate();
     if (e.indexOf('cleared') >= 0) {

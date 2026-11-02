@@ -32,9 +32,67 @@
     }
   }
 
-  // Én boble i (x, y) i pixel med radius r. color = farveindeks.
+  // Specialbobler: sten (grå, kantet med revner), regnbue (alle farver i lagkagestykker),
+  // bombe (mørk med lunte). De har også deres egen form, så de kan kendes uden farvesyn.
+  function specialBase(v, col) { return v === G.STEN ? col.sten : v === G.BOMBE ? col.c[5] : col.c[3]; }
+  function special(c, r, v, col, opts) {
+    var k, a;
+    if (opts.ghost) {
+      c.setLineDash([r * 0.28, r * 0.2]);
+      c.lineWidth = Math.max(2, r * 0.12); c.strokeStyle = specialBase(v, col);
+      c.beginPath(); c.arc(0, 0, r * 0.9, 0, Math.PI * 2); c.stroke();
+      c.setLineDash([]);
+      return;
+    }
+    c.lineWidth = Math.max(1.5, r * 0.07); c.strokeStyle = col.rim;
+    if (v === G.STEN) {
+      c.fillStyle = col.sten;
+      c.beginPath();
+      var pts = [0.94, 0.86, 0.95, 0.82, 0.93, 0.88, 0.9, 0.84];
+      for (k = 0; k < 8; k++) { a = k * Math.PI / 4 + 0.2; c[k ? 'lineTo' : 'moveTo'](Math.cos(a) * r * pts[k], Math.sin(a) * r * pts[k]); }
+      c.closePath(); c.fill(); c.stroke();
+      c.strokeStyle = col.stenLine; c.lineWidth = Math.max(1.5, r * 0.08); c.lineCap = 'round';
+      c.beginPath(); c.moveTo(-r * 0.45, -r * 0.25); c.lineTo(-r * 0.05, -r * 0.05); c.lineTo(r * 0.1, r * 0.35);
+      c.moveTo(-r * 0.05, -r * 0.05); c.lineTo(r * 0.4, -r * 0.2); c.stroke();
+    } else if (v === G.REGNBUE) {
+      for (k = 0; k < 6; k++) {
+        c.fillStyle = col.c[k];
+        c.beginPath(); c.moveTo(0, 0); c.arc(0, 0, r * 0.94, -Math.PI / 2 + k * Math.PI / 3, -Math.PI / 2 + (k + 1) * Math.PI / 3); c.closePath(); c.fill();
+      }
+      c.beginPath(); c.arc(0, 0, r * 0.94, 0, Math.PI * 2); c.stroke();
+      // symbol: en bue
+      c.strokeStyle = col.sym; c.lineWidth = Math.max(2, r * 0.14); c.lineCap = 'round';
+      c.beginPath(); c.arc(0, r * 0.18, r * 0.38, Math.PI * 1.08, Math.PI * 1.92); c.stroke();
+      c.fillStyle = col.sym; c.beginPath(); c.arc(0, r * 0.18, r * 0.1, 0, Math.PI * 2); c.fill();
+    } else {
+      c.fillStyle = col.bombe;
+      c.beginPath(); c.arc(0, r * 0.06, r * 0.86, 0, Math.PI * 2); c.fill();
+      c.strokeStyle = col.c[5]; c.lineWidth = Math.max(2, r * 0.1); c.stroke();
+      // lunte og gnist (orange, ingen hvide glimt)
+      c.lineCap = 'round'; c.strokeStyle = col.c[5]; c.lineWidth = Math.max(2, r * 0.12);
+      c.beginPath(); c.moveTo(r * 0.3, -r * 0.6); c.quadraticCurveTo(r * 0.55, -r * 0.95, r * 0.75, -r * 0.82); c.stroke();
+      c.fillStyle = col.c[1];
+      c.beginPath();
+      for (k = 0; k < 8; k++) { a = k * Math.PI / 4; var rr = k % 2 ? r * 0.1 : r * 0.24; c[k ? 'lineTo' : 'moveTo'](r * 0.78 + Math.cos(a) * rr, -r * 0.84 + Math.sin(a) * rr); }
+      c.closePath(); c.fill();
+      // symbol: et kryds-mærke for "spræng alt rundt om"
+      c.strokeStyle = col.c[5]; c.lineWidth = Math.max(2, r * 0.12);
+      c.beginPath(); c.moveTo(-r * 0.3, -r * 0.2); c.lineTo(r * 0.3, r * 0.4); c.moveTo(r * 0.3, -r * 0.2); c.lineTo(-r * 0.3, r * 0.4); c.stroke();
+    }
+  }
+
+  // Én boble i (x, y) i pixel med radius r. color = farveindeks (eller G.STEN/REGNBUE/BOMBE).
   function bubble(c, x, y, r, color, col, opts) {
     opts = opts || {};
+    if (!G.isColor(color)) {
+      c.save();
+      c.globalAlpha = opts.alpha === undefined ? 1 : opts.alpha;
+      c.translate(x, y);
+      if (opts.scale) c.scale(opts.scale, opts.scale);
+      special(c, r, color, col, opts);
+      c.restore();
+      return;
+    }
     var base = col.c[color], info = G.COLORS[color];
     c.save();
     c.globalAlpha = opts.alpha === undefined ? 1 : opts.alpha;

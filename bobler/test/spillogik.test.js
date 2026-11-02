@@ -20,7 +20,7 @@ function runWith(rows, opts) {
   var s = run.state;
   s.grid = G.emptyGrid();
   rows.forEach(function (row, r) {
-    row.split('').filter(function (ch) { return ch !== ' '; }).forEach(function (ch, c) { s.grid[r][c] = ch === '.' ? -1 : Number(ch); });
+    row.split('').filter(function (ch) { return ch !== ' '; }).forEach(function (ch, c) { s.grid[r][c] = ch === '.' ? -1 : ch === 'S' ? G.STEN : ch === 'R' ? G.REGNBUE : ch === 'B' ? G.BOMBE : Number(ch); });
   });
   s.current = opts.current !== undefined ? opts.current : 0;
   s.next = opts.next !== undefined ? opts.next : 1;
@@ -156,6 +156,7 @@ test('loftet rykker kun ned efter 5 skud i træk, der ikke fjerner noget', funct
     assert.strictEqual(run.shotsToCeiling(), 5 - i);
   }
   assert.strictEqual(run.state.ceiling, 0);
+  run.state.current = 0;   // en farve, der ikke er på brættet
   var tr = run.aim(0);
   ev = run.shoot(0);
   assert.ok(ev.events.indexOf('ceiling') >= 0);
@@ -253,7 +254,7 @@ test('ny bane: alle farver er med, ingen løse bobler, og næste boble har en fa
       assert.strictEqual(G.floating(s.grid).length, 0);
       assert.strictEqual(G.count(s.grid) > 0, true);
       var pres = G.presentColors(s.grid);
-      assert.ok(pres.indexOf(s.current) >= 0 && pres.indexOf(s.next) >= 0);
+      assert.ok(pres.indexOf(s.current) >= 0 && (pres.indexOf(s.next) >= 0 || s.next === G.BOMBE || s.next === G.REGNBUE));
     }
   });
   assert.strictEqual(G.colorsFor('4', 1), 4);
@@ -284,6 +285,96 @@ test('fortryd sidste skud én gang pr. bane, også efter game over', function ()
   assert.strictEqual(run2.state.over, true);
   assert.strictEqual(run2.undo(), true);
   assert.strictEqual(run2.state.over, false);
+});
+
+function aimAt(run, r, c) {
+  for (var a = -G.MAX_ANGLE; a <= G.MAX_ANGLE; a += 0.25) { var cell = run.aim(a).cell; if (cell && cell.r === r && cell.c === c) return a; }
+  return null;
+}
+
+test('sten kan ikke sprænges, men falder, når den ikke hænger fast', function () {
+  // sten mellem to røde: tre røde rundt om stenen sprænges ikke sammen med den
+  var run = runWith(['0 0 . . . . . 3', ' S . . . . . .'], { current: 0 });
+  assert.strictEqual(G.cluster(run.state.grid, 1, 0).length, 0, 'en sten har ingen klynge');
+  var a = aimAt(run, 0, 2); assert.ok(a !== null);
+  var ev = run.shoot(a);
+  assert.strictEqual(ev.popped.length, 3);
+  assert.ok(ev.popped.every(function (p) { return p.color === 0; }), 'stenen sprænges ikke');
+  assert.strictEqual(ev.fallen.length, 1); assert.strictEqual(ev.fallen[0].color, G.STEN);
+});
+
+test('regnbuen passer til alle farver og vælger den største klynge', function () {
+  var run = runWith(['1 1 . 2 2 2 . 3'], { current: G.REGNBUE });
+  var a = aimAt(run, 0, 2); assert.ok(a !== null);
+  var ev = run.shoot(a);
+  assert.ok(ev.events.indexOf('rainbow') >= 0);
+  assert.strictEqual(ev.popped.length, 4, 'regnbue + tre gule (ikke de to røde)');
+  assert.strictEqual(run.state.grid[0][0], 1);
+  assert.strictEqual(run.state.grid[0][3], -1);
+});
+
+test('en regnbue, der bliver liggende, tæller med i en senere klynge', function () {
+  var run = runWith(['1 R . . . . . 3'], { current: 1 });
+  var a = aimAt(run, 0, 2); assert.ok(a !== null);
+  var ev = run.shoot(a);
+  assert.strictEqual(ev.popped.length, 3);
+  assert.ok(ev.popped.some(function (p) { return p.color === G.REGNBUE; }));
+});
+
+test('bomben fjerner sig selv og alle naboer – også sten', function () {
+  var run = runWith(['0 1 2 3 0 1 2 3', ' S 4 S . . . .'], { current: G.BOMBE });
+  var a = aimAt(run, 2, 1); assert.ok(a !== null, 'kan ramme under stenen');
+  var ev = run.shoot(a);
+  assert.ok(ev.events.indexOf('bomb') >= 0);
+  var removed = ev.popped.map(function (p) { return p.r + ',' + p.c; }).sort();
+  var expect = ['2,1'].concat(G.neighbors(2, 1).filter(function (n) { return n[0] === 1 && n[1] <= 2; }).map(function (n) { return n[0] + ',' + n[1]; })).sort();
+  assert.deepStrictEqual(removed, expect);
+  assert.strictEqual(ev.points, (ev.popped.length - 1) * G.RULES.pointsPop + ev.fallPoints, 'bomben selv giver ikke point');
+  assert.strictEqual(run.state.misses, 0, 'en bombe tæller som en fangst');
+});
+
+test('kombo: 12 eller flere faldne på én gang tæller tredobbelt', function () {
+  var rows = ['0 0 . . . . . 3'];
+  for (var r = 1; r <= 12; r++) rows.push(r % 2 ? ' 2 . . . . . .' : '2 . . . . . . .');
+  rows = rows.slice(0, 11);   // 10 under de røde: hold os over bundlinjen
+  rows[1] = ' 2 2 . . . . .'; rows[3] = ' 2 2 . . . . .';
+  var run = runWith(rows, { current: 0 });
+  var a = aimAt(run, 0, 2); assert.ok(a !== null);
+  var ev = run.shoot(a);
+  assert.ok(ev.fallen.length >= 12, 'faldne: ' + ev.fallen.length);
+  assert.strictEqual(ev.kombo, 3);
+  assert.ok(ev.events.indexOf('kombo') >= 0);
+  assert.strictEqual(ev.fallPoints, ev.fallen.length * G.RULES.pointsFall * 3);
+});
+
+test('når kun sten er tilbage, falder de, og banen er klaret', function () {
+  var run = runWith(['0 0 . . . . . .', ' S . . . . . .', 'S . . . . . . .'], { current: 0 });
+  run.state.grid[0][7] = -1;
+  var a = aimAt(run, 0, 2); assert.ok(a !== null);
+  var ev = run.shoot(a);
+  assert.ok(ev.events.indexOf('cleared') >= 0);
+  assert.strictEqual(G.count(run.state.grid), 0);
+});
+
+test('sten fra bane 2, specialbobler kun fra bane 2', function () {
+  for (var seed = 1; seed < 30; seed++) {
+    var r1 = G.createRun('5', { rng: seeded(seed), level: 1 });
+    assert.ok(r1.state.grid.every(function (row) { return row.every(function (v) { return v < 10; }); }), 'ingen sten på bane 1');
+    var r3 = G.createRun('5', { rng: seeded(seed), level: 3 });
+    var n = 0; r3.state.grid.forEach(function (row) { row.forEach(function (v) { if (v === G.STEN) n++; }); });
+    assert.strictEqual(n, 2, 'bane 3 har 2 sten');
+    assert.strictEqual(G.floating(r3.state.grid).length, 0);
+  }
+  // på bane 1 er skudboblerne altid farver
+  var run = G.createRun('5', { rng: seeded(3), level: 1 });
+  for (var i = 0; i < 60 && run.playable(); i++) { assert.ok(G.isColor(run.state.current) && G.isColor(run.state.next)); run.shoot(-30 + (i * 17) % 60); }
+  // på senere baner dukker de op
+  var seen = {};
+  for (var sd = 1; sd < 40; sd++) {
+    var rr = G.createRun('4', { rng: seeded(sd), level: 4 });
+    for (var k = 0; k < 40 && rr.playable(); k++) { seen[rr.state.next] = true; rr.shoot(-40 + (k * 23) % 80); }
+  }
+  assert.ok(seen[G.BOMBE] && seen[G.REGNBUE], 'bomber og regnbuer dukker op');
 });
 
 test('lange tilfældige spil på alle sværhedsgrader kører uden fejl', function () {
