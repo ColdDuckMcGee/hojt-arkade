@@ -317,8 +317,8 @@
       if (!st || SIZES.indexOf(st.size) < 0 || !st.snake || !st.snake.length) return false;
       dag = d.dag || null;
       dagRng = dag ? ArkadeDagens.rng('slangen', dag) : null;
-      if (dagRng) dagRng.saet(d.rng);
       game = SlangenGame.createGame(st.size, dagRng ? { rng: dagRng } : undefined);
+      if (dagRng) dagRng.saet(d.rng);   // efter createGame, som selv bruger af generatoren
       Object.keys(st).forEach(function (k) { game.state[k] = st[k]; });
       paused = false;
       $('#pause-overlay').hidden = true;

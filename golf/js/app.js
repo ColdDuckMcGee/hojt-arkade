@@ -189,15 +189,20 @@
   var run = null, paused = false, finished = false, rolling = false;
   var courseEl = $('#course');
   var lastNote = '', noteCls = '', afterTimer = 0;
+  // Dagens udfordring (arkade/dagens.js): dag = datoen, ellers null. Samme huller for alle og altid kort linje.
+  var dag = null;
+  function recKat() { return dag ? ArkadeDagens.kat(dag) : runMode; }
   var runMode = 'kort';           // forhåndslinjen, spillet blev startet med (rekordlisten)
   var tegn = GolfTegn.create(courseEl);
   var ROLL_SPEED = 1.6;           // bolden ruller 1,6 gange hurtigere end virkelig tid
 
-  function startGame(seed) {
+  function startGame(seed, dt) {
     if (window.ArkadeHighscore) ArkadeHighscore.start();
+    dag = dt || null;
+    if (dag) seed = ArkadeDagens.seed('golf', dag);
     tegn.stop();
     run = L.createRun(seed !== undefined ? { seed: seed } : {});
-    runMode = mode();
+    runMode = dag ? 'kort' : mode();
     paused = false; finished = false; rolling = false;
     lastNote = ''; noteCls = '';
     clearTimeout(afterTimer);
@@ -450,8 +455,8 @@
   // Gemmes, når bolden ligger stille (frøet gemmes også, så de næste huller bliver de samme)
   var fortsaet = ArkadeFortsaet.create({
     spil: 'golf',
-    gem: function () { return run && !finished && !rolling && !tegn.animating && run.live() ? { state: run.state, seed: run.seed, mode: runMode } : null; },
-    info: function (d) { return 'Hul ' + d.state.level + ' · ' + d.state.score + ' point'; },
+    gem: function () { return run && !finished && !rolling && !tegn.animating && run.live() ? { state: run.state, seed: run.seed, mode: runMode, dag: dag } : null; },
+    info: function (d) { return (d.dag ? 'Dagens · ' : '') + 'Hul ' + d.state.level + ' · ' + d.state.score + ' point'; },
     fortsaet: function (d) {
       var st = d.state;
       if (!st || !st.hole || !st.ball || typeof d.seed !== 'number') return false;
@@ -459,6 +464,7 @@
       run = L.createRun({ seed: d.seed });
       Object.keys(st).forEach(function (k) { run.state[k] = st[k]; });
       runMode = d.mode || mode();
+      dag = d.dag || null;
       paused = false; finished = false; rolling = false;
       lastNote = ''; noteCls = '';
       clearTimeout(afterTimer);
@@ -466,6 +472,11 @@
       show('game');
       refresh();
     }
+  });
+  ArkadeDagens.knap({
+    spil: 'golf', fortsaet: fortsaet,
+    best: function (k) { return records.best(k); },
+    start: function (dt) { sfx('click'); startGame(undefined, dt); }
   });
 
   // ---------- Slut ----------
@@ -476,7 +487,7 @@
     var out = run.end(), res = null;
     finished = true;
     if (window.ArkadeHighscore) ArkadeHighscore.slut();
-    if (out.score > 0) res = records.add(runMode, out.score, { holes: out.cleared });
+    if (out.score > 0) res = records.add(recKat(), out.score, { holes: out.cleared });
     return res;
   }
   function finish(why) {
@@ -497,14 +508,14 @@
     $('#go-score').textContent = s.score;
     $('#go-holes').textContent = holesText(s.cleared) + ' klaret';
     $('#go-rank').textContent = rankText;
-    $('#go-records-title').textContent = 'Rekorder · ' + modeName(runMode);
-    renderRecordList($('#go-records'), runMode, lastEntryId);
+    $('#go-records-title').textContent = dag ? 'Dagens udfordring – ' + ArkadeDagens.tekst(dag) : 'Rekorder · ' + modeName(runMode);
+    renderRecordList($('#go-records'), recKat(), lastEntryId);
     show('gameover');
     GolfTegn.mini($('#go-pic'), s.hole, s.holed ? null : s.ball, { trail: s.lastShot && s.lastShot.path });
   }
   // Lukkes siden midt i et spil, gemmes pointene alligevel
   // (Når siden lukkes, gemmes spillet af arkade/fortsaet.js i stedet for at serien registreres)
-  $('#btn-again').addEventListener('click', function () { sfx('click'); startGame(); });
+  $('#btn-again').addEventListener('click', function () { sfx('click'); startGame(undefined, dag ? ArkadeDagens.dato() : null); });
   $('#btn-go-menu').addEventListener('click', function () { sfx('click'); quitToMenu(); });
 
   function renderRecordList(ol, cat, highlightId) {

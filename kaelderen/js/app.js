@@ -33,6 +33,9 @@
   if (['auto', 'lav', 'hoej'].indexOf(gset.get('kvalitet')) < 0) gset.set('kvalitet', 'auto');
   var records = ArkadeHighscores.create('kaelderen', { max: 10 });
   var REC = 'kaelderen';
+  // Dagens udfordring (arkade/dagens.js): dag = datoen, ellers null. Eget frø og egen rekordliste pr. dag.
+  var dag = null, listKat = REC;
+  function recKat() { return dag ? ArkadeDagens.kat(dag) : REC; }
 
   var THEMES = ['neon', 'solnedgang', 'cyberpunk', 'kontrast'];
   var BACKGROUNDS = ['mork', 'solnedgang', 'neonby'];
@@ -206,8 +209,10 @@
   var tegn = KaelderTegn.create(viewEl);
   var auto = null, autoTimer = 0, sidstTast = 0;
 
-  function startGame(seed) {
+  function startGame(seed, dt) {
     if (window.ArkadeHighscore) ArkadeHighscore.start();
+    dag = dt || null;
+    if (dag) seed = ArkadeDagens.seed('kaelderen', dag);
     stopAuto();
     run = L.createRun(seed !== undefined ? { seed: seed } : {});
     paused = false; finished = false; kortVist = false; hover = null;
@@ -644,12 +649,13 @@
   // Gemmes, når man står stille i kælderen (ikke i butikken og ikke under "gå derhen")
   var fortsaet = ArkadeFortsaet.create({
     spil: 'kaelderen',
-    gem: function () { return run && !finished && !auto && run.state.fase === 'spil' ? { state: run.state } : null; },
-    info: function (d) { return 'Etage ' + d.state.etage + ' · ' + d.state.skat + ' skat'; },
+    gem: function () { return run && !finished && !auto && run.state.fase === 'spil' ? { state: run.state, dag: dag } : null; },
+    info: function (d) { return (d.dag ? 'Dagens · ' : '') + 'Etage ' + d.state.etage + ' · ' + d.state.skat + ' skat'; },
     fortsaet: function (d) {
       var st = d.state;
       if (!st || !st.spiller || st.fase !== 'spil' || typeof st.seed !== 'number') return false;
       stopAuto();
+      dag = d.dag || null;
       run = L.createRun({ seed: st.seed });
       Object.keys(st).forEach(function (k) { run.state[k] = st[k]; });
       paused = false; finished = false; kortVist = false; hover = null;
@@ -660,6 +666,11 @@
       refresh();
     }
   });
+  ArkadeDagens.knap({
+    spil: 'kaelderen', fortsaet: fortsaet,
+    best: function (k) { return records.best(k); },
+    start: function (dt) { sfx('click'); startGame(undefined, dt); }
+  });
 
   // ---------- Slut ----------
   var lastEntryId = null;
@@ -668,7 +679,7 @@
     var out = run.end(), res = null;
     finished = true;
     if (window.ArkadeHighscore) ArkadeHighscore.slut();
-    if (out.score > 0) res = records.add(REC, out.score, { etage: out.etage, skat: out.skat, drab: out.drab });
+    if (out.score > 0) res = records.add(recKat(), out.score, { etage: out.etage, skat: out.skat, drab: out.drab });
     return res;
   }
   function finish(why) {
@@ -688,15 +699,17 @@
     $('#go-score').textContent = run.point();
     $('#go-detaljer').textContent = 'Etage ' + s.etage + ' · ' + s.skatIalt + ' skat · ' + drabText(s.drab) + ' nedkæmpet';
     $('#go-rank').textContent = rankText;
+    listKat = recKat();
+    $('#go-records-title').textContent = dag ? 'Dagens udfordring – ' + ArkadeDagens.tekst(dag) : 'Rekorder';
     renderRecordList($('#go-records'), lastEntryId);
     show('gameover');
   }
   // (Når siden lukkes, gemmes spillet af arkade/fortsaet.js i stedet for at serien registreres)
-  $('#btn-again').addEventListener('click', function () { sfx('click'); startGame(); });
+  $('#btn-again').addEventListener('click', function () { sfx('click'); startGame(undefined, dag ? ArkadeDagens.dato() : null); });
   $('#btn-go-menu').addEventListener('click', function () { sfx('click'); quitToMenu(); });
 
   function renderRecordList(ol, highlightId) {
-    var list = records.list(REC);
+    var list = records.list(listKat);
     ol.innerHTML = '';
     for (var i = 0; i < records.max; i++) {
       var li = document.createElement('li');
@@ -714,7 +727,7 @@
       ol.appendChild(li);
     }
   }
-  function openRecords() { renderRecordList($('#rec-list'), null); show('records'); }
+  function openRecords() { listKat = REC; renderRecordList($('#rec-list'), null); show('records'); }
   $('#btn-records-back').addEventListener('click', function () { sfx('click'); show('menu'); });
 
   // ---------- Indstillinger ----------

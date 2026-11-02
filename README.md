@@ -12,6 +12,7 @@ Spillene er lavet til øjenstyring fra starten:
 - **Tre grafiske stile.** Under Indstillinger → Udseende → **Stil** vælges mellem *Neon*, *Tegneserie* og *Retro-pixel* – efter humør og behov. Stilen gælder hele arkaden og alle spil.
 - **Kører også på langsomme computere.** Under Indstillinger → Udseende kan **Effekter** sættes til *Begrænsede*: neon-gløden slukkes, baggrunden står stille, og Kælderens 3D-billede bliver enklere. Hakker et spil tydeligt, foreslår arkaden det én gang, når man går til menuen.
 - **Fortsæt, hvor du slap.** Alle spil gemmer sig selv undervejs. Bliver man træt, skal en hjælper afbryde, eller lukkes browseren, står der **Fortsæt** i spillets menu næste gang, og hallen viser, hvilke spil der er i gang.
+- **Dagens udfordring.** Slangen, Minestryger, Sudoku, Golf, Muren, Blokke og Kælderen har en fast bane eller gåde pr. dag – den samme for alle – med sin egen rekordliste, også på verdenslisten.
 - **Dansk brugerflade.**
 - **Virker offline.** Det er ren HTML, CSS og JavaScript uden server, uden internet og uden eksterne filer. På hjemmesiden gemmer en service worker (`sw.js`) hallen og de spil, man har spillet, så de også virker uden net. Spillerne har altid den nyeste udgave: er der net, spørges serveren altid først, og en side, der står åben, genindlæses med den nye udgave, næste gang spilleren går til menuen.
 

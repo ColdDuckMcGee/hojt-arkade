@@ -36,6 +36,9 @@
   if (L.fartAf(gset.get('fart')) !== gset.get('fart')) gset.set('fart', L.SETTINGS.fart);
   var records = ArkadeHighscores.create('muren', { max: 10 });
   var REC = 'muren';
+  // Dagens udfordring (arkade/dagens.js): dag = datoen, ellers null. Eget frø og egen rekordliste pr. dag.
+  var dag = null, listKat = REC;
+  function recKat() { return dag ? ArkadeDagens.kat(dag) : REC; }
 
   var THEMES = ['neon', 'solnedgang', 'cyberpunk', 'kontrast'];
   var BACKGROUNDS = ['mork', 'solnedgang', 'neonby'];
@@ -197,8 +200,10 @@
   var tegn = MurenTegn.create(courseEl);
   var raf = 0, lastT = 0, acc = 0;
 
-  function startGame(seed) {
+  function startGame(seed, dt) {
     if (window.ArkadeHighscore) ArkadeHighscore.start();
+    dag = dt || null;
+    if (dag) seed = ArkadeDagens.seed('muren', dag);
     stopLoop();
     run = L.createRun(seed !== undefined ? { seed: seed } : {});
     paused = false; finished = false;
@@ -428,12 +433,13 @@
   // Gemmes mellem salverne (generatorens tilstand ligger i state.rng, så de næste rækker bliver de samme)
   var fortsaet = ArkadeFortsaet.create({
     spil: 'muren',
-    gem: function () { return run && !finished && run.live() && !run.volleyActive() ? { state: run.state } : null; },
-    info: function (d) { return 'Tur ' + d.state.turn + ' · ' + d.state.score + ' point'; },
+    gem: function () { return run && !finished && run.live() && !run.volleyActive() ? { state: run.state, dag: dag } : null; },
+    info: function (d) { return (d.dag ? 'Dagens · ' : '') + 'Tur ' + d.state.turn + ' · ' + d.state.score + ' point'; },
     fortsaet: function (d) {
       var st = d.state;
       if (!st || !st.bricks || typeof st.seed !== 'number') return false;
       stopLoop();
+      dag = d.dag || null;
       run = L.createRun({ seed: st.seed });
       Object.keys(st).forEach(function (k) { run.state[k] = st[k]; });
       paused = false; finished = false;
@@ -444,6 +450,11 @@
       refresh();
     }
   });
+  ArkadeDagens.knap({
+    spil: 'muren', fortsaet: fortsaet,
+    best: function (k) { return records.best(k); },
+    start: function (dt) { sfx('click'); startGame(undefined, dt); }
+  });
 
   // ---------- Slut ----------
   // Én rekordliste: point, og hvor mange ture muren holdt.
@@ -453,7 +464,7 @@
     var out = run.end(), res = null;
     finished = true;
     if (window.ArkadeHighscore) ArkadeHighscore.slut();
-    if (out.score > 0) res = records.add(REC, out.score, { turns: out.turns, broken: out.broken });
+    if (out.score > 0) res = records.add(recKat(), out.score, { turns: out.turns, broken: out.broken });
     return res;
   }
   function finish(why) {
@@ -476,18 +487,19 @@
     $('#go-score').textContent = s.score;
     $('#go-turns').textContent = turnsText(s.turn) + ' · ' + bricksText(s.broken) + ' knust';
     $('#go-rank').textContent = rankText;
-    $('#go-records-title').textContent = 'Rekorder';
+    $('#go-records-title').textContent = dag ? 'Dagens udfordring – ' + ArkadeDagens.tekst(dag) : 'Rekorder';
+    listKat = recKat();
     renderRecordList($('#go-records'), lastEntryId);
     show('gameover');
     MurenTegn.mini($('#go-pic'), s, {});
   }
   // Lukkes siden midt i et spil, gemmes pointene alligevel
   // (Når siden lukkes, gemmes spillet af arkade/fortsaet.js i stedet for at serien registreres)
-  $('#btn-again').addEventListener('click', function () { sfx('click'); startGame(); });
+  $('#btn-again').addEventListener('click', function () { sfx('click'); startGame(undefined, dag ? ArkadeDagens.dato() : null); });
   $('#btn-go-menu').addEventListener('click', function () { sfx('click'); quitToMenu(); });
 
   function renderRecordList(ol, highlightId) {
-    var list = records.list(REC);
+    var list = records.list(listKat);
     ol.innerHTML = '';
     for (var i = 0; i < records.max; i++) {
       var li = document.createElement('li');
@@ -509,7 +521,7 @@
   }
 
   // ---------- Rekorder ----------
-  function openRecords() { $('#rec-title').textContent = 'Rekorder'; renderRecordList($('#rec-list'), null); show('records'); }
+  function openRecords() { listKat = REC; $('#rec-title').textContent = 'Rekorder'; renderRecordList($('#rec-list'), null); show('records'); }
   $('#btn-records-back').addEventListener('click', function () { sfx('click'); show('menu'); });
 
 

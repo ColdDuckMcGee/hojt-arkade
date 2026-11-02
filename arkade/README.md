@@ -247,6 +247,28 @@ forrige gem, til spillet er i ro. Med et gemt spil står **Fortsæt** (fremhæve
   spil i gang" og et mærke i Alle spil for begge slags.
 - Test: `python3 arkade/test/fortsaet_test.py [spil …]`.
 
+## Dagens udfordring (dagens.js)
+```js
+ArkadeDagens.knap({ spil: 'slangen', fortsaet: fortsaet, best: function (k) { return records.best(k); },
+                    start: function (dato) { startGame({ dag: dato }); } });
+ArkadeDagens.rng('slangen', dato)   // seedet generator; r.hent() / r.saet(v) gemmer og henter tilstanden
+ArkadeDagens.seed('golf', dato)     // heltal til spil, der selv tager et frø
+ArkadeDagens.kat(dato)              // 'dag-2026-11-02' – kategorien på maskinen og på verdenslisten
+```
+Én fast bane, plade eller gåde pr. dag, den samme for alle. Datoen er dansk tid, så dagen skifter ved
+midnat i Danmark. Frøet er en hash af dato og spil. Indstillingerne er faste, så resultaterne kan
+sammenlignes: Slangen 15 × 15, Minestryger 6 × 6 med tre liv (plade *n* har frøet `minestryger-n`),
+Sudoku Mellem (gåde *n* har frøet `sudoku-n`, og generatoren kører uden tidsgrænse, så gåden er ens på
+hurtige og langsomme maskiner), Golf med kort linje, Blokke 8 × 8, Muren og Kælderen. Man må prøve så
+mange gange, man vil; den bedste score står på knappen ("2. nov. · bedst 340").
+
+- Knappen står i rækken med Start spil (og Fortsæt). Har man et spil i gang, spørges der først.
+- Fortsæt husker, at spillet er dagens udfordring, og generatorens tilstand gemmes, så et afbrudt spil
+  giver præcis de samme tilfældige tal som et uafbrudt.
+- Spil, hvor brættets størrelse afhænger af skærmen (Rørlægger, Pixelgåder), er ikke med, fordi
+  resultaterne så ikke kan sammenlignes.
+- Test: `python3 arkade/test/dagens_test.py [spil …]` (samme spil for to spillere, Fortsæt midt i, menuen).
+
 ## Begræns effekter (ArkadeEffekter i settings.js, effekter.js)
 ```js
 ArkadeEffekter.begraenset();      // true, når "Effekter: Begrænsede" er valgt

@@ -286,9 +286,15 @@
   boardEl.addEventListener('pointermove', function (e) { if (e.target === boardEl) hoverAt(e); });
   boardEl.addEventListener('pointerleave', function () { if (hoverIdx >= 0) { hoverIdx = -1; renderBoard(); } });
 
-  function startGame() {
+  // Dagens udfordring (arkade/dagens.js): dag = datoen, ellers null. Altid 8 × 8 og samme brikker for alle
+  // (generatorens tilstand gemmes med Fortsæt, så brikkerne er de samme efter en afbrydelse).
+  var dag = null, dagRng = null;
+  function recKat(s) { return dag ? ArkadeDagens.kat(dag) : s.sizeId; }
+  function startGame(dt) {
     if (window.ArkadeHighscore) ArkadeHighscore.start();
-    run = G.createRun(boardSize());
+    dag = typeof dt === 'string' ? dt : null;
+    dagRng = dag ? ArkadeDagens.rng('blokke', dag) : null;
+    run = dag ? G.createRun('8x8', { rng: dagRng }) : G.createRun(boardSize());
     paused = false; finished = false;
     selSlot = -1; selCell = -1; hoverIdx = -1; vanishing = {}; popping = {}; lastNote = ''; zoom = -1;
     clearTimeout(animTimer); clearTimeout(popTimer); clearTimeout(stuckTimer);
@@ -489,7 +495,7 @@
     if (!run) return;
     var s = run.state;
     $('#hud-score').textContent = s.score;
-    $('#hud-best').textContent = Math.max(records.best(s.sizeId), s.score);
+    $('#hud-best').textContent = Math.max(records.best(recKat(s)), s.score);
     $('#hud-lines').textContent = s.lines;
     $('#hud-combo').textContent = s.combo > 1 ? '×' + s.combo : '–';
     $('#points-note').textContent = lastNote;
@@ -569,12 +575,15 @@
   // ---------- Fortsæt, hvor du slap (arkade/fortsaet.js) ----------
   var fortsaet = ArkadeFortsaet.create({
     spil: 'blokke',
-    gem: function () { return run && !finished && !run.state.over ? { state: run.state } : null; },
-    info: function (d) { return d.state.n + ' × ' + d.state.n + ' · ' + d.state.score + ' point'; },
+    gem: function () { return run && !finished && !run.state.over ? { state: run.state, dag: dag, rng: dagRng ? dagRng.hent() : null } : null; },
+    info: function (d) { return (d.dag ? 'Dagens' : d.state.n + ' × ' + d.state.n) + ' · ' + d.state.score + ' point'; },
     fortsaet: function (d) {
       var st = d.state;
       if (!st || !st.board || st.board.length !== st.n * st.n || !st.tray) return false;
-      run = G.createRun(st.sizeId);
+      dag = d.dag || null;
+      dagRng = dag ? ArkadeDagens.rng('blokke', dag) : null;
+      run = G.createRun(st.sizeId, dagRng ? { rng: dagRng } : undefined);
+      if (dagRng) dagRng.saet(d.rng);
       if (run.n !== st.n) return false;
       Object.keys(st).forEach(function (k) { run.state[k] = st[k]; });
       paused = false; finished = false;
@@ -587,6 +596,11 @@
       refresh();
     }
   });
+  ArkadeDagens.knap({
+    spil: 'blokke', fortsaet: fortsaet,
+    best: function (k) { return records.best(k); },
+    start: function (dt) { sfx('click'); startGame(dt); }
+  });
 
   // ---------- Game over ----------
   var lastEntryId = null;
@@ -594,7 +608,7 @@
     fortsaet.slet();
     if (finished || !run) return;
     finished = true;
-    var s = run.state, cat = s.sizeId, rankText = '';
+    var s = run.state, cat = recKat(s), rankText = '';
     lastEntryId = null;
     if (window.ArkadeHighscore) ArkadeHighscore.slut();
     if (s.score > 0) {
@@ -608,12 +622,12 @@
     $('#go-score').textContent = s.score;
     $('#go-levels').textContent = linesText(s.lines) + ' ryddet · ' + piecesText(s.moves) + ' lagt' + (s.bestCombo > 1 ? ' · bedste kombo ' + s.bestCombo : '');
     $('#go-rank').textContent = rankText;
-    $('#go-again-sub').textContent = sizeName(s.sizeId);
-    $('#go-records-title').textContent = 'Rekorder – ' + sizeName(s.sizeId);
+    $('#go-again-sub').textContent = dag ? 'Dagens udfordring' : sizeName(s.sizeId);
+    $('#go-records-title').textContent = dag ? 'Dagens udfordring – ' + ArkadeDagens.tekst(dag) : 'Rekorder – ' + sizeName(s.sizeId);
     renderRecordList($('#go-records'), cat, lastEntryId);
     show('gameover');
   }
-  $('#btn-again').addEventListener('click', function () { sfx('click'); startGame(); });
+  $('#btn-again').addEventListener('click', function () { sfx('click'); startGame(dag ? ArkadeDagens.dato() : null); });
   $('#btn-go-menu').addEventListener('click', function () { sfx('click'); quitToMenu(); });
 
   function renderRecordList(ol, cat, highlightId) {

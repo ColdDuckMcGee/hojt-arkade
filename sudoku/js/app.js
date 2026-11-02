@@ -237,10 +237,16 @@
       firstPuzzle = G.generate(m);
     }, 700);
   }
-  function startGame() {
+  // Dagens udfordring (arkade/dagens.js): dag = datoen, ellers null. Altid Mellem; gåde nr. i har sit
+  // eget frø (dato + nummer), og der er ingen tidsgrænse i generatoren, så gåden er ens på alle maskiner.
+  var dag = null, DAG_SVAER = 'mellem';
+  function recKat(s) { return dag ? ArkadeDagens.kat(dag) : s.diff; }
+  function dagensGaade(i) { return G.generate(DAG_SVAER, G.rng(ArkadeDagens.seed('sudoku-' + i, dag)), 1e12); }
+  function startGame(dt) {
     if (window.ArkadeHighscore) ArkadeHighscore.start();
-    var m = currentMode(), pre = firstPuzzle && firstPuzzle.diff === m ? firstPuzzle : null;
-    firstPuzzle = null; clearTimeout(firstTimer);
+    dag = typeof dt === 'string' ? dt : null;
+    var m = dag ? DAG_SVAER : currentMode(), pre = dag ? dagensGaade(0) : firstPuzzle && firstPuzzle.diff === m ? firstPuzzle : null;
+    if (!dag) { firstPuzzle = null; clearTimeout(firstTimer); }
     run = G.createRun(m, pre ? { puzzle: pre } : undefined);
     paused = false; finished = false; zoom = -1; sel = -1; notesMode = false;
     lastNote = ''; noteCls = '';
@@ -451,6 +457,7 @@
   function nextPuzzle() {
     if (!run || !run.state.solved || finished) return;
     run.nextPuzzle();
+    if (dag) run._load(dagensGaade(run.state.index));   // dagens næste gåde (samme for alle)
     autoNoter();
     $('#done-overlay').hidden = true;
     zoom = -1; sel = -1; setNote('', '');
@@ -513,11 +520,12 @@
   // ---------- Fortsæt, hvor du slap (arkade/fortsaet.js) ----------
   var fortsaet = ArkadeFortsaet.create({
     spil: 'sudoku',
-    gem: function () { return run && !finished && !run.state.over ? { state: run.state } : null; },
-    info: function (d) { return modeName(d.state.diff) + ' · gåde ' + (d.state.index + 1) + ' · ' + d.state.score + ' point'; },
+    gem: function () { return run && !finished && !run.state.over ? { state: run.state, dag: dag } : null; },
+    info: function (d) { return (d.dag ? 'Dagens' : modeName(d.state.diff)) + ' · gåde ' + (d.state.index + 1) + ' · ' + d.state.score + ' point'; },
     fortsaet: function (d) {
       var st = d.state;
       if (!st || !st.puzzle || !st.puzzle.givens || st.puzzle.givens.length !== 81) return false;
+      dag = d.dag || null;
       run = G.createRun(st.diff, { puzzle: { givens: st.puzzle.givens, sol: st.puzzle.sol } });
       Object.keys(st).forEach(function (k) { run.state[k] = st[k]; });
       paused = false; finished = false; zoom = -1; sel = -1; notesMode = false;
@@ -530,6 +538,11 @@
       if (run.state.solved) showDone();
     }
   });
+  ArkadeDagens.knap({
+    spil: 'sudoku', fortsaet: fortsaet,
+    best: function (k) { return records.best(k); },
+    start: function (dt) { sfx('click'); startGame(dt); }
+  });
 
   // ---------- Slut ----------
   var lastEntryId = null;
@@ -538,7 +551,7 @@
     var s = run.state, out = run.end(), res = null;
     finished = true;
     if (window.ArkadeHighscore) ArkadeHighscore.slut();
-    if (out.score > 0) res = records.add(s.diff, out.score, { levels: out.solved });
+    if (out.score > 0) res = records.add(recKat(s), out.score, { levels: out.solved });
     return res;
   }
   function finish(why) {
@@ -563,12 +576,12 @@
     $('#go-levels').textContent = bits.join(' · ');
     $('#go-rank').textContent = rankText;
     $('#go-again-sub').textContent = modeName(s.diff);
-    $('#go-records-title').textContent = 'Rekorder – ' + modeName(s.diff);
-    renderRecordList($('#go-records'), s.diff, lastEntryId);
+    $('#go-records-title').textContent = dag ? 'Dagens udfordring – ' + ArkadeDagens.tekst(dag) : 'Rekorder – ' + modeName(s.diff);
+    renderRecordList($('#go-records'), recKat(s), lastEntryId);
     show('gameover');
   }
   // (Når siden lukkes, gemmes spillet af arkade/fortsaet.js i stedet for at serien registreres)
-  $('#btn-again').addEventListener('click', function () { sfx('click'); startGame(); });
+  $('#btn-again').addEventListener('click', function () { sfx('click'); startGame(dag ? ArkadeDagens.dato() : null); });
   $('#btn-go-menu').addEventListener('click', function () { sfx('click'); quitToMenu(); });
 
   function renderRecordList(ol, cat, highlightId) {

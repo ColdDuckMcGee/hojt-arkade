@@ -179,16 +179,20 @@
   var run = null, plate = null, mode = 'open', paused = false;
   var board = MinestrygerBoard.create($('#board'), { onCell: onCell });
 
-  function startGame() {
+  // Dagens udfordring (arkade/dagens.js): run.dag = datoen. Altid 6 × 6 med tre liv (kan spilles på alle
+  // skærme), og plade nr. n har sit eget frø (dato + nummer), så pladerne er ens for alle.
+  function startGame(dt) {
     if (window.ArkadeHighscore) ArkadeHighscore.start();
-    run = { size: effectiveSize(), maxLives: mine.get('lives'), lives: mine.get('lives'), score: 0, plateNo: 1, cleared: 0, over: false };
+    var dag = typeof dt === 'string' ? dt : null;
+    run = dag ? { size: '6x6', maxLives: 3, lives: 3, score: 0, plateNo: 1, cleared: 0, over: false, dag: dag }
+      : { size: effectiveSize(), maxLives: mine.get('lives'), lives: mine.get('lives'), score: 0, plateNo: 1, cleared: 0, over: false };
     paused = false;
     newPlate();
     show('game');
     board.focusCursor();
   }
   function newPlate() {
-    plate = G.createPlate(run.size, run.plateNo);
+    plate = G.createPlate(run.size, run.plateNo, run.dag ? { rng: ArkadeDagens.rng('minestryger-' + run.plateNo, run.dag) } : undefined);
     run.undoLeft = UNDO_PER_PLATE;
     $('#pause-overlay').hidden = true;
     $('#clear-overlay').hidden = true;
@@ -335,13 +339,13 @@
       return run && plate && !run.over && !board.busy && !plate.state.cleared && $('#clear-overlay').hidden
         ? { run: run, plate: plate.state, mode: mode } : null;
     },
-    info: function (d) { return 'Plade ' + d.run.plateNo + ' · ' + d.run.score + ' point'; },
+    info: function (d) { return (d.run.dag ? 'Dagens · ' : '') + 'Plade ' + d.run.plateNo + ' · ' + d.run.score + ' point'; },
     fortsaet: function (d) {
       var st = d.plate;
       if (!d.run || !st || !G.SIZES[st.sizeId] || !st.cells) return false;
       run = d.run;
       paused = false;
-      plate = G.createPlate(st.sizeId, st.plate);
+      plate = G.createPlate(st.sizeId, st.plate, run.dag ? { rng: ArkadeDagens.rng('minestryger-' + st.plate, run.dag) } : undefined);
       if (plate.state.cells.length !== st.cells.length) return false;
       plate.state.cells.forEach(function (c, i) { var g = st.cells[i]; Object.keys(g).forEach(function (k) { c[k] = g[k]; }); });
       Object.keys(st).forEach(function (k) { if (k !== 'cells') plate.state[k] = st[k]; });
@@ -355,12 +359,17 @@
       board.focusCursor();
     }
   });
+  ArkadeDagens.knap({
+    spil: 'minestryger', fortsaet: fortsaet,
+    best: function (k) { return records.best(k); },
+    start: function (dt) { sfx('click'); startGame(dt); }
+  });
 
   // ---------- Game over ----------
   var lastEntryId = null;
   function gameOver() {
     fortsaet.slet();
-    var cat = category(run.maxLives, run.size);
+    var cat = run.dag ? ArkadeDagens.kat(run.dag) : category(run.maxLives, run.size);
     var rankText = '';
     lastEntryId = null;
     if (window.ArkadeHighscore) ArkadeHighscore.slut();
@@ -377,12 +386,12 @@
     $('#go-score').textContent = run.score;
     $('#go-plates').textContent = platesText(run.cleared);
     $('#go-rank').textContent = rankText;
-    $('#go-again-sub').textContent = sizeLabel(run.size) + ' · ' + livesLabel(run.maxLives);
-    $('#go-records-title').textContent = 'Rekorder – ' + sizeLabel(run.size) + ', ' + livesLabel(run.maxLives);
+    $('#go-again-sub').textContent = run.dag ? 'Dagens udfordring' : sizeLabel(run.size) + ' · ' + livesLabel(run.maxLives);
+    $('#go-records-title').textContent = run.dag ? 'Dagens udfordring – ' + ArkadeDagens.tekst(run.dag) : 'Rekorder – ' + sizeLabel(run.size) + ', ' + livesLabel(run.maxLives);
     renderRecordList($('#go-records'), cat, lastEntryId);
     show('gameover');
   }
-  $('#btn-again').addEventListener('click', function () { sfx('click'); startGame(); });
+  $('#btn-again').addEventListener('click', function () { sfx('click'); startGame(run && run.dag ? ArkadeDagens.dato() : null); });
   $('#btn-go-menu').addEventListener('click', function () { sfx('click'); quitToMenu(); });
 
   function renderRecordList(ol, cat, highlightId) {
