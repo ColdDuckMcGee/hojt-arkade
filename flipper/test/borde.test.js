@@ -287,7 +287,7 @@ test('de to første borde har ingen øvre flipper', function () {
 });
 
 // ---------- Missioner og jackpot ----------
-test('rumstationen: missionen "Kør Kredsløbet" 3 gange giver 5000 og starter forfra', function () {
+test('rumstationen: missionen "Kør Kredsløbet" 3 gange giver 5000, hæver bonussen og går videre til næste mission', function () {
   var run = G.createRun({ table: 'rumstationen' });
   assert.deepStrictEqual([G.missionStatus(run.state).short, G.missionStatus(run.state).n, G.missionStatus(run.state).count], ['Rampe', 0, 3]);
   var c = RAMP_SHOTS.kredslob, got = [];
@@ -299,9 +299,12 @@ test('rumstationen: missionen "Kør Kredsløbet" 3 gange giver 5000 og starter f
   }
   var m = first(got, 'mission');
   assert.ok(m, 'missionen klaret');
-  assert.strictEqual(m.points, 5000 * run.state.mult);
+  assert.strictEqual(m.points, 5000, 'point med bonussen fra før missionen (×1)');
+  assert.strictEqual(m.mult, 2); assert.strictEqual(run.state.mult, 2, 'bonussen stiger');
   assert.strictEqual(run.state.stats.missions, 1);
   assert.strictEqual(G.missionStatus(run.state).n, 0);
+  assert.strictEqual(G.missionStatus(run.state).step, 2);
+  assert.strictEqual(G.missionStatus(run.state).short, 'Solsejl');
   assert.strictEqual(first(got, 'progress').n, 1);
 });
 test('dybhavet: fire missioner i rækkefølge tænder jackpotten; Skattekisten giver 50 000 (uden bonus) og så starter runde 2', function () {
@@ -338,8 +341,28 @@ test('dybhavet: fire missioner i rækkefølge tænder jackpotten; Skattekisten g
   assert.strictEqual(st().step, 1);
   assert.strictEqual(run.state.mission.round, 2);
 });
-test('missionsstatus: Neonbyen har ingen mission (kun lysene)', function () {
-  assert.strictEqual(G.missionStatus(G.createRun({ table: 'neonbyen' }).state), null);
+test('neonbyen: små missioner i rækkefølge – hver hæver bonussen et trin (højst ×5)', function () {
+  var run = G.createRun({ table: 'neonbyen' }), all = [];
+  function st() { return G.missionStatus(run.state); }
+  assert.deepStrictEqual([st().step, st().steps, st().short, st().count], [1, 4, 'Bumpere', 10]);
+  // En sløjfe før bumperne tæller ikke
+  shot(run, 50, 480, 0, -1200, 'loop');
+  assert.strictEqual(st().step, 1); assert.strictEqual(st().n, 0);
+  for (var k = 0; k < 10 && st().step === 1; k++) all = all.concat(runUntil((run._place(200, 380, 0, -500), run), 120, function (r, e) { return types(e).indexOf('bumper') >= 0; }));
+  assert.strictEqual(st().step, 2, 'bumper-missionen klaret: ' + JSON.stringify(st()));
+  assert.strictEqual(run.state.mult, 2);
+  var m = first(all, 'mission'); assert.ok(m); assert.strictEqual(m.points, 1000); assert.strictEqual(m.mult, 2);
+  shot(run, 50, 480, 0, -1200, 'loop');
+  var m2 = shot(run, 50, 480, 0, -1200, 'mission');
+  assert.strictEqual(m2.points, 2000 * 2, 'mission 2 ganges med bonussen ×2');
+  assert.strictEqual(run.state.mult, 3);
+  assert.strictEqual(st().short, 'Slynger');
+  // loftet: ×5
+  run.state.mult = 5; run.state.mission.idx = 3; run.state.mission.n = 0;
+  run.state.lights = [true, true, true, true, false];
+  shot(run, 380, 260, 0, -900, 'mission', 400);
+  assert.strictEqual(run.state.mult, 5, 'bonussen stopper ved ×5');
+  assert.strictEqual(st().step, 1, 'missionerne starter forfra'); assert.strictEqual(run.state.stats.missions, 3);
 });
 test('borde i kopier: en klon af tilstanden bruger samme bord', function () {
   var run = G.createRun({ table: 'dybhavet' });

@@ -60,10 +60,10 @@
     ],
     missions: {
       list: [
-        { event: 'dropBank', count: 1, reward: 5000, text: 'Slå alle muslinger ned', short: 'Muslinger' },
-        { event: 'ramp', id: 'strommen', count: 2, reward: 7500, text: 'Kør Strømmen', short: 'Strømmen' },
-        { event: 'ramp', id: 'tang', count: 2, reward: 7500, text: 'Kør Tangskoven', short: 'Tangskoven' },
-        { event: 'loop', count: 2, reward: 10000, text: 'Kør sløjferne', short: 'Sløjfer' }
+        { event: 'dropBank', count: 1, reward: 5000, mult: 1, text: 'Slå alle muslinger ned', short: 'Muslinger' },
+        { event: 'ramp', id: 'strommen', count: 2, reward: 7500, mult: 1, text: 'Kør Strømmen', short: 'Strømmen' },
+        { event: 'ramp', id: 'tang', count: 2, reward: 7500, mult: 1, text: 'Kør Tangskoven', short: 'Tangskoven' },
+        { event: 'loop', count: 2, reward: 10000, mult: 1, text: 'Kør sløjferne', short: 'Sløjfer' }
       ],
       jackpot: { event: 'hole', id: 'skattekiste', value: 50000, text: 'Jackpot: ram Skattekisten', short: 'Jackpot' }
     }

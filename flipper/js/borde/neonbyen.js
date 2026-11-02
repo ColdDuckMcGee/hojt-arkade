@@ -1,7 +1,7 @@
 /*
  * Bord 1 – Neonbyen (begynder).
  * Det oprindelige, enkle bord: tre bumpere, fem lysmål, to sløjfer og to slynger.
- * Tænd alle fem lys for at hæve bonussen (op til ×5).
+ * Tænd alle fem lys for at hæve bonussen (op til ×5). Fire små missioner hæver den også.
  */
 (function (global) {
   'use strict';
@@ -27,6 +27,14 @@
     decor: [
       { type: 'skyline', y: 560, x0: 160, x1: 400, seed: 3 }
     ],
-    missions: null
+    // Små mål i rækkefølge. Hver klaret mission giver point og hæver bonussen ét trin.
+    missions: {
+      list: [
+        { event: 'bumper', count: 10, reward: 1000, mult: 1, text: 'Ram bumperne', short: 'Bumpere' },
+        { event: 'loop', count: 2, reward: 2000, mult: 1, text: 'Kør sløjferne', short: 'Sløjfer' },
+        { event: 'sling', count: 6, reward: 2000, mult: 1, text: 'Ram slyngerne', short: 'Slynger' },
+        { event: 'lights', count: 1, reward: 3000, mult: 1, text: 'Tænd alle lys', short: 'Lys' }
+      ]
+    }
   });
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -464,7 +464,7 @@
     spinner: function (e) { return partName('spinners', e.index, 'Spinner') + ': ' + e.spins + ' omgange +' + fmt(e.points); },
     hole: function (e) { return partName('holes', e.index, 'Hul') + '! +' + fmt(e.points); },
     dropBank: function (e) { return 'Alle ' + (run.table.drops[e.bank] ? run.table.drops[e.bank].name.toLowerCase() : 'mål') + ' nede! +' + fmt(e.points); },
-    mission: function (e) { return 'Mission klaret: ' + e.text + '! +' + fmt(e.points) + (e.jackpotLit ? ' – jackpot tændt' : ''); },
+    mission: function (e) { return 'Mission klaret: ' + e.text + '! +' + fmt(e.points) + (e.mult ? ' · Bonus ×' + e.mult : '') + (e.jackpotLit ? ' – jackpot tændt' : ''); },
     jackpot: function (e) { return 'JACKPOT! +' + fmt(e.points); },
     return: function () { return 'Kuglen kom tilbage – skyd igen'; }
   };

@@ -294,7 +294,8 @@
     }
 
     // ---------- Missioner og jackpot ----------
-    // def.missions = { list: [{ text, short, event, id?, count, reward }], jackpot: { text, event, id?, value } }
+    // def.missions = { list: [{ text, short, event, id?, count, reward, mult? }], jackpot: { text, event, id?, value } }
+    // mult: en klaret mission hæver også bonussen (×1 … ×5), ligesom alle lys. Bonussen nulstilles, når kuglen er tabt.
     function matches(m, e) { return m && e.type === m.event && (m.id == null || e.id === m.id); }
     function mission(e) {
       var M = T.missions, ms = state.mission;
@@ -316,7 +317,11 @@
       var done = ms.idx >= M.list.length;
       if (done && M.jackpot) ms.jackpot = true;
       else if (done) { ms.idx = 0; ms.round++; }
-      addPoints(m.reward, 'mission', { text: m.text, jackpotLit: ms.jackpot });
+      addPoints(m.reward, 'mission', { text: m.text, jackpotLit: ms.jackpot, mult: m.mult ? Math.min(5, state.mult + m.mult) : null });
+      if (m.mult) {
+        state.mult = Math.min(5, state.mult + m.mult);
+        state.stats.bestMult = Math.max(state.stats.bestMult, state.mult);
+      }
     }
 
     // ---------- Kollisioner ----------

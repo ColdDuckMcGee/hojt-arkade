@@ -54,7 +54,12 @@
       { type: 'planet', x: 300, y: 610, r: 42 }
     ],
     missions: {
-      list: [{ event: 'ramp', id: 'kredslob', count: 3, reward: 5000, text: 'Kør Kredsløbet', short: 'Rampe' }]
+      list: [
+        { event: 'ramp', id: 'kredslob', count: 3, reward: 5000, mult: 1, text: 'Kør Kredsløbet', short: 'Rampe' },
+        { event: 'spinner', id: 'solsejl', count: 4, reward: 3000, mult: 1, text: 'Drej Solsejlet', short: 'Solsejl' },
+        { event: 'hole', id: 'sortehul', count: 2, reward: 5000, mult: 1, text: 'Ram Sorte hul', short: 'Sorte hul' },
+        { event: 'lights', count: 1, reward: 5000, mult: 1, text: 'Tænd R-U-M', short: 'R-U-M' }
+      ]
     }
   });
 })(typeof window !== 'undefined' ? window : globalThis);
