@@ -421,3 +421,7 @@ ol.records .score { white-space: nowrap; }
 .rh-lille .records li { grid-template-columns: 2.4em 1fr; row-gap: 0; }
 .rh-lille .records li .date { grid-column: 2; font-size: 0.8em; line-height: 1.1; }
 .rh-lille .records li .date:empty, .rh-tvaers .records li .date { display: none; }
+/* Lav skærm, når pladsen er trang: økonomiknapperne holder teksten på én linje, så de kan beholde 84 px */
+#game.lay-lav.tight #v-gaeld .knap { padding: 2px 3px; }
+#game.lay-lav.tight #v-gaeld .knap .big { font-size: 0.9rem; white-space: nowrap; }
+#game.lay-lav.tight #v-gaeld .knap svg { width: calc(var(--btn) * 0.22); height: calc(var(--btn) * 0.22); }
