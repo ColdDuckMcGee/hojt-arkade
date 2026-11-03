@@ -14,7 +14,7 @@ function test(name, fn) { tests.push({ name: name, fn: fn }); }
 // Læg banens egen løsning: drej hver brik på stien, til den har de nødvendige åbninger
 function solve(board) {
   var used = 0;
-  board.path.forEach(function (i) {
+  board.path.concat(board.path2 || []).forEach(function (i) {
     var t = board.tiles[i]; if (t.fixed) return;
     var k = L.turnsNeeded(t, board.need[i]);
     t.rot = (t.rot + k) % 4; used += k;
@@ -149,7 +149,7 @@ test('størrelse efter bane og skærm', function () {
 // Drej banens sti på plads med rigtige drejninger (det sidste træk løser banen)
 function solveRun(run) {
   var s = run.state, b = s.board, last = null;
-  b.path.forEach(function (i) {
+  b.path.concat(b.path2 || []).forEach(function (i) {
     var t = b.tiles[i]; if (t.fixed) return;
     var k = L.turnsNeeded(t, b.need[i]);
     for (var j = 0; j < k && !s.solved; j++) { last = run.rotate(i); assert.strictEqual(last.ok, true); }
@@ -243,6 +243,50 @@ test('fortryd giver drejningen tilbage, før de er brugt', function () {
   assert.strictEqual(run.undo().ok, true);
   assert.strictEqual(s.turnsLeft, 2);
   assert.strictEqual(s.over, false);
+});
+// ---------- To kilder ----------
+function reachesFrom(b, src, dst) { var c = L.cloneBoard(b); c.source = src; c.drain = dst; delete c.source2; return reachesDFS(c); }
+test('to kilder: fra bane 10 på hver anden bane (5 × 5 og større), med to kilder og to afløb', function () {
+  assert.ok(!L.RULES.two(9, 6) && L.RULES.two(10, 6) && !L.RULES.two(11, 6) && L.RULES.two(12, 5) && !L.RULES.two(12, 4));
+  var b = L.generate(6, 10, 99);
+  assert.ok(b.source2 >= 0 && b.drain2 >= 0 && b.path2.length >= 4);
+  assert.strictEqual(b.tiles[b.source2].type, 'kilde'); assert.strictEqual(b.tiles[b.source2].farve, 1);
+  assert.strictEqual(b.tiles[b.drain2].type, 'afloeb'); assert.strictEqual(b.tiles[b.drain2].farve, 1);
+  assert.ok(!b.tiles[b.source].farve && !b.tiles[b.drain].farve);
+  assert.ok(!L.generate(4, 10, 99).source2, '4 × 4 har kun én kilde');
+  assert.ok(L.generate(6, 11, 99).source2 === undefined, 'ulige bane: én kilde');
+});
+test('to kilder: altid løsbare – hver kilde til sit afløb, uden at blandes (400 baner)', function () {
+  var r = L.rng(17);
+  [5, 6].forEach(function (n) {
+    for (var k = 0; k < 200; k++) {
+      var b = L.generate(n, 10 + 2 * (k % 20), r);
+      assert.ok(b.source2 >= 0);
+      var a = {}; b.path.forEach(function (i) { a[i] = 1; });
+      assert.ok(b.path2.every(function (i) { return !a[i]; }), 'stierne deler ikke felter');
+      assert.strictEqual(L.flow(b).reached, false, 'løst fra start');
+      var c = L.cloneBoard(b), used = solve(c);
+      assert.strictEqual(used, b.solTurns);
+      var f = L.flow(c);
+      assert.ok(f.reached && !f.mixed, 'løsningen virker');
+      // uafhængig kontrol: hver kilde når sit afløb, men ikke det andet system
+      assert.ok(reachesFrom(c, c.source, c.drain) && reachesFrom(c, c.source2, c.drain2));
+      assert.ok(!reachesFrom(c, c.source, c.drain2) && !reachesFrom(c, c.source, c.source2));
+    }
+  });
+});
+test('to kilder: blandet vand tæller ikke som løst', function () {
+  // 1 × 5: kilde 1 → rør → afløb 1 ... og kilde 2 lige ved siden af med en åbning ind i systemet
+  var E2 = L.E, W2 = L.W;
+  var b = { n: 3, source: 0, drain: 2, source2: 6, drain2: 8, path: [0, 1, 2], path2: [6, 7, 8], need: [0, 0, 0, 0, 0, 0, 0, 0, 0], tiles: [
+    { type: 'kilde', rot: 1, fixed: true }, { type: 'lige', rot: 1 }, { type: 'afloeb', rot: 3, fixed: true },
+    { type: 'lige', rot: 1 }, { type: 'lige', rot: 1 }, { type: 'lige', rot: 1 },
+    { type: 'kilde', rot: 1, fixed: true, farve: 1 }, { type: 'lige', rot: 1 }, { type: 'afloeb', rot: 3, fixed: true, farve: 1 }] };
+  var f = L.flow(b);
+  assert.ok(f.reached && !f.mixed, 'to adskilte systemer');
+  b.tiles[1] = { type: 'kryds', rot: 0 }; b.tiles[4] = { type: 'kryds', rot: 0 }; b.tiles[7] = { type: 'kryds', rot: 0 };
+  f = L.flow(b);
+  assert.ok(f.mixed && !f.reached, 'kryds forbinder systemerne: blandet');
 });
 test('mange baner i træk kan klares (60 baner)', function () {
   var run = L.createRun({ seed: 123, maxN: 6 }), s = run.state;

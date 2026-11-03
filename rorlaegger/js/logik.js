@@ -14,6 +14,11 @@
  * træ over hele gitteret, så vælges kilde og afløb, og stien mellem dem i træet
  * bliver til rør. De andre felter får tilfældige brikker. Til sidst drejes alle
  * brikker tilfældigt (og aldrig, så banen er løst fra start).
+ *
+ * To kilder (fra bane 10, hver anden bane, på 5 × 5 og større): en ekstra kilde og et
+ * ekstra afløb (farve 2, tegnet med firkant i stedet for rund). Hver kilde skal nå sit
+ * eget afløb, og de to systemer må ikke hænge sammen (vandet må ikke blandes). Stien for
+ * kilde 2 laves i et træ over de felter, kilde 1's sti ikke bruger, så banen kan løses.
  */
 (function (global) {
   'use strict';
@@ -40,7 +45,10 @@
     // (større gitre har flere rør at prøve sig frem med).
     buffer: function (level, n) { return Math.max(4, 8 - Math.floor((level - 1) / 3)) + Math.max(0, (n || 4) - 4); },
     // Ønsket længde på stien fra kilde til afløb (i felter, inkl. kilde og afløb)
-    pathLength: function (n, level) { return Math.min(n * n - 2, n + 1 + Math.floor(level * 0.8)); }
+    pathLength: function (n, level) { return Math.min(n * n - 2, n + 1 + Math.floor(level * 0.8)); },
+    // To kilder: fra bane 10 på hver anden bane (lige numre), når gitteret er mindst 5 × 5
+    twoFrom: 10, twoMinN: 5,
+    two: function (level, n) { return level >= this.twoFrom && level % 2 === 0 && n >= this.twoMinN; }
   };
 
   // ---------- Hjælpere ----------
@@ -82,10 +90,21 @@
   // ---------- Vandets vej ----------
   // Bredde-først fra kilden. dist[i] = skridt fra kilden (-1 = tørt felt).
   // Vandet løber kun videre, hvor begge brikker har åbninger mod hinanden.
+  // Med to kilder: dist (kilde 1) og dist2 (kilde 2); mixed = systemerne hænger sammen,
+  // eller vandet når det forkerte afløb. reached = begge kilder når hvert sit afløb uden at blandes.
   function flow(board) {
+    var a = flowFrom(board, board.source);
+    if (board.source2 === undefined || board.source2 < 0) { a.reached = a.dist[board.drain] >= 0; return a; }
+    var b = flowFrom(board, board.source2);
+    var mixed = a.dist[board.source2] >= 0 || a.dist[board.drain2] >= 0 || b.dist[board.drain] >= 0;
+    var okA = a.dist[board.drain] >= 0, okB = b.dist[board.drain2] >= 0;
+    return { dist: a.dist, dist2: b.dist, reached: okA && okB && !mixed, reachedA: okA && !mixed, reachedB: okB && !mixed, mixed: mixed,
+      wet: a.wet + (mixed ? 0 : b.wet), maxDist: Math.max(a.maxDist, b.maxDist) };
+  }
+  function flowFrom(board, src) {
     var n = board.n, tiles = board.tiles, dist = [], i;
     for (i = 0; i < tiles.length; i++) dist.push(-1);
-    var q = [board.source]; dist[board.source] = 0;
+    var q = [src]; dist[src] = 0;
     var count = 0, maxDist = 0;
     while (q.length) {
       var c = q.shift(); count++;
@@ -101,7 +120,7 @@
         q.push(nb);
       }
     }
-    return { dist: dist, reached: dist[board.drain] >= 0, wet: count, maxDist: maxDist };
+    return { dist: dist, wet: count, maxDist: maxDist };
   }
 
   // ---------- Generator ----------
@@ -147,8 +166,9 @@
 
   // Laver en bane. Returnerer { n, tiles, source, drain, path, need, solTurns }
   // path: felterne fra kilde til afløb. need[i]: åbninger felt i skal have (0 = ligegyldigt).
-  function generate(n, level, seedOrRng) {
+  function generate(n, level, seedOrRng, opts) {
     var r = typeof seedOrRng === 'function' ? seedOrRng : rng(seedOrRng || Date.now());
+    if ((opts && opts.two) || (!(opts && opts.two === false) && RULES.two(level || 1, n))) return generate2(n, level || 1, r);
     var want = RULES.pathLength(n, level || 1);
     for (var attempt = 0; attempt < 200; attempt++) {
       var adj = spanningTree(n, r), N2 = n * n;
@@ -202,20 +222,107 @@
     }
     throw new Error('Kunne ikke lave en bane');
   }
+  // Et tilfældigt udspændende træ over de felter, der ikke er spærret (dybde-først fra start)
+  function subTree(n, r, blocked, start) {
+    var N2 = n * n, seen = [], adj = [], i;
+    for (i = 0; i < N2; i++) { seen.push(!!blocked[i]); adj.push(0); }
+    var stack = [start]; seen[start] = true;
+    while (stack.length) {
+      var c = stack[stack.length - 1], opts = [];
+      for (var k = 0; k < 4; k++) { var nb = neighbour(c, DIRS[k], n); if (nb >= 0 && !seen[nb]) opts.push(DIRS[k]); }
+      if (!opts.length) { stack.pop(); continue; }
+      var d = opts[pickInt(r, opts.length)], to = neighbour(c, d, n);
+      adj[c] |= d; adj[to] |= OPP[d]; seen[to] = true; stack.push(to);
+    }
+    return adj;
+  }
+  function pathNeed(path, need, n) {
+    for (var p = 0; p < path.length; p++) {
+      var m = 0;
+      if (p > 0) m |= dirTo(path[p], path[p - 1], n);
+      if (p < path.length - 1) m |= dirTo(path[p], path[p + 1], n);
+      need[path[p]] = m;
+    }
+  }
+  function pickPath(adj, n, r, source, want, ok) {
+    var td = treeDist(adj, n, source), best = [], bestDiff = Infinity;
+    for (var i = 0; i < n * n; i++) {
+      if (i === source || td.dist[i] < 0 || (ok && !ok(i))) continue;
+      var diff = Math.abs(td.dist[i] + 1 - want);
+      if (diff < bestDiff) { bestDiff = diff; best = [i]; } else if (diff === bestDiff) best.push(i);
+    }
+    if (!best.length) return null;
+    var drain = best[pickInt(r, best.length)], path = [], c = drain;
+    while (c >= 0) { path.unshift(c); c = td.prev[c]; }
+    return path;
+  }
+  // Bane med to kilder og to afløb
+  function generate2(n, level, r) {
+    var N2 = n * n, total = RULES.pathLength(n, level);
+    var wantA = Math.max(4, Math.round(total * 0.6)), wantB = Math.max(4, Math.round(total * 0.5));
+    for (var attempt = 0; attempt < 400; attempt++) {
+      var adj = spanningTree(n, r), sa = pickInt(r, N2);
+      var pa = pickPath(adj, n, r, sa, wantA);
+      if (!pa || pa.length < 4) continue;
+      var blocked = {}; pa.forEach(function (i) { blocked[i] = true; });
+      var free = []; for (var i = 0; i < N2; i++) if (!blocked[i]) free.push(i);
+      var sb = free[pickInt(r, free.length)];
+      var adj2 = subTree(n, r, blocked, sb);
+      var pb = pickPath(adj2, n, r, sb, wantB);
+      if (!pb || pb.length < 4) continue;
+      var need = [], tiles = [];
+      for (i = 0; i < N2; i++) { need.push(0); tiles.push(null); }
+      pathNeed(pa, need, n); pathNeed(pb, need, n);
+      tiles[pa[0]] = { type: 'kilde', rot: typeForSingle(need[pa[0]]), fixed: true };
+      tiles[pa[pa.length - 1]] = { type: 'afloeb', rot: typeForSingle(need[pa[pa.length - 1]]), fixed: true };
+      tiles[pb[0]] = { type: 'kilde', rot: typeForSingle(need[pb[0]]), fixed: true, farve: 1 };
+      tiles[pb[pb.length - 1]] = { type: 'afloeb', rot: typeForSingle(need[pb[pb.length - 1]]), fixed: true, farve: 1 };
+      // Rørene på stierne: præcis de åbninger, stien skal bruge (ingen ekstra huller, så de to systemer
+      // kan holdes adskilt i løsningen)
+      [pa, pb].forEach(function (path) {
+        for (var p = 1; p < path.length - 1; p++) { var tf = typeFor(need[path[p]]); tiles[path[p]] = { type: tf.type, rot: tf.rot, fixed: false }; }
+      });
+      for (i = 0; i < N2; i++) if (!tiles[i]) tiles[i] = { type: randomType(r), rot: 0, fixed: false };
+      var board = { n: n, tiles: tiles, source: pa[0], drain: pa[pa.length - 1], path: pa, source2: pb[0], drain2: pb[pb.length - 1], path2: pb, need: need };
+      // Løsningen (alle stier lagt) skal virke: hver kilde til sit afløb uden at blandes
+      var sol = solved(board);
+      if (!flow(sol).reached) continue;
+      for (i = 0; i < N2; i++) if (!tiles[i].fixed) tiles[i].rot = pickInt(r, 4);
+      for (var t = 0; t < 30 && (flow(board).reachedA || flow(board).reachedB || solutionTurns(board) < 4); t++) {
+        var all = pa.slice(1, -1).concat(pb.slice(1, -1)), j = all[pickInt(r, all.length)];
+        tiles[j].rot = (tiles[j].rot + 1 + pickInt(r, 3)) % 4;
+      }
+      if (flow(board).reachedA || flow(board).reachedB) continue;
+      board.solTurns = solutionTurns(board);
+      return board;
+    }
+    // Sjældent: en almindelig bane
+    return generate(n, level, r, { two: false });
+  }
+  // Kopi af banen, hvor stierne er drejet på plads (til at tjekke løsningen)
+  function solved(board) {
+    var c = cloneBoard(board);
+    [c.path, c.path2 || []].forEach(function (path) {
+      path.forEach(function (i) { var t = c.tiles[i]; if (!t.fixed) t.rot = (t.rot + turnsNeeded(t, c.need[i])) % 4; });
+    });
+    return c;
+  }
   function typeForSingle(mask) { for (var k = 0; k < 4; k++) if (rotate(N, k) === mask) return k; return 0; }
   // Drejninger, der skal til for at lægge banens egen sti (en øvre grænse for den bedste løsning)
   function solutionTurns(board) {
-    var s = 0;
-    for (var p = 0; p < board.path.length; p++) {
-      var i = board.path[p], tl = board.tiles[i];
+    var s = 0, all = board.path.concat(board.path2 || []);
+    for (var p = 0; p < all.length; p++) {
+      var i = all[p], tl = board.tiles[i];
       if (tl.fixed) continue;
       s += turnsNeeded(tl, board.need[i]);
     }
     return s;
   }
   function cloneBoard(b) {
-    return { n: b.n, source: b.source, drain: b.drain, path: b.path.slice(), need: b.need.slice(), solTurns: b.solTurns,
-      tiles: b.tiles.map(function (t) { return { type: t.type, rot: t.rot, fixed: t.fixed }; }) };
+    var c = { n: b.n, source: b.source, drain: b.drain, path: b.path.slice(), need: b.need.slice(), solTurns: b.solTurns,
+      tiles: b.tiles.map(function (t) { var o = { type: t.type, rot: t.rot, fixed: t.fixed }; if (t.farve) o.farve = t.farve; return o; }) };
+    if (b.source2 !== undefined && b.source2 >= 0) { c.source2 = b.source2; c.drain2 = b.drain2; c.path2 = b.path2.slice(); }
+    return c;
   }
 
   // ---------- Et spil (en række baner uden ende) ----------
@@ -310,7 +417,7 @@
   global.RorlaeggerLogik = {
     N: N, E: E, S: S, W: W, DIRS: DIRS, BASE: BASE, TYPES: TYPES, RULES: RULES,
     rotate: rotate, openings: openings, typeFor: typeFor, turnsNeeded: turnsNeeded, neighbour: neighbour,
-    rng: rng, flow: flow, generate: generate, solutionTurns: solutionTurns, cloneBoard: cloneBoard,
+    rng: rng, flow: flow, generate: generate, solutionTurns: solutionTurns, cloneBoard: cloneBoard, solved: solved,
     sizeForLevel: sizeForLevel, createRun: createRun
   };
 })(typeof window !== 'undefined' ? window : globalThis);

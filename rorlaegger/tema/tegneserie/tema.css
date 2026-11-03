@@ -4,6 +4,7 @@ html[data-stil="tegneserie"] {
   --rl-board: #fffaf0; --rl-frame: var(--ink); --rl-grid: #e6dcc0; --rl-felt: transparent; --rl-felt-hover: rgba(255, 210, 63, 0.45);
   --rl-ror: #9aa7b8; --rl-ror-kant: var(--ink); --rl-ror-forb: #c9d3df; --rl-flange: #6b7a8f; --rl-flange-forb: #9aa7b8;
   --rl-vand: #2f80ed; --rl-vand-kerne: #8fc0ff;
+  --rl-vand-b: #f2994a; --rl-vand-b-kerne: #ffffff; --rl-kilde-b: #f2994a;
   --rl-kilde: #2f80ed; --rl-kilde-kant: var(--ink); --rl-kilde-ikon: #ffffff;
   --rl-afloeb: #ffd23f; --rl-afloeb-kant: var(--ink); --rl-afloeb-rist: var(--ink); --rl-afloeb-vaad: #2f80ed;
   --rl-cursor: #e8433a; --rl-fejl: #e8433a; --rl-ok: #2a9d4a; --rl-shadow: transparent;

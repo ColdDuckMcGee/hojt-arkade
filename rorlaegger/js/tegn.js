@@ -17,6 +17,9 @@
   var L = global.RorlaeggerLogik;
   var SVGNS = 'http://www.w3.org/2000/svg';
   var NAVN = { lige: 'lige rør', knaek: 'knæk', t: 'T-rør', kryds: 'kryds', kilde: 'kilden', afloeb: 'afløbet' };
+  var NAVN2 = { kilde: 'kilde 2 (firkantet)', afloeb: 'afløb 2 (firkantet)' };
+  function brik(t) { return t.type + (t.farve ? '2' : ''); }
+  function navn(t, two) { return t.farve ? NAVN2[t.type] : two && NAVN[t.type] && (t.type === 'kilde' || t.type === 'afloeb') ? (t.type === 'kilde' ? 'kilde 1 (rund)' : 'afløb 1 (rundt)') : NAVN[t.type]; }
   var RETNING = ['nord', 'øst', 'syd', 'vest'];
 
   // Temaets ikoner lægges ind som <symbol id="rl-ikon-<navn>">, så HTML kan bruge <use href="#rl-ikon-fortryd">
@@ -61,11 +64,11 @@
       for (var i = 0; i < b.tiles.length; i++) {
         var t = b.tiles[i];
         var el = document.createElement(t.fixed ? 'div' : 'button');
-        el.className = 'cell' + (t.fixed ? ' fast ' + t.type : ' turn-btn');
+        el.className = 'cell' + (t.fixed ? ' fast ' + t.type : ' turn-btn') + (t.farve ? ' b' : '');
         if (!t.fixed) el.type = 'button';
         el.dataset.i = i;
         el.innerHTML = '<svg viewBox="0 0 100 100" aria-hidden="true" overflow="visible">' + T.felt +
-          '<g class="rl-drej" style="transform: rotate(' + (t.rot * 90) + 'deg)"><use href="#rl-brik-' + t.type + '"/></g></svg>';
+          '<g class="rl-drej" style="transform: rotate(' + (t.rot * 90) + 'deg)"><use href="#rl-brik-' + brik(t) + '"/></g></svg>';
         if (t.fixed) el.setAttribute('role', 'img');
         boardEl.appendChild(el);
         cellEls.push(el); drejEls.push(el.querySelector('.rl-drej'));
@@ -88,14 +91,17 @@
           lastRot[i] = t.rot;
           drejEls[i].style.transform = 'rotate(' + angle[i] + 'deg)';
         }
-        var dist = w ? w.dist[i] : -1;
-        cl.toggle('forb', !!view.connected && f && f.dist[i] >= 0);
+        var two = b.source2 !== undefined && b.source2 >= 0;
+        var d1 = w ? w.dist[i] : -1, d2 = w && w.dist2 ? w.dist2[i] : -1, dist = d1 >= 0 ? d1 : d2;
+        cl.toggle('forb', !!view.connected && f && (f.dist[i] >= 0 || (f.dist2 && f.dist2[i] >= 0)));
         cl.toggle('vaad', dist >= 0 || t.type === 'kilde');
+        cl.toggle('b', !!t.farve || (d1 < 0 && d2 >= 0));
         if (dist >= 0) el.style.setProperty('--d', dist); else el.style.removeProperty('--d');
         cl.toggle('cur', i === view.cursor);
         var x = i % n, y = Math.floor(i / n);
-        var label = 'Række ' + (y + 1) + ', kolonne ' + (x + 1) + ': ' + NAVN[t.type] + ', åbent mod ' + aabningerTekst(t) +
-          (dist >= 0 ? ', vand' : (view.connected && f && f.dist[i] >= 0 ? ', forbundet' : ''));
+        var label = 'Række ' + (y + 1) + ', kolonne ' + (x + 1) + ': ' + navn(t, two) + ', åbent mod ' + aabningerTekst(t) +
+          (d1 >= 0 ? (two ? ', vand fra kilde 1' : ', vand') : d2 >= 0 ? ', vand fra kilde 2' :
+           (view.connected && f && f.dist[i] >= 0 ? (two ? ', forbundet med kilde 1' : ', forbundet') : view.connected && f && f.dist2 && f.dist2[i] >= 0 ? ', forbundet med kilde 2' : ''));
         if (el.getAttribute('aria-label') !== label) el.setAttribute('aria-label', label);
       }
       shownWater = w;
@@ -112,9 +118,10 @@
     var n = b.w || b.n, rows = b.h || b.n, h = '';
     for (var i = 0; i < b.tiles.length; i++) {
       var t = b.tiles[i], x = (i % n) * 100, y = Math.floor(i / n) * 100;
-      var wet = (water && water.dist[i] >= 0) || t.type === 'kilde';
-      h += '<g class="mini-cell' + (wet ? ' vaad' : '') + '" transform="translate(' + x + ' ' + y + ') rotate(' + (t.rot * 90) + ' 50 50)">' +
-        '<use href="#rl-brik-' + t.type + '" width="100" height="100"/></g>';
+      var w1 = water && water.dist[i] >= 0, w2 = water && water.dist2 && water.dist2[i] >= 0;
+      var wet = w1 || w2 || t.type === 'kilde', b2 = t.farve || (!w1 && w2);
+      h += '<g class="mini-cell' + (wet ? ' vaad' : '') + (b2 ? ' b' : '') + '" transform="translate(' + x + ' ' + y + ') rotate(' + (t.rot * 90) + ' 50 50)">' +
+        '<use href="#rl-brik-' + brik(t) + '" width="100" height="100"/></g>';
     }
     return '<svg class="mini-bane" viewBox="-6 -6 ' + (n * 100 + 12) + ' ' + (rows * 100 + 12) + '" aria-hidden="true">' + h + '</svg>';
   }

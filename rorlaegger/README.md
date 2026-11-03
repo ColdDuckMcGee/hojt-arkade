@@ -13,6 +13,7 @@ På gitteret er der en **kilde** (cyan ring med en dråbe) og et **afløb** (rin
 - **Bufferen:** `max(4, 8 − ⌊(bane − 1) / 3⌋) + (n − 4)`. Den er 8 i bane 1–3 og falder med én for hver 3. bane til mindst 4 fra bane 13. Derudover får 5 × 5 én ekstra og 6 × 6 to ekstra, fordi der er flere rør at prøve sig frem med. Eksempler: bane 1 (4 × 4) 8, bane 4 (5 × 5) 8, bane 9 (6 × 6) 8, bane 13+ (6 × 6) 6. Den er rummeligere end før (7 → 2), fordi en fejl nu koster hele spillet i stedet for et liv. Drejninger til overs giver stadig 5 point hver, så det betaler sig at være sparsom. Der overføres ingen rest til næste bane, fordi resten allerede bliver til point.
 - **Vis forbindelse** (til som standard): rør, der allerede hænger sammen med kilden, lyser svagt op, og vandet løber af sig selv, når der er vej til afløbet. Det kan slås fra under Indstillinger → Styring for en sværere udgave.
 - **Baner uden ende:** alle baner laves tilfældigt og kan altid løses. Et tilfældigt udspændende træ over gitteret giver en sti fra kilde til afløb, og rørene drejes derefter tilfældigt. En bane er aldrig løst fra start. Stien bliver længere for hver bane. Gitteret er 4 × 4 fra bane 1, 5 × 5 fra bane 4 og 6 × 6 fra bane 9.
+- **To kilder:** fra bane 10 har hver anden bane (lige numre, på 5 × 5 og større) to kilder og to afløb. Kilde 1 og afløb 1 er runde, kilde 2 og afløb 2 er firkantede og har deres egen vandfarve, så de kan skelnes uden farver. Hver kilde skal nå sit eget afløb, og de to systemer må ikke hænge sammen: blandes vandet (fx gennem et kryds), er banen ikke løst, og beskeden siger det. Stien for kilde 2 laves i et træ over de felter, kilde 1's sti ikke bruger, så banen altid kan løses.
 - **Størrelser efter skærmen:** en størrelse bruges kun, hvis felterne bliver mindst 80 px. 4 × 4 kan altid bruges. På 1024 × 768 og større gælder alle tre størrelser. På mobil (390 × 844 og 844 × 390) bliver banerne højst 4 × 4, og startskærmen siger det.
 - **Point:** en klaret bane giver 10 point for hvert felt med vand, 5 for hver drejning til overs og 5 × banens nummer.
 - **Tastatur:** piletasterne flytter markøren, Enter eller mellemrum drejer, F eller Backspace fortryder, og Esc eller P giver pause.
@@ -47,7 +48,8 @@ Al grafik ligger i `tema/neon/`. Spilkoden henter den kun ved navn. Et nyt tema 
   - `knaek` (nord og øst).
   - `t` (nord, øst og syd).
   - `kryds` (alle fire).
-  - `kilde` og `afloeb` (åbne mod nord).
+  - `kilde` og `afloeb` (åbne mod nord), og `kilde2` og `afloeb2` (firkantede, til to kilder).
+  - Farver til kilde 2: `--rl-vand-b`, `--rl-vand-b-kerne` og `--rl-kilde-b`.
 - Brikkerne må bruge disse klasser (farver og streger kommer fra CSS):
   - `rl-ror-kant` (rørets yderkant).
   - `rl-ror` (røret).

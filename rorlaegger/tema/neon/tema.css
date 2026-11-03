@@ -23,6 +23,9 @@
   --rl-flange-forb: #8f7fe0;
   --rl-vand: #22eaff;
   --rl-vand-kerne: #b8f8ff;
+  --rl-vand-b: #ffb03a;             /* kilde 2 (to kilder) */
+  --rl-vand-b-kerne: #ffe2b0;
+  --rl-kilde-b: #5a3a08;
   --rl-kilde: #0d5a78;
   --rl-kilde-kant: #22eaff;
   --rl-kilde-ikon: #b8f8ff;
@@ -49,6 +52,7 @@
   --rl-ror: #8a8a8a; --rl-ror-kant: #000000; --rl-ror-forb: #ffffff; --rl-flange: #8a8a8a; --rl-flange-forb: #ffffff;
   --rl-vand: #00ffff; --rl-vand-kerne: #00ffff; --rl-kilde: #000000; --rl-kilde-kant: #00ffff; --rl-kilde-ikon: #00ffff;
   --rl-afloeb: #000000; --rl-afloeb-kant: #ffff00; --rl-afloeb-rist: #ffff00; --rl-afloeb-vaad: #00ffff;
+  --rl-vand-b: #ff8800; --rl-vand-b-kerne: #ff8800; --rl-kilde-b: #000000;
   --rl-cursor: #ff00ff; --rl-fejl: #ff6600; --rl-ok: #00ff00;
 }
 

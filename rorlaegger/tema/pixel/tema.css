@@ -4,6 +4,7 @@ html[data-stil="pixel"] {
   --rl-board: #000000; --rl-frame: #fff1e8; --rl-grid: #1d2b53; --rl-felt: #0b1026; --rl-felt-hover: rgba(41, 173, 255, 0.25);
   --rl-ror: #5f574f; --rl-ror-kant: #000000; --rl-ror-forb: #c2c3c7; --rl-flange: #3a3530; --rl-flange-forb: #83769c;
   --rl-vand: #29adff; --rl-vand-kerne: #fff1e8;
+  --rl-vand-b: #ffa300; --rl-vand-b-kerne: #fff1e8; --rl-kilde-b: #1d2b53;
   --rl-kilde: #1d2b53; --rl-kilde-kant: #29adff; --rl-kilde-ikon: #fff1e8;
   --rl-afloeb: #000000; --rl-afloeb-kant: #ffec27; --rl-afloeb-rist: #ffec27; --rl-afloeb-vaad: #29adff;
   --rl-cursor: #ff77a8; --rl-fejl: #ff004d; --rl-ok: #00e436; --rl-shadow: transparent;

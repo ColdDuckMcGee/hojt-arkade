@@ -244,9 +244,11 @@
     }
     if (res.solved) { letWaterRun(res.flow); return; }
     if (res.over) { lose(); return; }
-    var showConn = bset.get('visForbindelse');
+    var showConn = bset.get('visForbindelse'), fl = res.flow, b2 = run.state.board;
     sfx(res.connected && showConn ? 'connected' : 'turn');
-    setNote('', '');
+    // To kilder: rørene når et afløb, men de to systemer hænger sammen
+    if (fl && fl.mixed && (fl.dist[b2.drain] >= 0 || fl.dist[b2.drain2] >= 0 || fl.dist2[b2.drain] >= 0 || fl.dist2[b2.drain2] >= 0)) setNote('Vandet fra de to kilder løber sammen', 'err');
+    else setNote('', '');
     refresh();
   }
   function undo() {
@@ -309,6 +311,7 @@
     else if (!txt) {
       if (s.turnsLeft === 1) { txt = 'Sidste drejning! Fortryd giver drejninger tilbage.'; cls = 'err'; }
       else if (s.turnsLeft <= 3) { txt = 'Kun ' + turnsText(s.turnsLeft) + ' tilbage'; cls = 'err'; }
+      else if (b.source2 !== undefined && b.source2 >= 0) txt = 'To kilder: hver til sit eget afløb';
       else txt = 'Vælg et rør for at dreje det ' + (bset.get('retning') === 'mod' ? 'mod uret' : 'med uret');
     }
     hint.textContent = txt;

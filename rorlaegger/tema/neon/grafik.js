@@ -54,7 +54,14 @@
     // Afløbet: en rund rist
     afloeb: ror('afloeb') +
       '<circle class="rl-afloeb" cx="50" cy="56" r="27"/>' +
-      '<path class="rl-afloeb-rist" d="M36 48 H64 M33 56 H67 M36 64 H64"/>'
+      '<path class="rl-afloeb-rist" d="M36 48 H64 M33 56 H67 M36 64 H64"/>',
+    // Kilde 2 og afløb 2 (to kilder): firkantede, så de kan skelnes fra de runde uden farver
+    kilde2: ror('kilde') +
+      '<rect class="rl-kilde" x="25" y="31" width="50" height="50" rx="6"/>' +
+      '<path class="rl-kilde-ikon" d="M50 42 L61 56 L50 70 L39 56 Z"/>',
+    afloeb2: ror('afloeb') +
+      '<rect class="rl-afloeb" x="25" y="31" width="50" height="50" rx="6"/>' +
+      '<path class="rl-afloeb-rist" d="M41 42 V70 M59 42 V70 M36 49 H64 M36 63 H64"/>'
   };
   var IKONER = {
     // Drej: en pil en kvart omgang med uret

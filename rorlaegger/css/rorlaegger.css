@@ -113,6 +113,12 @@ html, body { height: 100%; height: 100dvh; }
 .cell.vaad, .mini-cell.vaad { --rl-s-vand: 1; --rl-s-delay: calc(var(--d, 0) * 260ms); }
 .cell.kilde { --rl-s-vand: 1; --rl-s-delay: 0ms; }
 .cell.afloeb.vaad, .mini-cell.vaad { --rl-s-rist: var(--rl-afloeb-vaad); }
+/* Kilde 2 (to kilder): sin egen farve på vand, kilde og afløb (formen er firkantet, se temaet) */
+.cell.b, .mini-cell.b {
+  --rl-vand: var(--rl-vand-b); --rl-vand-kerne: var(--rl-vand-b-kerne); --rl-kilde: var(--rl-kilde-b);
+  --rl-kilde-kant: var(--rl-vand-b); --rl-kilde-ikon: var(--rl-vand-b-kerne);
+  --rl-afloeb-kant: var(--rl-vand-b); --rl-afloeb-rist: var(--rl-vand-b); --rl-afloeb-vaad: var(--rl-vand-b);
+}
 .rl-felt-bund { fill: var(--rl-s-felt, var(--rl-felt)); rx: var(--rl-radius-felt); }
 .rl-ror-kant, .rl-ror, .rl-vand { fill: none; stroke-linecap: var(--rl-ror-ende); stroke-linejoin: var(--rl-ror-hjoerne); }
 .rl-ror-kant { stroke: var(--rl-ror-kant); stroke-width: var(--rl-ror-kant-w); }
