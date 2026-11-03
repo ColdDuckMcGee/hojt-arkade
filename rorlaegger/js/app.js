@@ -48,8 +48,8 @@
   var audio = ArkadeAudio.create({ sfx: arkade.get('sound'), music: arkade.get('music') });
   // Lydene kommer fra det fælles lydmodul (alle rolige). Rørlægger bruger disse navne:
   var SFX = {
-    turn: 'move', undo: 'bonusGone', connected: 'eat', blocked: 'click', water: 'bonusSpawn',
-    cleared: 'bonus', lost: 'crash', record: 'record', click: 'click', pause: 'pause'
+    turn: 'turn', undo: 'bonusGone', connected: 'select', blocked: 'wrong', water: 'water',
+    cleared: 'win', lost: 'lose', record: 'record', click: 'click', pause: 'pause'
   };
   function sfx(name) { audio.play(SFX[name] || name); }
   function unlockAudio() { audio.unlock(); }

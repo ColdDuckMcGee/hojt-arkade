@@ -50,8 +50,8 @@
   var audio = ArkadeAudio.create({ sfx: arkade.get('sound'), music: arkade.get('music') });
   // Lydene kommer fra det fælles lydmodul (alle rolige). Billard bruger disse navne:
   var SFX = {
-    aim: 'move', power: 'move', shoot: 'bonusSpawn', pot: 'eat', foul: 'obstacle', frame: 'bonus',
-    stopped: 'click', lost: 'crash', record: 'record', click: 'click', pause: 'pause', blocked: 'click', cpu: 'bonusGone'
+    aim: 'turn', power: 'tick', shoot: 'hit', pot: 'drop', foul: 'wrong', frame: 'win',
+    stopped: 'tick', lost: 'lose', record: 'record', click: 'click', pause: 'pause', blocked: 'wrong', cpu: 'select'
   };
   function sfx(name) { audio.play(SFX[name] || name); }
   function unlockAudio() { audio.unlock(); }

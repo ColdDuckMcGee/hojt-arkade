@@ -34,7 +34,7 @@
   var dwell = ArkadeDwell.create({ enabled: arkade.get('dwell'), timeMs: arkade.get('dwellTime') * 1000 });
   var audio = ArkadeAudio.create({ sfx: arkade.get('sound'), music: arkade.get('music') });
   // Lydene kommer fra det fælles lydmodul. Labyrinten bruger disse navne:
-  var SFX = { move: 'move', dot: 'eat', pellet: 'bonus', guard: 'bonusSpawn', frightEnd: 'bonusGone', caught: 'crash', cleared: 'bonus', record: 'record', click: 'click', pause: 'pause', bump: 'obstacle' };
+  var SFX = { move: 'step', dot: 'eat', pellet: 'bonus', guard: 'coin', frightEnd: 'bonusGone', caught: 'lose', cleared: 'levelUp', record: 'record', click: 'click', pause: 'pause', bump: 'wrong' };
   function sfx(name) { audio.play(SFX[name] || name); }
 
   function unlockAudio() { audio.unlock(); }

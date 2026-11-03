@@ -36,8 +36,8 @@
   var audio = ArkadeAudio.create({ sfx: arkade.get('sound'), music: arkade.get('music') });
   // Lydene kommer fra det fælles lydmodul. Bomberne bruger disse navne:
   var SFX = {
-    step: 'move', bomb: 'obstacle', tick: 'click', boom: 'crash', enemy: 'eat', pickup: 'bonusSpawn',
-    door: 'bonusSpawn', lifeLost: 'bonusGone', cleared: 'bonus', record: 'record', click: 'click', pause: 'pause', undo: 'bonusGone'
+    step: 'step', bomb: 'place', tick: 'tick', boom: 'explode', enemy: 'hit', pickup: 'coin',
+    door: 'door', lifeLost: 'lose', cleared: 'levelUp', record: 'record', click: 'click', pause: 'pause', undo: 'bonusGone'
   };
   function sfx(name) { audio.play(SFX[name] || name); }
 

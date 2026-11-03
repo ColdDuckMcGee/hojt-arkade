@@ -100,7 +100,7 @@
 
   // Musik fra det fælles lydmodul, spillets egne lyde fra js/lyd.js
   var audio = ArkadeAudio.create({ sfx: false, music: arkade.get('music') });
-  var lyd = KabaleLyd.create({ sfx: arkade.get('sound'), lyde: KabaleTema.lyde });
+  var lyd = KabaleLyd.create({ sfx: arkade.get('sound'), lyde: KabaleTema.lyde, volume: window.ArkadeAudio && ArkadeAudio.lydStyrke ? ArkadeAudio.lydStyrke() : 1 });
   function sfx(name, n) { lyd.play(name, n); }
   function unlockAudio() { audio.unlock(); lyd.unlock(); }
   document.addEventListener('pointerdown', unlockAudio, true);

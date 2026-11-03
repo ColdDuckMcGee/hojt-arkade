@@ -47,8 +47,8 @@
   var audio = ArkadeAudio.create({ sfx: arkade.get('sound'), music: arkade.get('music') });
   // Lydene kommer fra det fælles lydmodul. Blokke bruger disse navne:
   var SFX = {
-    pick: 'click', cell: 'move', bad: 'obstacle', place: 'eat', lines: 'bonus', combo: 'record', newSet: 'bonusSpawn',
-    undo: 'bonusGone', stuck: 'bonusGone', record: 'record', click: 'click', pause: 'pause'
+    pick: 'select', cell: 'tick', bad: 'wrong', place: 'place', lines: 'line', combo: 'levelUp', newSet: 'bonusSpawn',
+    undo: 'bonusGone', stuck: 'lose', record: 'record', click: 'click', pause: 'pause'
   };
   function sfx(name) { audio.play(SFX[name] || name); }
   function unlockAudio() { audio.unlock(); }

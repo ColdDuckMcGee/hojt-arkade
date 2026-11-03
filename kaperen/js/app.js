@@ -53,7 +53,7 @@
   var audio = ArkadeAudio.create({ sfx: arkade.get('sound'), music: arkade.get('music') });
   function volumeSetting() {
     var v = arkade.all().volume;
-    if (typeof v !== 'number' || isNaN(v)) return 1;
+    if (typeof v !== 'number' || isNaN(v)) return window.ArkadeAudio && ArkadeAudio.lydStyrke ? ArkadeAudio.lydStyrke() : 1;
     return v > 1 ? v / 100 : v;
   }
   var lyd = KaperenLyd.create({ sfx: arkade.get('sound'), volume: volumeSetting() });

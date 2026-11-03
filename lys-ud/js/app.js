@@ -45,7 +45,7 @@
   var audio = ArkadeAudio.create({ sfx: arkade.get('sound'), music: arkade.get('music') });
   // Lydene kommer fra det fælles lydmodul (alle rolige). Lys ud bruger disse navne:
   var SFX = {
-    tap: 'move', undo: 'bonusGone', restart: 'bonusGone', tip: 'bonusSpawn', solved: 'bonus',
+    tap: 'flip', undo: 'bonusGone', restart: 'bonusGone', tip: 'bonusSpawn', solved: 'win',
     record: 'record', click: 'click', pause: 'pause'
   };
   function sfx(name) { audio.play(SFX[name] || name); }

@@ -41,8 +41,8 @@
   var dwell = ArkadeDwell.create({ enabled: arkade.get('dwell'), timeMs: arkade.get('dwellTime') * 1000 });
   var audio = ArkadeAudio.create({ sfx: arkade.get('sound'), music: arkade.get('music') });
   var SFX = {
-    side: 'move', up: 'bonusSpawn', down: 'move', hop: 'move', dyk: 'move', bliv: 'click', coin: 'eat', hit: 'crash',
-    lifeLost: 'bonusGone', record: 'record', click: 'click', pause: 'pause', over: 'obstacle'
+    side: 'swap', up: 'jump', down: 'move', hop: 'jump', dyk: 'move', bliv: 'tick', coin: 'coin', hit: 'crash',
+    lifeLost: 'lose', record: 'record', click: 'click', pause: 'pause', over: 'lose'
   };
   function sfx(name) { audio.play(SFX[name] || name); }
   function unlockAudio() { audio.unlock(); }

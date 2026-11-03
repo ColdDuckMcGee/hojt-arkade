@@ -47,8 +47,8 @@
   var audio = ArkadeAudio.create({ sfx: arkade.get('sound'), music: arkade.get('music') });
   // Lydene kommer fra det fælles lydmodul (alle rolige). Pixelgåder bruger disse navne:
   var SFX = {
-    fill: 'move', cross: 'click', erase: 'bonusGone', error: 'obstacle', line: 'eat', tip: 'bonusSpawn',
-    solved: 'bonus', lost: 'crash', record: 'record', click: 'click', pause: 'pause'
+    fill: 'place', cross: 'tick', erase: 'bonusGone', error: 'wrong', line: 'line', tip: 'bonusSpawn',
+    solved: 'win', lost: 'lose', record: 'record', click: 'click', pause: 'pause'
   };
   function sfx(name) { audio.play(SFX[name] || name); }
   function unlockAudio() { audio.unlock(); }

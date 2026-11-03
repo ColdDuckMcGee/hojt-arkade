@@ -36,8 +36,8 @@
   var audio = ArkadeAudio.create({ sfx: arkade.get('sound'), music: arkade.get('music') });
   // Lydene kommer fra det fælles lydmodul. Frøen bruger disse navne:
   var SFX = {
-    hop: 'move', wait: 'click', splash: 'obstacle', car: 'crash', edge: 'obstacle', hole: 'eat',
-    lifeLost: 'bonusGone', cleared: 'bonus', record: 'record', click: 'click', pause: 'pause'
+    hop: 'jump', wait: 'tick', splash: 'splash', car: 'crash', edge: 'wrong', hole: 'coin',
+    lifeLost: 'lose', cleared: 'levelUp', record: 'record', click: 'click', pause: 'pause'
   };
   function sfx(name) { audio.play(SFX[name] || name); }
 

@@ -68,8 +68,8 @@
   var audio = ArkadeAudio.create({ sfx: arkade.get('sound'), music: arkade.get('music') });
   // Lydene kommer fra det fælles lydmodul (alle rolige). Sudoku bruger disse navne:
   var SFX = {
-    place: 'eat', note: 'move', erase: 'bonusGone', error: 'obstacle', unit: 'bonusSpawn', tip: 'bonusSpawn',
-    zoom: 'move', solved: 'bonus', record: 'record', click: 'click', pause: 'pause', undo: 'bonusGone'
+    place: 'place', note: 'tick', erase: 'bonusGone', error: 'wrong', unit: 'line', tip: 'bonusSpawn',
+    zoom: 'select', solved: 'win', record: 'record', click: 'click', pause: 'pause', undo: 'turn'
   };
   function sfx(name) { audio.play(SFX[name] || name); }
   function unlockAudio() { audio.unlock(); }

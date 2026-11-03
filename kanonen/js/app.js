@@ -43,7 +43,7 @@
   var view = KanonenRender.create($('#field'));
   var doed = KanonenDoed.create($('#fx'));   // dødseffekten (pixelblokke over hele skærmen)
   // Lydene kommer fra det fælles lydmodul. Kanonen bruger disse navne:
-  var SFX = { fall: 'obstacle', fire: 'obstacle', impact: 'crash', hit: 'eat', win: 'bonus', bomb: 'bonusSpawn', granat: 'bonusGone', record: 'record', click: 'click', step: 'click', pause: 'pause', turn: 'move' };
+  var SFX = { fall: 'drop', fire: 'shoot', impact: 'explode', hit: 'hit', win: 'win', bomb: 'bonusSpawn', granat: 'bonusGone', record: 'record', click: 'click', step: 'step', pause: 'pause', turn: 'turn' };
   function sfx(name) { audio.play(SFX[name] || name); }
 
   function unlockAudio() { audio.unlock(); }

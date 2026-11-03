@@ -40,9 +40,9 @@
   var audio = ArkadeAudio.create({ sfx: arkade.get('sound'), music: arkade.get('music') });
   // Lydene kommer fra det fælles lydmodul. Bobler bruger disse navne:
   var SFX = {
-    turn: 'click', shoot: 'move', bounce: 'click', land: 'obstacle', pop: 'eat', fall: 'bonusSpawn',
-    ceiling: 'bonusGone', cleared: 'bonus', over: 'crash', record: 'record', click: 'click', pause: 'pause',
-    swap: 'click', undo: 'bonusGone', bomb: 'obstacle', kombo: 'bonus'
+    turn: 'turn', shoot: 'shoot', bounce: 'bounce', land: 'place', pop: 'pop', fall: 'drop',
+    ceiling: 'door', cleared: 'levelUp', over: 'lose', record: 'record', click: 'click', pause: 'pause',
+    swap: 'swap', undo: 'bonusGone', bomb: 'explode', kombo: 'win'
   };
   function sfx(name) { audio.play(SFX[name] || name); }
 

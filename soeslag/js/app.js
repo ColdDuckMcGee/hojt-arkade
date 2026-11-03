@@ -50,9 +50,9 @@
   var audio = ArkadeAudio.create({ sfx: arkade.get('sound'), music: arkade.get('music') });
   // Lydene kommer fra det fælles lydmodul. Søslag bruger disse navne:
   var SFX = {
-    aim: 'move', fire: 'click', miss: 'bonusGone', hit: 'eat', sunk: 'bonus', aiTurn: 'bonusSpawn',
-    aiMiss: 'bonusGone', aiHit: 'obstacle', aiSunk: 'crash', win: 'record', lose: 'crash',
-    pick: 'click', place: 'eat', bad: 'obstacle', shuffle: 'bonusSpawn', click: 'click', pause: 'pause', record: 'record'
+    aim: 'tick', fire: 'shoot', miss: 'splash', hit: 'hit', sunk: 'explode', aiTurn: 'select',
+    aiMiss: 'splash', aiHit: 'hit', aiSunk: 'explode', win: 'win', lose: 'lose',
+    pick: 'select', place: 'place', bad: 'wrong', shuffle: 'shuffle', click: 'click', pause: 'pause', record: 'record'
   };
   function sfx(name) { audio.play(SFX[name] || name); }
   function unlockAudio() { audio.unlock(); }

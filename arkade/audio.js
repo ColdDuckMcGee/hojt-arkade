@@ -449,5 +449,7 @@
     };
   }
 
-  global.ArkadeAudio = { create: create, NUMRE: NUMRE, SPIL_NUMRE: SPIL_NUMRE, PAKKER: PAKKER, spilNavn: spilNavn };
+  // Lydeffekternes styrke (0,5 / 1 / 1,45) til spil med egne lyde (js/lyd.js)
+  function lydStyrke() { return STYRKE[prefs().lydStyrke] || 1; }
+  global.ArkadeAudio = { create: create, NUMRE: NUMRE, SPIL_NUMRE: SPIL_NUMRE, PAKKER: PAKKER, spilNavn: spilNavn, lydStyrke: lydStyrke };
 })(window);

@@ -33,7 +33,7 @@
   var dwell = ArkadeDwell.create({ enabled: arkade.get('dwell'), timeMs: arkade.get('dwellTime') * 1000 });
   var audio = ArkadeAudio.create({ sfx: arkade.get('sound'), music: arkade.get('music') });
   // Lydene kommer fra det fælles lydmodul. Minestryger bruger disse navne:
-  var SFX = { open: 'move', area: 'eat', flag: 'bonusSpawn', unflag: 'bonusGone', boom: 'crash', rewind: 'obstacle', cleared: 'bonus', record: 'record', click: 'click', pause: 'pause' };
+  var SFX = { open: 'flip', area: 'line', flag: 'place', unflag: 'tick', boom: 'explode', rewind: 'obstacle', cleared: 'win', record: 'record', click: 'click', pause: 'pause' };
   function sfx(name) { audio.play(SFX[name] || name); }
 
   function unlockAudio() { audio.unlock(); }

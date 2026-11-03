@@ -38,8 +38,8 @@
   var dwell = ArkadeDwell.create({ enabled: arkade.get('dwell'), timeMs: arkade.get('dwellTime') * 1000 });
   var audio = ArkadeAudio.create({ sfx: arkade.get('sound'), music: arkade.get('music') });
   // Lydene kommer fra det fælles lydmodul. Kasser bruger disse navne:
-  var SFX = { move: 'move', push: 'move', goal: 'eat', solved: 'bonus', bump: 'obstacle', stuck: 'bonusGone',
-              undo: 'click', restart: 'pause', record: 'record', click: 'click', pause: 'pause' };
+  var SFX = { move: 'step', push: 'place', goal: 'coin', solved: 'win', bump: 'wrong', stuck: 'lose',
+              undo: 'turn', restart: 'pause', record: 'record', click: 'click', pause: 'pause' };
   function sfx(name) { audio.play(SFX[name] || name); }
   function unlockAudio() { audio.unlock(); }
   document.addEventListener('pointerdown', unlockAudio, true);

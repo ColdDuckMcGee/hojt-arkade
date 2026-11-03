@@ -51,8 +51,8 @@
   var audio = ArkadeAudio.create({ sfx: arkade.get('sound'), music: arkade.get('music') });
   // Lydene kommer fra det fælles lydmodul (alle rolige). Juveler bruger disse navne:
   var SFX = {
-    select: 'click', swap: 'move', match: 'eat', chain: 'bonus', earn: 'bonusSpawn', invalid: 'obstacle',
-    tip: 'bonusSpawn', over: 'crash', record: 'record', click: 'click', pause: 'pause'
+    select: 'select', swap: 'swap', match: 'pop', chain: 'line', earn: 'coin', invalid: 'wrong',
+    tip: 'bonusSpawn', over: 'lose', record: 'record', click: 'click', pause: 'pause'
   };
   function sfx(name) { audio.play(SFX[name] || name); }
   function unlockAudio() { audio.unlock(); }

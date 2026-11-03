@@ -75,7 +75,7 @@
   // Fælles lydstyrke, hvis arkaden får en (0–1 eller 0–100). Ellers fuld styrke (systemets lydstyrke gælder).
   function volumeSetting() {
     var v = arkade.all().volume;
-    if (typeof v !== 'number' || isNaN(v)) return 1;
+    if (typeof v !== 'number' || isNaN(v)) return window.ArkadeAudio && ArkadeAudio.lydStyrke ? ArkadeAudio.lydStyrke() : 1;
     return v > 1 ? v / 100 : v;
   }
   function sfx(name, n) { if (LYD[name]) lyd.play(LYD[name], n); else audio.play(SFX[name] || name); }

@@ -50,8 +50,8 @@
   var audio = ArkadeAudio.create({ sfx: arkade.get('sound'), music: arkade.get('music') });
   // Lydene kommer fra det fælles lydmodul (alle rolige). Golf bruger disse navne:
   var SFX = {
-    aim: 'move', power: 'move', strike: 'bonusSpawn', holed: 'bonus', water: 'obstacle',
-    stopped: 'click', lost: 'crash', record: 'record', click: 'click', pause: 'pause', blocked: 'click'
+    aim: 'turn', power: 'tick', strike: 'hit', holed: 'win', water: 'splash',
+    stopped: 'tick', lost: 'lose', record: 'record', click: 'click', pause: 'pause', blocked: 'wrong'
   };
   function sfx(name) { audio.play(SFX[name] || name); }
   function unlockAudio() { audio.unlock(); }

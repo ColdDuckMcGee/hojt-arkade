@@ -44,8 +44,8 @@
   var audio = ArkadeAudio.create({ sfx: arkade.get('sound'), music: arkade.get('music') });
   // Lydene kommer fra det fælles lydmodul (alle rolige). Fire på stribe bruger disse navne:
   var SFX = {
-    you: 'move', cpu: 'click', undo: 'bonusGone', tip: 'bonusSpawn', win: 'bonus', draw: 'bonusSpawn',
-    loss: 'crash', record: 'record', click: 'click', pause: 'pause'
+    you: 'drop', cpu: 'drop', undo: 'bonusGone', tip: 'bonusSpawn', win: 'win', draw: 'bonusSpawn',
+    loss: 'lose', record: 'record', click: 'click', pause: 'pause'
   };
   function sfx(name) { audio.play(SFX[name] || name); }
   function unlockAudio() { audio.unlock(); }

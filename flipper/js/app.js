@@ -77,11 +77,11 @@
   var audio = ArkadeAudio.create({ sfx: arkade.get('sound'), music: arkade.get('music') });
   // Lydene kommer fra det fælles lydmodul. Flipper bruger disse navne:
   var SFX = {
-    flipper: 'move', bumper: 'eat', sling: 'click', target: 'bonusSpawn', targetLit: 'click', lights: 'bonus',
-    loop: 'bonus', drain: 'crash', extra: 'record', freeze: 'pause', launch: 'move', record: 'record',
-    ramp: 'bonus', spinner: 'click', hole: 'bonusSpawn', drop: 'eat', dropBank: 'bonus',
+    flipper: 'hit', bumper: 'bounce', sling: 'hit', target: 'bonusSpawn', targetLit: 'tick', lights: 'bonus',
+    loop: 'bonus', drain: 'lose', extra: 'record', freeze: 'pause', launch: 'shoot', record: 'record',
+    ramp: 'bonus', spinner: 'tick', hole: 'drop', drop: 'drop', dropBank: 'line',
     rollover: 'bonusSpawn', rolloverLit: 'click', mission: 'record', jackpot: 'record',
-    click: 'click', pause: 'pause', over: 'bonusGone'
+    click: 'click', pause: 'pause', over: 'lose'
   };
   var lastSfx = {};
   function sfx(name) {

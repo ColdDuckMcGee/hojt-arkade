@@ -57,7 +57,7 @@
   var lyd = KaelderLyd.create({ sfx: arkade.get('sound'), volume: volumeSetting(), lyde: KaelderTema.lyde });
   function volumeSetting() {
     var v = arkade.all().volume;
-    if (typeof v !== 'number' || isNaN(v)) return 1;
+    if (typeof v !== 'number' || isNaN(v)) return window.ArkadeAudio && ArkadeAudio.lydStyrke ? ArkadeAudio.lydStyrke() : 1;
     return v > 1 ? v / 100 : v;
   }
   function sfx(name, n) { if (lyd.has(name)) lyd.play(name, n); else audio.play(SFX[name] || name); }

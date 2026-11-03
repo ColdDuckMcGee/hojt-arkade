@@ -66,8 +66,8 @@
 
   var audio = ArkadeAudio.create({ sfx: arkade.get('sound'), music: arkade.get('music') });
   var SFX = {
-    build: 'bonusSpawn', upgrade: 'bonus', sell: 'bonusGone', kill: 'eat', leak: 'obstacle',
-    wave: 'move', waveDone: 'bonus', lost: 'crash', record: 'record', click: 'click', pause: 'pause', blocked: 'click'
+    build: 'place', upgrade: 'levelUp', sell: 'coin', kill: 'eat', leak: 'wrong',
+    wave: 'move', waveDone: 'bonus', lost: 'lose', record: 'record', click: 'click', pause: 'pause', blocked: 'wrong'
   };
   // Spillets egne lyde (js/lyd.js). De fælles lyde (klik, pause, rekord) og musikken kommer fra arkaden.
   var lyd = TaarneneLyd.create({ sfx: arkade.get('sound'), volume: volumeSetting() });
@@ -79,7 +79,7 @@
   // Lydeffekter til/fra, så lydstyrken er fuld, og det er systemets lydstyrke, der gælder.
   function volumeSetting() {
     var v = arkade.all().volume;
-    if (typeof v !== 'number' || isNaN(v)) return 1;
+    if (typeof v !== 'number' || isNaN(v)) return window.ArkadeAudio && ArkadeAudio.lydStyrke ? ArkadeAudio.lydStyrke() : 1;
     return v > 1 ? v / 100 : v;
   }
   function sfx(name, n) { if (LYD[name]) lyd.play(LYD[name], n); else audio.play(SFX[name] || name); }
