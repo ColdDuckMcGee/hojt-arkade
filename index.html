@@ -225,17 +225,30 @@
 
   <section class="tab-panel panel" id="panel-lyd" data-panel="lyd" role="tabpanel" hidden>
     <div class="setting">
-      <div class="setting-label" id="lbl-sfx">Lydeffekter<small>Klik og små lyde</small></div>
+      <div class="setting-label" id="lbl-sfx">Lydeffekter<small>Klik og små lyde – fra eller hvor kraftige</small></div>
       <div class="row" role="group" aria-labelledby="lbl-sfx">
-        <button class="btn option" data-set="sound" data-value="false"><span class="big">Fra</span></button>
-        <button class="btn option" data-set="sound" data-value="true"><span class="big">Til</span></button>
+        <button class="btn option" data-niveau="sound" data-value="fra"><span class="big">Fra</span></button>
+        <button class="btn option" data-niveau="sound" data-value="lav"><span class="big">Lav</span></button>
+        <button class="btn option" data-niveau="sound" data-value="mellem"><span class="big">Mellem</span></button>
+        <button class="btn option" data-niveau="sound" data-value="hoej"><span class="big">Høj</span></button>
       </div>
     </div>
     <div class="setting">
-      <div class="setting-label" id="lbl-musik">Musik<small>Rolig synthwave</small></div>
+      <div class="setting-label" id="lbl-musik">Musik<small>Hvert spil har sit eget nummer</small></div>
       <div class="row" role="group" aria-labelledby="lbl-musik">
-        <button class="btn option" data-set="music" data-value="false"><span class="big">Fra</span></button>
-        <button class="btn option" data-set="music" data-value="true"><span class="big">Til</span></button>
+        <button class="btn option" data-niveau="music" data-value="fra"><span class="big">Fra</span></button>
+        <button class="btn option" data-niveau="music" data-value="lav"><span class="big">Lav</span></button>
+        <button class="btn option" data-niveau="music" data-value="mellem"><span class="big">Mellem</span></button>
+        <button class="btn option" data-niveau="music" data-value="hoej"><span class="big">Høj</span></button>
+      </div>
+    </div>
+    <div class="setting">
+      <div class="setting-label" id="lbl-lydpakke">Lydenes klang<small>Følg stil, eller vælg selv</small></div>
+      <div class="row" role="group" aria-labelledby="lbl-lydpakke">
+        <button class="btn option" data-set="lydpakke" data-value="stil"><span class="big">Følg stil</span></button>
+        <button class="btn option" data-set="lydpakke" data-value="neon"><span class="big">Neon</span></button>
+        <button class="btn option" data-set="lydpakke" data-value="tegneserie"><span class="big">Tegne&shy;serie</span></button>
+        <button class="btn option" data-set="lydpakke" data-value="pixel"><span class="big">Pixel</span></button>
       </div>
     </div>
   </section>

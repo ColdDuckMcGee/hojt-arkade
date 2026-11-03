@@ -45,7 +45,7 @@
 
   // ---------- Indstillinger (fælles for alle spil) ----------
   var arkade = ArkadeSettings.create('arkade', {
-    begraensEffekter: false, stil: 'neon',
+    begraensEffekter: false, stil: 'neon', lydpakke: 'stil', musikStyrke: 'mellem', lydStyrke: 'mellem',
     dwell: false, dwellTime: 1.2, blikSigte: true, theme: 'neon', background: 'mork', animation: true, sound: true, music: true
   });
   var hal = ArkadeSettings.create('hal', { valgt: '' });
@@ -577,6 +577,11 @@
       var cur = arkade.get(b.dataset.set);
       b.setAttribute('aria-pressed', String(String(cur) === b.dataset.value));
     });
+    // Lyd og musik: Fra eller en styrke (to indstillinger i én række)
+    $$('#indstillinger [data-niveau]').forEach(function (b) {
+      var k = b.dataset.niveau, on = arkade.get(k), st = arkade.get(k === 'sound' ? 'lydStyrke' : 'musikStyrke');
+      b.setAttribute('aria-pressed', String(b.dataset.value === (on ? st : 'fra')));
+    });
     $('#styring-navn').textContent = STYRING_NAVN[styring.get('valg')] || 'Ikke valgt';
     var t = arkade.get('dwellTime');
     $('#dwell-value').textContent = fmtSeconds(t);
@@ -590,6 +595,15 @@
     b.addEventListener('click', function () {
       var v = b.dataset.value;
       arkade.set(b.dataset.set, v === 'true' ? true : v === 'false' ? false : v);
+      audio.play('click');
+    });
+  });
+  $$('#indstillinger [data-niveau]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var k = b.dataset.niveau, v = b.dataset.value;
+      if (v !== 'fra') arkade.set(k === 'sound' ? 'lydStyrke' : 'musikStyrke', v);
+      arkade.set(k, v !== 'fra');
+      syncSettings();
       audio.play('click');
     });
   });
@@ -607,6 +621,9 @@
     if (key === 'music') { audio.unlock(); audio.setMusic(value); }
     if (key === 'theme') applyTheme(); if (key === 'begraensEffekter') { ArkadeEffekter.anvend(value); applyTheme(); }
     if (key === 'background') applyBackground();
+    if (key === 'lydpakke') { audio.setPakke(value); audio.play('bonus'); }
+    if (key === 'musikStyrke') audio.setVolume({ musik: value });
+    if (key === 'lydStyrke') { audio.setVolume({ lyd: value }); audio.play('bonus'); }
     if (key === 'animation') applyAnimation();
     if (key === 'stil') {   // ny stil: siden genindlæses og vender tilbage til Indstillinger → Udseende
       try { if (current !== 'velkomst') sessionStorage.setItem('hojtArkade.efterStil', '1'); } catch (e) { /* ignore */ }
