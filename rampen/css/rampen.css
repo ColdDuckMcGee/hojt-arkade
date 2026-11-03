@@ -332,3 +332,4 @@ ol.records .score { white-space: nowrap; }
 .rampen-lille .ctl4 .kort-titel { font-size: 0.88rem; }
 .rampen-lille .ctl4 .kort-felt { font-size: 0.85rem; }
 .rampen-lille .ctl4 .kort-effekt, .rampen-lille .ctl4 .kort-skade { font-size: 0.72rem; line-height: 1.12; }
+.valg-kort.kort-kort .kort-effekt { display: none; }

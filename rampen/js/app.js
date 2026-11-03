@@ -360,6 +360,14 @@
       b.setAttribute('aria-label', kortAria(k, i));
     });
   }
+  // Et smalt kort (mobil på højkant) har ikke plads til forklaringen: den skjules, men står stadig i aria-label og i hjælpen
+  function tilpasKort() {
+    $$('#kort-liste .valg-kort').forEach(function (b) {
+      b.classList.remove('kort-kort');
+      if (b.hidden || !b.offsetParent) return;
+      if (b.scrollHeight > b.clientHeight + 2) b.classList.add('kort-kort');
+    });
+  }
   function decide(valg) {
     if (!can('freeze') || !opts) return;
     var id = valg === true ? 'boost' : valg === false ? 'vent' : valg;
@@ -613,7 +621,7 @@
       $('#freeze-label').textContent = 'Vælg et kort';
       $('#freeze-value').textContent = 'udsyn ' + Math.round(game.effStats().udsyn) + ' m';
     }
-    renderCards();
+    renderCards(); tilpasKort();
     $('#fly-value').textContent = fastNow ? 'Hurtig' : 'Rolig';
     $('#btn-speed-label').textContent = fastNow ? 'Roligere' : 'Hurtigere';
     $('#btn-speed').setAttribute('aria-pressed', String(fastNow));
@@ -944,6 +952,7 @@
       f = { w: f.w * (lay === 'below' ? 1 : 0.97), h: f.h * 0.96 };
       applyLayout(lay, b, f, res);
     }
+    tilpasKort();
     $$('#game .overlay').forEach(function (o) { if (!o.hidden) fitScreen(o); });
     if (tegn.animating && lastCar) { /* næste billede tegnes med den nye størrelse */ } else renderCourse();
   }

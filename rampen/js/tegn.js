@@ -247,7 +247,11 @@
     }
     function groundY() { return cssH * 0.86; }
     // Tæt kamera under kørsel og flyvning: fast zoom, så bilen er stor og tydelig
-    function zoomK() { return Math.max(28, Math.min(cssW / 20, cssH / 9.5)); }
+    // På en høj (næsten kvadratisk) bane er der plads i højden, så kameraet går lidt tættere på
+    function zoomK() {
+      var hoej = Math.max(0, Math.min(1, (cssH / Math.max(1, cssW) - 0.6) / 0.3));
+      return Math.max(28, Math.min(cssW / (20 - 4 * hoej), cssH / 9.5));
+    }
     // Kamera, der følger bilen. Tæt zoom; når bilen kommer højt op, zoomer det lidt
     // ud (højst til 60 % af den tætte zoom), så jorden stadig kan ses, og derefter
     // følger det med op (jorden glider ud forneden). Zoomen er en jævn funktion af
