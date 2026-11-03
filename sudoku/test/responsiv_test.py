@@ -282,6 +282,7 @@ with sync_playwright() as p:
             pg.evaluate("Sudoku.show('menu')"); pg.click('#btn-hall'); pg.wait_for_timeout(500)
             if not pg.url.endswith('/index.html') or '/sudoku/' in pg.url: fails.append(tag + ' Tilbage til hallen gik til ' + pg.url)
             else:
+                pg.evaluate("localStorage.setItem('hojtArkade.styring.indstillinger', JSON.stringify({ valg: 'mus' }))")  # ellers vises opsætningen ved første besøg
                 pg.goto(HALL + '?spil=sudoku'); pg.wait_for_timeout(1200)
                 if SHOT: pg.screenshot(path=SHOT + 'hallen.png')
                 act = pg.evaluate("""() => { const g = (window.HOJT_SPIL || []).find(g => g.sti === 'sudoku/');

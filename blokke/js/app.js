@@ -89,7 +89,7 @@
     if (key === 'music') { audio.unlock(); audio.setMusic(value); }
     syncSettingsUi();
   });
-  bset.onChange(function (key) { if (key === 'hoverPreview') { syncSettingsUi(); hoverIdx = -1; render(); } });
+  bset.onChange(function (key) { if (key === 'hoverPreview') { syncSettingsUi(); hoverIdx = -1; renderBoard(); } });
 
   // ---------- Skærme ----------
   var current = 'menu';

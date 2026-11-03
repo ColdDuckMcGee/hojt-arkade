@@ -607,20 +607,6 @@
   }
 
   // ---------- Rekorder ----------
-  var recMode = 'stigende';
-  function openRecords(m) { recMode = m; syncRecords(); show('records'); }
-  function syncRecords() {
-    $$('#records [data-rec-mode]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.recMode === recMode)); });
-    $('#rec-title').textContent = 'Rekorder – ' + modeName(recMode);
-    renderRecordList($('#rec-list'), recMode, null);
-    if (current === 'records') fitScreen($('#records'));
-  }
-  $$('#records [data-rec-mode]').forEach(function (b) {
-    b.addEventListener('click', function () { sfx('click'); recMode = b.dataset.recMode; syncRecords(); });
-  });
-  $('#btn-records-back').addEventListener('click', function () { sfx('click'); show('menu'); });
-
-  // ---------- Rekorder ----------
   var recMode = 'let';
   function openRecords(m) { recMode = m; syncRecords(); show('records'); }
   function syncRecords() {

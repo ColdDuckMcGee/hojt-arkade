@@ -444,16 +444,11 @@
   }
   function lukBunke() { $('#bunke-overlay').hidden = true; releaseGuard(); }
   $('#btn-bunke-luk').addEventListener('click', function () { sfx('klik'); lukBunke(); setNote('', ''); refresh(); });
-  function pickCollapsed(col, n) {
+  function pickCollapsed(col) {
     if (!live()) return;
-    visBunke(col); return;
-    var p = game.state.t[col], best = -1;
-    for (var i = p.d; i <= Math.min(p.c.length - 1, p.d + n); i++) {
-      if (game.targets({ k: 't', col: col, idx: i }).length) { best = i; break; }
-    }
-    if (best < 0) best = p.d;
-    if (p.c[best] !== undefined) pickCard(p.c[best]);
+    visBunke(col);
   }
+
   // Øverste kort i en bunke (bunkens eneste klikbare flade): vælg bunken. Kan kun ét kort
   // (eller én række) flyttes, vælges det. Kan flere, foldes bunken ud, så man vælger hvilket.
   function columnCands(c) {

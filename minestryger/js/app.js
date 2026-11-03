@@ -253,36 +253,43 @@
   // Et utilsigtet blik på et felt kan ramme en mine. Én gang pr. plade kan man fortryde:
   // så får man livet tilbage, og minen bliver liggende afsløret (man får ikke et nyt gæt).
   var UNDO_PER_PLATE = 1;
+  // Spillet gemmes med det samme, når en mine rammes (også midt i eksplosionen), og med
+  // run.mineSpoerg, så Fortsæt stiller spørgsmålet igen. Ellers kunne man lukke siden under
+  // eksplosionen og slippe for at miste livet.
   function hitMine(i) {
     run.lives--;
+    var last = run.lives <= 0;
+    if (last) run.over = true;
+    run.mineSpoerg = true;
+    fortsaet.gemNu();
     refresh();
     sfx('boom');
     var calm = !animationOn();
     var ex = board.explode(i, calm);
-    var last = run.lives <= 0;
-    if (last) run.over = true;
     function rewind() {
       sfx('rewind');
       return ex.rewind().then(function () { refresh(); board.focusCursor(); });
     }
-    function proceed() {
-      if (!last) { rewind(); return; }
-      ex.end();
-      gameOver();
-    }
     ex.done.then(function () { return wait(calm ? (last ? 500 : 300) : (last ? 900 : 550)); }).then(function () {
-      if (!run || !(run.undoLeft > 0) || !window.ArkadeBekraeft) { proceed(); return; }
-      ArkadeBekraeft.spoerg({
+      mineSpoergsmaal(function () { if (!run.over) { rewind(); return; } ex.end(); gameOver(); }, rewind);
+    });
+  }
+  // Spørg, om minen var et uheld (én fortryd pr. plade). videre(): livet er tabt; fortryd(): visuelt tilbage.
+  function mineSpoergsmaal(videre, tilbage) {
+    var last = !!run.over;
+    function proceed() { delete run.mineSpoerg; fortsaet.gemNu(); videre(); }
+    if (!run || !(run.undoLeft > 0) || !window.ArkadeBekraeft) { proceed(); return; }
+    ArkadeBekraeft.spoerg({
         titel: 'Du ramte en mine',
         tekst: 'Var det et uheld? Du kan fortryde én gang på hver plade. Så får du livet tilbage, og minen bliver liggende afsløret.',
         nej: 'Fortryd', nejLille: 'få livet tilbage',
         ja: last ? 'Se resultat' : 'Fortsæt', jaLille: last ? 'spillet er slut' : livesText(run.lives) + ' tilbage',
         onNej: function () {
-          run.undoLeft--; run.lives++; run.over = false; last = false;
-          rewind();
+          run.undoLeft--; run.lives++; run.over = false; delete run.mineSpoerg;
+          fortsaet.gemNu();
+          tilbage();
         },
         onJa: proceed
-      });
     });
   }
   function livesText(n) { return n === 1 ? '1 liv' : n + ' liv'; }
@@ -336,7 +343,8 @@
   var fortsaet = ArkadeFortsaet.create({
     spil: 'minestryger',
     gem: function () {
-      return run && plate && !run.over && !board.busy && !plate.state.cleared && $('#clear-overlay').hidden
+      // Midt i en eksplosion gemmes den logiske tilstand (livet er allerede trukket, run.mineSpoerg er sat)
+      return run && plate && (!run.over || run.mineSpoerg) && !plate.state.cleared && $('#clear-overlay').hidden && (!board.busy || run.mineSpoerg)
         ? { run: run, plate: plate.state, mode: mode } : null;
     },
     info: function (d) { return (d.run.dag ? 'Dagens · ' : '') + 'Plade ' + d.run.plateNo + ' · ' + d.run.score + ' point'; },
@@ -357,6 +365,8 @@
       show('game');
       refresh();
       board.focusCursor();
+      // Lukket midt i en mine: stil spørgsmålet igen (uden eksplosion)
+      if (run.mineSpoerg) mineSpoergsmaal(function () { if (run.over) gameOver(); else refresh(); }, function () { refresh(); });
     }
   });
   ArkadeDagens.knap({

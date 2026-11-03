@@ -15,7 +15,7 @@ from playwright.sync_api import sync_playwright
 
 ROD = 'file://' + os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')) + '/'
 SPIL = {
-    'slangen': {'klik': 25}, 'minestryger': {'klik': 20}, 'sudoku': {'klik': 40}, 'golf': {'klik': 8, 'vent': 4000},
+    'slangen': {'klik': 25}, 'minestryger': {'klik': 20, 'pause': 1800}, 'sudoku': {'klik': 40}, 'golf': {'klik': 8, 'vent': 4000},
     'muren': {'klik': 8, 'vent': 5000}, 'blokke': {'klik': 30}, 'kaelderen': {'klik': 25, 'vent': 900},
 }
 UNDGAA = '#btn-pause, .pause-btn, [id*="quit"], [id*="afslut"], [id*="hallen"], .js-fullscreen, [id*="settings"], [id*="indstil"], [id*="menu"], a[href], [id*="tip"], [id*="hint"]'
