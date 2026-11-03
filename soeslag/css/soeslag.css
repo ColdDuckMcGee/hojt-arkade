@@ -544,3 +544,8 @@ html[data-stil="pixel"] .cell.aim .gh { border-radius: 0; box-shadow: none; }
 .overlay.skift-overlay { background: var(--bg, #0a0414); }
 html[data-stil="tegneserie"] .overlay.skift-overlay { background: var(--papir, #fff4cc); }
 html[data-stil="pixel"] .overlay.skift-overlay { background: var(--nat, #0b1026); }
+.compact .mini-title { max-width: calc(var(--mini-cell, 20px) * var(--n, 8) + 8px); white-space: normal; text-align: center; line-height: 1.1; }
+/* Side-layout: panelet er smalt, så de fire tal står to og to (der er plads i højden ved siden af Pause) */
+.lay-side.compact .hud-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 6px; }
+.lay-side.compact .hud { padding: 2px 6px; }
+.lay-side.compact .hud-value { font-size: clamp(1.1rem, calc(var(--btn) * 0.22), 1.8rem); line-height: 1.05; }

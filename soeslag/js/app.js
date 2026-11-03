@@ -1001,6 +1001,14 @@
     if (qbtnEls.length) applyZoom(zoomShown, zoomQOn);
   }
   function sideH(el) { return el.scrollHeight; }
+  // Panelet er bredt nok, når knapperne har deres fulde størrelse, og ingen tekst løber ud af sin boks
+  function panelRoom(R, b) {
+    return $$('.btn, .hud', R).every(function (e) {
+      if (!e.offsetParent) return true;
+      if (e.scrollWidth > e.clientWidth + 1 || e.scrollHeight > e.clientHeight + 2) return false;
+      return !e.classList.contains('btn') || Math.min(e.offsetWidth, e.offsetHeight) >= Math.min(b, 84) - 0.5;
+    });
+  }
   // Prøv ét layout med knapstørrelse b. Giver feltstørrelsen, eller 0 hvis siderne ikke kan være der.
   function tryLayout(lay, b, v, n) {
     var d = spacing(v.W, v.H), p = d.p, g = d.g, W = v.W - 2 * p, H = v.H - 2 * p;
@@ -1029,7 +1037,7 @@
       for (var k2 = 0; k2 < 12 && panelW <= W * 0.62; k2++) {
         extra.panelW = panelW; extra.mini = Math.min(b * 1.25, panelW * 0.4) / n;
         setVars(lay, b, 40, v, n, extra);
-        if (sideH(L) + sideH(R) + g <= H) { fit = true; break; }
+        if (sideH(L) + sideH(R) + g <= H && panelRoom(R, b)) { fit = true; break; }
         panelW = Math.round(panelW + Math.max(24, b * 0.5));
       }
       if (!fit) return null;
@@ -1075,6 +1083,15 @@
     if (!res) res = { lay: 'below', b: SMALL_MIN, cell: 16, extra: { panelW: v.W - 16, mini: 8 } };
     var cell = res.cell;
     setVars(res.lay, res.b, cell, v, n, res.extra);
+    // Side-layout: med de endelige felter kan panelet stadig være for smalt til knapperne. Så gøres det bredere
+    if (res.lay === 'side') {
+      var d = spacing(v.W, v.H), W = v.W - 2 * d.p, R = $('.side-right', gridEl), Lf = $('.side-left', gridEl);
+      for (var w = 0; w < 12 && !(panelRoom(R, res.b) && panelRoom(Lf, res.b)) && res.extra.panelW < W * 0.62; w++) {
+        res.extra.panelW = Math.round(res.extra.panelW + Math.max(16, res.b * 0.25));
+        cell = Math.min(cell, Math.floor((W - res.extra.panelW - d.g - FRAME) / (n + 0.36)));
+        setVars(res.lay, res.b, cell, v, n, res.extra);
+      }
+    }
     // Sikkerhedsnet: passer det ikke helt, bliver felterne lidt mindre
     for (var t = 0; t < 40 && (overflows(gameEl) || overflows(root)) && cell > 16; t++) {
       cell = Math.max(16, Math.floor(cell * 0.97));
