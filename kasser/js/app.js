@@ -614,9 +614,57 @@
       return cr.top < r.top - 1 || cr.bottom > r.bottom + 1 || cr.left < r.left - 1 || cr.right > r.right + 1;
     });
   }
+  // Indstillinger: passer en fane ikke på én skærm, fordeles dens indstillinger på sider
+  var trin = { sider: [], idx: 0 };
+  function trinVis(i) {
+    trin.idx = Math.max(0, Math.min(trin.sider.length - 1, i));
+    trin.sider.forEach(function (s, k) { s.forEach(function (e) { e.classList.toggle('trin-skjult', k !== trin.idx); }); });
+    $('#trin-label').textContent = 'Side ' + (trin.idx + 1) + ' af ' + trin.sider.length;
+    $('#btn-trin-prev').disabled = trin.idx === 0;
+    $('#btn-trin-next').disabled = trin.idx === trin.sider.length - 1;
+  }
+  function trinNulstil() {
+    $$('#settings .tab-panel > *').forEach(function (e) { e.classList.remove('trin-skjult'); });
+    $('#settings-trin').hidden = true; trin.sider = [];
+  }
+  function trinFordel(el, keep) {
+    var blokke = $$('#settings .tab-panel:not([hidden]) > *'), was = keep ? trin.idx : 0, cur = [];
+    // På en bred, lav skærm står Forrige/Næste i rækken med fanerne (der er ikke højde til en række mere)
+    var nav = $('#settings-trin'), tvaers = window.innerWidth > window.innerHeight * 1.4;
+    var vaert = tvaers ? $('#settings .tabs') : el;
+    if (nav.parentNode !== vaert) vaert.appendChild(nav);
+    nav.classList.toggle('i-faner', tvaers);
+    nav.hidden = false; $('#trin-label').textContent = 'Side 1 af 2';
+    blokke.forEach(function (b) { b.classList.add('trin-skjult'); });
+    trin.sider = [];
+    blokke.forEach(function (b) {
+      b.classList.remove('trin-skjult');
+      if (cur.length && overflows(el)) {
+        b.classList.add('trin-skjult'); cur.forEach(function (c) { c.classList.add('trin-skjult'); });
+        trin.sider.push(cur); cur = [b]; b.classList.remove('trin-skjult');
+      } else cur.push(b);
+    });
+    if (cur.length) trin.sider.push(cur);
+    if (trin.sider.length < 2) { trinNulstil(); return; }
+    trinVis(was);
+  }
+  $('#btn-trin-prev').addEventListener('click', function () { sfx('click'); trinVis(trin.idx - 1); });
+  $('#btn-trin-next').addEventListener('click', function () { sfx('click'); trinVis(trin.idx + 1); });
+  var trinFane = null;
   function fitScreen() {
     var el = $('#' + current);
     if (!el) return;
+    if (current === 'settings') {
+      var keep = trinFane === settingsTab && trin.sider.length > 1;
+      trinNulstil(); trinFane = settingsTab;
+      fitScreenIndhold(el);
+      if (!overflows(el)) return;
+      applyScale(Math.min(1, 84 / baseSizes().btn), true);   // knapper på 84 px (det mindste), så der bliver færrest sider
+      trinFordel(el, keep);
+    }
+    fitScreenIndhold(el);
+  }
+  function fitScreenIndhold(el) {
     var targets = [el].concat($$('.overlay', el).filter(function (o) { return !o.hidden; }));
     var tries = [];
     var minScale = Math.min(1, 3 * CM / baseSizes().btn);

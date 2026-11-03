@@ -192,6 +192,13 @@
     <button class="btn option tab" data-tab="lyd" role="tab"><span class="big">Lyd</span></button>
   </div>
 
+  <!-- Forrige/Næste, når en fane ikke kan være på én skærm (fx Udseende på en mobil) -->
+  <div class="row trin-nav" id="settings-trin" hidden>
+    <button class="btn trin-prev" id="btn-trin-prev" aria-label="Forrige side"><span class="icon" aria-hidden="true">‹</span><span class="big">Forrige</span></button>
+    <span class="trin-label" id="trin-label" aria-live="polite"></span>
+    <button class="btn trin-next" id="btn-trin-next" aria-label="Næste side"><span class="icon" aria-hidden="true">›</span><span class="big">Næste</span></button>
+  </div>
+
   <section class="tab-panel" data-panel="styring">
     <div class="setting">
       <div class="setting-label">Kigge-klik<small>Kig på en knap for at vælge den</small></div>

@@ -132,6 +132,13 @@ html, body { height: 100%; height: 100dvh; }
 
 /* ---------- Indstillinger ---------- */
 #settings { justify-content: flex-start; gap: calc(var(--gap) * 0.7); }
+#settings-trin { order: 10; align-items: center; justify-content: center; flex-wrap: nowrap; }
+#settings-trin .btn .icon { font-size: 2.2rem; }
+#settings-trin.i-faner { display: contents; }
+#settings-trin.i-faner[hidden] { display: none; }
+@media (max-width: 699px), (max-height: 559px) { #settings-trin .btn .big { display: none; } #settings-trin .btn { min-width: var(--btn); } }
+.trin-skjult { display: none !important; }
+.trin-label { min-width: 6em; text-align: center; font-weight: 700; }
 .tab-panel { display: flex; flex-direction: column; gap: calc(var(--gap) * 0.6); align-items: stretch; width: min(1100px, 100%); }
 .setting { display: grid; grid-template-columns: minmax(8em, 13em) 1fr; align-items: center; gap: calc(var(--gap) * 0.7); }
 .setting-label { font-size: 1.35rem; font-weight: 700; display: flex; flex-direction: column; text-shadow: var(--ks-text-shadow); }

@@ -400,3 +400,10 @@ html[data-stil="pixel"] {
   --fl-left: #29adff; --fl-right: #ff77a8; --fl-both: #ffec27; --fl-none: #a77bff; --fl-upper: #ffa300; --fl-launch: #00e436; --fl-lost: #ff004d;
 }
 html[data-stil="pixel"] #board { --k: #fff1e8; border-radius: 0; box-shadow: var(--pixelkant); }
+
+/* Game over, rekord-siden på små skærme: tættere rækker, så knapperne kan blive 84 px uden zoom */
+.go-split.go-vis-rekorder .go-records { padding-top: 6px; padding-bottom: 6px; }
+.go-split.go-vis-rekorder .go-records .group-label { margin: 0 0 2px; }
+.go-split.go-vis-rekorder ol.records li { padding-top: 1px; padding-bottom: 1px; line-height: 1.25; }
+.go-split.go-vis-rekorder .go-layout { max-width: 100%; min-width: 0; box-sizing: border-box; }
+.go-split.go-vis-rekorder .go-records { max-width: 100%; box-sizing: border-box; }
