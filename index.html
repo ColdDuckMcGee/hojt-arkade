@@ -242,7 +242,9 @@
 </main>
 
 <!-- ================= VELKOMST: HVORDAN STYRER DU? =================
-     Vises første gang i hallen (og fra Indstillinger → Skift styring). Valget huskes
+     Vises første gang i hallen (og fra Indstillinger → Skift styring). Ved første besøg
+     følger to trin mere: stil (trin 3) og effekter efter, hvad computeren kan klare (trin 4).
+     Valget huskes
      i localStorage (hojtArkade.styring) og sætter den fælles kigge-klik-indstilling,
      som alle spil læser. Skærmen kan selv betjenes med mus/touch, kigge-klik (slået
      til her med lang tid), eget øjenstyringsprogram og kontakt/tastatur. -->
@@ -286,6 +288,25 @@
     <button class="btn option valg" data-tid="1.2" data-autofokus><span class="valg-titel">Mellem</span><span class="valg-tekst">1,2 sekund</span></button>
     <button class="btn option valg" data-tid="2"><span class="valg-titel">Lang</span><span class="valg-tekst">2 sekunder</span></button>
     <button class="btn valg" id="velkomst-tilbage"><span class="valg-titel">← Tilbage</span><span class="valg-tekst">Vælg en anden styring</span></button>
+  </div>
+  <div class="velkomst-top" id="velkomst-trin3-top" hidden>
+    <h2 id="velkomst-stil-titel" class="neon-sub">Hvilken stil kan du lide?</h2>
+    <p class="velkomst-hjaelp">Stilen gælder hele arkaden og alle spil. Du kan skifte under Indstillinger.</p>
+  </div>
+  <div class="velkomst-valg tid stil" id="velkomst-trin3" role="group" aria-labelledby="velkomst-stil-titel" hidden>
+    <button class="btn option valg" data-vstil="neon" data-autofokus><span class="stil-prove stil-prove-neon" aria-hidden="true">Aa</span><span class="valg-titel">Neon</span><span class="valg-tekst">Mørk baggrund med lysende farver</span></button>
+    <button class="btn option valg" data-vstil="tegneserie"><span class="stil-prove stil-prove-tegneserie" aria-hidden="true">Aa</span><span class="valg-titel">Tegneserie</span><span class="valg-tekst">Tykke streger og klare farver</span></button>
+    <button class="btn option valg" data-vstil="pixel"><span class="stil-prove stil-prove-pixel" aria-hidden="true">Aa</span><span class="valg-titel">Retro-pixel</span><span class="valg-tekst">Firkantet som gamle spil</span></button>
+    <button class="btn valg" id="velkomst-tilbage3"><span class="valg-titel">← Tilbage</span><span class="valg-tekst">Vælg en anden styring</span></button>
+  </div>
+  <div class="velkomst-top" id="velkomst-trin4-top" hidden>
+    <h2 id="velkomst-eff-titel" class="neon-sub">Hvad kan din computer klare?</h2>
+    <p class="velkomst-hjaelp" id="velkomst-eff-hjaelp">Begrænsede effekter gør spillene hurtigere på langsomme computere. Du kan ændre det under Indstillinger.</p>
+  </div>
+  <div class="velkomst-valg tid eff" id="velkomst-trin4" role="group" aria-labelledby="velkomst-eff-titel" hidden>
+    <button class="btn option valg" data-veff="fulde"><span class="valg-titel">Fulde effekter</span><span class="valg-tekst">Glød og levende baggrund</span><span class="valg-anbefalet" hidden>Anbefalet til din computer</span></button>
+    <button class="btn option valg" data-veff="begraensede"><span class="valg-titel">Begrænsede effekter</span><span class="valg-tekst">Ingen glød og stille baggrund – hurtigere</span><span class="valg-anbefalet" hidden>Anbefalet til din computer</span></button>
+    <button class="btn valg" id="velkomst-tilbage4"><span class="valg-titel">← Tilbage</span><span class="valg-tekst">Vælg en anden stil</span></button>
   </div>
 </main>
 

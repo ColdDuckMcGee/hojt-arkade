@@ -609,7 +609,7 @@
     if (key === 'background') applyBackground();
     if (key === 'animation') applyAnimation();
     if (key === 'stil') {   // ny stil: siden genindlæses og vender tilbage til Indstillinger → Udseende
-      try { sessionStorage.setItem('hojtArkade.efterStil', '1'); } catch (e) { /* ignore */ }
+      try { if (current !== 'velkomst') sessionStorage.setItem('hojtArkade.efterStil', '1'); } catch (e) { /* ignore */ }
       ArkadeStil.skift(value); return;
     }
     syncSettings();
@@ -656,7 +656,7 @@
   var STYRING_NAVN = { mus: 'Mus eller touch', kigge: 'Øjenstyring med kigge-klik',
     eget: 'Øjenstyring med mit eget program', kontakt: 'Kontakt eller tastatur' };
   var VELKOMST_DWELL_MS = 2000;
-  var velkomstFra = null, beskedTimer = null;
+  var velkomstFra = null, beskedTimer = null, velkomstNu = 0;
   function besked(tekst, ms) {
     var el = $('#hal-besked');
     el.textContent = tekst; el.hidden = false;
@@ -664,8 +664,14 @@
     beskedTimer = setTimeout(function () { el.hidden = true; }, ms || 6000);
   }
   function velkomstTrin(n) {
+    velkomstNu = n;
     $('#velkomst-trin1-top').hidden = $('#velkomst-trin1').hidden = $('#velkomst-tobii').hidden = n !== 1;
     $('#velkomst-trin2-top').hidden = $('#velkomst-trin2').hidden = n !== 2;
+    $('#velkomst-trin3-top').hidden = $('#velkomst-trin3').hidden = n !== 3;
+    $('#velkomst-trin4-top').hidden = $('#velkomst-trin4').hidden = n !== 4;
+    var st = ArkadeStil.stil();
+    $$('#velkomst [data-vstil]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-vstil') === st)); });
+    if (n === 4) anbefalEffekter();
     var v = styring.get('valg'), t = arkade.get('dwellTime');
     $$('#velkomst [data-styring]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-styring') === v)); });
     var naer = null;
@@ -699,7 +705,7 @@
     var tilbageTil = velkomstFra;
     velkomstFra = null;
     if (tilbageTil) { syncSettings(); show(tilbageTil, $('#btn-skift-styring')); }
-    else show('hal', spilBtn);
+    else { velkomstTrin(3); return; }   // første besøg: videre til stil og effekter
     besked('Styring: ' + STYRING_NAVN[v] + (v === 'kigge' ? ' (' + fmtSeconds(arkade.get('dwellTime')) + ')' : '') +
       '. Du kan skifte under Indstillinger.');
   }
@@ -714,13 +720,72 @@
     b.addEventListener('click', function () { vaelgStyring('kigge', parseFloat(b.getAttribute('data-tid'))); });
   });
   $('#velkomst-tilbage').addEventListener('click', function () { audio.play('click'); velkomstTrin(1); });
+
+  // ---------- Første besøg: stil (trin 3) og effekter (trin 4) ----------
+  // En ny stil kræver, at siden genindlæses; opsætningen fortsætter så på trin 4 i den nye stil.
+  var VELKOMST_TRIN = 'hojtArkade.velkomstTrin';
+  $$('#velkomst [data-vstil]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var v = b.getAttribute('data-vstil');
+      audio.play('click');
+      if (v === ArkadeStil.stil()) { velkomstTrin(4); return; }
+      try { sessionStorage.setItem(VELKOMST_TRIN, '4'); } catch (e) { /* ignore */ }
+      arkade.set('stil', v);   // genindlæser siden (se onChange)
+    });
+  });
+  $('#velkomst-tilbage3').addEventListener('click', function () { audio.play('click'); velkomstTrin(1); });
+  $('#velkomst-tilbage4').addEventListener('click', function () { audio.play('click'); velkomstTrin(3); });
+  // Anbefaling: begrænsede effekter, hvis browseren tegner uden grafikkort, eller hvis
+  // baggrunden lige nu tegnes langsomt (målt i ca. 1,5 sekund, mens trinnet står fremme)
+  var maalerId = 0;
+  function visAnbefaling(v) {
+    $$('#velkomst [data-veff]').forEach(function (b) { $('.valg-anbefalet', b).hidden = b.getAttribute('data-veff') !== v; });
+    $('#velkomst-eff-hjaelp').textContent = (v === 'begraensede' ? 'Din computer ser ud til at have det svært med de fulde effekter. ' :
+      'Din computer ser ud til at kunne klare de fulde effekter. ') + 'Du kan ændre det under Indstillinger.';
+    // Det anbefalede valg er markeret (og har fokus, når trinnet vises)
+    $$('#velkomst [data-veff]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-veff') === v)); });
+  }
+  function anbefalEffekter() {
+    var gpuMangler = !!(window.ArkadeEffekterForslag && ArkadeEffekterForslag.utenGrafikkort());
+    visAnbefaling(gpuMangler || arkade.get('begraensEffekter') ? 'begraensede' : 'fulde');
+    if (gpuMangler || !window.requestAnimationFrame) return;
+    var id = ++maalerId, t0 = 0, sidst = 0, lange = 0, alle = 0;
+    function trin(t) {
+      if (id !== maalerId || velkomstNu !== 4 || current !== 'velkomst') return;
+      if (!t0) { t0 = sidst = t; requestAnimationFrame(trin); return; }
+      alle++; if (t - sidst > 45) lange++;
+      sidst = t;
+      if (t - t0 < 1500) { requestAnimationFrame(trin); return; }
+      if (alle && lange / alle > 0.3) visAnbefaling('begraensede');
+    }
+    requestAnimationFrame(trin);
+  }
+  $$('#velkomst [data-veff]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var begr = b.getAttribute('data-veff') === 'begraensede';
+      audio.play('click');
+      maalerId++;
+      // Opsætningen har spurgt: forslaget om begrænsede effekter skal ikke dukke op lige bagefter
+      try { localStorage.setItem('hojtArkade.effekterForslag', 'opsaetning'); } catch (e) { /* ignore */ }
+      arkade.set('begraensEffekter', begr);
+      velkomstSlut();
+      show('hal', spilBtn);
+      var v = styring.get('valg');
+      besked('Klar! Styring: ' + STYRING_NAVN[v] + (v === 'kigge' ? ' (' + fmtSeconds(arkade.get('dwellTime')) + ')' : '') +
+        ', stil: ' + ({ neon: 'Neon', tegneserie: 'Tegneserie', pixel: 'Retro-pixel' }[ArkadeStil.stil()]) +
+        ', ' + (begr ? 'begrænsede' : 'fulde') + ' effekter. Du kan ændre alt under Indstillinger.', 8000);
+    });
+  });
   $('#btn-skift-styring').addEventListener('click', function () { audio.play('click'); visVelkomst('indstillinger'); });
 
   // ---------- Start ----------
   syncSettings();
   render(false);
   fit();
-  if (!styring.get('valg')) {
+  var fortsaetTrin = null;
+  try { fortsaetTrin = sessionStorage.getItem(VELKOMST_TRIN); sessionStorage.removeItem(VELKOMST_TRIN); } catch (e) { fortsaetTrin = null; }
+  if (fortsaetTrin === '4' && styring.get('valg')) { visVelkomst(null); velkomstTrin(4); }
+  else if (!styring.get('valg')) {
     if (ArkadeDwell.isTdBrowse()) {
       styring.set('valg', 'eget');
       arkade.set('dwell', false);

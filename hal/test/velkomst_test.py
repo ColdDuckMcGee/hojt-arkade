@@ -47,6 +47,13 @@ ST = """() => ({ valg: (JSON.parse(localStorage.getItem('hojtArkade.styring.inds
   fokus: document.activeElement && (document.activeElement.id || document.activeElement.getAttribute('data-styring') || document.activeElement.getAttribute('data-tid') || document.activeElement.tagName),
   styringAttr: document.documentElement.getAttribute('data-styring'), besked: !document.getElementById('hal-besked').hidden,
   tdBoks: !!document.getElementById('arkade-td-besked') })"""
+def faerdig(pg, stil='neon', eff='fulde'):
+    # Første besøg: trin 3 (stil) og trin 4 (effekter) efter styringen
+    if not pg.locator('#velkomst-trin3').is_visible(): return False
+    pg.evaluate("(v) => document.querySelector('#velkomst [data-vstil=' + v + ']').click()", stil); pg.wait_for_timeout(700)
+    if not pg.locator('#velkomst-trin4').is_visible(): return False
+    pg.evaluate("(v) => document.querySelector('#velkomst [data-veff=' + v + ']').click()", eff); pg.wait_for_timeout(300)
+    return True
 def center(pg, sel):
     r = pg.locator(sel).bounding_box(); return r['x'] + r['width'] / 2, r['y'] + r['height'] / 2
 
@@ -63,15 +70,17 @@ with sync_playwright() as p:
         c, pg, errs = ctx(viewport={'width': w, 'height': h})
         pg.goto(HALL); pg.wait_for_timeout(400)
         check(pg.evaluate(ST)['skaerm'] == 'velkomst', '%dx%d: velkomst vises ikke ved første besøg' % (w, h))
-        for trin in (1, 2):
+        for trin in (1, 2, 3, 4):
             if trin == 2: pg.evaluate("document.querySelector('#velkomst [data-styring=kigge]').click()"); pg.wait_for_timeout(200)
+            if trin == 3: pg.evaluate("document.querySelector('[data-tid=\"1.2\"]').click()"); pg.wait_for_timeout(200)
+            if trin == 4: pg.evaluate("document.querySelector('#velkomst [data-vstil=neon]').click()"); pg.wait_for_timeout(300)
             r = pg.evaluate(LAYOUT)
             print('%4dx%-4d trin%d knapper=%d tætte=%d min=%dpx scroll=%s' % (w, h, trin, r['n'], r['tight'], r['min'], r['scroll']))
-            check(r['n'] == (5 if trin == 1 else 4) and r['tight'] == 0 and r['min'] >= 84 and not r['scroll'] and not r['clipped'] and not r['textOut'],
+            check(r['n'] == {1: 5, 2: 4, 3: 4, 4: 3}[trin] and r['tight'] == 0 and r['min'] >= 84 and not r['scroll'] and not r['clipped'] and not r['textOut'],
                   '%dx%d trin %d: %s' % (w, h, trin, json.dumps(r, ensure_ascii=False)))
             if SHOT and (trin == 1 or (w, h) in [(1280, 800), (390, 844)]):
                 pg.mouse.move(2, 2); pg.wait_for_timeout(100)
-                pg.screenshot(path='%s/velkomst%s_%dx%d.png' % (SHOT.rstrip('/'), '' if trin == 1 else '_kiggetid', w, h))
+                pg.screenshot(path='%s/velkomst%s_%dx%d.png' % (SHOT.rstrip('/'), {1: '', 2: '_kiggetid', 3: '_stil', 4: '_effekter'}[trin], w, h))
         check(not errs, '%dx%d konsol: %s' % (w, h, errs))
         c.close()
 
@@ -81,6 +90,9 @@ with sync_playwright() as p:
     s = pg.evaluate(ST)
     check(s['aktiv'] and s['dwellMs'] == 2000, 'kigge-klik er ikke slået til med 2 s på velkomstskærmen: %s' % s)
     pg.click('#velkomst [data-styring=mus]'); pg.wait_for_timeout(300)
+    check(pg.locator('#velkomst-trin3').is_visible() and pg.evaluate(ST)['skaerm'] == 'velkomst', 'Mus: stil-trinnet vises ikke')
+    check(faerdig(pg, 'neon', 'begraensede'), 'Mus: stil og effekter kunne ikke vælges')
+    check(pg.evaluate("HojtHal.settings.get('begraensEffekter')") is True and pg.evaluate("localStorage.getItem('hojtArkade.effekterForslag')") == 'opsaetning', 'Mus: effekter blev ikke gemt')
     s = pg.evaluate(ST)
     check(s['skaerm'] == 'hal' and s['valg'] == 'mus' and not s['dwell'] and not s['aktiv'] and s['besked'], 'Mus: %s' % s)
     pg.reload(); pg.wait_for_timeout(400)
@@ -96,6 +108,13 @@ with sync_playwright() as p:
     pg.wait_for_timeout(1300)
     check(pg.locator('#velkomst-trin2').is_visible(), 'kigge-klik på "Øjenstyring med kigge-klik" viste ikke kigge-tid')
     x, y = center(pg, '[data-tid="2"]'); pg.mouse.move(x - 5, y); pg.mouse.move(x, y); pg.wait_for_timeout(2500)
+    check(pg.locator('#velkomst-trin3').is_visible(), 'Kigge: stil-trinnet vises ikke')
+    x, y = center(pg, '#velkomst [data-vstil=neon]'); pg.mouse.move(x - 5, y); pg.mouse.move(x, y); pg.wait_for_timeout(2500)
+    check(pg.locator('#velkomst-trin4').is_visible(), 'Kigge: effekt-trinnet vises ikke efter kigge-klik på Neon')
+    # Fulde effekter ligger samme sted som Neon: blikket skal først væk (ét blik = én handling)
+    x, y = center(pg, '#velkomst [data-veff=fulde]'); pg.mouse.move(x, y); pg.wait_for_timeout(2500)
+    check(pg.locator('#velkomst-trin4').is_visible(), 'Kigge: samme blik valgte også på trin 4')
+    pg.mouse.move(2, 2); pg.wait_for_timeout(300); pg.mouse.move(x - 5, y); pg.mouse.move(x, y); pg.wait_for_timeout(2500)
     s = pg.evaluate(ST)
     check(s['skaerm'] == 'hal' and s['valg'] == 'kigge' and s['dwell'] and s['tid'] == 2 and s['aktiv'] and s['dwellMs'] == 2000, 'Kigge: %s' % s)
     check(not errs, 'Kigge konsol: %s' % errs)
@@ -117,6 +136,7 @@ with sync_playwright() as p:
     c, pg, errs = ctx(viewport={'width': 1280, 'height': 800})
     pg.goto(HALL); pg.wait_for_timeout(400)
     pg.evaluate("document.querySelector('#velkomst [data-styring=eget]').click()"); pg.wait_for_timeout(300)
+    check(faerdig(pg), 'Eget: stil og effekter')
     s = pg.evaluate(ST)
     check(s['skaerm'] == 'hal' and s['valg'] == 'eget' and not s['dwell'] and not s['aktiv'], 'Eget: %s' % s)
     bad = []
@@ -157,6 +177,10 @@ with sync_playwright() as p:
     pg.keyboard.press('ArrowDown'); pg.keyboard.press('ArrowRight')
     check(pg.evaluate(ST)['fokus'] == 'kontakt', 'pile (ned, højre) nåede ikke "Kontakt eller tastatur": %s' % pg.evaluate(ST)['fokus'])
     pg.keyboard.press('Enter'); pg.wait_for_timeout(300)
+    check(pg.locator('#velkomst-trin3').is_visible() and pg.evaluate("document.activeElement.getAttribute('data-vstil')") == 'neon', 'Kontakt: fokus på stil-trinnet')
+    pg.keyboard.press('Enter'); pg.wait_for_timeout(300)
+    check(pg.locator('#velkomst-trin4').is_visible() and pg.evaluate("!!document.activeElement.getAttribute('data-veff')"), 'Kontakt: fokus på effekt-trinnet')
+    pg.keyboard.press('Enter'); pg.wait_for_timeout(300)
     s = pg.evaluate(ST)
     check(s['skaerm'] == 'hal' and s['valg'] == 'kontakt' and not s['dwell'] and s['fokus'] == 'btn-spil' and s['styringAttr'] == 'kontakt', 'Kontakt: %s' % s)
     ring = pg.evaluate("getComputedStyle(document.activeElement).outlineWidth")
@@ -181,6 +205,7 @@ with sync_playwright() as p:
     c, pg, errs = ctx(viewport={'width': 1366, 'height': 768})
     pg.goto(HALL); pg.wait_for_timeout(400)
     pg.click('#velkomst [data-styring=mus]'); pg.wait_for_timeout(200)
+    faerdig(pg)
     pg.click('#btn-indstillinger'); pg.wait_for_timeout(200)
     check(pg.locator('#styring-navn').inner_text() == 'Mus eller touch', 'Indstillinger viser ikke valget')
     pg.click('#btn-skift-styring'); pg.wait_for_timeout(200)
@@ -195,6 +220,24 @@ with sync_playwright() as p:
     check(s['skaerm'] == 'indstillinger' and s['valg'] == 'kigge' and s['dwell'] and s['tid'] == 0.8 and s['dwellMs'] == 800 and s['fokus'] == 'btn-skift-styring', 'Skift til kigge: %s' % s)
     check(pg.locator('#styring-navn').inner_text() == 'Øjenstyring med kigge-klik', 'navnet i Indstillinger opdateres ikke')
     check(not errs, 'Skift konsol: %s' % errs); c.close()
+
+    # ---------- Ny stil i opsætningen: siden genindlæses i den nye stil og fortsætter på trin 4 ----------
+    c, pg, errs = ctx(viewport={'width': 1280, 'height': 800})
+    pg.goto(HALL); pg.wait_for_timeout(400)
+    pg.click('#velkomst [data-styring=mus]'); pg.wait_for_timeout(200)
+    pg.evaluate("document.querySelector('#velkomst [data-vstil=pixel]').click()"); pg.wait_for_timeout(1200)
+    st = pg.evaluate("[document.documentElement.getAttribute('data-stil'), [...document.querySelectorAll('.screen')].filter(s => !s.hidden).map(s => s.id)[0]]")
+    check(st == ['pixel', 'velkomst'] and pg.locator('#velkomst-trin4').is_visible(), 'Ny stil: %s' % st)
+    check(pg.locator('#velkomst-trin4 .valg-anbefalet:not([hidden])').count() == 1, 'Effekter: én anbefaling vises')
+    pg.click('#velkomst-tilbage4'); pg.wait_for_timeout(200)
+    check(pg.locator('#velkomst-trin3').is_visible() and pg.evaluate("document.querySelector('#velkomst [data-vstil=pixel]').getAttribute('aria-pressed')") == 'true', 'Tilbage til stil: pixel er valgt')
+    pg.evaluate("document.querySelector('#velkomst [data-vstil=pixel]').click()"); pg.wait_for_timeout(300)
+    pg.evaluate("document.querySelector('#velkomst [data-veff=fulde]').click()"); pg.wait_for_timeout(300)
+    s = pg.evaluate(ST)
+    check(s['skaerm'] == 'hal' and pg.evaluate("HojtHal.settings.get('begraensEffekter')") is False, 'Ny stil: færdig i hallen: %s' % s)
+    pg.reload(); pg.wait_for_timeout(500)
+    check(pg.evaluate(ST)['skaerm'] == 'hal' and pg.evaluate("document.documentElement.getAttribute('data-stil')") == 'pixel', 'Ny stil: opsætningen vises igen efter genindlæsning')
+    check(not errs, 'Stil konsol: %s' % errs); c.close()
     b.close()
 
 print('%d tjek, %d fejl' % (n, len(fails)))
