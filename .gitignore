@@ -13,3 +13,4 @@ node_modules/
 screenshots/
 *.zip
 *.log
+__pycache__/
