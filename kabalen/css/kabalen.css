@@ -54,6 +54,21 @@ html, body { height: 100%; height: 100dvh; }
 .overlay.soft { background: var(--ka-overlay-soft); }
 .overlay .panel { display: flex; flex-direction: column; align-items: center; gap: var(--gap); text-align: center; }
 .overlay .panel p { margin: 0; }
+/* Hele bunken (+N): alle åbne kort som store, læselige knapper */
+.bunke-panel { max-width: min(96vw, 900px); }
+.bunke-liste { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 12px; width: 100%; }
+.bunke-kort {
+  min-height: 84px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  background: var(--ka-kort-bg); border: var(--ka-kort-kant-w) solid var(--ka-kort-kant); border-radius: var(--ka-radius-kort);
+  font-family: var(--ka-font-kort); font-weight: var(--ka-weight-kort); font-size: 1.7rem; line-height: 1; cursor: pointer;
+}
+.bunke-kort.rod { color: var(--ka-rod); }
+.bunke-kort.sort { color: var(--ka-sort); }
+.bunke-kort .ks { width: 1.1em; height: 1.1em; }
+.bunke-kort small { font-family: inherit; font-size: .8rem; font-weight: 600; color: var(--ka-sort); opacity: .75; }
+.bunke-kort.kan { border-color: var(--ka-maal); box-shadow: var(--ka-maal-glow); }
+.bunke-kort:disabled { opacity: .55; cursor: default; }
+.bunke-skjult { grid-column: 1 / -1; }
 
 /* ---------- Game over ---------- */
 .go-layout { display: flex; flex-wrap: wrap; gap: calc(var(--gap) * 1.4); align-items: center; justify-content: center; }

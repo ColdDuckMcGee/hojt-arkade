@@ -262,7 +262,7 @@
     });
   }
 
-  var OVERLAYS = ['#pause-overlay', '#done-overlay', '#confirm-overlay', '#stuck-overlay'];
+  var OVERLAYS = ['#pause-overlay', '#done-overlay', '#confirm-overlay', '#stuck-overlay', '#bunke-overlay'];
   function hideOverlays() { OVERLAYS.forEach(function (o) { $(o).hidden = true; }); releaseGuard(); }
   function overlayOpen() { return OVERLAYS.some(function (o) { return !$(o).hidden; }); }
   function confirmOpen() { return !$('#confirm-overlay').hidden; }
@@ -407,8 +407,46 @@
   }
   // "+N": de åbne kort, der er samlet under ét i en lang bunke. Et klik vælger det nederste af
   // dem, der kan flyttes (typisk hele rækken fra kongen), ellers det nederste.
+  // Hele bunken: alle åbne kort fra bunden til toppen som store knapper. Kort, der kan flyttes,
+  // kan vælges; resten står nedtonet, så man kan se, hvad der ligger under.
+  function visBunke(col) {
+    if (!live()) return;
+    var p = game.state.t[col], liste = $('#bunke-liste');
+    sel = null; hintMv = null; expand = null;
+    liste.innerHTML = '';
+    if (p.d) {
+      var sk = document.createElement('p'); sk.className = 'muted bunke-skjult';
+      sk.textContent = p.d === 1 ? 'Under dem ligger 1 kort med bagsiden op.' : 'Under dem ligger ' + p.d + ' kort med bagsiden op.';
+      liste.appendChild(sk);
+    }
+    var foerste = null;
+    for (var i = p.d; i < p.c.length; i++) {
+      var k = p.c[i], kan = game.targets({ k: 't', col: col, idx: i }).length > 0;
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'bunke-kort ' + (L.red(k) ? 'rod' : 'sort') + (kan ? ' kan' : '');
+      b.disabled = !kan;
+      b.innerHTML = '<span>' + L.VAERDI[L.rank(k)] + '</span><svg class="ks" viewBox="0 0 100 100" aria-hidden="true"><use href="#ka-kulor-' + L.KULOR[L.suit(k)] + '"/></svg>' +
+        (kan ? '' : '<small>ligger fast</small>');
+      b.setAttribute('aria-label', cap(cardText(k)) + (kan ? ', kan flyttes' : ', kan ikke flyttes nu') + (i === p.c.length - 1 ? ' (øverst)' : ''));
+      (function (idx) { b.addEventListener('click', function () { lukBunke(); selectSrc({ k: 't', col: col, idx: idx }); }); })(i);
+      liste.appendChild(b);
+      if (kan && !foerste) foerste = b;
+    }
+    $('#bunke-title').textContent = 'Bunke ' + (col + 1);
+    var ov = $('#bunke-overlay');
+    ov.hidden = false;
+    sfx('vaelg');
+    refresh();
+    fitScreen(ov);
+    dwell.reset();
+    guardUnderGaze(ov);
+    (foerste || $('#btn-bunke-luk')).focus({ preventScroll: true });
+  }
+  function lukBunke() { $('#bunke-overlay').hidden = true; releaseGuard(); }
+  $('#btn-bunke-luk').addEventListener('click', function () { sfx('klik'); lukBunke(); setNote('', ''); refresh(); });
   function pickCollapsed(col, n) {
     if (!live()) return;
+    visBunke(col); return;
     var p = game.state.t[col], best = -1;
     for (var i = p.d; i <= Math.min(p.c.length - 1, p.d + n); i++) {
       if (game.targets({ k: 't', col: col, idx: i }).length) { best = i; break; }
@@ -432,7 +470,9 @@
       var t = findTarget({ k: 't', col: c });
       if (t) { moveTo(t); return; }
     }
-    var cands = columnCands(c);
+    var cands = columnCands(c), sm = tegn.collapsed && tegn.collapsed(c);
+    // Lang bunke med samlede kort (+N): vis hele bunken, så kortene under kan ses og vælges
+    if (sm && (cands.length >= 2 || cands.some(function (i) { return i < sm.at; }))) { visBunke(c); return; }
     if (cands.length < 2) { selectSrc({ k: 't', col: c, idx: cands.length ? cands[0] : top }); return; }
     sel = null; hintMv = null;
     expand = { col: c, idx: cands };
@@ -885,6 +925,7 @@
     if (e.altKey || e.ctrlKey || e.metaKey) return;
     if (current !== 'game') return;
     if (confirmOpen()) { if (e.key === 'Escape') { e.preventDefault(); cancelQuit(); } return; }
+    if (!$('#bunke-overlay').hidden) { if (e.key === 'Escape') { e.preventDefault(); lukBunke(); refresh(); } return; }
     if (e.key === 'Escape' && (sel || expand)) { e.preventDefault(); cancelSel(); return; }
     if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') { e.preventDefault(); setPaused(!paused); return; }
     if (overlayOpen()) return;

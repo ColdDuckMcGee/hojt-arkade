@@ -79,6 +79,7 @@
     var nummer = opts.nummer || SPIL_NUMRE[spilNavn()] || 'neon';
     var ctx = null, master, sfxBus, musicBus, delayIn, noiseBuf;
     var timer = null, nextTime = 0, step = 0, unlocked = false;
+    var stoejPos = 0;
     var MUSIK_NIVEAU = 0.5, LYD_NIVEAU = 0.55;
 
     function ensure() {
@@ -101,7 +102,9 @@
       // Hvid støj til trommer, bølger og pop
       noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
       var data = noiseBuf.getChannelData(0);
-      for (var i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+      // Egen generator: lyden må ikke bruge af spillets Math.random (fx et seedet spil i testen)
+      var r = 22222;
+      for (var i = 0; i < data.length; i++) { r = (r * 1103515245 + 12345) & 0x7fffffff; data[i] = r / 0x3fffffff - 1; }
       return ctx;
     }
 
@@ -141,7 +144,8 @@
       else g.gain.setValueAtTime(o.gain || 0.05, t);
       g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
       src.connect(f); f.connect(g); g.connect(dest);
-      src.start(t, Math.random() * 1.5); src.stop(t + dur + 0.02);
+      stoejPos = (stoejPos + 0.37) % 1.5;
+      src.start(t, stoejPos); src.stop(t + dur + 0.02);
     }
 
     // ---------- Lydeffekter ----------

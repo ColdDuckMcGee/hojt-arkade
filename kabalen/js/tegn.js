@@ -79,7 +79,7 @@
   }
 
   function create(boardEl) {
-    var cards = [], slots = {}, badges = {}, built = false, lastPos = {};
+    var cards = [], slots = {}, badges = {}, built = false, lastPos = {}, samlet = [];
     function build() {
       boardEl.innerHTML = '';
       cards = []; slots = {}; badges = {}; lastPos = {};
@@ -245,15 +245,15 @@
           place(sk, to.x + 4, to.y + 3, Math.max(geo.badge, 0), geo.badge - 6);
           sk.style.zIndex = String(30 + p.c.length + 1);
         }
+        samlet[c] = al.collapsed ? { n: al.collapsed, at: al.collapseAt } : null;
         pl.hidden = !al.collapsed; pl.dataset.col = String(c); pl.dataset.n = String(al.collapsed || 0);
-        // "+N" er kun klikbar, når bunken er foldet ud, og et af de samlede kort kan flyttes
-        var plOn = false;
-        if (ex && ex.col === c && al.collapsed) for (i = p.d; i < al.collapseAt; i++) if (exIdx[i]) plOn = true;
+        // "+N" viser hele bunken (alle åbne kort som store knapper), så man kan se og vælge kortene under
+        var plOn = !!al.collapsed;
         if (pl.inert !== !plOn) pl.inert = !plOn;
         pl.tabIndex = plOn && live ? 0 : -1;
         if (plOn && live) { pl.removeAttribute('data-no-dwell'); pl.setAttribute('aria-hidden', 'false'); }
         else { pl.setAttribute('data-no-dwell', ''); pl.setAttribute('aria-hidden', 'true'); }
-        pl.setAttribute('aria-label', 'De ' + (al.collapsed || 0) + ' samlede kort i bunke ' + (c + 1));
+        pl.setAttribute('aria-label', 'Vis hele bunke ' + (c + 1) + ' (' + (al.collapsed || 0) + ' samlede kort)');
         if (al.collapsed) {
           pl.textContent = '+' + al.collapsed;
           var yy = to.y + al.y[al.collapseAt];
@@ -273,7 +273,9 @@
       boardEl.classList.toggle('ingen-glid', !!view.fresh);
       lastPos = pos;
     }
-    return { build: build, render: render, get ready() { return built; }, card: function (k) { return cards[k]; }, slot: function (n) { return slots[n]; } };
+    function collapsed(c) { return samlet[c] || null; }
+    return {
+      collapsed: collapsed, build: build, render: render, get ready() { return built; }, card: function (k) { return cards[k]; }, slot: function (n) { return slots[n]; } };
   }
 
   global.KabaleTegn = { create: create, installerGrafik: installerGrafik, allocate: allocate };

@@ -142,6 +142,18 @@
     </div>
   </div>
 
+  <!-- Hele bunken: vises, når en lang bunke har samlede kort (+N), så man kan se og vælge alle åbne kort -->
+  <div class="overlay soft" id="bunke-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="bunke-title" aria-describedby="bunke-text">
+    <div class="panel bunke-panel">
+      <h2 id="bunke-title" class="neon-sub">Bunke 1</h2>
+      <p class="muted" id="bunke-text">Fra bunden til toppen. Vælg et kort for at flytte det og kortene ovenpå.</p>
+      <div class="bunke-liste" id="bunke-liste"></div>
+      <div class="row">
+        <button class="btn" id="btn-bunke-luk"><span class="icon" aria-hidden="true">←</span><span class="big">Tilbage</span></button>
+      </div>
+    </div>
+  </div>
+
   <div class="overlay" id="confirm-overlay" hidden role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-text">
     <div class="panel">
       <h2 id="confirm-title" class="neon-sub">Vil du give op?</h2>
