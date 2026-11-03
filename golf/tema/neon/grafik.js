@@ -108,6 +108,23 @@
       ctx.restore(); noFx(ctx);
       roundRect(ctx, z.x, z.y, z.w, z.h, s['radius-felt']); kontur(ctx, s);
     },
+    // Vindmåleren: en rund skive med en pil i vindens retning og én vinkel pr. styrke (1–3)
+    vind: function (ctx, v, s) {
+      noFx(ctx);
+      ctx.save(); ctx.translate(v.x, v.y);
+      ctx.fillStyle = s['flade'];
+      ctx.beginPath(); ctx.arc(0, 0, v.r, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+      ctx.strokeStyle = s['flag']; ctx.lineWidth = s['pil-w']; ctx.globalAlpha = 0.6; ctx.stroke(); ctx.globalAlpha = 1;
+      var a = v.dir * Math.PI / 180; ctx.rotate(a);
+      ctx.strokeStyle = s['flag']; ctx.fillStyle = s['flag']; ctx.lineWidth = s['pil-w'] * 1.3; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.beginPath(); ctx.moveTo(-v.r * 0.68, 0); ctx.lineTo(v.r * 0.42, 0); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(v.r * 0.72, 0); ctx.lineTo(v.r * 0.36, -v.r * 0.26); ctx.lineTo(v.r * 0.36, v.r * 0.26); ctx.closePath(); ctx.fill();
+      for (var i = 0; i < v.styrke; i++) {
+        var x = -v.r * 0.6 + i * v.r * 0.26;
+        ctx.beginPath(); ctx.moveTo(x - 7, -11); ctx.lineTo(x + 3, 0); ctx.lineTo(x - 7, 11); ctx.stroke();
+      }
+      ctx.restore();
+    },
     skraaning: function (ctx, z, s) {
       noFx(ctx);
       roundRect(ctx, z.x, z.y, z.w, z.h, s['radius-felt']);

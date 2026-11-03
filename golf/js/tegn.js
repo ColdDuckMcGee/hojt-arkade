@@ -59,6 +59,18 @@
     t.hul(ctx, { x: hole.hul.x, y: hole.hul.y, r: L.RULES.holeR }, s);
     hole.vaegge.forEach(function (w) { if (!w.kant) t.bande(ctx, w, s); });
     t.kant(ctx, b, s);
+    if (hole.vind && hole.vind.styrke > 0 && t.vind) { var vp = vindSted(hole); t.vind(ctx, { x: vp.x, y: vp.y, r: 56, dir: hole.vind.dir, styrke: hole.vind.styrke }, s); }
+  }
+  // Vindmåleren står i det hjørne, der ligger længst fra tee og hul (og helst ikke på sand eller vand)
+  function vindSted(hole) {
+    var m = 72, best = null, bv = -1;
+    [[m, m], [L.W - m, m], [m, L.H - m], [L.W - m, L.H - m]].forEach(function (c) {
+      var p = { x: c[0], y: c[1] };
+      var v = Math.min(Math.hypot(p.x - hole.tee.x, p.y - hole.tee.y), Math.hypot(p.x - hole.hul.x, p.y - hole.hul.y)) + (p.y > L.H / 2 ? 120 : 0);   // helst forneden (beskeden kan stå øverst)
+      hole.sand.concat(hole.vand).forEach(function (z) { if (L.inRect({ x: z.x - 44, y: z.y - 44, w: z.w + 88, h: z.h + 88 }, p.x, p.y)) v -= 300; });
+      if (v > bv) { bv = v; best = p; }
+    });
+    return best;
   }
 
   function create(canvas) {

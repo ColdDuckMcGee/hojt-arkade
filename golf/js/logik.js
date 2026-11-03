@@ -15,6 +15,9 @@
  *   skraaning rektangler med en retning { x, y, w, h, dir }: bolden trækkes svagt
  *             i den retning.
  *   tee, hul  punkter { x, y }.
+ *   vind      { dir, styrke } (fra hul 4, ellers null): et jævnt skub i retningen dir,
+ *             så længe bolden ruller. Styrke 1–3. Svagere end opbremsningen (også
+ *             sammen med en skråning), så bolden altid stopper.
  *
  * Fysikken er deterministisk (fast tidsskridt), så forhåndslinjen viser præcis
  * den bane, bolden vil rulle.
@@ -40,6 +43,9 @@
     friction: 300,          // opbremsning på græs (enheder/s²)
     sandFactor: 4.5,        // sand bremser så mange gange mere
     slopeAccel: 150,        // skråningens træk (mindre end opbremsningen, så bolden altid stopper)
+    windFrom: 4,            // vind fra hul 4
+    windAccel: 30,          // vindens skub pr. styrke (styrke 3 = 90; + skråning 150 < opbremsning 300)
+    windMax: 3,
     restitution: 0.78,      // hvor meget fart bolden beholder i et bandehop
     captureSpeed: 260,      // bolden falder i hul, hvis den passerer hullet langsommere end dette
     dt: 1 / 200,
@@ -95,7 +101,11 @@
     var vx = Math.cos(a) * v, vy = Math.sin(a) * v;
     var path = [{ x: x, y: y, t: 0, d: 0 }], bounces = [];
     var walls = hole.vaegge, len = 0, result = 'stop', step;
+    var wind = hole.vind, wax = 0, way = 0;
+    if (wind && wind.styrke > 0) { wax = Math.cos(rad(wind.dir)) * RULES.windAccel * wind.styrke * dt; way = Math.sin(rad(wind.dir)) * RULES.windAccel * wind.styrke * dt; }
     for (step = 1; step <= RULES.maxSteps; step++) {
+      // Vinden skubber, mens bolden ruller
+      if (step > 1 || v > 0) { vx += wax; vy += way; }
       // Skråning og opbremsning (sand bremser mere)
       var fric = RULES.friction;
       for (var i = 0; i < hole.sand.length; i++) if (inRect(hole.sand[i], x, y)) { fric *= RULES.sandFactor; break; }
@@ -260,7 +270,8 @@
       diagonal: L >= 3,
       sand: L >= 2 ? Math.min(1 + Math.floor((L - 2) / 4), 2) : 0,
       water: L >= 4 ? Math.min(1 + Math.floor((L - 4) / 5), 2) : 0,
-      slope: L >= 6 ? Math.min(1 + Math.floor((L - 6) / 6), 2) : 0
+      slope: L >= 6 ? Math.min(1 + Math.floor((L - 6) / 6), 2) : 0,
+      wind: L >= RULES.windFrom ? Math.min(RULES.windMax, 1 + Math.floor((L - RULES.windFrom) / 4)) : 0
     };
   }
   function generate(level, seed) {
@@ -269,7 +280,7 @@
       if (h) return h;
     }
     // Nødudvej (sker ikke i praksis): en åben bane
-    return finishHole({ level: level, seed: seed, tee: { x: 120, y: 300 }, hul: { x: 880, y: 300 }, vaegge: borders(), sand: [], vand: [], skraaning: [] });
+    return finishHole({ level: level, seed: seed, tee: { x: 120, y: 300 }, hul: { x: 880, y: 300 }, vaegge: borders(), sand: [], vand: [], skraaning: [], vind: null });
   }
   function finishHole(h, ex) {
     var an = analyse(h);
@@ -330,7 +341,7 @@
     var tee = { x: Math.round(rnd(70, 150)), y: Math.round(rnd(90, H - 90)) };
     var hul = { x: Math.round(rnd(820, 920)), y: Math.round(rnd(90, H - 90)) };
     if (flip) { tee.x = W - tee.x; hul.x = W - hul.x; }
-    var hole = { level: level, seed: seed, tee: tee, hul: hul, vaegge: borders(), sand: [], vand: [], skraaning: [] };
+    var hole = { level: level, seed: seed, tee: tee, hul: hul, vaegge: borders(), sand: [], vand: [], skraaning: [], vind: null };
     var keepOut = function (x, y, m) { return Math.hypot(x - tee.x, y - tee.y) < m || Math.hypot(x - hul.x, y - hul.y) < m; };
     // Vægge: lodrette eller skrå stykker i midten, fastgjort til kanten eller frit
     var tries = 0;
@@ -368,6 +379,8 @@
     addZone(hole.sand, p.sand, 90, 180, 60, 140, 45);
     addZone(hole.skraaning, p.slope, 120, 200, 100, 180, 30, function (z) { z.dir = [0, 45, 90, 135, 180, 225, 270, 315][Math.floor(R() * 8)]; });
     if (hole.vaegge.length - 4 < Math.min(p.walls, 1)) return null;
+    // Vinden: en af otte retninger; styrken stiger med hullerne (1–3)
+    if (p.wind) hole.vind = { dir: [0, 45, 90, 135, 180, 225, 270, 315][Math.floor(R() * 8)], styrke: p.wind };
     var an = analyse(hole);
     if (!an) return null;
     // Ikke for nemt: fra hul 3 skal der være mindst ét knæk eller en forhindring på vejen

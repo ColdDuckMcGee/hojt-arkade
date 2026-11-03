@@ -387,12 +387,20 @@
     }
     tegn.draw(s, view);
   }
+  // Vinden set på skærmen (banen kan være drejet på en høj skærm)
+  var PILE = ['↑', '↗', '→', '↘', '↓', '↙', '←', '↖'];
+  var RETN = ['op', 'op mod højre', 'mod højre', 'ned mod højre', 'ned', 'ned mod venstre', 'mod venstre', 'op mod venstre'];
+  function blaeser(s) { return !!(s.hole.vind && s.hole.vind.styrke > 0); }
+  function vindIdx(dir) { return Math.round(tegn.screenAngle(dir) / 45) % 8; }
+  function vindPil(dir) { return PILE[vindIdx(dir)]; }
+  function vindTekst(v) { return 'Vind styrke ' + v.styrke + ' af 3, blæser ' + RETN[vindIdx(v.dir)] + ' på skærmen. Sigtelinjen regner vinden med'; }
   function refresh() {
     if (!run) return;
     if (typeof sigte !== 'undefined') sigte.opdater();
     var s = run.state;
     $('#hud-hole').textContent = s.level;
     $('#hud-par').textContent = 'par ' + s.hole.par;
+    $('#hud-par').closest('.hud').setAttribute('aria-label', 'Hul ' + s.level + ', par ' + s.hole.par + (s.hole.vind && s.hole.vind.styrke ? '. ' + vindTekst(s.hole.vind) : '. Ingen vind'));
     $('#hud-strokes').textContent = s.strokes;
     $('#hud-strokes-sub').textContent = s.penalties ? 'heraf ' + s.penalties + ' straf' : 'på hullet';
  $('#hud-pool-label').textContent = to ? 'Tur' : 'Puljen';
@@ -416,10 +424,11 @@
     }
     $$('i', m).forEach(function (el, k) { el.classList.toggle('on', k < s.power); });
     var hint = $('#hint'), cls = noteCls, txt = lastNote;
-    if (!txt && to) txt = toNavn(to.aktiv) + 's tur – hul ' + s.level + ', par ' + s.hole.par + ', slag ' + (s.strokes + 1) + '.';
+    if (!txt && to) txt = toNavn(to.aktiv) + 's tur – hul ' + s.level + ', par ' + s.hole.par + ', slag ' + (s.strokes + 1) + '.' + (blaeser(s) ? ' Vind ' + s.hole.vind.styrke + ' ' + vindPil(s.hole.vind.dir) + '.' : '');
     if (!txt) {
-      if (s.strokes === 0) txt = 'Hul ' + s.level + ', par ' + s.hole.par + '. Vælg retning og kraft, og slå.';
-      else txt = 'Slag ' + (s.strokes + 1) + ' – ' + (s.pool === 1 ? 'sidste slag i puljen!' : strokesText(s.pool) + ' tilbage i puljen.');
+      if (s.strokes === 0) txt = 'Hul ' + s.level + ', par ' + s.hole.par + '. ' + (blaeser(s) ? 'Vind ' + s.hole.vind.styrke + ' ' + vindPil(s.hole.vind.dir) + '.' : 'Vælg retning og kraft, og slå.');
+      else if (blaeser(s)) txt = 'Vind ' + s.hole.vind.styrke + ' ' + vindPil(s.hole.vind.dir) + ' · ';
+      if (s.strokes > 0) txt = (txt || '') + 'Slag ' + (s.strokes + 1) + ' – ' + (s.pool === 1 ? 'sidste slag i puljen!' : strokesText(s.pool) + ' tilbage i puljen.');
       if (s.strokes > 0 && s.pool === 1) cls = 'err';
     }
     hint.textContent = txt;

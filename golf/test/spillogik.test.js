@@ -223,5 +223,40 @@ test('en hel runde: 15 huller med en simpel spiller (ingen fejl, puljen holder r
   console.log('     (klarede ' + holes + ' huller, ' + s.score + ' point, game over: ' + s.over + ')');
 });
 
+// ---------- Vind ----------
+function open(v) { return { tee: { x: 150, y: 300 }, hul: { x: 990, y: 590 }, vaegge: L.borders(), sand: [], vand: [], skraaning: [], vind: v || null }; }
+test('vind: ingen vind på hul 1–3, vind fra hul 4 med stigende styrke (1–3)', function () {
+  [1, 2, 3].forEach(function (lv) { assert.ok(!L.generate(lv, 11).vind, 'hul ' + lv); });
+  assert.strictEqual(L.plan(4).wind, 1); assert.strictEqual(L.plan(8).wind, 2); assert.strictEqual(L.plan(12).wind, 3); assert.strictEqual(L.plan(40).wind, 3);
+  var h = L.generate(5, 21);
+  assert.ok(h.vind && h.vind.styrke === 1 && h.vind.dir % 45 === 0, JSON.stringify(h.vind));
+  assert.ok(h.expert && h.par >= 2, 'hullet kan klares med vinden');
+});
+test('vind: skubber bolden i vindens retning, mere ved større styrke', function () {
+  var calm = L.simulate(open(), { x: 150, y: 300 }, 0, 5);
+  var y1 = L.simulate(open({ dir: 90, styrke: 1 }), { x: 150, y: 300 }, 0, 5).end.y;
+  var y3 = L.simulate(open({ dir: 90, styrke: 3 }), { x: 150, y: 300 }, 0, 5).end.y;
+  assert.ok(near(calm.end.y, 300, 0.01));
+  assert.ok(y1 > 305 && y3 > y1 + 5, 'nedad: ' + y1 + ' / ' + y3);
+  var med = L.simulate(open({ dir: 0, styrke: 2 }), { x: 150, y: 300 }, 0, 5).end.x, mod = L.simulate(open({ dir: 180, styrke: 2 }), { x: 150, y: 300 }, 0, 5).end.x;
+  assert.ok(med > calm.end.x + 10 && mod < calm.end.x - 10, 'med- og modvind: ' + med + ' / ' + calm.end.x + ' / ' + mod);
+});
+test('vind: bolden stopper altid – også med vind og skråning i samme retning', function () {
+  var h = open({ dir: 0, styrke: 3 });
+  h.skraaning.push({ x: 100, y: 100, w: 800, h: 400, dir: 0 });
+  for (var p = 1; p <= L.RULES.powers; p++) { var r = L.simulate(h, { x: 150, y: 300 }, 0, p); assert.ok(r.path.length < L.RULES.maxSteps, 'kraft ' + p); }
+  assert.ok(L.RULES.windAccel * L.RULES.windMax + L.RULES.slopeAccel < L.RULES.friction);
+});
+test('vind: sigtelinjen passer præcist med slaget', function () {
+  var r = L.createRun({ seed: 77 }), s = r.state;
+  s.level = 9; r._setHole(L.generate(9, 3131));
+  assert.ok(s.hole.vind);
+  for (var a = 0; a < 360; a += 37) {
+    r.setAim(a); r.setPower(1 + a % 10);
+    var pv = r.preview('hel').sim, sim = L.simulate(s.hole, s.ball, s.aim, s.power);
+    assert.ok(near(pv.end.x, sim.end.x, 1e-9) && near(pv.end.y, sim.end.y, 1e-9) && pv.result === sim.result);
+  }
+});
+
 console.log('\n' + (n - failed) + ' af ' + n + ' test bestået');
 process.exit(failed ? 1 : 0);
