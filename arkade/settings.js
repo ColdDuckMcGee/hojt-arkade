@@ -111,3 +111,83 @@
     }
   };
 })(window);
+
+
+/* Statistik: åbner man en side med ?ikketael, tælles den browser ikke med
+ * (localStorage hojtArkade.ikkeTael = '1'). ?taelmig slår tællingen til igen.
+ * Kører også i hallen, som ikke indlæser highscore.js. */
+(function (global) {
+  'use strict';
+  var KEY = 'hojtArkade.ikkeTael';
+  var loc = global.location, doc = global.document;
+  if (!loc) return;
+  var raw = '';
+  try { raw = loc.search || ''; } catch (e) { return; }
+  var dele = raw.replace(/^\?/, '').split('&');
+  function har(navn) {
+    for (var i = 0; i < dele.length; i++) {
+      var n = dele[i].split('+').join(' ').split('=')[0];
+      try { n = decodeURIComponent(n); } catch (e) {}
+      if (n === navn) return true;
+    }
+    return false;
+  }
+  var fra = har('ikketael'), til = har('taelmig');
+  if (!fra && !til) return;
+  try {
+    var LS = global.localStorage;
+    if (fra) LS.setItem(KEY, '1');
+    else LS.removeItem(KEY);
+  } catch (e) {}
+  try {
+    if (global.history && history.replaceState) {
+      var behold = [];
+      for (var j = 0; j < dele.length; j++) {
+        if (!dele[j]) continue;
+        var n2 = dele[j].split('+').join(' ').split('=')[0];
+        try { n2 = decodeURIComponent(n2); } catch (e) {}
+        if (n2 && n2 !== 'ikketael' && n2 !== 'taelmig') behold.push(dele[j]);
+      }
+      var soeg = behold.length ? '?' + behold.join('&') : '';
+      history.replaceState(null, '', loc.pathname + soeg + (loc.hash || ''));
+    }
+  } catch (e) {}
+  function vis(tekst) {
+    if (!doc || !doc.createElement) return;
+    var el = doc.createElement('div');
+    el.id = 'arkade-ikketael';
+    el.setAttribute('role', 'status');
+    el.setAttribute('aria-live', 'polite');
+    el.textContent = tekst;
+    var s = el.style;
+    if (s) {
+      s.position = 'fixed';
+      s.left = '50%';
+      s.top = '12px';
+      s.transform = 'translateX(-50%)';
+      s.zIndex = '2147483646';
+      s.boxSizing = 'border-box';
+      s.maxWidth = 'min(36em, calc(100% - 24px))';
+      s.padding = '10px 16px';
+      s.margin = '0';
+      s.background = 'rgba(12, 6, 18, 0.92)';
+      s.color = '#fff';
+      s.border = '2px solid #22eaff';
+      s.borderRadius = '12px';
+      s.font = '600 1rem/1.35 system-ui, sans-serif';
+      s.textAlign = 'center';
+      s.pointerEvents = 'none';
+      s.boxShadow = '0 4px 20px rgba(0,0,0,0.4)';
+    }
+    function sæt() {
+      if (!doc.body) return;
+      doc.body.appendChild(el);
+      global.setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 4500);
+    }
+    if (doc.body) sæt();
+    else if (doc.addEventListener) doc.addEventListener('DOMContentLoaded', sæt);
+  }
+  vis(fra
+    ? 'Denne browser tælles ikke med i statistikken.'
+    : 'Denne browser tælles med i statistikken igen.');
+})(window);

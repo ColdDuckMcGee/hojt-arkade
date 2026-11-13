@@ -21,7 +21,11 @@ Mappen påvirker ikke GitHub Pages – siden er stadig ren statisk HTML.
 - CORS: kun `https://arkade.hojt.dk`, `http://localhost:*` og `http://127.0.0.1:*`. POST fra andre
   origins afvises.
 - Statistik: kun tællinger pr. dag (starter, færdige spil, samlet varighed, skærmstørrelse afrundet
-  til 10 px, tema). Ingen cookies, ingen id'er, ingen IP.
+  til 10 px, tema). Ingen cookies, ingen id'er, ingen IP. Kun besøg fra `https://arkade.hojt.dk`
+  tælles; lokale sider, automatiske tests (`navigator.webdriver`, HeadlessChrome og lignende bot-UA)
+  og browsere der har åbnet `?ikketael` (gemmes i `localStorage`, slås fra igen med `?taelmig`)
+  sendes ikke eller ignoreres. `POST /event` svarer så `{ok:true, talt:false}` uden at skrive.
+  Highscores påvirkes ikke. CORS til localhost er uændret.
 
 ## Drift
 ```sh

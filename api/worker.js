@@ -111,7 +111,16 @@ async function postScore(req, env) {
   return json(req, { ok: true, placering: p.n + 1, liste: await top(env, b.spil, k, 10) });
 }
 
+// Kun den rigtige side tæller, og automatiske/bot-browsere ignoreres. CORS til
+// localhost er uændret (json() sætter stadig Allow-Origin), så lokal udvikling ikke får fejl.
+export function skalTaelleEvent(origin, ua) {
+  return origin === 'https://arkade.hojt.dk' && !/bot|crawler|spider|headless|playwright|puppeteer|lighthouse/i.test(ua || '');
+}
+
 async function postEvent(req, env) {
+  const origin = req.headers.get('Origin') || '';
+  const ua = req.headers.get('User-Agent') || '';
+  if (!skalTaelleEvent(origin, ua)) return json(req, { ok: true, talt: false });
   const b = await readBody(req);
   if (!b || !Object.prototype.hasOwnProperty.call(SPIL, b.spil) || (b.type !== 'start' && b.type !== 'slut')) return json(req, { ok: false }, 400);
   const d = dag(Date.now());

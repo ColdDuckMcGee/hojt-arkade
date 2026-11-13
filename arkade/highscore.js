@@ -93,8 +93,18 @@
       if (rest.length) setTimeout(sendKoe, 11000);
     }, function () { sender = false; });
   }
+  // Statistik tælles kun for rigtige spillere på arkade.hojt.dk. Automatiske tests
+  // (navigator.webdriver), lokale sider og browsere der har åbnet ?ikketael, sender intet.
+  // Highscores påvirkes ikke (lokal test af verdenslisten virker som før).
+  var K_IKKE_TAEL = 'hojtArkade.ikkeTael';
+  function ikkeTael() {
+    try { if (global.navigator && navigator.webdriver) return true; } catch (e) {}
+    try { if (!global.location || location.hostname !== 'arkade.hojt.dk') return true; } catch (e) { return true; }
+    try { if (LS && LS.getItem(K_IKKE_TAEL) === '1') return true; } catch (e) {}
+    return false;
+  }
   function event(type, extra) {
-    var spil = spilId(); if (!spil || !NET) return;
+    var spil = spilId(); if (!spil || !NET || ikkeTael()) return;
     var body = JSON.stringify(Object.assign({ spil: spil, type: type }, extra || {}));
     try {
       if (global.navigator && navigator.sendBeacon && navigator.sendBeacon(API + '/event', new Blob([body], { type: 'text/plain' }))) return;
